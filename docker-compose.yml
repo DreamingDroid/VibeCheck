@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # The Brain: Database + Vector Store
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: vibecheck_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: vibecheck_db
+      POSTGRES_USER: lead_arch
+      POSTGRES_PASSWORD: password123
+    volumes:
+      - vibecheck_postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U lead_arch -d vibecheck_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # The Intelligence: Local LLM Inference
+  ollama:
+    image: ollama/ollama:latest
+    container_name: vibecheck_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - vibecheck_ollama_data:/root/.ollama
+
+  # The Control Tower: Admin UI (Self-hosted Appsmith)
+  appsmith:
+    image: index.docker.io/appsmith/appsmith-ce
+    container_name: vibecheck_admin
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./vibecheck-admin-stacks:/appsmith-stacks
+    restart: unless-stopped
+
+volumes:
+  vibecheck_postgres_data:
+  vibecheck_ollama_data:
