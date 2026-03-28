@@ -36,7 +36,6 @@ desktop.ini
 
 ### Docker / database
 docker_output.txt
-db/
 vibecheck-admin-stacks/data/
 vibecheck-admin-stacks/logs/
 

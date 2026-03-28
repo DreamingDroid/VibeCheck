@@ -1,4 +1,4 @@
-version: '3.8'
+# version: '3.8' -- removed, obsolete in modern Docker Compose
 
 services:
   # The Brain: Database + Vector Store
@@ -6,7 +6,7 @@ services:
     image: pgvector/pgvector:pg17
     container_name: vibecheck_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_DB: vibecheck_db
       POSTGRES_USER: lead_arch
@@ -19,6 +19,23 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # The API: VibeCheck Node server
+  server:
+    build: ./server
+    container_name: vibecheck_api
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgresql://lead_arch:password123@db:5432/vibecheck_db
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_EMBEDDING_MODEL: mxbai-embed-large
+    ports:
+      - "4001:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_started
 
   # The Intelligence: Local LLM Inference
   ollama:
