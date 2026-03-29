@@ -53,7 +53,7 @@ export default function Dashboard() {
   }, [category]);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-8 animate-in fade-in duration-700">
+    <div className="min-h-screen bg-zinc-950 text-white p-4 sm:p-8 animate-in fade-in duration-700">
       <div className="max-w-6xl mx-auto space-y-8">
         
         {/* Header Section */}
@@ -65,7 +65,7 @@ export default function Dashboard() {
             <p className="text-zinc-400 mt-2">Find your next vibe in Visakhapatnam.</p>
           </div>
           {session && (
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap md:flex-nowrap items-center gap-3 mt-4 md:mt-0">
               <Link href="/admin">
                 <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 text-sm">
                   🛡 Admin

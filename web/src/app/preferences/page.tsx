@@ -81,11 +81,11 @@ export default function PreferencesPage() {
   const isWhatsAppLinked = !!phoneNumber.trim();
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-8">
+    <div className="min-h-screen bg-zinc-950 text-white p-4 sm:p-8">
       <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-800 pb-6 gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
               My Preferences
@@ -93,7 +93,7 @@ export default function PreferencesPage() {
             <p className="text-zinc-400 mt-1 text-sm">Personalise your Vizag Vibes experience.</p>
           </div>
           <Link href="/dashboard">
-            <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+            <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 w-full sm:w-auto mt-2 sm:mt-0">
               ← Back to Events
             </Button>
           </Link>

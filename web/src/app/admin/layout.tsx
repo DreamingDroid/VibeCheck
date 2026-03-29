@@ -41,18 +41,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex">
+    <div className="min-h-screen bg-zinc-950 text-white flex flex-col md:flex-row">
       {/* Sidebar */}
-      <aside className="w-60 bg-zinc-900 border-r border-zinc-800 flex flex-col shrink-0">
+      <aside className="w-full md:w-60 bg-zinc-900 md:border-r border-b md:border-b-0 border-zinc-800 flex flex-col shrink-0">
         <div className="p-6 border-b border-zinc-800">
           <p className="text-xs text-indigo-400 font-semibold tracking-widest uppercase mb-1">Vizag Vibes</p>
           <h2 className="text-lg font-bold text-white">Admin Panel</h2>
           <p className="text-xs text-zinc-500 mt-1 truncate">{session?.user?.email}</p>
         </div>
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 flex flex-row md:flex-col overflow-x-auto md:overflow-visible gap-2 md:gap-0">
           {navItems.map(item => (
             <Link key={item.href} href={item.href}>
-              <div className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer
+              <div className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap
                 ${pathname === item.href
                   ? "bg-indigo-600 text-white"
                   : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
@@ -72,7 +72,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto p-8">
+      <main className="flex-1 overflow-auto p-4 sm:p-8">
         {children}
       </main>
     </div>

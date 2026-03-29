@@ -7,7 +7,7 @@ export default function Home() {
   const { data: session } = useSession()
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-zinc-950 text-white">
+    <main className="flex min-h-screen flex-col items-center justify-center p-6 sm:p-24 bg-zinc-950 text-white">
       <div className="text-center max-w-lg">
         <h1 className="text-4xl font-bold mb-4 tracking-tight">Vizag Vibes</h1>
         <p className="text-zinc-400 mb-8">
