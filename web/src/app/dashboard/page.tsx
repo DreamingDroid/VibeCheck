@@ -27,6 +27,18 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [category, setCategory] = useState("All");
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (session?.user?.email) {
+      fetch(`http://localhost:4000/api/admin/check?email=${encodeURIComponent(session.user.email)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && data.isAdmin) setIsAdmin(true);
+        })
+        .catch(err => console.error("Could not check admin status", err));
+    }
+  }, [session]);
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -66,11 +78,13 @@ export default function Dashboard() {
           </div>
           {session && (
             <div className="flex flex-wrap md:flex-nowrap items-center gap-3 mt-4 md:mt-0">
-              <Link href="/admin">
-                <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 text-sm">
-                  🛡 Admin
-                </Button>
-              </Link>
+              {isAdmin && (
+                <Link href="/admin">
+                  <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 text-sm">
+                    🛡 Admin
+                  </Button>
+                </Link>
+              )}
               <Link href="/preferences">
                 <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 text-sm">
                   ⚙ My Preferences
