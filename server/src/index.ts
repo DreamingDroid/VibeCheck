@@ -11,7 +11,8 @@ import { getEventsHandler } from './events';
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
 import {
   checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler,
-  adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler
+  adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler,
+  adminGetSettingsHandler, adminUpdateSettingsHandler
 } from './admin';
 import { startPushAlertCron } from './cron';
 
@@ -103,6 +104,8 @@ app.post('/api/admin/events', (req, res) => adminCreateEventHandler(req, res, po
 app.put('/api/admin/events/:id', (req, res) => adminUpdateEventHandler(req, res, pool));
 app.delete('/api/admin/events/:id', (req, res) => adminDeleteEventHandler(req, res, pool));
 app.get('/api/admin/analytics', (req, res) => adminAnalyticsHandler(req, res, pool));
+app.get('/api/admin/settings', (req, res) => adminGetSettingsHandler(req, res, pool));
+app.post('/api/admin/settings', (req, res) => adminUpdateSettingsHandler(req, res, pool));
 
 app.listen(port, () => {
   console.log(`[server]: VibeCheck API is running at http://localhost:${port}`);

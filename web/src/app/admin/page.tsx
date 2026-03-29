@@ -17,13 +17,42 @@ type Analytics = {
 export default function AdminPage() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cronEnabled, setCronEnabled] = useState(false);
+  const [updatingCron, setUpdatingCron] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/admin/analytics")
-      .then(r => r.json())
-      .then(data => { if (data.success) setAnalytics(data.data); })
-      .finally(() => setLoading(false));
+    Promise.all([
+      fetch("http://localhost:4000/api/admin/analytics").then(r => r.json()),
+      fetch("http://localhost:4000/api/admin/settings").then(r => r.json())
+    ])
+    .then(([analyticsRes, settingsRes]) => {
+      if (analyticsRes.success) setAnalytics(analyticsRes.data);
+      if (settingsRes.success && settingsRes.data) {
+        const val = settingsRes.data.cron_enabled;
+        setCronEnabled(val === "true" || val === true);
+      }
+    })
+    .finally(() => setLoading(false));
   }, []);
+
+  const toggleCron = async () => {
+    setUpdatingCron(true);
+    const newValue = !cronEnabled;
+    try {
+      const res = await fetch("http://localhost:4000/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "cron_enabled", value: newValue ? "true" : "false" })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCronEnabled(newValue);
+      }
+    } catch (e) {
+      console.error("Failed to update setting", e);
+    }
+    setUpdatingCron(false);
+  };
 
   if (loading) {
     return (
@@ -45,11 +74,26 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
-          Overview
-        </h1>
-        <p className="text-zinc-500 text-sm mt-1">Platform analytics at a glance.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
+            Overview
+          </h1>
+          <p className="text-zinc-500 text-sm mt-1">Platform analytics at a glance.</p>
+        </div>
+        <div className="flex items-center gap-4 bg-zinc-900 border border-zinc-800 px-5 py-3 rounded-xl shadow-lg">
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold text-white mb-0.5">Push Alerts (Cron Job)</span>
+            <span className="text-xs text-zinc-500">Scheduled 9:00 AM IST</span>
+          </div>
+          <button
+            onClick={toggleCron}
+            disabled={updatingCron}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${cronEnabled ? 'bg-emerald-500' : 'bg-zinc-700'} ${updatingCron ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${cronEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+          </button>
+        </div>
       </div>
 
       {/* Stat Cards */}

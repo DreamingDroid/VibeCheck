@@ -114,3 +114,32 @@ export async function adminAnalyticsHandler(req: Request, res: Response, pool: P
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
+
+// Get system settings
+export async function adminGetSettingsHandler(req: Request, res: Response, pool: Pool) {
+  try {
+    const { rows } = await pool.query(`SELECT key, value FROM system_settings`);
+    const settings = rows.reduce((acc, row) => ({ ...acc, [row.key]: row.value }), {});
+    res.json({ success: true, data: settings });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+// Update system setting
+export async function adminUpdateSettingsHandler(req: Request, res: Response, pool: Pool) {
+  const { key, value } = req.body;
+  if (!key || value === undefined) return res.status(400).json({ success: false, error: 'key and value required' });
+  try {
+    // If the table doesn't exist yet, we catch the error, but we already injected it so it should be fine.
+    await pool.query(
+      `INSERT INTO system_settings (key, value) VALUES ($1, $2::jsonb)
+       ON CONFLICT (key) DO UPDATE SET value = $2::jsonb`,
+      [key, JSON.stringify(value)]
+    );
+    res.json({ success: true, message: 'Setting updated' });
+  } catch (error) {
+    console.error('Settings error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}

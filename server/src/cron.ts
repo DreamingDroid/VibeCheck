@@ -20,6 +20,14 @@ export function startPushAlertCron(pool: Pool) {
     }
 
     try {
+      // Step 0: Check if Cron is enabled in settings
+      const { rows: settings } = await pool.query(`SELECT value FROM system_settings WHERE key = 'cron_enabled'`);
+      const isEnabled = settings.length > 0 ? settings[0].value === 'true' : false;
+      
+      if (!isEnabled) {
+        console.log('[Cron] Push alerts are disabled in admin settings. Skipping.');
+        return;
+      }
       // Step 1: Get events added in the last 48 hours
       const { rows: newEvents } = await pool.query(`
         SELECT id, title, category, location, date_time, description
