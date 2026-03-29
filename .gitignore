@@ -1,22 +1,25 @@
-### Node / TypeScript server
+### Node / TypeScript
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.nyc_output/
+*.tsbuildinfo
 
+### Build output
 dist/
 build/
 coverage/
-.nyc_output/
-
-### TypeScript
-*.tsbuildinfo
+.next/
+out/
+.vercel/
 
 ### Environment & secrets
 .env
 .env.*
 !.env.example
+*.pem
 
 ### Logs
 logs/
@@ -28,7 +31,6 @@ logs/
 Thumbs.db
 ehthumbs.db
 desktop.ini
-
 .vscode/
 .idea/
 *.swp
@@ -43,3 +45,4 @@ vibecheck-admin-stacks/logs/
 *.pid
 *.seed
 *.dump
+next-env.d.ts
