@@ -49,64 +49,22 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
       [from]
     );
 
-    // ── NEW USER: Start onboarding ──────────────────────────────────────────
+    let isNewUser = false;
+    // Extract WhatsApp Profile Name from the Meta payload
+    let userName = entry?.contacts?.[0]?.profile?.name ?? 'Friend';
+
+    // ── NEW USER: Silent Onboarding ──────────────────────────────────────────
     if (rows.length === 0) {
+      isNewUser = true;
       await pool.query(
-        `INSERT INTO users (phone_number, preferences)
-         VALUES ($1, jsonb_build_object('onboarding_step', 'awaiting_name'))`,
-        [from]
+        `INSERT INTO users (phone_number, name, preferences)
+         VALUES ($1, $2, '{}'::jsonb)`,
+        [from, userName]
       );
-      await sendWhatsAppMessage(phoneNumberId, from,
-        `👋 Hey there! Welcome to *Vizag Vibes* — your go-to guide for events in Visakhapatnam! 🎉\n\nFirst things first, what's your name?`
-      );
-      return;
-    }
-
-    const user = rows[0];
-    const prefs = user.preferences ?? {};
-    const step: string = prefs.onboarding_step ?? 'complete';
-
-    // ── ONBOARDING: Step 1 — Awaiting name ────────────────────────────────
-    if (step === 'awaiting_name') {
-      const name = msgBody;
-      await pool.query(
-        `UPDATE users SET name = $1,
-          preferences = jsonb_set(preferences, '{onboarding_step}', '"awaiting_categories"')
-         WHERE phone_number = $2`,
-        [name, from]
-      );
-      await sendWhatsAppMessage(phoneNumberId, from,
-        `Nice to meet you, *${name}*! 🙌\n\nWhat kind of events are you into? Reply with the *numbers* of your interests (e.g. _1, 3, 5_):\n\n${CATEGORIES_MENU}\n\nYou can pick multiple!`
-      );
-      return;
-    }
-
-    // ── ONBOARDING: Step 2 — Awaiting categories ───────────────────────────
-    if (step === 'awaiting_categories') {
-      const numbers = msgBody.split(/[\s,]+/).map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n >= 1 && n <= CATEGORIES.length);
-      const chosen = [...new Set(numbers.map(n => CATEGORIES[n - 1]))];
-
-      if (chosen.length === 0) {
-        await sendWhatsAppMessage(phoneNumberId, from,
-          `Hmm, I didn't catch that! Please reply with numbers from 1 to ${CATEGORIES.length}.\n\nFor example: _1, 3, 7_\n\n${CATEGORIES_MENU}`
-        );
-        return;
-      }
-
-      await pool.query(
-        `UPDATE users SET
-          preferences = jsonb_set(
-            jsonb_set(preferences, '{categories}', $1::jsonb),
-            '{onboarding_step}', '"complete"'
-          )
-         WHERE phone_number = $2`,
-        [JSON.stringify(chosen), from]
-      );
-
-      await sendWhatsAppMessage(phoneNumberId, from,
-        `Perfect! I've saved your interests: *${chosen.join(', ')}* 🎯\n\nYou're all set! Now just ask me anything — like:\n_"Any music events this weekend?"_ or _"What's happening at Rushikonda?"_\n\n🔔 You'll also get alerts when new ${chosen[0]} events hit Vizag!`
-      );
-      return;
+      console.log(`[Onboarding] Silently created new user: ${userName} (${from})`);
+    } else {
+      // Use their database name if they've explicitly updated it via the web later
+      userName = rows[0].name || userName;
     }
 
     // ── NORMAL FLOW: Silently update preferences from message ──────────────
@@ -114,7 +72,15 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
 
     // ── NORMAL FLOW: RAG query ─────────────────────────────────────────────
     const ragResult = await handleEventQuery(pool, { query: msgBody, userId: from });
-    await sendWhatsAppMessage(phoneNumberId, from, ragResult.answer);
+    
+    let finalAnswer = ragResult.answer;
+    
+    // Append the tip for first-time users
+    if (isNewUser) {
+      finalAnswer += `\n\n💡 *Tip from Vizag Vibes:* To receive regular updates and alerts about new events you love, visit the VibeCheck website to set up your preferences!`;
+    }
+
+    await sendWhatsAppMessage(phoneNumberId, from, finalAnswer);
 
   } catch (error) {
     console.error('[WhatsApp] Error handling message:', error);

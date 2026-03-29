@@ -37,7 +37,7 @@ Based on the latest System Requirements Specification (SRS), here is an updated 
 - [x] **Analytics Engine**: Overview page with stat cards (Total Events, Web Users, WhatsApp Users) and two Recharts bar charts — Events by Category and User Preferred Categories — all confirmed working with live data.
 
 ## 🚀 Phase 5: WhatsApp AI Agent Enhancements
-- [ ] **Onboarding Flow**: Build automated conversation flow for first-time users to capture name and interests.
+- [x] **Onboarding Flow**: Implemented silent profile building capturing the WhatsApp profile name and pointing users to the website for preferences.
 - [ ] **Personalization Engine**: Update `rag.ts` to continuously write interaction history to the `preferences` JSONB column.
 - [ ] **Cloud AI Integration**: Update backend to conditionally switch between Ollama (local) and Cloud Provider models (e.g., Gemini) based on `RUN_MODE`.
 
