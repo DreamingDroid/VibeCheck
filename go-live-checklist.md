@@ -39,7 +39,6 @@ Based on the latest System Requirements Specification (SRS), here is an updated 
 ## 🚀 Phase 5: WhatsApp AI Agent Enhancements
 - [ ] **Onboarding Flow**: Build automated conversation flow for first-time users to capture name and interests.
 - [ ] **Personalization Engine**: Update `rag.ts` to continuously write interaction history to the `preferences` JSONB column.
-- [ ] **Proactive (Push) Alerts**: Implement a Daily Cron job to cross-reference new events with user preferences, triggering WhatsApp Template Messages.
 - [ ] **Cloud AI Integration**: Update backend to conditionally switch between Ollama (local) and Cloud Provider models (e.g., Gemini) based on `RUN_MODE`.
 
 ## 🚀 Phase 6: Cloud Deployment & Final Review
@@ -47,3 +46,6 @@ Based on the latest System Requirements Specification (SRS), here is an updated 
 - [ ] **Push the Frontend Code**: Deploy the Next.js web portal to Vercel.
 - [ ] **Transfer `.env` Variables**: Ensure `GEMINI_API_KEY`, `WHATSAPP_` tokens, and `DATABASE_URL` are set on production platforms.
 - [ ] **Final Meta Adjustments**: Remove proxy tunnels, set a permanent access token via Meta Business Manager, connect a real phone number, and switch from Development to **Live** Mode.
+
+## 🔮 Phase 7: Post-Launch Enhancements (Deferred)
+- [ ] **Proactive (Push) Alerts**: Implement a Daily Cron job to cross-reference new events with user preferences, triggering WhatsApp Template Messages. *(Deferred to monitor operating costs, as template messages incur fees).*

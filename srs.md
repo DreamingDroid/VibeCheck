@@ -76,8 +76,8 @@ A centralized platform for Visakhapatnam residents to discover events (Sports, A
 - **Reactive (Pull):** NLP-based queries using RAG.
   - *Example:* "Show me kids' events this Saturday."
   - *Logic:* AI extracts entities -> SQL/Vector query -> Natural language response.
-- **Proactive (Push):** Automated alerts.
-  - *Logic:* Daily Cron job checks for new events matching user `preferences` and pushes via WhatsApp Template Messages.
+- **Proactive (Push) [DEFERRED]:** Automated alerts.
+  - *Logic:* Daily Cron job checks for new events matching user `preferences` and pushes via WhatsApp Template Messages. *(Note: Implementation deferred to a future phase to optimize operating costs, as WhatsApp template messages incur per-conversation fees).*
 - **Onboarding:** Automated flow for first-time users to capture name and interests if not already set via the web.
 - **Personalization Engine:** Continuously tracks user queries, clicked events, and explicit choices to build a profile over time. The AI uses this context to offer highly customized and tailored recommendations.
 
@@ -103,7 +103,8 @@ A centralized platform for Visakhapatnam residents to discover events (Sports, A
 - [ ] **Phase 2: Discovery Portal:** Build Next.js site with event listing, filtering, and Google Login.
 - [ ] **Phase 3: Local AI Integration:** Connect Ollama for local RAG testing on the event dataset.
 - [ ] **Phase 4: WhatsApp Webhook:** Implement Meta Cloud API webhook to receive and send messages.
-- [ ] **Phase 5: Preference Logic:** Build the "Push" engine to notify users when new events drop.
+- [ ] **Phase 5: Cloud Deployment:** Migrate to production, finalizing Reactive AI features.
+- [ ] **Phase 6: Push Engine [DEFERRED]:** Build the "Push" engine to notify users when new events drop.
 
 ---
 
