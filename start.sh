@@ -116,6 +116,9 @@ if ! $server_started || ! $web_started; then
     fi
 fi
 
+# --- Suggested Edit ---
+ls /var/log
+
 echo "----------------------------------------------------------"
 echo "✅ Setup Complete! Your Blackwell workstation is ready."
 echo "----------------------------------------------------------"
