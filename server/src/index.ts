@@ -19,7 +19,7 @@ import {
 import { organizerCreateEventHandler, organizerGetEventsHandler } from './organizer';
 import { startPushAlertCron } from './cron';
 
-const result = dotenv.config({ path: 'c:/Users/trivi/vibecheck_ws/VibeCheck/server/.env' });
+const result = dotenv.config({ path: path.join(__dirname, '..', '.env') });
 if (result.error) {
   console.log('Error loading .env file:', result.error);
 }

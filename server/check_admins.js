@@ -1,6 +1,7 @@
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
-dotenv.config({ path: 'c:/Users/trivi/vibecheck_ws/VibeCheck/server/.env' });
+const path = require('path');
+dotenv.config({ path: path.join(__dirname, '.env') });
 const pool = new Pool();
 pool.query('SELECT * FROM admins').then(res => {
   console.log(res.rows);
