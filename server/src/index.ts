@@ -7,7 +7,7 @@ import { Pool } from 'pg';
 import { registerType } from 'pgvector/pg';
 import { handleEventQuery, saveUserPreferences } from './rag';
 import { verifyWebhook, handleIncomingMessage } from './whatsapp';
-import { getEventsHandler } from './events';
+import { getEventsHandler, getSingleEventHandler } from './events';
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
 import {
   checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler,
@@ -92,6 +92,7 @@ app.post('/webhook', (req, res) => handleIncomingMessage(req, res, pool));
 
 // Serve the Event Discovery data to the Next.js frontend
 app.get('/api/events', (req, res) => getEventsHandler(req, res, pool));
+app.get('/api/events/:id', (req, res) => getSingleEventHandler(req, res, pool));
 
 // Web User Preferences API (Tier 1 + Tier 2 linking)
 app.get('/api/user', (req, res) => getWebUserHandler(req, res, pool));

@@ -39,3 +39,26 @@ export async function getEventsHandler(req: Request, res: Response, pool: Pool) 
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
+
+export async function getSingleEventHandler(req: Request, res: Response, pool: Pool) {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT id, title, description, location, date_time, category 
+       FROM events WHERE id = $1`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Event not found' });
+    }
+
+    res.json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error fetching single event:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}

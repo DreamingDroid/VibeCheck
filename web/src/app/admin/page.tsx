@@ -19,6 +19,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [cronEnabled, setCronEnabled] = useState(false);
   const [updatingCron, setUpdatingCron] = useState(false);
+  const [whatsappEnabled, setWhatsappEnabled] = useState(true);
+  const [updatingWhatsapp, setUpdatingWhatsapp] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -28,8 +30,10 @@ export default function AdminPage() {
     .then(([analyticsRes, settingsRes]) => {
       if (analyticsRes.success) setAnalytics(analyticsRes.data);
       if (settingsRes.success && settingsRes.data) {
-        const val = settingsRes.data.cron_enabled;
-        setCronEnabled(val === "true" || val === true);
+        const cronVal = settingsRes.data.cron_enabled;
+        setCronEnabled(cronVal === "true" || cronVal === true);
+        const waVal = settingsRes.data.whatsapp_enabled;
+        setWhatsappEnabled(waVal === undefined || waVal === "true" || waVal === true);
       }
     })
     .finally(() => setLoading(false));
@@ -52,6 +56,25 @@ export default function AdminPage() {
       console.error("Failed to update setting", e);
     }
     setUpdatingCron(false);
+  };
+
+  const toggleWhatsapp = async () => {
+    setUpdatingWhatsapp(true);
+    const newValue = !whatsappEnabled;
+    try {
+      const res = await fetch("http://localhost:4000/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "whatsapp_enabled", value: newValue ? "true" : "false" })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setWhatsappEnabled(newValue);
+      }
+    } catch (e) {
+      console.error("Failed to update setting", e);
+    }
+    setUpdatingWhatsapp(false);
   };
 
   if (loading) {
@@ -81,18 +104,33 @@ export default function AdminPage() {
           </h1>
           <p className="text-zinc-500 text-sm mt-1">Platform analytics at a glance.</p>
         </div>
-        <div className="flex items-center gap-4 bg-zinc-900 border border-zinc-800 px-5 py-3 rounded-xl shadow-lg">
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold text-white mb-0.5">Push Alerts (Cron Job)</span>
-            <span className="text-xs text-zinc-500">Scheduled 9:00 AM IST</span>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-4 bg-zinc-900 border border-zinc-800 px-5 py-3 rounded-xl shadow-lg min-w-[250px]">
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-white mb-0.5">Push Alerts (Cron Job)</span>
+              <span className="text-xs text-zinc-500">Scheduled 9:00 AM IST</span>
+            </div>
+            <button
+              onClick={toggleCron}
+              disabled={updatingCron}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${cronEnabled ? 'bg-emerald-500' : 'bg-zinc-700'} ${updatingCron ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${cronEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
           </div>
-          <button
-            onClick={toggleCron}
-            disabled={updatingCron}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${cronEnabled ? 'bg-emerald-500' : 'bg-zinc-700'} ${updatingCron ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${cronEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-          </button>
+          <div className="flex items-center justify-between gap-4 bg-zinc-900 border border-zinc-800 px-5 py-3 rounded-xl shadow-lg min-w-[250px]">
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-white mb-0.5">WhatsApp Notify</span>
+              <span className="text-xs text-zinc-500">Show buttons on dashboard</span>
+            </div>
+            <button
+              onClick={toggleWhatsapp}
+              disabled={updatingWhatsapp}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${whatsappEnabled ? 'bg-emerald-500' : 'bg-zinc-700'} ${updatingWhatsapp ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${whatsappEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
         </div>
       </div>
 
