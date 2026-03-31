@@ -13,9 +13,18 @@ export async function checkAdminHandler(req: Request, res: Response, pool: Pool)
       [email]
     );
     if (rows.length === 0) {
-      return res.json({ success: true, isAdmin: false });
+      return res.json({ success: true, isAdmin: false, isOrganizer: false });
     }
-    return res.json({ success: true, isAdmin: true, role: rows[0].role });
+    const role = rows[0].role;
+    // Legacy admins might have role = null or just be in the table without a specific label.
+    // If they are specifically listed as 'organizer', they are purely an organizer.
+    // Otherwise, they are a full admin.
+    return res.json({ 
+      success: true, 
+      isAdmin: role !== 'organizer', 
+      isOrganizer: role === 'organizer', 
+      role 
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
@@ -140,6 +149,74 @@ export async function adminUpdateSettingsHandler(req: Request, res: Response, po
     res.json({ success: true, message: 'Setting updated' });
   } catch (error) {
     console.error('Settings error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+// Get RSVPs for a single event
+export async function adminGetEventRsvpsHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  try {
+    const { rows } = await pool.query(
+      `SELECT er.user_email, er.created_at, u.name 
+       FROM event_rsvps er 
+       LEFT JOIN web_users u ON er.user_email = u.email 
+       WHERE er.event_id = $1 
+       ORDER BY er.created_at DESC`,
+      [id]
+    );
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('RSVP Admin error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+// --- NEW FEATURES For Organizer / Approval Flow ---
+
+export async function adminAddOrganizerHandler(req: Request, res: Response, pool: Pool) {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ success: false, error: 'Email required' });
+  try {
+    // Requires an 'admins' table or similar that tracks roles. 
+    // We already query 'SELECT role FROM admins' so we insert into admins.
+    await pool.query(
+      `INSERT INTO admins (email, role) VALUES ($1, 'organizer') 
+       ON CONFLICT (email) DO UPDATE SET role = 'organizer'`,
+      [email]
+    );
+    res.json({ success: true, message: 'Organizer added successfully.' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function adminGetOrganizersHandler(req: Request, res: Response, pool: Pool) {
+  try {
+    const { rows } = await pool.query(`SELECT email, role FROM admins WHERE role = 'organizer'`);
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function adminGetPendingEventsHandler(req: Request, res: Response, pool: Pool) {
+  try {
+    const { rows } = await pool.query(`SELECT * FROM events WHERE status = 'pending' ORDER BY date_time ASC`);
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function adminReviewEventHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  const { status } = req.body; // 'approved' or 'rejected'
+  try {
+    const { rowCount } = await pool.query(`UPDATE events SET status = $1 WHERE id = $2`, [status, id]);
+    if (rowCount === 0) return res.status(404).json({ success: false, error: 'Event not found' });
+    res.json({ success: true, message: `Event ${status} successfully.` });
+  } catch (error) {
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

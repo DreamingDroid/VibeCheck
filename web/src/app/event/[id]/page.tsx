@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,9 +10,11 @@ import { Button } from "@/components/ui/button";
 export default function EventDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [rsvped, setRsvped] = useState(false);
+  const [device, setDevice] = useState<'desktop' | 'ios' | 'android'>('desktop');
 
   useEffect(() => {
     if (!params.id) return;
@@ -21,6 +24,18 @@ export default function EventDetailsPage() {
       .then(res => {
         if (res.success) {
           setEvent(res.data);
+          if (session?.user?.email) {
+            fetch(`http://localhost:4000/api/events/${params.id}/rsvp/check?email=${encodeURIComponent(session.user.email)}`)
+              .then(r => r.json())
+              .then(d => {
+                if (d.success && d.rsvped) {
+                  setRsvped(true);
+                }
+              })
+              .finally(() => setLoading(false));
+          } else {
+            setLoading(false);
+          }
         } else {
           router.push("/dashboard");
         }
@@ -28,17 +43,31 @@ export default function EventDetailsPage() {
       .catch(err => {
         console.error(err);
         router.push("/dashboard");
-      })
-      .finally(() => setLoading(false));
+      });
+
+    // Detect device type
+    if (typeof window !== "undefined") {
+      const ua = navigator.userAgent;
+      if (/iPhone|iPad|iPod/i.test(ua)) {
+        setDevice('ios');
+      } else if (/Android/i.test(ua)) {
+        setDevice('android');
+      } else {
+        setDevice('desktop');
+      }
+    }
   }, [params.id, router]);
 
   const handleDownloadICS = () => {
     if (!event) return;
     const startDate = new Date(event.date_time);
     const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // Assume 2 hour duration
-    const formatDate = (date: Date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    
-    const icsContent = `BEGIN:VCALENDAR
+
+    // For iOS, returning an .ics blob prompts the native calendar to add it automatically
+    if (device === 'ios') {
+      const formatDate = (date: Date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      
+      const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
 BEGIN:VEVENT
 DTSTART:${formatDate(startDate)}
@@ -49,18 +78,41 @@ LOCATION:${event.location}
 END:VEVENT
 END:VCALENDAR`;
 
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${event.title.replace(/\\s+/g, '_')}.ics`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${event.title.replace(/\\s+/g, '_')}.ics`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+
+    // For Android and Desktop, Google Calendar link is much more seamless
+    const formatGCalDate = (date: Date) => date.toISOString().replace(/[-:]/g, '').replace(/\\.\\d{3}/, '');
+    const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${formatGCalDate(startDate)}/${formatGCalDate(endDate)}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.location)}`;
+    window.open(gcalUrl, '_blank');
   };
 
-  const handleRSVP = () => {
-    // Just a frontend state change for now
-    setRsvped(true);
+  const handleRSVP = async () => {
+    if (!session?.user?.email) {
+      alert("Please log in or setup an account to RSVP!");
+      return;
+    }
+    
+    try {
+      const res = await fetch(`http://localhost:4000/api/events/${params.id}/rsvp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: session.user.email })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRsvped(true);
+      }
+    } catch (err) {
+      console.error("RSVP failed", err);
+    }
   };
 
   if (loading) {

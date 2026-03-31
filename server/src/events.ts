@@ -8,7 +8,7 @@ export async function getEventsHandler(req: Request, res: Response, pool: Pool) 
     let queryText = `
       SELECT id, title, description, location, date_time, category 
       FROM events
-      WHERE 1=1
+      WHERE status = 'approved' OR status IS NULL
     `;
     const queryParams: any[] = [];
     let paramIndex = 1;
@@ -45,7 +45,7 @@ export async function getSingleEventHandler(req: Request, res: Response, pool: P
     const { id } = req.params;
     const result = await pool.query(
       `SELECT id, title, description, location, date_time, category 
-       FROM events WHERE id = $1`,
+       FROM events WHERE id = $1 AND (status = 'approved' OR status IS NULL)`,
       [id]
     );
 
@@ -59,6 +59,46 @@ export async function getSingleEventHandler(req: Request, res: Response, pool: P
     });
   } catch (error) {
     console.error('Error fetching single event:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function rsvpEventHandler(req: Request, res: Response, pool: Pool) {
+  try {
+    const { id } = req.params;
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email is required' });
+    }
+
+    await pool.query(`
+      INSERT INTO event_rsvps (event_id, user_email)
+      VALUES ($1, $2)
+      ON CONFLICT (event_id, user_email) DO NOTHING;
+    `, [id, email]);
+
+    return res.json({ success: true, message: 'RSVP confirmed' });
+  } catch (error) {
+    console.error('Error handling RSVP:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function checkRsvpHandler(req: Request, res: Response, pool: Pool) {
+  try {
+    const { id } = req.params;
+    const { email } = req.query;
+    if (!email || typeof email !== 'string') {
+      return res.json({ success: true, rsvped: false });
+    }
+
+    const { rows } = await pool.query(`
+      SELECT 1 FROM event_rsvps WHERE event_id = $1 AND user_email = $2
+    `, [id, email]);
+
+    return res.json({ success: true, rsvped: rows.length > 0 });
+  } catch (error) {
+    console.error('Error checking RSVP:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

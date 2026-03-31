@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [category, setCategory] = useState("All");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isOrganizer, setIsOrganizer] = useState(false);
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
 
   useEffect(() => {
@@ -35,7 +36,10 @@ export default function Dashboard() {
       fetch(`http://localhost:4000/api/admin/check?email=${encodeURIComponent(session.user.email)}`)
         .then(r => r.json())
         .then(data => {
-          if (data.success && data.isAdmin) setIsAdmin(true);
+          if (data.success) {
+            if (data.isAdmin) setIsAdmin(true);
+            if (data.isOrganizer) setIsOrganizer(true);
+          }
         })
         .catch(err => console.error("Could not check admin status", err));
     }
@@ -93,6 +97,13 @@ export default function Dashboard() {
                 <Link href="/admin">
                   <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 text-sm">
                     🛡 Admin
+                  </Button>
+                </Link>
+              )}
+              {isOrganizer && (
+                <Link href="/organizer">
+                  <Button variant="outline" className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 text-sm font-semibold">
+                    ✨ Organizer
                   </Button>
                 </Link>
               )}

@@ -7,13 +7,16 @@ import { Pool } from 'pg';
 import { registerType } from 'pgvector/pg';
 import { handleEventQuery, saveUserPreferences } from './rag';
 import { verifyWebhook, handleIncomingMessage } from './whatsapp';
-import { getEventsHandler, getSingleEventHandler } from './events';
+import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHandler } from './events';
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
 import {
   checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler,
   adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler,
-  adminGetSettingsHandler, adminUpdateSettingsHandler
+  adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler,
+  adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingEventsHandler,
+  adminReviewEventHandler
 } from './admin';
+import { organizerCreateEventHandler, organizerGetEventsHandler } from './organizer';
 import { startPushAlertCron } from './cron';
 
 const result = dotenv.config({ path: 'c:/Users/trivi/vibecheck_ws/VibeCheck/server/.env' });
@@ -41,8 +44,22 @@ const pool = new Pool({
 pool.on('connect', async (client) => {
   try {
     await registerType(client);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS event_rsvps (
+        id SERIAL PRIMARY KEY,
+        event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+        user_email TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(event_id, user_email)
+      );
+    `);
+    
+    // Non-destructive alters for Event Organizer feature
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_email TEXT`);
+    
   } catch (err) {
-    console.error('Failed to configure pgvector types on connect:', err);
+    console.error('Failed to configure database on connect:', err);
   }
 });
 
@@ -93,6 +110,8 @@ app.post('/webhook', (req, res) => handleIncomingMessage(req, res, pool));
 // Serve the Event Discovery data to the Next.js frontend
 app.get('/api/events', (req, res) => getEventsHandler(req, res, pool));
 app.get('/api/events/:id', (req, res) => getSingleEventHandler(req, res, pool));
+app.post('/api/events/:id/rsvp', (req, res) => rsvpEventHandler(req, res, pool));
+app.get('/api/events/:id/rsvp/check', (req, res) => checkRsvpHandler(req, res, pool));
 
 // Web User Preferences API (Tier 1 + Tier 2 linking)
 app.get('/api/user', (req, res) => getWebUserHandler(req, res, pool));
@@ -101,12 +120,22 @@ app.post('/api/user', (req, res) => saveWebUserHandler(req, res, pool));
 // Admin API
 app.get('/api/admin/check', (req, res) => checkAdminHandler(req, res, pool));
 app.get('/api/admin/events', (req, res) => adminGetEventsHandler(req, res, pool));
+app.get('/api/admin/events/:id/rsvps', (req, res) => adminGetEventRsvpsHandler(req, res, pool));
 app.post('/api/admin/events', (req, res) => adminCreateEventHandler(req, res, pool));
 app.put('/api/admin/events/:id', (req, res) => adminUpdateEventHandler(req, res, pool));
 app.delete('/api/admin/events/:id', (req, res) => adminDeleteEventHandler(req, res, pool));
 app.get('/api/admin/analytics', (req, res) => adminAnalyticsHandler(req, res, pool));
 app.get('/api/admin/settings', (req, res) => adminGetSettingsHandler(req, res, pool));
 app.post('/api/admin/settings', (req, res) => adminUpdateSettingsHandler(req, res, pool));
+
+app.get('/api/admin/organizers', (req, res) => adminGetOrganizersHandler(req, res, pool));
+app.post('/api/admin/organizers', (req, res) => adminAddOrganizerHandler(req, res, pool));
+app.get('/api/admin/events/pending', (req, res) => adminGetPendingEventsHandler(req, res, pool));
+app.put('/api/admin/events/:id/review', (req, res) => adminReviewEventHandler(req, res, pool));
+
+// Organizer API
+app.get('/api/organizer/events', (req, res) => organizerGetEventsHandler(req, res, pool));
+app.post('/api/organizer/events', (req, res) => organizerCreateEventHandler(req, res, pool));
 
 app.listen(port, () => {
   console.log(`[server]: VibeCheck API is running at http://localhost:${port}`);
