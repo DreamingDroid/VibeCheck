@@ -25,7 +25,7 @@ CREATE TYPE event_category AS ENUM (
 );
 
 -- Enum for Admin Roles
-CREATE TYPE admin_role AS ENUM ('SuperAdmin', 'Editor');
+CREATE TYPE admin_role AS ENUM ('SuperAdmin', 'Editor', 'organizer');
 
 -- 1. Users Table (Tier 2 - WhatsApp-linked users)
 CREATE TABLE IF NOT EXISTS users (

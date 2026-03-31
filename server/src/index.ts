@@ -66,6 +66,18 @@ pool.on('connect', async (client) => {
       ON CONFLICT (key) DO NOTHING;
     `);
 
+    const adminRoleType = await client.query<{ exists: boolean }>(`
+      SELECT EXISTS (
+        SELECT 1
+        FROM pg_type
+        WHERE typname = 'admin_role'
+      ) AS exists
+    `);
+
+    if (adminRoleType.rows[0]?.exists) {
+      await client.query(`ALTER TYPE admin_role ADD VALUE IF NOT EXISTS 'organizer'`);
+    }
+
     // Non-destructive alters for Event Organizer feature
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_email TEXT`);
