@@ -53,11 +53,23 @@ pool.on('connect', async (client) => {
         UNIQUE(event_id, user_email)
       );
     `);
-    
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS system_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value JSONB NOT NULL DEFAULT 'null'::jsonb,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await client.query(`
+      INSERT INTO system_settings (key, value)
+      VALUES ('cron_enabled', 'false'::jsonb)
+      ON CONFLICT (key) DO NOTHING;
+    `);
+
     // Non-destructive alters for Event Organizer feature
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_email TEXT`);
-    
+
   } catch (err) {
     console.error('Failed to configure database on connect:', err);
   }

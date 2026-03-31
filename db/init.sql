@@ -3,6 +3,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 -- Drop old tables if they exist to start fresh
 DROP TABLE IF EXISTS user_preferences CASCADE;
+DROP TABLE IF EXISTS system_settings CASCADE;
 DROP TABLE IF EXISTS events CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS admins CASCADE;
@@ -54,6 +55,17 @@ CREATE TABLE IF NOT EXISTS admins (
     role admin_role DEFAULT 'Editor',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 2b. System Settings Table
+CREATE TABLE IF NOT EXISTS system_settings (
+    key VARCHAR(100) PRIMARY KEY,
+    value JSONB NOT NULL DEFAULT 'null'::jsonb,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO system_settings (key, value)
+VALUES ('cron_enabled', 'false'::jsonb)
+ON CONFLICT (key) DO NOTHING;
 
 -- 3. Events Table
 CREATE TABLE IF NOT EXISTS events (

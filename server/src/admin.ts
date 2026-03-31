@@ -1,6 +1,22 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 
+async function ensureSystemSettingsTable(pool: Pool) {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS system_settings (
+      key VARCHAR(100) PRIMARY KEY,
+      value JSONB NOT NULL DEFAULT 'null'::jsonb,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await pool.query(`
+    INSERT INTO system_settings (key, value)
+    VALUES ('cron_enabled', 'false'::jsonb)
+    ON CONFLICT (key) DO NOTHING;
+  `);
+}
+
 // Check if an email belongs to an admin
 export async function checkAdminHandler(req: Request, res: Response, pool: Pool) {
   const { email } = req.query;
@@ -127,10 +143,12 @@ export async function adminAnalyticsHandler(req: Request, res: Response, pool: P
 // Get system settings
 export async function adminGetSettingsHandler(req: Request, res: Response, pool: Pool) {
   try {
+    await ensureSystemSettingsTable(pool);
     const { rows } = await pool.query(`SELECT key, value FROM system_settings`);
-    const settings = rows.reduce((acc, row) => ({ ...acc, [row.key]: row.value }), {});
+    const settings = rows.reduce<Record<string, unknown>>((acc, row) => ({ ...acc, [row.key]: row.value }), {});
     res.json({ success: true, data: settings });
   } catch (error) {
+    console.error('Get settings error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -140,10 +158,10 @@ export async function adminUpdateSettingsHandler(req: Request, res: Response, po
   const { key, value } = req.body;
   if (!key || value === undefined) return res.status(400).json({ success: false, error: 'key and value required' });
   try {
-    // If the table doesn't exist yet, we catch the error, but we already injected it so it should be fine.
+    await ensureSystemSettingsTable(pool);
     await pool.query(
       `INSERT INTO system_settings (key, value) VALUES ($1, $2::jsonb)
-       ON CONFLICT (key) DO UPDATE SET value = $2::jsonb`,
+       ON CONFLICT (key) DO UPDATE SET value = $2::jsonb, updated_at = CURRENT_TIMESTAMP`,
       [key, JSON.stringify(value)]
     );
     res.json({ success: true, message: 'Setting updated' });

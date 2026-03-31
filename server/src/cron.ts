@@ -20,10 +20,24 @@ export function startPushAlertCron(pool: Pool) {
     }
 
     try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS system_settings (
+          key VARCHAR(100) PRIMARY KEY,
+          value JSONB NOT NULL DEFAULT 'null'::jsonb,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      await pool.query(`
+        INSERT INTO system_settings (key, value)
+        VALUES ('cron_enabled', 'false'::jsonb)
+        ON CONFLICT (key) DO NOTHING;
+      `);
+
       // Step 0: Check if Cron is enabled in settings
       const { rows: settings } = await pool.query(`SELECT value FROM system_settings WHERE key = 'cron_enabled'`);
-      const isEnabled = settings.length > 0 ? settings[0].value === 'true' : false;
-      
+      const rawValue = settings[0]?.value;
+      const isEnabled = rawValue === true || rawValue === 'true';
+
       if (!isEnabled) {
         console.log('[Cron] Push alerts are disabled in admin settings. Skipping.');
         return;
