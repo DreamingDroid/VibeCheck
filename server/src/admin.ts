@@ -1,6 +1,36 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 
+async function ensureSystemSettingsTable(pool: Pool) {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS system_settings (
+      key VARCHAR(100) PRIMARY KEY,
+      value JSONB NOT NULL DEFAULT 'null'::jsonb,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await pool.query(`
+    INSERT INTO system_settings (key, value)
+    VALUES ('cron_enabled', 'false'::jsonb)
+    ON CONFLICT (key) DO NOTHING;
+  `);
+}
+
+async function ensureOrganizerRole(pool: Pool) {
+  const { rows } = await pool.query<{ exists: boolean }>(`
+    SELECT EXISTS (
+      SELECT 1
+      FROM pg_type
+      WHERE typname = 'admin_role'
+    ) AS exists
+  `);
+
+  if (rows[0]?.exists) {
+    await pool.query(`ALTER TYPE admin_role ADD VALUE IF NOT EXISTS 'organizer'`);
+  }
+}
+
 // Check if an email belongs to an admin
 export async function checkAdminHandler(req: Request, res: Response, pool: Pool) {
   const { email } = req.query;
@@ -16,13 +46,14 @@ export async function checkAdminHandler(req: Request, res: Response, pool: Pool)
       return res.json({ success: true, isAdmin: false, isOrganizer: false });
     }
     const role = rows[0].role;
+    const normalizedRole = typeof role === 'string' ? role.toLowerCase() : '';
     // Legacy admins might have role = null or just be in the table without a specific label.
     // If they are specifically listed as 'organizer', they are purely an organizer.
     // Otherwise, they are a full admin.
     return res.json({ 
       success: true, 
-      isAdmin: role !== 'organizer', 
-      isOrganizer: role === 'organizer', 
+      isAdmin: normalizedRole !== 'organizer', 
+      isOrganizer: normalizedRole === 'organizer', 
       role 
     });
   } catch (error) {
@@ -127,10 +158,12 @@ export async function adminAnalyticsHandler(req: Request, res: Response, pool: P
 // Get system settings
 export async function adminGetSettingsHandler(req: Request, res: Response, pool: Pool) {
   try {
+    await ensureSystemSettingsTable(pool);
     const { rows } = await pool.query(`SELECT key, value FROM system_settings`);
-    const settings = rows.reduce((acc, row) => ({ ...acc, [row.key]: row.value }), {});
+    const settings = rows.reduce<Record<string, unknown>>((acc, row) => ({ ...acc, [row.key]: row.value }), {});
     res.json({ success: true, data: settings });
   } catch (error) {
+    console.error('Get settings error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -140,10 +173,10 @@ export async function adminUpdateSettingsHandler(req: Request, res: Response, po
   const { key, value } = req.body;
   if (!key || value === undefined) return res.status(400).json({ success: false, error: 'key and value required' });
   try {
-    // If the table doesn't exist yet, we catch the error, but we already injected it so it should be fine.
+    await ensureSystemSettingsTable(pool);
     await pool.query(
       `INSERT INTO system_settings (key, value) VALUES ($1, $2::jsonb)
-       ON CONFLICT (key) DO UPDATE SET value = $2::jsonb`,
+       ON CONFLICT (key) DO UPDATE SET value = $2::jsonb, updated_at = CURRENT_TIMESTAMP`,
       [key, JSON.stringify(value)]
     );
     res.json({ success: true, message: 'Setting updated' });
@@ -178,24 +211,31 @@ export async function adminAddOrganizerHandler(req: Request, res: Response, pool
   const { email } = req.body;
   if (!email) return res.status(400).json({ success: false, error: 'Email required' });
   try {
-    // Requires an 'admins' table or similar that tracks roles. 
-    // We already query 'SELECT role FROM admins' so we insert into admins.
+    await ensureOrganizerRole(pool);
     await pool.query(
       `INSERT INTO admins (email, role) VALUES ($1, 'organizer') 
-       ON CONFLICT (email) DO UPDATE SET role = 'organizer'`,
+       ON CONFLICT (email) DO UPDATE SET role = EXCLUDED.role`,
       [email]
     );
     res.json({ success: true, message: 'Organizer added successfully.' });
   } catch (error) {
+    console.error('Add organizer error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
 export async function adminGetOrganizersHandler(req: Request, res: Response, pool: Pool) {
   try {
-    const { rows } = await pool.query(`SELECT email, role FROM admins WHERE role = 'organizer'`);
+    await ensureOrganizerRole(pool);
+    const { rows } = await pool.query(
+      `SELECT email, role
+       FROM admins
+       WHERE LOWER(role::text) = 'organizer'
+       ORDER BY created_at DESC`
+    );
     res.json({ success: true, data: rows });
   } catch (error) {
+    console.error('Get organizers error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
