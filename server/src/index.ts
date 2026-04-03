@@ -18,6 +18,7 @@ import {
 } from './admin';
 import { organizerCreateEventHandler, organizerGetEventsHandler } from './organizer';
 import { startPushAlertCron } from './cron';
+import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verification';
 
 const result = dotenv.config({ path: path.join(__dirname, '..', '.env') });
 if (result.error) {
@@ -136,6 +137,10 @@ app.put('/api/admin/events/:id/review', (req, res) => adminReviewEventHandler(re
 // Organizer API
 app.get('/api/organizer/events', (req, res) => organizerGetEventsHandler(req, res, pool));
 app.post('/api/organizer/events', (req, res) => organizerCreateEventHandler(req, res, pool));
+
+// Verification API
+app.post('/api/verify/send-code', (req, res) => sendVerificationCodeHandler(req, res, pool));
+app.post('/api/verify/confirm-code', (req, res) => verifyPhoneNumberHandler(req, res, pool));
 
 app.listen(port, () => {
   console.log(`[server]: VibeCheck API is running at http://localhost:${port}`);

@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
 
 export default function EventDetailsPage() {
   const params = useParams();
@@ -15,10 +16,23 @@ export default function EventDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [rsvped, setRsvped] = useState(false);
   const [device, setDevice] = useState<'desktop' | 'ios' | 'android'>('desktop');
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [userHasPhone, setUserHasPhone] = useState(false);
 
   useEffect(() => {
     if (!params.id) return;
     
+    // Check if user already has a phone number
+    if (session?.user?.email) {
+      fetch(`http://localhost:4000/api/user?email=${encodeURIComponent(session.user.email)}`)
+        .then(r => r.json())
+        .then(res => {
+          if (res.success && res.data.phone_number) {
+            setUserHasPhone(true);
+          }
+        });
+    }
+
     fetch(`http://localhost:4000/api/events/${params.id}`)
       .then(r => r.json())
       .then(res => {
@@ -97,6 +111,11 @@ END:VCALENDAR`;
   const handleRSVP = async () => {
     if (!session?.user?.email) {
       alert("Please log in or setup an account to RSVP!");
+      return;
+    }
+
+    if (!userHasPhone) {
+      setShowPhoneModal(true);
       return;
     }
     
@@ -183,6 +202,19 @@ END:VCALENDAR`;
             </Button>
           </div>
         </div>
+        
+        {session?.user?.email && (
+          <PhoneVerificationModal
+            isOpen={showPhoneModal}
+            onClose={() => setShowPhoneModal(false)}
+            onVerified={() => {
+              setUserHasPhone(true);
+              setShowPhoneModal(false);
+              handleRSVP();
+            }}
+            email={session.user.email}
+          />
+        )}
       </div>
     </div>
   );
