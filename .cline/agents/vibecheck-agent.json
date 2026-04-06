@@ -1,0 +1,16 @@
+{
+  "name": "vibecheck-agent",
+  "description": "Plan with Llama and act with Qwen",
+  "plan": {
+    "provider": "ollama",
+    "model": "llama3.3",
+    "apiKey": "dummy",
+    "baseUrl": "http://localhost:11434"
+  },
+  "act": {
+    "provider": "ollama",
+    "model": "qwen2.5-coder:32b",
+    "apiKey": "dummy",
+    "baseUrl": "http://localhost:11434"
+  }
+}
