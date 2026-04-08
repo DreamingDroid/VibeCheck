@@ -21,6 +21,7 @@ export default function PreferencesPage() {
 
   const [selected, setSelected] = useState<string[]>([]);
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [city, setCity] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -39,6 +40,7 @@ export default function PreferencesPage() {
         if (data.success) {
           setSelected(data.data.categories || []);
           setPhoneNumber(data.data.phone_number || "");
+          setCity(data.data.city || "");
         }
       })
       .finally(() => setLoading(false));
@@ -64,6 +66,7 @@ export default function PreferencesPage() {
         name: session.user.name,
         categories: selected,
         phone_number: phoneNumber.trim() || null,
+        city: city.trim() || null,
       }),
     });
     setSaving(false);
@@ -136,6 +139,29 @@ export default function PreferencesPage() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Location Linking */}
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <CardTitle className="text-white text-lg flex items-center gap-2">
+              <span>🌎</span> Default Location
+            </CardTitle>
+            <CardDescription className="text-zinc-400">
+              Set your city or neighborhood. The AI will use this to automatically filter events near you, so you don't have to constantly mention where you are!
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Label htmlFor="city" className="text-zinc-300 text-sm">City or Neighborhood</Label>
+            <Input
+              id="city"
+              type="text"
+              placeholder="e.g. Visakhapatnam, MVP Colony..."
+              value={city}
+              onChange={(e) => { setCity(e.target.value); setSaved(false); }}
+              className="bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-600 focus-visible:ring-indigo-500"
+            />
           </CardContent>
         </Card>
 

@@ -44,9 +44,10 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
   res.sendStatus(200);
 
   try {
-    // Fetch user record
+    // Fetch user record and their chat history
+    let chatHistory: any[] = [];
     const { rows } = await pool.query(
-      `SELECT phone_number, name, preferences FROM users WHERE phone_number = $1`,
+      `SELECT phone_number, name, preferences, chat_history FROM users WHERE phone_number = $1`,
       [from]
     );
 
@@ -58,28 +59,57 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
     if (rows.length === 0) {
       isNewUser = true;
       await pool.query(
-        `INSERT INTO users (phone_number, name, preferences)
-         VALUES ($1, $2, '{}'::jsonb)`,
+        `INSERT INTO users (phone_number, name, preferences, chat_history)
+         VALUES ($1, $2, '{}'::jsonb, '[]'::jsonb)`,
         [from, userName]
       );
       console.log(`[Onboarding] Silently created new user: ${userName} (${from})`);
     } else {
       // Use their database name if they've explicitly updated it via the web later
       userName = rows[0].name || userName;
+      // Load current memory buffer
+      if (Array.isArray(rows[0].chat_history)) {
+        chatHistory = rows[0].chat_history;
+      }
     }
 
     // ── NORMAL FLOW: AI Personalization Engine ──
     await extractAndSavePreferences(pool, from, msgBody);
 
+    // Grab specific city constraint if the user synced it via Web Portal
+    let syncedCity: string | undefined = undefined;
+    if (rows.length > 0 && typeof rows[0].preferences === 'object') {
+      syncedCity = rows[0].preferences.city;
+    }
+
     // ── NORMAL FLOW: RAG query ─────────────────────────────────────────────
-    const ragResult = await handleEventQuery(pool, { query: msgBody, userId: from });
+    // Send standard query along with the conversational context slice to RAG
+    const ragResult = await handleEventQuery(pool, { 
+      query: msgBody, 
+      userId: from,
+      city: syncedCity,
+      history: chatHistory
+    });
     
     let finalAnswer = ragResult.answer;
     
     // Append the tip for first-time users
     if (isNewUser) {
-      finalAnswer += `\n\n💡 *Tip from Vizag Vibes:* To receive regular updates and alerts about new events you love, visit the VibeCheck website to set up your preferences!`;
+      finalAnswer += `\n\n💡 *Tip from Vizag Vibes:* To receive reliable event alerts tied directly to your city and interests, link this number directly on our portal: https://vizagvibes.com/preferences`;
     }
+
+    // Capture current turns into active memory and truncate
+    chatHistory.push({ role: 'user', content: msgBody });
+    chatHistory.push({ role: 'assistant', content: finalAnswer });
+    
+    // Sliding memory window: Keep only the most recent 6 interactions (3 turns)
+    if (chatHistory.length > 6) {
+      chatHistory = chatHistory.slice(chatHistory.length - 6);
+    }
+
+    // Save immediate memory to persistence base asynchronously
+    pool.query(`UPDATE users SET chat_history = $1::jsonb WHERE phone_number = $2`, [JSON.stringify(chatHistory), from])
+      .catch(e => console.error('[Memory] Error saving immediate context:', e));
 
     await sendWhatsAppMessage(phoneNumberId, from, finalAnswer);
 

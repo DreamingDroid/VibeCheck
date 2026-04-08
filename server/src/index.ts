@@ -92,6 +92,16 @@ pool.on('connect', async (client) => {
     // Non-destructive alters for Event Organizer feature
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_email TEXT`);
+    
+    // Add Memory context column
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_history JSONB DEFAULT '[]'::jsonb`);
+
+    // Add City tracking
+    await client.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
+
+    // Add Agentic RSVPs capability to Database
+    await client.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS phone_number TEXT`);
+    await client.query(`ALTER TABLE event_rsvps ALTER COLUMN user_email DROP NOT NULL`);
 
   } catch (err) {
     console.error('Failed to configure database on connect:', err);

@@ -1,6 +1,8 @@
 import { Pool } from 'pg';
 import { OllamaEmbeddings, ChatOllama } from '@langchain/ollama';
 import { StateGraph, Annotation } from '@langchain/langgraph';
+import { DynamicStructuredTool } from "@langchain/core/tools";
+import { SystemMessage, HumanMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
 import { z } from 'zod';
 
 const RUN_MODE = process.env.RUN_MODE || 'local';
@@ -16,13 +18,13 @@ let chatModel: any = null;
 
 function getChatModel() {
   if (chatModel) return chatModel;
-  const currentRunMode = process.env.RUN_MODE || 'local';
+  const currentRunMode = (process.env.RUN_MODE || 'local').trim();
   if (currentRunMode === 'cloud') {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
     chatModel = new ChatGoogleGenerativeAI({
       model: 'gemini-1.5-flash',
-      apiKey: process.env.GEMINI_API_KEY,
+      apiKey: process.env.GEMINI_API_KEY?.trim(),
       temperature: 0.7,
     });
     console.log('[RAG] Running with Gemini Flash (cloud mode)');
@@ -40,6 +42,7 @@ const QuerySchema = z.object({
   query: z.string().min(1),
   city: z.string().optional(),
   userId: z.string().optional(),
+  history: z.array(z.object({ role: z.string(), content: z.string() })).optional(),
 });
 
 // 1. Define the Graph State using Annotation
@@ -47,6 +50,7 @@ export const GraphState = Annotation.Root({
   query: Annotation<string>(),
   city: Annotation<string | undefined>(),
   userId: Annotation<string | undefined>(),
+  history: Annotation<any[] | undefined>(),
   preferences: Annotation<string | null>(),
   events: Annotation<any[]>(),
   answer: Annotation<string>(),
@@ -110,7 +114,7 @@ export function buildRagGraph(pool: Pool) {
 
   // Node 3: Generate answer using the retrieved context
   async function generateAnswer(state: typeof GraphState.State) {
-    const { query, events, preferences } = state;
+    const { query, events, preferences, history } = state;
     
     // Fallback if no events matched
     if (!events || events.length === 0) {
@@ -123,6 +127,7 @@ export function buildRagGraph(pool: Pool) {
     const context = events
       .map(
         (r, idx) =>
+          `Event Target ID: ${r.id}\n` +
           `${idx + 1}. ${r.title} @ ${r.location ?? 'TBA'}\n` +
           `   When: ${r.event_date}\n` +
           `   Category: ${r.category ?? 'general'}\n` +
@@ -133,11 +138,19 @@ export function buildRagGraph(pool: Pool) {
     let systemPrompt = `
 You are VibeCheck, a friendly WhatsApp concierge helping people discover events in their city.
 Answer concisely, in a conversational tone, and reference specific events from the context below.
-If something is not in the context, do not hallucinate – say you don't know.`;
+If something is not in the context, do not hallucinate – say you don't know.
+CRITICAL INSTRUCTION: If the user explicitly asks to book, RSVP, or secure a ticket to an event, YOU MUST USE YOUR 'rsvp_to_event' TOOL. Do not just say you will do it, literally execute the tool call!`;
 
     // Inject user preferences here if any
     if (preferences) {
       systemPrompt += `\n\nTake the following user preferences into consideration when making your suggestion tone and highlights:\n"${preferences}"`;
+    }
+
+    if (history && history.length > 0) {
+      systemPrompt += `\n\nRecent Conversation History:\n`;
+      history.forEach((msg: any) => {
+        systemPrompt += `${msg.role.toUpperCase()}: ${msg.content}\n`;
+      });
     }
 
     const userPrompt = `
@@ -150,10 +163,45 @@ ${context}
 Craft a short answer for WhatsApp (max ~4 sentences) suggesting the best options depending on the user's vibe and request.
 `;
 
-    const response = await getChatModel().invoke([
-      ['system', systemPrompt],
-      ['user', userPrompt],
-    ]);
+    const rsvpTool = new DynamicStructuredTool({
+      name: "rsvp_to_event",
+      description: "RSVP or book the user to a specific event using its Target ID UUID.",
+      schema: z.object({
+        eventId: z.string().uuid().describe("The UUID of the event to RSVP to")
+      }),
+      func: async ({ eventId }) => {
+        try {
+          await pool.query(`
+            INSERT INTO event_rsvps (event_id, phone_number)
+            VALUES ($1, $2)
+          `, [eventId, state.userId || 'unknown']);
+          return "Successfully registered the user for the event.";
+        } catch (e: any) {
+          console.error('[Tool] RSVP Error:', e);
+          return "Failed to register. Maybe they are already registered.";
+        }
+      }
+    });
+
+    const llm = getChatModel().bindTools([rsvpTool]);
+
+    const messages: any[] = [new SystemMessage(systemPrompt)];
+    messages.push(new HumanMessage(userPrompt));
+
+    let response = await llm.invoke(messages);
+
+    // Provide the AI an Autonomous Tool Execution Loop!
+    if (response.tool_calls && response.tool_calls.length > 0) {
+      messages.push(response);
+      for (const call of response.tool_calls) {
+        if (call.name === "rsvp_to_event") {
+          console.log(`[Agent] Executing tool RSVP for event ${call.args.eventId}...`);
+          const result = await rsvpTool.invoke(call.args);
+          messages.push(new ToolMessage({ content: result, tool_call_id: call.id }));
+        }
+      }
+      response = await llm.invoke(messages);
+    }
 
     // Update state with the final answer
     return { answer: response.content as string };
@@ -176,7 +224,7 @@ let compiledGraph: ReturnType<typeof buildRagGraph> | null = null;
 
 // The main export to handle API requests
 export async function handleEventQuery(pool: Pool, body: unknown) {
-  const { query, city, userId } = QuerySchema.parse(body);
+  const { query, city, userId, history } = QuerySchema.parse(body);
 
   // Lazy-load the compiled graph once
   if (!compiledGraph) {
@@ -188,6 +236,7 @@ export async function handleEventQuery(pool: Pool, body: unknown) {
     query,
     city,
     userId,
+    history,
     preferences: null,
     events: [],
     answer: ""
@@ -236,8 +285,9 @@ export async function saveUserPreferences(pool: Pool, body: unknown) {
 export async function extractAndSavePreferences(pool: Pool, phoneNumber: string, message: string) {
   try {
     const prompt = `You are a user profiling assistant for an event discovery app. The user sent this message: "${message}".
-Extract any implicit or explicit event preferences, vibes, or interests (e.g. relaxing, techno, food, acoustic, sports, networking, quiet, loud, etc). 
-If there are no clear preferences, output exactly "NONE". Keep it very brief, just a 1 sentence summary of their vibe.`;
+Extract any implicit or explicit event preferences, vibes, or interests (e.g. relaxing, techno, food, acoustic, sports, networking, quiet, loud, etc).
+ALSO, extract their physical city, location, or neighborhood if they naturally mention it (e.g. "I am in Vizag", "Events near MVP Colony").
+If there are no clear preferences or location, output exactly "NONE". Keep it very brief, just a 1 sentence summary. Example: "User is in Vizag and wants an acoustic beach party."`;
 
     const response = await getChatModel().invoke([
       ['system', prompt],
