@@ -2,14 +2,14 @@ import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { handleEventQuery, extractAndSavePreferences } from './rag';
 
-// ─── Category definitions ────────────────────────────────────────────────────
+// ─── Category definitions ─────────────────────────────────────────────────────
 const CATEGORIES = ['Sports', 'Arts', 'Education', 'Spiritual', 'Music', 'Food', 'Wellness', 'Indie', 'Techno', 'General'];
 
 const CATEGORIES_MENU = CATEGORIES
   .map((cat, i) => `${i + 1}. ${cat}`)
   .join('\n');
 
-// ─── Webhook verification ─────────────────────────────────────────────────────
+// ─── Webhook verification ──────────────────────────────────────────────────────
 export function verifyWebhook(req: Request, res: Response) {
   const challenge = req.query['hub.challenge'];
   if (challenge) {
@@ -20,7 +20,7 @@ export function verifyWebhook(req: Request, res: Response) {
   }
 }
 
-// ─── Main message handler ─────────────────────────────────────────────────────
+// ─── Main message handler ──────────────────────────────────────────────────────
 export async function handleIncomingMessage(req: Request, res: Response, pool: Pool) {
   const body = req.body;
   console.log(`\n\n--- INCOMING WEBHOOK PAYLOAD ---\n`, JSON.stringify(body, null, 2));
@@ -34,6 +34,28 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
 
   const phoneNumberId = entry.metadata.phone_number_id;
   const from = message.from;
+
+  // ── Handle interactive list_reply (user tapped an event card) ──────────────
+  const interactiveId = parseInteractiveReply(message);
+  if (interactiveId && interactiveId.startsWith('rsvp_')) {
+    res.sendStatus(200);
+    const eventId = interactiveId.replace('rsvp_', '');
+    try {
+      await pool.query(
+        `INSERT INTO event_rsvps (event_id, phone_number) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [eventId, from]
+      );
+      console.log(`[Interactive RSVP] ${from} booked event ${eventId}`);
+      await sendWhatsAppMessage(
+        phoneNumberId, from,
+        `✅ *You're all set!* Your spot has been reserved. We'll see you there! 🎉\n\nReply anytime to discover more events.`
+      );
+    } catch (err) {
+      console.error('[Interactive RSVP] DB error:', err);
+    }
+    return;
+  }
+
   const msgBody: string = message.text?.body?.trim() ?? '';
 
   if (!msgBody) return res.sendStatus(200);
@@ -111,7 +133,13 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
     pool.query(`UPDATE users SET chat_history = $1::jsonb WHERE phone_number = $2`, [JSON.stringify(chatHistory), from])
       .catch(e => console.error('[Memory] Error saving immediate context:', e));
 
+    // Send text answer first
     await sendWhatsAppMessage(phoneNumberId, from, finalAnswer);
+
+    // Send interactive event cards if events were returned
+    if (ragResult.events && ragResult.events.length > 0) {
+      await sendInteractiveEventCards(phoneNumberId, from, ragResult.events.slice(0, 3));
+    }
 
   } catch (error) {
     console.error('[WhatsApp] Error handling message:', error);
@@ -153,4 +181,91 @@ export async function sendWhatsAppMessage(phoneNumberId: string, to: string, tex
   } catch (error) {
     console.error('[WhatsApp] Network error:', error);
   }
+}
+
+// ─── Send interactive event cards with RSVP buttons ───────────────────────────
+export async function sendInteractiveEventCards(
+  phoneNumberId: string,
+  to: string,
+  events: any[]
+) {
+  const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || '';
+
+  if (!WHATSAPP_ACCESS_TOKEN) {
+    console.log(`[Dev Mode] Interactive Cards → ${to}:`, events.map(e => e.title));
+    return;
+  }
+
+  // Build up to 3 rows for the interactive list — one per event
+  const rows = events.slice(0, 3).map((ev: any) => {
+    const dateStr = ev.date_time || ev.event_date
+      ? new Date(ev.date_time || ev.event_date).toLocaleDateString('en-IN', {
+          weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+        })
+      : 'Date TBD';
+    return {
+      id: `rsvp_${ev.id}`,          // Button ID carries the event UUID
+      title: ev.title.substring(0, 24),  // Max 24 chars per Meta spec
+      description: `📍 ${(ev.location || 'Vizag').substring(0, 60)} · 📅 ${dateStr}`,
+    };
+  });
+
+  const interactivePayload = {
+    messaging_product: 'whatsapp',
+    to,
+    type: 'interactive',
+    interactive: {
+      type: 'list',
+      header: {
+        type: 'text',
+        text: '🎉 Top Events For You',
+      },
+      body: {
+        text: 'Here are the best matches I found. Tap an event to RSVP instantly!',
+      },
+      footer: {
+        text: 'Powered by VibeCheck AI',
+      },
+      action: {
+        button: 'View Events',
+        sections: [
+          {
+            title: 'Recommended Events',
+            rows,
+          },
+        ],
+      },
+    },
+  };
+
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v17.0/${phoneNumberId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(interactivePayload),
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('[WhatsApp] Interactive cards send failed:', errText);
+    } else {
+      console.log(`[WhatsApp] Interactive event cards sent to ${to}`);
+    }
+  } catch (error) {
+    console.error('[WhatsApp] Network error sending interactive cards:', error);
+  }
+}
+
+// ─── Handle interactive button replies (user tapped an event row) ─────────────
+export function parseInteractiveReply(message: any): string | null {
+  if (message?.type === 'interactive' && message?.interactive?.type === 'list_reply') {
+    return message.interactive.list_reply?.id ?? null;  // e.g. "rsvp_<uuid>"
+  }
+  return null;
 }
