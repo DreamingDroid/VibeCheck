@@ -82,28 +82,55 @@ export function buildRagGraph(pool: Pool) {
 
   // Node 2: Retrieve matching events from pgvector
   async function retrieveEvents(state: typeof GraphState.State) {
-    const { query } = state;
+    const { query, city } = state;
     const queryEmbedding = await embeddings.embedQuery(query);
     const client = await pool.connect();
     
     try {
-      const { rows } = await client.query(
-        `
-        SELECT
-          id,
-          title,
-          description,
-          location,
-          date_time AS event_date,
-          category,
-          1 - (embedding <=> $1::vector) AS similarity
-        FROM events
-        ORDER BY embedding <=> $1::vector
-        LIMIT 8;
-        `,
-        [queryEmbedding]
-      );
-      
+      let rows: any[];
+
+      if (city) {
+        // Soft city boost: city-matching events sort first, then by vector similarity
+        const result = await client.query(
+          `
+          SELECT
+            id,
+            title,
+            description,
+            location,
+            date_time AS event_date,
+            category,
+            1 - (embedding <=> $1::vector) AS similarity,
+            CASE WHEN location ILIKE $2 THEN 0 ELSE 1 END AS city_rank
+          FROM events
+          ORDER BY city_rank ASC, embedding <=> $1::vector ASC
+          LIMIT 8;
+          `,
+          [queryEmbedding, `%${city}%`]
+        );
+        rows = result.rows;
+        console.log(`[RAG] City boost applied for "${city}" — top result location: ${rows[0]?.location ?? 'N/A'}`);
+      } else {
+        // No city preference — pure vector similarity
+        const result = await client.query(
+          `
+          SELECT
+            id,
+            title,
+            description,
+            location,
+            date_time AS event_date,
+            category,
+            1 - (embedding <=> $1::vector) AS similarity
+          FROM events
+          ORDER BY embedding <=> $1::vector
+          LIMIT 8;
+          `,
+          [queryEmbedding]
+        );
+        rows = result.rows;
+      }
+
       // Update state with events found
       return { events: rows };
     } finally {
