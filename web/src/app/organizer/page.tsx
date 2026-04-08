@@ -12,15 +12,21 @@ import Link from "next/link";
 
 const CATEGORIES = ["Live Music", "DJ Set", "Comedy", "Art & Culture", "Tech Meetup", "Wellness", "Food & Drink", "Sports"];
 
-function EventRsvpList({ eventId, title, status, dateStr }: { eventId: string, title: string, status: string, dateStr: string }) {
+function EventRsvpList({ eventId, title, status, dateStr, organizerEmail }: { eventId: string, title: string, status: string, dateStr: string, organizerEmail: string }) {
   const [rsvps, setRsvps] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [broadcastStats, setBroadcastStats] = useState<{eligibleCount: number, costPerMessage: number, totalCost: number} | null>(null);
+  const [broadcastMessage, setBroadcastMessage] = useState("");
+  const [broadcasting, setBroadcasting] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "success">("idle");
+
   const loadRsvps = () => {
     if (!open) {
       setLoading(true);
-      fetch(`http://localhost:4000/api/admin/events/${eventId}/rsvps`)
+      fetch(`http://localhost:4000/api/organizer/events/${eventId}/rsvps?email=${encodeURIComponent(organizerEmail)}`)
         .then(r => r.json())
         .then(d => { if (d.success) setRsvps(d.data); })
         .finally(() => setLoading(false));
@@ -28,9 +34,49 @@ function EventRsvpList({ eventId, title, status, dateStr }: { eventId: string, t
     setOpen(!open);
   };
 
+  const openBroadcast = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setBroadcastOpen(true);
+    fetch(`http://localhost:4000/api/organizer/events/${eventId}/broadcast-stats?email=${encodeURIComponent(organizerEmail)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+           setBroadcastStats(d);
+        }
+      });
+  };
+
+  const handlePayAndSend = () => {
+    if (!broadcastMessage.trim()) return alert("Message cannot be empty.");
+    setPaymentStatus("processing");
+    setTimeout(() => {
+       setPaymentStatus("success");
+       setBroadcasting(true);
+       fetch(`http://localhost:4000/api/organizer/events/${eventId}/broadcast`, {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({ organizer_email: organizerEmail, message: broadcastMessage })
+       })
+       .then(r => r.json())
+       .then(d => {
+         if (d.success) {
+           alert(d.message);
+           setBroadcastOpen(false);
+         } else {
+           alert("Broadcast failed.");
+         }
+       })
+       .finally(() => {
+         setBroadcasting(false);
+         setPaymentStatus("idle");
+         setBroadcastMessage("");
+       });
+    }, 2000);
+  };
+
   return (
     <div className="border border-zinc-800 rounded-lg mb-3 overflow-hidden group">
-      <div className="flex flex-col md:flex-row justify-between md:items-center p-4 bg-zinc-900/50 cursor-pointer hover:bg-zinc-800 transition-colors gap-4" onClick={loadRsvps}>
+      <div className="flex flex-col md:flex-row justify-between md:items-center p-4 bg-zinc-900/50 cursor-pointer hover:bg-zinc-800 transition-colors gap-4" onClick={() => loadRsvps()}>
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
             <span className="text-white font-semibold text-base">{title}</span>
@@ -38,7 +84,16 @@ function EventRsvpList({ eventId, title, status, dateStr }: { eventId: string, t
           </div>
           <span className="text-zinc-500 text-xs mt-1">{new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}</span>
         </div>
-        <span className="text-indigo-400 text-sm font-medium px-4 py-2 w-fit bg-indigo-500/10 rounded-lg border border-indigo-500/20 group-hover:bg-indigo-500/20 transition-colors">{open ? "Hide Guestlist" : "View Guestlist"}</span>
+        <div className="flex gap-2 items-center">
+          {status === 'approved' && (
+             <button onClick={openBroadcast} className="text-emerald-400 text-sm font-medium px-4 py-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
+               📢 WhatsApp Update
+             </button>
+          )}
+          <button onClick={(e) => { e.stopPropagation(); loadRsvps(); }} className="text-indigo-400 text-sm font-medium px-4 py-2 w-fit bg-indigo-500/10 rounded-lg border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">
+            {open ? "Hide Guestlist" : "View Guestlist"}
+          </button>
+        </div>
       </div>
       {open && (
         <div className="p-0 border-t border-zinc-800 bg-zinc-950">
@@ -51,14 +106,60 @@ function EventRsvpList({ eventId, title, status, dateStr }: { eventId: string, t
               {rsvps.map((r, i) => (
                 <li key={i} className="text-sm p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 hover:bg-zinc-900/30 transition-colors">
                   <span className="text-zinc-300 font-medium">
-                    {r.name ? `${r.name} ` : ''}
-                    <span className="text-zinc-500 font-normal">{r.name ? `(${r.user_email})` : r.user_email}</span>
+                    {r.name || 'Anonymous Guest'}
                   </span>
                   <span className="text-zinc-600 text-xs">{new Date(r.created_at).toLocaleDateString(undefined, {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'})}</span>
                 </li>
               ))}
             </ul>
           )}
+        </div>
+      )}
+
+      {broadcastOpen && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
+             <h3 className="text-xl font-bold text-white mb-2">Broadcast WhatsApp Update</h3>
+             <p className="text-sm text-zinc-400 mb-4">Send a direct WhatsApp message to your attendees.</p>
+             
+             {broadcastStats ? (
+               <div className="bg-indigo-950/30 border border-indigo-500/20 p-4 rounded-lg mb-4 text-sm text-zinc-300">
+                 <div className="flex justify-between mb-1"><span>Eligible Attendees:</span> <span className="font-bold text-white">{broadcastStats.eligibleCount}</span></div>
+                 <div className="flex justify-between mb-1"><span>Cost per message:</span> <span className="font-bold text-white">₹{broadcastStats.costPerMessage}</span></div>
+                 <div className="flex justify-between mt-2 pt-2 border-t border-indigo-500/20"><span>Total Cost:</span> <span className="font-bold text-indigo-400 text-lg">₹{broadcastStats.totalCost}</span></div>
+               </div>
+             ) : (
+               <div className="p-4 mb-4 text-sm text-zinc-500 text-center animate-pulse border border-zinc-800/50 rounded-lg">Calculating stats...</div>
+             )}
+             
+             <Textarea 
+               placeholder="Write your update here..." 
+               className="bg-zinc-950 border-zinc-800 text-white mb-4 min-h-[100px]"
+               value={broadcastMessage}
+               onChange={e => setBroadcastMessage(e.target.value)}
+             />
+             
+             {paymentStatus === "processing" ? (
+               <div className="w-full py-2 bg-amber-600/50 text-white rounded-md text-center animate-pulse flex justify-center items-center gap-2">
+                 💳 Processing Payment...
+               </div>
+             ) : broadcasting ? (
+               <div className="w-full py-2 bg-indigo-600/50 text-white rounded-md text-center animate-pulse flex justify-center items-center gap-2">
+                 📲 Sending Messages...
+               </div>
+             ) : (
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1 bg-transparent border-zinc-700 text-zinc-300 hover:bg-zinc-800" onClick={() => setBroadcastOpen(false)}>Cancel</Button>
+                  <Button 
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50" 
+                    onClick={handlePayAndSend}
+                    disabled={!broadcastStats || broadcastStats.eligibleCount === 0 || !broadcastMessage.trim()}
+                  >
+                    Pay & Send
+                  </Button>
+                </div>
+             )}
+          </div>
         </div>
       )}
     </div>
@@ -165,7 +266,7 @@ export default function OrganizerDashboard() {
             <form onSubmit={handleSubmit} className="p-4 space-y-4">
               <Input placeholder="Event Title" value={formData.title} onChange={e=>setFormData({...formData, title: e.target.value})} className="bg-zinc-950 border-zinc-800" required />
               
-              <Select value={formData.category} onValueChange={v => setFormData({...formData, category: v})}>
+              <Select value={formData.category} onValueChange={v => setFormData({...formData, category: v || ""})}>
                 <SelectTrigger className="bg-zinc-950 border-zinc-800 focus:ring-indigo-500">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
@@ -198,7 +299,7 @@ export default function OrganizerDashboard() {
             ) : (
               <div className="space-y-3">
                 {myEvents.map(ev => (
-                  <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} dateStr={ev.date_time} />
+                  <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} dateStr={ev.date_time} organizerEmail={session?.user?.email || ""} />
                 ))}
               </div>
             )}

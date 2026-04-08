@@ -12,22 +12,28 @@ const embeddings = new OllamaEmbeddings({
 });
 
 // ── Chat Model: Ollama (local) or Gemini (cloud) ─────────────────────────────
-let chatModel: any;
-if (RUN_MODE === 'cloud') {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
-  chatModel = new ChatGoogleGenerativeAI({
-    model: 'gemini-1.5-flash',
-    apiKey: process.env.GEMINI_API_KEY,
-    temperature: 0.7,
-  });
-  console.log('[RAG] Running with Gemini Flash (cloud mode)');
-} else {
-  chatModel = new ChatOllama({
-    model: process.env.CHAT_MODEL || 'llama3.1',
-    baseUrl: OLLAMA_BASE,
-  });
-  console.log('[RAG] Running with Ollama (local mode)');
+let chatModel: any = null;
+
+function getChatModel() {
+  if (chatModel) return chatModel;
+  const currentRunMode = process.env.RUN_MODE || 'local';
+  if (currentRunMode === 'cloud') {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
+    chatModel = new ChatGoogleGenerativeAI({
+      model: 'gemini-1.5-flash',
+      apiKey: process.env.GEMINI_API_KEY,
+      temperature: 0.7,
+    });
+    console.log('[RAG] Running with Gemini Flash (cloud mode)');
+  } else {
+    chatModel = new ChatOllama({
+      model: process.env.CHAT_MODEL || 'llama3.1',
+      baseUrl: OLLAMA_BASE,
+    });
+    console.log('[RAG] Running with Ollama (local mode)');
+  }
+  return chatModel;
 }
 
 const QuerySchema = z.object({
@@ -144,7 +150,7 @@ ${context}
 Craft a short answer for WhatsApp (max ~4 sentences) suggesting the best options depending on the user's vibe and request.
 `;
 
-    const response = await chatModel.invoke([
+    const response = await getChatModel().invoke([
       ['system', systemPrompt],
       ['user', userPrompt],
     ]);
@@ -209,19 +215,66 @@ export async function saveUserPreferences(pool: Pool, body: unknown) {
     await client.query(
       `
       INSERT INTO users (phone_number, preferences)
-      VALUES ($1, jsonb_build_object('interaction_history', $2::text))
+      VALUES ($1, jsonb_build_object('interaction_history', $2::jsonb))
       ON CONFLICT (phone_number) DO UPDATE
       SET preferences = jsonb_set(
             COALESCE(users.preferences, '{}'::jsonb),
             '{interaction_history}',
-            to_jsonb($2::text)
+            $2::jsonb
           ),
           updated_at = CURRENT_TIMESTAMP;
       `,
-      [userId, preferences]
+      [userId, JSON.stringify([preferences])]
     );
     return { success: true, message: "User preferences updated." };
   } finally {
     client.release();
+  }
+}
+
+// ── NEW: AI Personalization Engine for WhatsApp ────────────────────────────
+export async function extractAndSavePreferences(pool: Pool, phoneNumber: string, message: string) {
+  try {
+    const prompt = `You are a user profiling assistant for an event discovery app. The user sent this message: "${message}".
+Extract any implicit or explicit event preferences, vibes, or interests (e.g. relaxing, techno, food, acoustic, sports, networking, quiet, loud, etc). 
+If there are no clear preferences, output exactly "NONE". Keep it very brief, just a 1 sentence summary of their vibe.`;
+
+    const response = await getChatModel().invoke([
+      ['system', prompt],
+    ]);
+
+    const extracted = typeof response?.content === 'string' ? response.content.trim() : '';
+    if (extracted === 'NONE' || !extracted || extracted.toLowerCase().includes('none')) {
+      return; 
+    }
+
+    const client = await pool.connect();
+    try {
+      const { rows } = await client.query(
+        `SELECT preferences FROM users WHERE phone_number = $1`, [phoneNumber]
+      );
+      
+      const currentPrefs = rows[0]?.preferences || {};
+      let history = Array.isArray(currentPrefs.interaction_history) ? currentPrefs.interaction_history : [];
+      if (typeof history === 'string') history = [history]; 
+
+      history.push(`${new Date().toISOString().split('T')[0]}: ${extracted}`);
+      if (history.length > 5) history.shift(); // Keep last 5 behavioral impressions
+
+      await client.query(
+        `UPDATE users SET preferences = jsonb_set(
+            COALESCE(preferences, '{}'::jsonb),
+            '{interaction_history}',
+            $1::jsonb
+        ) WHERE phone_number = $2`,
+        [JSON.stringify(history), phoneNumber]
+      );
+
+      console.log(`[Personalization Engine] Deduced vibe for ${phoneNumber}: ${extracted}`);
+    } finally {
+      client.release();
+    }
+  } catch(e) {
+    console.error("[Personalization Engine] LLM extraction failed:", e);
   }
 }

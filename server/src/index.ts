@@ -3,6 +3,13 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+
+// MUST LOAD DOTENV BEFORE ANY LOCAL IMPORTS
+const result = dotenv.config({ path: path.join(__dirname, '..', '.env') });
+if (result.error) {
+  console.log('Error loading .env file:', result.error);
+}
+
 import { Pool } from 'pg';
 import { registerType } from 'pgvector/pg';
 import { handleEventQuery, saveUserPreferences } from './rag';
@@ -16,14 +23,9 @@ import {
   adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingEventsHandler,
   adminReviewEventHandler
 } from './admin';
-import { organizerCreateEventHandler, organizerGetEventsHandler } from './organizer';
+import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler } from './organizer';
 import { startPushAlertCron } from './cron';
 import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verification';
-
-const result = dotenv.config({ path: path.join(__dirname, '..', '.env') });
-if (result.error) {
-  console.log('Error loading .env file:', result.error);
-}
 console.log('Loaded VERIFY_TOKEN:', process.env.WHATSAPP_VERIFY_TOKEN);
 
 const app = express();
@@ -31,6 +33,14 @@ const port = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(express.json());
+
+// Global Request Logger to trace ghost webhooks
+app.use((req, res, next) => {
+  console.log(`\n--- Incoming ${req.method} ${req.originalUrl} ---`);
+  console.log(`User-Agent: ${req.headers['user-agent']}`);
+  if (req.method === 'POST') console.log(`Body:`, JSON.stringify(req.body).substring(0, 500));
+  next();
+});
 
 const connectionString =
   process.env.DATABASE_URL ||
@@ -161,6 +171,9 @@ app.put('/api/admin/events/:id/review', (req, res) => adminReviewEventHandler(re
 // Organizer API
 app.get('/api/organizer/events', (req, res) => organizerGetEventsHandler(req, res, pool));
 app.post('/api/organizer/events', (req, res) => organizerCreateEventHandler(req, res, pool));
+app.get('/api/organizer/events/:id/rsvps', (req, res) => organizerGetEventRsvpsHandler(req, res, pool));
+app.get('/api/organizer/events/:id/broadcast-stats', (req, res) => getBroadcastStatsHandler(req, res, pool));
+app.post('/api/organizer/events/:id/broadcast', (req, res) => broadcastMessageHandler(req, res, pool));
 
 // Verification API
 app.post('/api/verify/send-code', (req, res) => sendVerificationCodeHandler(req, res, pool));

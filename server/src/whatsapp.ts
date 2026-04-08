@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
-import { handleEventQuery } from './rag';
+import { handleEventQuery, extractAndSavePreferences } from './rag';
 
 // ─── Category definitions ────────────────────────────────────────────────────
 const CATEGORIES = ['Sports', 'Arts', 'Education', 'Spiritual', 'Music', 'Food', 'Wellness', 'Indie', 'Techno', 'General'];
@@ -23,6 +23,7 @@ export function verifyWebhook(req: Request, res: Response) {
 // ─── Main message handler ─────────────────────────────────────────────────────
 export async function handleIncomingMessage(req: Request, res: Response, pool: Pool) {
   const body = req.body;
+  console.log(`\n\n--- INCOMING WEBHOOK PAYLOAD ---\n`, JSON.stringify(body, null, 2));
 
   if (!body.object) return res.sendStatus(404);
 
@@ -67,8 +68,8 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
       userName = rows[0].name || userName;
     }
 
-    // ── NORMAL FLOW: Silently update preferences from message ──────────────
-    await updatePreferencesFromMessage(pool, from, msgBody);
+    // ── NORMAL FLOW: AI Personalization Engine ──
+    await extractAndSavePreferences(pool, from, msgBody);
 
     // ── NORMAL FLOW: RAG query ─────────────────────────────────────────────
     const ragResult = await handleEventQuery(pool, { query: msgBody, userId: from });
@@ -84,32 +85,6 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
 
   } catch (error) {
     console.error('[WhatsApp] Error handling message:', error);
-  }
-}
-
-// ─── Silently detect category keywords and update user preferences ────────────
-async function updatePreferencesFromMessage(pool: Pool, phoneNumber: string, message: string) {
-  const lower = message.toLowerCase();
-  const mentioned = CATEGORIES.filter(cat => lower.includes(cat.toLowerCase()));
-  if (mentioned.length === 0) return;
-
-  try {
-    for (const cat of mentioned) {
-      await pool.query(
-        `UPDATE users SET
-          preferences = jsonb_set(
-            COALESCE(preferences, '{}'::jsonb),
-            '{categories}',
-            COALESCE(preferences->'categories', '[]'::jsonb) || $1::jsonb
-          )
-         WHERE phone_number = $2
-           AND NOT (COALESCE(preferences->'categories', '[]'::jsonb) @> $1::jsonb)`,
-        [JSON.stringify([cat]), phoneNumber]
-      );
-    }
-    console.log(`[Personalization] Updated categories for ${phoneNumber}: ${mentioned.join(', ')}`);
-  } catch (err) {
-    console.error('[Personalization] Failed to update preferences:', err);
   }
 }
 
