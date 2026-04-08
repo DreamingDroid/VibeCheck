@@ -24,7 +24,7 @@ import {
   adminReviewEventHandler
 } from './admin';
 import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler } from './organizer';
-import { startPushAlertCron } from './cron';
+import { startPushAlertCron, runMatchmakerJob } from './cron';
 import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verification';
 console.log('Loaded VERIFY_TOKEN:', process.env.WHATSAPP_VERIFY_TOKEN);
 
@@ -188,6 +188,18 @@ app.post('/api/organizer/events/:id/broadcast', (req, res) => broadcastMessageHa
 // Verification API
 app.post('/api/verify/send-code', (req, res) => sendVerificationCodeHandler(req, res, pool));
 app.post('/api/verify/confirm-code', (req, res) => verifyPhoneNumberHandler(req, res, pool));
+
+// ── Dev-only: manually trigger the AI Matchmaker for testing ─────────────────
+app.post('/admin/trigger-cron', async (req, res) => {
+  try {
+    console.log('[Dev] Manually triggering AI Matchmaker Cron...');
+    const result = await runMatchmakerJob(pool);
+    console.log(result);
+    res.json({ success: true, log: result });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 app.listen(port, () => {
   console.log(`[server]: VibeCheck API is running at http://localhost:${port}`);

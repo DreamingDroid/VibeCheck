@@ -1,8 +1,7 @@
 import { Pool } from 'pg';
 import { OllamaEmbeddings, ChatOllama } from '@langchain/ollama';
 import { StateGraph, Annotation } from '@langchain/langgraph';
-import { DynamicStructuredTool } from "@langchain/core/tools";
-import { SystemMessage, HumanMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
+import { SystemMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
 import { z } from 'zod';
 
 const RUN_MODE = process.env.RUN_MODE || 'local';
@@ -16,7 +15,7 @@ const embeddings = new OllamaEmbeddings({
 // ── Chat Model: Ollama (local) or Gemini (cloud) ─────────────────────────────
 let chatModel: any = null;
 
-function getChatModel() {
+export function getChatModel() {
   if (chatModel) return chatModel;
   const currentRunMode = (process.env.RUN_MODE || 'local').trim();
   if (currentRunMode === 'cloud') {
@@ -163,47 +162,54 @@ ${context}
 Craft a short answer for WhatsApp (max ~4 sentences) suggesting the best options depending on the user's vibe and request.
 `;
 
-    const rsvpTool = new DynamicStructuredTool({
-      name: "rsvp_to_event",
-      description: "RSVP or book the user to a specific event using its Target ID UUID.",
-      schema: z.object({
-        eventId: z.string().uuid().describe("The UUID of the event to RSVP to")
-      }),
-      func: async ({ eventId }) => {
-        try {
-          await pool.query(`
-            INSERT INTO event_rsvps (event_id, phone_number)
-            VALUES ($1, $2)
-          `, [eventId, state.userId || 'unknown']);
-          return "Successfully registered the user for the event.";
-        } catch (e: any) {
-          console.error('[Tool] RSVP Error:', e);
-          return "Failed to register. Maybe they are already registered.";
-        }
+    // ── Plain async RSVP action (no LangChain wrapper = no TS2589) ─────────
+    const executeRsvp = async (eventId: string): Promise<string> => {
+      try {
+        await pool.query(
+          `INSERT INTO event_rsvps (event_id, phone_number) VALUES ($1, $2)`,
+          [eventId, state.userId || 'unknown']
+        );
+        console.log(`[Agent] RSVP inserted for event ${eventId} by ${state.userId}`);
+        return 'Successfully registered the user for the event.';
+      } catch (e: any) {
+        console.error('[Agent] RSVP DB Error:', e.message);
+        return 'Failed to register. The user may already be registered for this event.';
       }
-    });
+    };
 
-    const llm = getChatModel().bindTools([rsvpTool]);
+    // Gemini function declaration (native format — no LangChain generics)
+    const rsvpFunctionDeclaration = {
+      name: 'rsvp_to_event',
+      description: 'RSVP or book the user to a specific event using its database UUID.',
+      parameters: {
+        type: 'object',
+        properties: {
+          eventId: {
+            type: 'string',
+            description: 'The UUID of the event to RSVP to.',
+          },
+        },
+        required: ['eventId'],
+      },
+    };
 
-    const messages: any[] = [new SystemMessage(systemPrompt)];
-    messages.push(new HumanMessage(userPrompt));
+    const llm = getChatModel().bind({ tools: [{ functionDeclarations: [rsvpFunctionDeclaration] }] } as any);
 
+    const messages: any[] = [new SystemMessage(systemPrompt), new HumanMessage(userPrompt)];
     let response = await llm.invoke(messages);
 
-    // Provide the AI an Autonomous Tool Execution Loop!
+    // ── Autonomous Tool Execution Loop ──────────────────────────────────────
     if (response.tool_calls && response.tool_calls.length > 0) {
       messages.push(response);
       for (const call of response.tool_calls) {
-        if (call.name === "rsvp_to_event") {
-          console.log(`[Agent] Executing tool RSVP for event ${call.args.eventId}...`);
-          const result = await rsvpTool.invoke(call.args);
+        if (call.name === 'rsvp_to_event') {
+          const result = await executeRsvp(call.args.eventId as string);
           messages.push(new ToolMessage({ content: result, tool_call_id: call.id }));
         }
       }
       response = await llm.invoke(messages);
     }
 
-    // Update state with the final answer
     return { answer: response.content as string };
   }
 
