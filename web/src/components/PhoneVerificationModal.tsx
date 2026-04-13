@@ -88,75 +88,75 @@ export function PhoneVerificationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-800 text-white">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold">
-            {step === "phone" ? "Verify Phone Number" : "Enter Verification Code"}
+      <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-2xl border-black/5 text-black rounded-[40px] shadow-2xl p-8">
+        <DialogHeader className="space-y-3">
+          <DialogTitle className="text-3xl font-black italic tracking-tighter uppercase leading-none">
+            {step === "phone" ? "Verify Phone" : "Enter Code"}
           </DialogTitle>
-          <DialogDescription className="text-zinc-400">
+          <DialogDescription className="text-zinc-500 text-sm font-bold leading-relaxed">
             {step === "phone"
               ? "Organizers need your number to reach out. We'll send a code to your WhatsApp."
               : `Enter the 6-digit code sent to your WhatsApp number.`}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-6 py-4">
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg">
+            <div className="p-4 bg-red-50 text-red-500 text-xs font-black uppercase tracking-widest rounded-2xl border border-red-100 animate-in shake">
               {error}
             </div>
           )}
 
           {step === "phone" ? (
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+            <div className="space-y-3">
+              <Label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Phone Number</Label>
               <Input
                 id="phone"
-                placeholder="e.g. 9876543210"
+                placeholder="E.G. 9876543210"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="bg-zinc-800 border-zinc-700 focus:ring-indigo-500"
+                className="bg-zinc-50 border-black/5 h-14 rounded-2xl text-sm font-black focus:ring-primary shadow-sm"
               />
-              <p className="text-xs text-zinc-500">Includes country code (default 91 for India)</p>
+              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-tight ml-1">Includes country code (default 91 for India)</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              <Label htmlFor="code">Verification Code</Label>
+            <div className="space-y-3">
+              <Label htmlFor="code" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Verification Code</Label>
               <Input
                 id="code"
                 placeholder="000000"
                 maxLength={6}
                 value={verificationCode}
                 onChange={(e) => setVerificationCode(e.target.value)}
-                className="bg-zinc-800 border-zinc-700 focus:ring-indigo-500 text-center tracking-widest text-lg font-bold"
+                className="bg-zinc-50 border-black/5 h-14 rounded-2xl text-center tracking-[0.5em] text-xl font-black focus:ring-primary shadow-sm"
               />
             </div>
           )}
         </div>
 
-        <DialogFooter className="flex flex-col sm:flex-row gap-2 border-t-0 bg-transparent">
+        <DialogFooter className="flex flex-col sm:flex-row gap-3 border-t-0 p-0">
           <Button
             variant="ghost"
             onClick={onClose}
-            className="hover:bg-zinc-800 text-zinc-400"
+            className="ringer-button border-2 border-black/5 bg-transparent text-black hover:bg-black/5 h-12 text-[10px]"
           >
-            Cancel
+            CANCEL
           </Button>
           {step === "phone" ? (
             <Button
               onClick={handleSendCode}
               disabled={loading}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              className="ringer-button bg-primary text-black hover:scale-[1.02] h-12 text-[10px]"
             >
-              {loading ? "Sending..." : "Send Verification Code"}
+              {loading ? "SENDING..." : "SEND CODE"}
             </Button>
           ) : (
             <Button
               onClick={handleVerifyCode}
               disabled={loading}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              className="ringer-button bg-primary text-black hover:scale-[1.02] h-12 text-[10px]"
             >
-              {loading ? "Verifying..." : "Verify & RSVP"}
+              {loading ? "VERIFYING..." : "VERIFY & RSVP"}
             </Button>
           )}
         </DialogFooter>

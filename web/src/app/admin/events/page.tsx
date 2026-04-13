@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Plus, Edit3, Trash2, Calendar, MapPin, ExternalLink, Phone, FileText } from "lucide-react";
 
 const CATEGORIES = ["Sports", "Arts", "Education", "Spiritual", "Music", "Food", "Wellness", "Indie", "Techno", "General"];
 
@@ -70,130 +71,148 @@ export default function AdminEventsPage() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+    <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in duration-700">
+      
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-black/5 pb-10">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
-            Event Management
+          <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-[0.9]">
+            Vibe Catalog
           </h1>
-          <p className="text-zinc-500 text-sm mt-1">Create, edit, and delete events.</p>
+          <p className="text-zinc-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Inventory Management of Experiences</p>
         </div>
-        <Button
+        <button
           onClick={() => { setForm(emptyForm); setEditingId(null); setShowForm(v => !v); }}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
+          className={`ringer-button px-8 py-4 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl ${
+            showForm ? 'bg-zinc-100 text-zinc-400' : 'bg-black text-white hover:bg-zinc-800'
+          }`}
         >
-          {showForm ? "✕ Cancel" : "+ New Event"}
-        </Button>
+          {showForm ? "CANCEL OPERATION" : "INITIALIZE NEW VIBE +"}
+        </button>
       </div>
 
-      {/* Create / Edit Form */}
+      {/* Create / Edit Form Card */}
       {showForm && (
-        <Card className="bg-zinc-900 border-zinc-800 border-indigo-500/30">
-          <CardHeader>
-            <CardTitle className="text-white text-base">
-              {editingId ? "✏️ Edit Event" : "✨ New Event"}
+        <Card className="ringer-card bg-zinc-50 border-primary shadow-2xl scale-100 animate-in zoom-in-95 duration-300">
+          <CardHeader className="bg-white border-b border-black/5 rounded-t-[40px] px-8 py-6">
+            <CardTitle className="text-black text-xs font-black uppercase tracking-widest flex items-center gap-3">
+              <Plus className="h-5 w-5 text-primary" />
+              {editingId ? "Re-Authoring Vibe" : "Authoring New Vibe"}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2 space-y-1">
-                <Label className="text-zinc-300">Title *</Label>
+          <CardContent className="p-8 sm:p-12">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="md:col-span-2 space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Event Title</Label>
                 <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  required placeholder="Event title" className="bg-zinc-950 border-zinc-700 text-white" />
+                  required placeholder="Enter Catchy Vibe Title" className="bg-white border-black/5 h-12 text-sm font-bold uppercase tracking-tight rounded-xl focus:ring-primary" />
               </div>
-              <div className="md:col-span-2 space-y-1">
-                <Label className="text-zinc-300">Description *</Label>
+              
+              <div className="md:col-span-2 space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Editorial Description</Label>
                 <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  required rows={3} placeholder="Describe the event..."
-                  className="w-full px-3 py-2 rounded-md bg-zinc-950 border border-zinc-700 text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  required rows={4} placeholder="What's the energy like?"
+                  className="w-full px-4 py-3 rounded-2xl bg-white border border-black/5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
               </div>
-              <div className="space-y-1">
-                <Label className="text-zinc-300">Category *</Label>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Category</Label>
                 <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v || "General" }))}>
-                  <SelectTrigger className="bg-zinc-950 border-zinc-700 text-white">
+                  <SelectTrigger className="bg-white border-black/5 h-12 rounded-xl text-xs font-bold uppercase tracking-widest">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-zinc-700 text-white">
-                    {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  <SelectContent className="bg-white border-black/5">
+                    {CATEGORIES.map(c => <SelectItem key={c} value={c} className="text-xs font-bold uppercase tracking-widest">{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-zinc-300">Date & Time *</Label>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Temporal Coordinates</Label>
                 <Input type="datetime-local" value={form.date_time}
                   onChange={e => setForm(f => ({ ...f, date_time: e.target.value }))}
-                  required className="bg-zinc-950 border-zinc-700 text-white [color-scheme:dark]" />
+                  required className="bg-white border-black/5 h-12 rounded-xl text-xs font-bold" />
               </div>
-              <div className="space-y-1">
-                <Label className="text-zinc-300">Location</Label>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Venue Coordinates</Label>
                 <Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                  placeholder="Venue, City" className="bg-zinc-950 border-zinc-700 text-white" />
+                  placeholder="Venue & Address" className="bg-white border-black/5 h-12 rounded-xl text-xs font-bold" />
               </div>
-              <div className="space-y-1">
-                <Label className="text-zinc-300">Contact Info</Label>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Contact Frequencies</Label>
                 <Input value={form.contact_info} onChange={e => setForm(f => ({ ...f, contact_info: e.target.value }))}
-                  placeholder="+91 9876543210" className="bg-zinc-950 border-zinc-700 text-white" />
+                  placeholder="+91 000 000 0000" className="bg-white border-black/5 h-12 rounded-xl text-xs font-bold" />
               </div>
-              <div className="md:col-span-2 space-y-1">
-                <Label className="text-zinc-300">External Link</Label>
+
+              <div className="md:col-span-2 space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">External Linkages</Label>
                 <Input value={form.external_link} onChange={e => setForm(f => ({ ...f, external_link: e.target.value }))}
-                  placeholder="https://..." className="bg-zinc-950 border-zinc-700 text-white" />
+                  placeholder="https://..." className="bg-white border-black/5 h-12 rounded-xl text-xs font-bold" />
               </div>
-              <div className="md:col-span-2 flex justify-end">
-                <Button type="submit" disabled={saving}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8">
-                  {saving ? "Saving..." : editingId ? "Update Event" : "Create Event"}
-                </Button>
+
+              <div className="md:col-span-2 flex justify-end pt-4">
+                <button type="submit" disabled={saving}
+                  className="ringer-button bg-black text-white px-12 py-4 text-[10px] font-black tracking-widest uppercase">
+                  {saving ? "SYNCHRONIZING..." : editingId ? "PUBLISH UPDATES" : "STORE NEW VIBE"}
+                </button>
               </div>
             </form>
           </CardContent>
         </Card>
       )}
 
-      {/* Events Table */}
-      <Card className="bg-zinc-900 border-zinc-800">
-        <CardHeader>
-          <CardTitle className="text-white text-base">All Events ({events.length})</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-8 text-center text-zinc-500 animate-pulse">Loading events...</div>
-          ) : events.length === 0 ? (
-            <div className="p-8 text-center text-zinc-600">No events yet. Create your first one above!</div>
-          ) : (
-            <div className="divide-y divide-zinc-800">
-              {events.map(ev => (
-                <div key={ev.id} className="flex items-start justify-between p-4 hover:bg-zinc-800/40 transition-colors gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline" className="border-indigo-500/30 text-indigo-400 bg-indigo-500/10 text-xs shrink-0">
-                        {ev.category}
-                      </Badge>
-                      <h3 className="text-white font-medium truncate">{ev.title}</h3>
+      {/* Events List */}
+      <div className="space-y-6 pb-20">
+        <h2 className="text-black text-xs font-black uppercase tracking-[0.2em] px-2 flex items-center gap-2">
+          <FileText className="h-4 w-4 text-zinc-400" />
+          Active Inventory ({events.length})
+        </h2>
+
+        {loading ? (
+          <div className="p-12 text-center text-zinc-400 text-xs font-black uppercase tracking-widest animate-pulse">Scanning database frequencies...</div>
+        ) : events.length === 0 ? (
+          <div className="ringer-card p-20 text-center text-zinc-400 text-xs font-bold italic">No vibrations detected in the catalog.</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {events.map(ev => (
+              <div key={ev.id} className="ringer-card group bg-white border-black/5 p-6 hover:shadow-xl transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="flex-1 min-w-0 space-y-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="sticker-badge bg-black text-white px-3 flex items-center gap-1">
+                      {ev.category}
                     </div>
-                    <p className="text-zinc-500 text-xs line-clamp-1">{ev.description}</p>
-                    <p className="text-zinc-600 text-xs mt-1">
-                      📅 {new Date(ev.date_time).toLocaleString()} · 📍 {ev.location || "—"}
-                    </p>
+                    <h3 className="text-2xl font-black italic tracking-tighter uppercase leading-none group-hover:text-primary transition-colors">{ev.title}</h3>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button size="sm" variant="outline"
-                      onClick={() => handleEdit(ev)}
-                      className="border-zinc-700 text-zinc-300 hover:bg-zinc-700 h-8 px-3 text-xs">
-                      Edit
-                    </Button>
-                    <Button size="sm" variant="destructive"
-                      onClick={() => handleDelete(ev.id)}
-                      className="h-8 px-3 text-xs">
-                      Delete
-                    </Button>
+                  
+                  <div className="flex flex-wrap gap-x-6 gap-y-2 items-center text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                    <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3 text-primary" /> {new Date(ev.date_time).toLocaleString()}</span>
+                    <span className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-primary" /> {ev.location || "FIELD UNKNOWN"}</span>
+                    {ev.contact_info && <span className="flex items-center gap-1.5 line-clamp-1"><Phone className="h-3 w-3" /> {ev.contact_info}</span>}
+                    {ev.external_link && <span className="flex items-center gap-1.5 text-primary underline"><ExternalLink className="h-3 w-3" /> LINK</span>}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <button 
+                    onClick={() => handleEdit(ev)}
+                    className="ringer-button bg-zinc-50 border border-black/5 hover:bg-black hover:text-white text-black text-[10px] flex items-center gap-2"
+                  >
+                    <Edit3 className="h-3 w-3" /> EDIT
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(ev.id)}
+                    className="ringer-button bg-zinc-50 border border-black/5 hover:bg-red-500 hover:text-white text-black text-[10px] flex items-center gap-2"
+                  >
+                    <Trash2 className="h-3 w-3" /> DELETE
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -16,14 +16,15 @@ import { handleEventQuery, saveUserPreferences } from './rag';
 import { verifyWebhook, handleIncomingMessage } from './whatsapp';
 import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHandler } from './events';
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
+import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler } from './organizer';
+import { getCitiesHandler } from './cities';
 import {
   checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler,
   adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler,
   adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler,
   adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingEventsHandler,
-  adminReviewEventHandler
+  adminReviewEventHandler, adminAddCityHandler, adminDeleteCityHandler
 } from './admin';
-import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler } from './organizer';
 import { startPushAlertCron, runMatchmakerJob } from './cron';
 import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verification';
 console.log('Loaded VERIFY_TOKEN:', process.env.WHATSAPP_VERIFY_TOKEN);
@@ -55,6 +56,15 @@ const pool = new Pool({
 pool.on('connect', async (client) => {
   try {
     await registerType(client);
+  } catch (err) {
+    console.error('Failed to register pgvector on connect:', err);
+  }
+});
+
+async function initializeDatabase() {
+  const client = await pool.connect();
+  try {
+    console.log('[DB] Ensuring database schema...');
     await client.query(`
       CREATE TABLE IF NOT EXISTS event_rsvps (
         id SERIAL PRIMARY KEY,
@@ -98,15 +108,37 @@ pool.on('connect', async (client) => {
 
     // Add City tracking
     await client.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
 
     // Add Agentic RSVPs capability to Database
     await client.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS phone_number TEXT`);
     await client.query(`ALTER TABLE event_rsvps ALTER COLUMN user_email DROP NOT NULL`);
 
+    // Dynamic Cities Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS cities (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) UNIQUE NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Initial Seeding for Cities
+    const { rows: cityRows } = await client.query('SELECT COUNT(*) FROM cities');
+    if (parseInt(cityRows[0].count) === 0) {
+      const initialCities = ["Vizag", "London", "New York", "Bangalore", "Tokyo", "Dubai"];
+      for (const city of initialCities) {
+        await client.query('INSERT INTO cities (name) VALUES ($1) ON CONFLICT DO NOTHING', [city]);
+      }
+      console.log(`[DB] Seeded ${initialCities.length} initial cities.`);
+    }
+    console.log('[DB] Database schema is up to date.');
   } catch (err) {
-    console.error('Failed to configure database on connect:', err);
+    console.error('Failed to initialize database schema:', err);
+  } finally {
+    client.release();
   }
-});
+}
 
 app.get('/health', async (_req, res) => {
   try {
@@ -178,6 +210,11 @@ app.post('/api/admin/organizers', (req, res) => adminAddOrganizerHandler(req, re
 app.get('/api/admin/events/pending', (req, res) => adminGetPendingEventsHandler(req, res, pool));
 app.put('/api/admin/events/:id/review', (req, res) => adminReviewEventHandler(req, res, pool));
 
+// Cities API
+app.get('/api/cities', (req, res) => getCitiesHandler(req, res, pool));
+app.post('/api/admin/cities', (req, res) => adminAddCityHandler(req, res, pool));
+app.delete('/api/admin/cities/:id', (req, res) => adminDeleteCityHandler(req, res, pool));
+
 // Organizer API
 app.get('/api/organizer/events', (req, res) => organizerGetEventsHandler(req, res, pool));
 app.post('/api/organizer/events', (req, res) => organizerCreateEventHandler(req, res, pool));
@@ -201,8 +238,9 @@ app.post('/admin/trigger-cron', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`[server]: VibeCheck API is running at http://localhost:${port}`);
+  await initializeDatabase();
   startPushAlertCron(pool);
 });
 

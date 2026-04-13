@@ -31,24 +31,36 @@ async function main() {
         description:
           'Open-air techno party by the beach with local and guest DJs, featuring deep and melodic techno into the night in Vizag.',
         location: 'Rushikonda Beach, Vizag',
+        city: 'Vizag',
         date_time: new Date(Date.now() + 2 * 60 * 60 * 1000),
         category: 'Techno',
-      },
-      {
-        title: 'Indie Night at Harbour Brew',
-        description:
-          'Live indie and acoustic sets from up-and-coming bands, cozy vibes with craft beer and cocktails in Vizag.',
-        location: 'Harbour Brew, Vizag',
-        date_time: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        category: 'Indie',
       },
       {
         title: 'Morning Yoga & Sound Bath',
         description:
           'Guided sunrise yoga session followed by a crystal bowl sound bath overlooking Vizag, perfect for a mindful reset.',
         location: 'Kailasagiri Hilltop, Vizag',
+        city: 'Vizag',
         date_time: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
         category: 'Wellness',
+      },
+      {
+        title: 'Underground Electronic Night',
+        description:
+          'Deep house and minimalist techno in a hidden warehouse venue in Shoreditch.',
+        location: 'Village Underground, London',
+        city: 'London',
+        date_time: new Date(Date.now() + 48 * 60 * 60 * 1000),
+        category: 'Techno',
+      },
+      {
+        title: 'Craft Beer & Live Indie',
+        description:
+          'A night of artisanal brews and emerging indie bands in the heart of Bangalore.',
+        location: 'Windmills Craftworks, Bangalore',
+        city: 'Bangalore',
+        date_time: new Date(Date.now() + 72 * 60 * 60 * 1000),
+        category: 'Indie',
       },
     ];
 
@@ -56,8 +68,8 @@ async function main() {
       const embedding = generateRandomEmbedding();
 
       const insertEventQuery = `
-        INSERT INTO events (title, description, location, date_time, category, embedding)
-        VALUES ($1, $2, $3, $4, $5, $6::vector)
+        INSERT INTO events (title, description, location, city, date_time, category, embedding)
+        VALUES ($1, $2, $3, $4, $5, $6, $7::vector)
         RETURNING id;
       `;
 
@@ -65,6 +77,7 @@ async function main() {
         ev.title,
         ev.description,
         ev.location,
+        ev.city,
         ev.date_time,
         ev.category,
         embedding,

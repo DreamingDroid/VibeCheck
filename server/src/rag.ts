@@ -90,7 +90,7 @@ export function buildRagGraph(pool: Pool) {
       let rows: any[];
 
       if (city) {
-        // Soft city boost: city-matching events sort first, then by vector similarity
+        // Explicit city boost: events in the requested city sort first, then by vector similarity
         const result = await client.query(
           `
           SELECT
@@ -98,10 +98,11 @@ export function buildRagGraph(pool: Pool) {
             title,
             description,
             location,
+            city,
             date_time AS event_date,
             category,
             1 - (embedding <=> $1::vector) AS similarity,
-            CASE WHEN location ILIKE $2 THEN 0 ELSE 1 END AS city_rank
+            CASE WHEN city ILIKE $2 THEN 0 ELSE 1 END AS city_rank
           FROM events
           ORDER BY city_rank ASC, embedding <=> $1::vector ASC
           LIMIT 8;
@@ -109,7 +110,7 @@ export function buildRagGraph(pool: Pool) {
           [queryEmbedding, `%${city}%`]
         );
         rows = result.rows;
-        console.log(`[RAG] City boost applied for "${city}" — top result location: ${rows[0]?.location ?? 'N/A'}`);
+        console.log(`[RAG] City boost applied for city: "${city}" — matches: ${rows.filter(r => r.city_rank === 0).length}`);
       } else {
         // No city preference — pure vector similarity
         const result = await client.query(

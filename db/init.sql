@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS events (
     description TEXT NOT NULL,
     date_time TIMESTAMP WITH TIME ZONE,
     location VARCHAR(255),
+    city VARCHAR(100), -- Explicit city column for global support
     age_group int4range, -- PostgreSQL range type for [min, max]
     external_link TEXT,
     contact_info VARCHAR(255),

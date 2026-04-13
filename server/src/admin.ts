@@ -65,7 +65,7 @@ export async function checkAdminHandler(req: Request, res: Response, pool: Pool)
 export async function adminGetEventsHandler(req: Request, res: Response, pool: Pool) {
   try {
     const { rows } = await pool.query(
-      `SELECT id, title, category, location, date_time, description, external_link, contact_info
+      `SELECT id, title, category, location, city, date_time, description, external_link, contact_info
        FROM events ORDER BY date_time ASC`
     );
     res.json({ success: true, data: rows });
@@ -76,16 +76,16 @@ export async function adminGetEventsHandler(req: Request, res: Response, pool: P
 
 // Create a new event
 export async function adminCreateEventHandler(req: Request, res: Response, pool: Pool) {
-  const { title, description, category, location, date_time, external_link, contact_info } = req.body;
+  const { title, description, category, location, city, date_time, external_link, contact_info } = req.body;
   if (!title || !description || !category || !date_time) {
     return res.status(400).json({ success: false, error: 'title, description, category, and date_time are required' });
   }
   try {
     const { rows } = await pool.query(
-      `INSERT INTO events (title, description, category, location, date_time, external_link, contact_info)
-       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7)
+      `INSERT INTO events (title, description, category, location, city, date_time, external_link, contact_info)
+       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8)
        RETURNING id, title, category`,
-      [title, description, category, location || null, date_time, external_link || null, contact_info || null]
+      [title, description, category, location || null, city || null, date_time, external_link || null, contact_info || null]
     );
     res.json({ success: true, data: rows[0], message: 'Event created successfully.' });
   } catch (error) {
@@ -97,13 +97,13 @@ export async function adminCreateEventHandler(req: Request, res: Response, pool:
 // Update an event
 export async function adminUpdateEventHandler(req: Request, res: Response, pool: Pool) {
   const { id } = req.params;
-  const { title, description, category, location, date_time, external_link, contact_info } = req.body;
+  const { title, description, category, location, city, date_time, external_link, contact_info } = req.body;
   try {
     await pool.query(
-      `UPDATE events SET title=$1, description=$2, category=$3::event_category, location=$4,
-       date_time=$5, external_link=$6, contact_info=$7, updated_at=CURRENT_TIMESTAMP
-       WHERE id=$8`,
-      [title, description, category, location, date_time, external_link || null, contact_info || null, id]
+      `UPDATE events SET title=$1, description=$2, category=$3::event_category, location=$4, city=$5,
+       date_time=$6, external_link=$7, contact_info=$8, updated_at=CURRENT_TIMESTAMP
+       WHERE id=$9`,
+      [title, description, category, location, city || null, date_time, external_link || null, contact_info || null, id]
     );
     res.json({ success: true, message: 'Event updated.' });
   } catch (error) {
@@ -257,6 +257,38 @@ export async function adminReviewEventHandler(req: Request, res: Response, pool:
     if (rowCount === 0) return res.status(404).json({ success: false, error: 'Event not found' });
     res.json({ success: true, message: `Event ${status} successfully.` });
   } catch (error) {
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+// --- CITY MANAGEMENT ---
+
+export async function adminAddCityHandler(req: Request, res: Response, pool: Pool) {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ success: false, error: 'City name required' });
+  try {
+    const { rows } = await pool.query(
+      'INSERT INTO cities (name) VALUES ($1) RETURNING *',
+      [name]
+    );
+    res.json({ success: true, data: rows[0], message: 'City added successfully.' });
+  } catch (error: any) {
+    if (error.code === '23505') {
+       return res.status(400).json({ success: false, error: 'City already exists' });
+    }
+    console.error('Add city error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function adminDeleteCityHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  try {
+    const { rowCount } = await pool.query('DELETE FROM cities WHERE id = $1', [id]);
+    if (rowCount === 0) return res.status(404).json({ success: false, error: 'City not found' });
+    res.json({ success: true, message: 'City deleted successfully.' });
+  } catch (error) {
+    console.error('Delete city error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

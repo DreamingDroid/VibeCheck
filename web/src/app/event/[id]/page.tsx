@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
+import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2 } from "lucide-react";
 
 export default function EventDetailsPage() {
   const params = useParams();
@@ -22,7 +22,6 @@ export default function EventDetailsPage() {
   useEffect(() => {
     if (!params.id) return;
     
-    // Check if user already has a phone number
     if (session?.user?.email) {
       fetch(`http://localhost:4000/api/user?email=${encodeURIComponent(session.user.email)}`)
         .then(r => r.json())
@@ -59,61 +58,42 @@ export default function EventDetailsPage() {
         router.push("/dashboard");
       });
 
-    // Detect device type
     if (typeof window !== "undefined") {
       const ua = navigator.userAgent;
-      if (/iPhone|iPad|iPod/i.test(ua)) {
-        setDevice('ios');
-      } else if (/Android/i.test(ua)) {
-        setDevice('android');
-      } else {
-        setDevice('desktop');
-      }
+      if (/iPhone|iPad|iPod/i.test(ua)) setDevice('ios');
+      else if (/Android/i.test(ua)) setDevice('android');
+      else setDevice('desktop');
     }
-  }, [params.id, router]);
+  }, [params.id, router, session]);
 
   const handleDownloadICS = () => {
     if (!event) return;
     const startDate = new Date(event.date_time);
-    const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // Assume 2 hour duration
+    const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
 
-    // For iOS, returning an .ics blob prompts the native calendar to add it automatically
     if (device === 'ios') {
       const formatDate = (date: Date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-      
-      const icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VEVENT
-DTSTART:${formatDate(startDate)}
-DTEND:${formatDate(endDate)}
-SUMMARY:${event.title}
-DESCRIPTION:${event.description}
-LOCATION:${event.location}
-END:VEVENT
-END:VCALENDAR`;
-
+      const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${formatDate(startDate)}\nDTEND:${formatDate(endDate)}\nSUMMARY:${event.title}\nDESCRIPTION:${event.description}\nLOCATION:${event.location}\nEND:VEVENT\nEND:VCALENDAR`;
       const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `${event.title.replace(/\\s+/g, '_')}.ics`;
+      link.download = `${event.title.replace(/\s+/g, '_')}.ics`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       return;
     }
 
-    // For Android and Desktop, Google Calendar link is much more seamless
-    const formatGCalDate = (date: Date) => date.toISOString().replace(/[-:]/g, '').replace(/\\.\\d{3}/, '');
+    const formatGCalDate = (date: Date) => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
     const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${formatGCalDate(startDate)}/${formatGCalDate(endDate)}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.location)}`;
     window.open(gcalUrl, '_blank');
   };
 
   const handleRSVP = async () => {
     if (!session?.user?.email) {
-      alert("Please log in or setup an account to RSVP!");
+      signIn("google");
       return;
     }
-
     if (!userHasPhone) {
       setShowPhoneModal(true);
       return;
@@ -134,88 +114,113 @@ END:VCALENDAR`;
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-zinc-950 text-white p-8 flex justify-center items-center">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="h-8 w-48 bg-zinc-800 rounded"></div>
-          <div className="h-4 w-32 bg-zinc-800 rounded"></div>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="max-w-4xl mx-auto p-12 space-y-8">
+      <div className="h-8 w-48 bg-zinc-100 animate-pulse rounded-full" />
+      <div className="h-96 w-full bg-zinc-100 animate-pulse rounded-[40px]" />
+    </div>
+  );
 
   if (!event) return null;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-4 sm:p-8 animate-in fade-in duration-700">
-      <div className="max-w-4xl mx-auto space-y-8 mt-10">
-        <Link href="/dashboard" className="text-zinc-400 hover:text-white transition-colors flex items-center gap-2 w-fit">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-          Back to Events
-        </Link>
-        
-        <div className="bg-zinc-900 border border-zinc-800 p-8 sm:p-12 rounded-2xl shadow-2xl">
-          <Badge variant="outline" className="mb-6 border-indigo-500/30 text-indigo-400 bg-indigo-500/10 font-semibold tracking-wide">
-            {event.category}
-          </Badge>
-          
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-6">
-            {event.title}
-          </h1>
-          
-          <div className="flex flex-col sm:flex-row gap-6 text-zinc-300 font-medium mb-10 border-b border-zinc-800 pb-10">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-8 animate-in fade-in duration-700">
+      <Link href="/dashboard" className="group flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
+        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+        Back to Explore
+      </Link>
+      
+      <div className="ringer-card p-0 overflow-hidden shadow-2xl flex flex-col md:flex-row">
+        {/* Left Side: Editorial Content */}
+        <div className="flex-1 p-8 sm:p-12 space-y-10">
+          <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-zinc-800/50">
-                <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              </div>
-              <span className="text-lg">{new Date(event.date_time).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'})}</span>
+              <div className="sticker-badge bg-primary text-white border-none">{event.category}</div>
+              <div className="sticker-badge bg-zinc-100 border-none text-zinc-400">Verified Vibe</div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-zinc-800/50">
-                <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              </div>
-              <span className="text-lg">{event.location}</span>
-            </div>
+            
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tighter text-black leading-[0.9] uppercase italic">
+              {event.title}
+            </h1>
           </div>
           
-          <div className="prose prose-invert max-w-none text-zinc-400 text-lg leading-relaxed mb-12">
+          <div className="prose prose-zinc max-w-none text-zinc-500 text-lg font-bold leading-relaxed">
             {event.description}
           </div>
-          
-          <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-zinc-800">
-            <Button 
+
+          <div className="flex flex-col sm:flex-row gap-4 pt-6">
+            <button 
               onClick={handleRSVP}
               disabled={rsvped}
-              className={`flex-1 text-base h-14 font-semibold transition-all ${rsvped ? 'bg-emerald-600 hover:bg-emerald-600 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-900/40'}`}
+              className={`ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all rounded-[20px] ${
+                rsvped 
+                ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed' 
+                : 'bg-black text-white hover:bg-zinc-800'
+              }`}
             >
-              {rsvped ? "RSVP Confirmed ✓" : "RSVP to Event"}
-            </Button>
+              {rsvped ? <CheckCircle2 className="h-5 w-5" /> : null}
+              {rsvped ? "ALREADY IN" : "RSVP TO EVENT"}
+            </button>
             
-            <Button 
+            <button 
               onClick={handleDownloadICS}
-              variant="outline"
-              className="flex-1 text-base h-14 border-zinc-700 hover:bg-zinc-800 text-zinc-300 gap-2 font-medium"
+              className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 border-2 border-black/5 hover:bg-black/5 rounded-[20px]"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v14m-4-4h8" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h18v4H3z" /></svg>
-              Add to Calendar
-            </Button>
+              <CalendarPlus className="h-5 w-5" />
+              ADD TO CALENDAR
+            </button>
           </div>
         </div>
-        
-        {session?.user?.email && (
-          <PhoneVerificationModal
-            isOpen={showPhoneModal}
-            onClose={() => setShowPhoneModal(false)}
-            onVerified={() => {
-              setUserHasPhone(true);
-              setShowPhoneModal(false);
-              handleRSVP();
-            }}
-            email={session.user.email}
-          />
-        )}
+
+        {/* Right Side: Meta Info Box */}
+        <div className="w-full md:w-80 bg-zinc-50 border-l border-black/5 p-8 sm:p-12 space-y-12">
+           <div className="space-y-6">
+              <div className="space-y-1">
+                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Date & Time</div>
+                 <div className="flex items-center gap-2 text-black font-black">
+                   <Calendar className="h-4 w-4 text-primary" />
+                   {new Date(event.date_time).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric'})}
+                 </div>
+                 <div className="text-sm font-bold text-zinc-500">
+                    {new Date(event.date_time).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit'})}
+                 </div>
+              </div>
+
+              <div className="space-y-1">
+                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Location</div>
+                 <div className="flex items-center gap-2 text-black font-black">
+                   <MapPin className="h-4 w-4 text-primary" />
+                   {event.location}
+                 </div>
+                 <div className="text-xs font-bold text-zinc-400 underline cursor-pointer hover:text-black">Open in Maps</div>
+              </div>
+           </div>
+
+           <div className="pt-8 border-t border-black/5 flex flex-col gap-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Share This Vibe</div>
+              <div className="flex gap-2">
+                 {[1,2,3].map(i => (
+                   <button key={i} className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all">
+                     <Share2 className="h-4 w-4" />
+                   </button>
+                 ))}
+              </div>
+           </div>
+        </div>
       </div>
+
+      {session?.user?.email && (
+        <PhoneVerificationModal
+          isOpen={showPhoneModal}
+          onClose={() => setShowPhoneModal(false)}
+          onVerified={() => {
+            setUserHasPhone(true);
+            setShowPhoneModal(false);
+            handleRSVP();
+          }}
+          email={session.user.email}
+        />
+      )}
     </div>
   );
 }

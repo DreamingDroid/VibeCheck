@@ -3,12 +3,12 @@ import { Pool } from 'pg';
 
 export async function getEventsHandler(req: Request, res: Response, pool: Pool) {
   try {
-    const { category, search } = req.query;
+    const { category, search, city } = req.query;
     
     let queryText = `
-      SELECT id, title, description, location, date_time, category 
+      SELECT id, title, description, location, city, date_time, category 
       FROM events
-      WHERE status = 'approved' OR status IS NULL
+      WHERE (status = 'approved' OR status IS NULL)
     `;
     const queryParams: any[] = [];
     let paramIndex = 1;
@@ -17,6 +17,12 @@ export async function getEventsHandler(req: Request, res: Response, pool: Pool) 
       // Must cast the parameter to the specific enum type for Postgres
       queryText += ` AND category = $${paramIndex}::event_category`;
       queryParams.push(category);
+      paramIndex++;
+    }
+
+    if (city) {
+      queryText += ` AND city = $${paramIndex}`;
+      queryParams.push(city);
       paramIndex++;
     }
 
@@ -44,7 +50,7 @@ export async function getSingleEventHandler(req: Request, res: Response, pool: P
   try {
     const { id } = req.params;
     const result = await pool.query(
-      `SELECT id, title, description, location, date_time, category 
+      `SELECT id, title, description, location, city, date_time, category 
        FROM events WHERE id = $1 AND (status = 'approved' OR status IS NULL)`,
       [id]
     );

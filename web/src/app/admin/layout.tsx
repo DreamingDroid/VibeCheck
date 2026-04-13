@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { LayoutDashboard, FileText, MapPin, ArrowLeft } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
@@ -26,54 +27,60 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (status === "loading" || checking) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-zinc-400 text-sm">Verifying admin access...</p>
+          <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-zinc-500 text-xs font-black uppercase tracking-widest">Verifying admin access...</p>
         </div>
       </div>
     );
   }
 
   const navItems = [
-    { label: "📊 Overview", href: "/admin" },
-    { label: "📝 Manage Events", href: "/admin/events" },
+    { label: "Overview", href: "/admin", icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: "Manage Events", href: "/admin/events", icon: <FileText className="h-4 w-4" /> },
+    { label: "Manage Cities", href: "/admin/cities", icon: <MapPin className="h-4 w-4" /> },
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex flex-col md:flex-row">
+    <div className="min-h-screen bg-background text-black flex flex-col md:flex-row">
       {/* Sidebar */}
-      <aside className="w-full md:w-60 bg-zinc-900 md:border-r border-b md:border-b-0 border-zinc-800 flex flex-col shrink-0">
-        <div className="p-6 border-b border-zinc-800">
-          <p className="text-xs text-indigo-400 font-semibold tracking-widest uppercase mb-1">Vizag Vibes</p>
-          <h2 className="text-lg font-bold text-white">Admin Panel</h2>
-          <p className="text-xs text-zinc-500 mt-1 truncate">{session?.user?.email}</p>
+      <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-black/5 flex flex-col shrink-0">
+        <div className="p-8 border-b border-black/5">
+          <p className="text-[10px] text-primary font-black tracking-[0.2em] uppercase mb-1">VIBECHECK</p>
+          <h2 className="text-xl font-black italic tracking-tighter uppercase italic">Admin Panel</h2>
         </div>
-        <nav className="flex-1 p-4 space-y-1 flex flex-row md:flex-col overflow-x-auto md:overflow-visible gap-2 md:gap-0">
+        
+        <nav className="flex-1 p-6 space-y-2 flex flex-row md:flex-col overflow-x-auto md:overflow-visible gap-2 md:gap-0">
           {navItems.map(item => (
-            <Link key={item.href} href={item.href}>
-              <div className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap
+            <Link key={item.href} href={item.href} className="w-full">
+              <div className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-3 transition-all cursor-pointer whitespace-nowrap
                 ${pathname === item.href
-                  ? "bg-indigo-600 text-white"
-                  : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                  ? "bg-black text-white shadow-xl translate-x-1"
+                  : "text-zinc-400 hover:bg-black/5 hover:text-black"
                 }`}>
+                {item.icon}
                 {item.label}
               </div>
             </Link>
           ))}
         </nav>
-        <div className="p-4 border-t border-zinc-800">
+
+        <div className="p-6 border-t border-black/5">
           <Link href="/dashboard">
-            <div className="px-4 py-2.5 rounded-lg text-sm font-medium text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 transition-colors cursor-pointer">
-              ← Back to Portal
+            <div className="px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:bg-black/5 hover:text-black transition-all cursor-pointer flex items-center gap-2">
+              <ArrowLeft className="h-3 w-3" />
+              Portal Home
             </div>
           </Link>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto p-4 sm:p-8">
-        {children}
+      <main className="flex-1 overflow-auto bg-zinc-50/50">
+        <div className="p-4 sm:p-12 animate-in fade-in slide-in-from-bottom-2 duration-700">
+           {children}
+        </div>
       </main>
     </div>
   );

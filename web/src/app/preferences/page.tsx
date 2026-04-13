@@ -5,10 +5,10 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, CheckCircle2, Heart, MapPin, Phone, Sparkles } from "lucide-react";
 
 const ALL_CATEGORIES = [
   "Sports", "Arts", "Education", "Spiritual",
@@ -26,12 +26,10 @@ export default function PreferencesPage() {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Redirect if not logged in
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
   }, [status, router]);
 
-  // Load existing preferences
   useEffect(() => {
     if (!session?.user?.email) return;
     fetch(`http://localhost:4000/api/user?email=${encodeURIComponent(session.user.email)}`)
@@ -43,8 +41,8 @@ export default function PreferencesPage() {
           setCity(data.data.city || "");
         }
       })
+      .catch(err => console.error("Pref load error:", err))
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.email]);
 
   const toggleCategory = (cat: string) => {
@@ -58,25 +56,30 @@ export default function PreferencesPage() {
     if (!session?.user?.email) return;
     setSaving(true);
     setSaved(false);
-    await fetch("http://localhost:4000/api/user", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: session.user.email,
-        name: session.user.name,
-        categories: selected,
-        phone_number: phoneNumber.trim() || null,
-        city: city.trim() || null,
-      }),
-    });
-    setSaving(false);
-    setSaved(true);
+    try {
+      await fetch("http://localhost:4000/api/user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: session.user.email,
+          name: session.user.name,
+          categories: selected,
+          phone_number: phoneNumber.trim() || null,
+          city: city.trim() || null,
+        }),
+      });
+      setSaved(true);
+    } catch (err) {
+      console.error("Save pref error:", err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -84,138 +87,139 @@ export default function PreferencesPage() {
   const isWhatsAppLinked = !!phoneNumber.trim();
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-4 sm:p-8">
-      <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
-
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-800 pb-6 gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
-              My Preferences
-            </h1>
-            <p className="text-zinc-400 mt-1 text-sm">Personalise your Vizag Vibes experience.</p>
-          </div>
-          <Link href="/dashboard">
-            <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 w-full sm:w-auto mt-2 sm:mt-0">
-              ← Back to Events
-            </Button>
-          </Link>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-12 animate-in fade-in duration-700">
+      
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-black/5 pb-12">
+        <div>
+          <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-[0.9]">
+            Identity Matrix
+          </h1>
+          <p className="text-zinc-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Configuring Your Personal Vibe Frequency</p>
         </div>
+        <Link href="/dashboard">
+          <button className="ringer-button border-2 border-black/5 hover:bg-black hover:text-white transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+            <ArrowLeft className="h-3 w-3" /> RETURN TO PORTAL
+          </button>
+        </Link>
+      </div>
 
-        {/* Category Toggles */}
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-white text-lg">Event Interests</CardTitle>
-            <CardDescription className="text-zinc-400">
-              Select the categories you care about. These will personalise your event feed and — if you link WhatsApp — trigger automatic notifications when new matching events drop.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-3">
-              {ALL_CATEGORIES.map((cat) => {
-                const isActive = selected.includes(cat);
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => toggleCategory(cat)}
-                    className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-200 cursor-pointer
-                      ${isActive
-                        ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-900/40 scale-105"
-                        : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-indigo-500/50 hover:text-zinc-200"
-                      }`}
-                  >
-                    {isActive ? "✓ " : ""}{cat}
-                  </button>
-                );
-              })}
-            </div>
-            {selected.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="text-xs text-zinc-500">Selected:</span>
-                {selected.map((c) => (
-                  <Badge key={c} variant="outline" className="border-indigo-500/40 text-indigo-300 bg-indigo-500/5 text-xs">
-                    {c}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Location Linking */}
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-white text-lg flex items-center gap-2">
-              <span>🌎</span> Default Location
-            </CardTitle>
-            <CardDescription className="text-zinc-400">
-              Set your city or neighborhood. The AI will use this to automatically filter events near you, so you don't have to constantly mention where you are!
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Label htmlFor="city" className="text-zinc-300 text-sm">City or Neighborhood</Label>
-            <Input
-              id="city"
-              type="text"
-              placeholder="e.g. Visakhapatnam, MVP Colony..."
-              value={city}
-              onChange={(e) => { setCity(e.target.value); setSaved(false); }}
-              className="bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-600 focus-visible:ring-indigo-500"
-            />
-          </CardContent>
-        </Card>
-
-        {/* WhatsApp Linking */}
-        <Card className={`border transition-colors duration-300 ${isWhatsAppLinked ? "bg-emerald-950/30 border-emerald-800/50" : "bg-zinc-900 border-zinc-800"}`}>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-white text-lg flex items-center gap-2">
-                <span>📱</span> Link WhatsApp
-                {isWhatsAppLinked && (
-                  <span className="text-xs font-normal text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                    ✓ Linked
-                  </span>
-                )}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        {/* Left Col: Selections */}
+        <div className="lg:col-span-8 space-y-8">
+          <Card className="ringer-card">
+            <CardHeader>
+              <CardTitle className="text-black text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                <Heart className="h-4 w-4 text-primary fill-primary" />
+                Vibe Interests
               </CardTitle>
-            </div>
-            <CardDescription className="text-zinc-400">
-              <span className="font-medium text-zinc-300">Optional — unlocks Tier 2 features.</span> Providing your number lets you chat with the Vizag Vibes AI Agent on WhatsApp and receive push notifications for new matching events.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Label htmlFor="phone" className="text-zinc-300 text-sm">WhatsApp Number (with country code)</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="e.g. +919876543210"
-              value={phoneNumber}
-              onChange={(e) => { setPhoneNumber(e.target.value); setSaved(false); }}
-              className="bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-600 focus-visible:ring-emerald-500"
-            />
-            {isWhatsAppLinked && (
-              <p className="text-xs text-emerald-400/80">
-                🤖 You can now message the Vizag Vibes bot on WhatsApp and receive event alerts based on your interests above.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+              <CardDescription className="text-zinc-400 text-[11px] font-bold">
+                Synchronize your feed with specific frequencies. These tags define what vibes find you first.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3">
+                {ALL_CATEGORIES.map((cat) => {
+                  const isActive = selected.includes(cat);
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => toggleCategory(cat)}
+                      className={`px-5 py-3 rounded-full text-xs font-black uppercase tracking-widest border transition-all duration-300
+                        ${isActive
+                          ? "bg-black border-black text-white shadow-xl scale-105"
+                          : "bg-zinc-50 border-black/5 text-zinc-400 hover:border-black hover:text-black hover:bg-white"
+                        }`}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Save Button */}
-        <div className="flex items-center justify-end gap-4">
-          {saved && (
-            <span className="text-emerald-400 text-sm font-medium animate-in fade-in">
-              ✓ Preferences saved!
-            </span>
-          )}
-          <Button
-            onClick={handleSave}
-            disabled={saving || selected.length === 0}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 font-semibold shadow-lg shadow-indigo-900/30 disabled:opacity-50 transition-all"
-          >
-            {saving ? "Saving..." : "Save Preferences"}
-          </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+             <Card className="ringer-card">
+              <CardHeader>
+                <CardTitle className="text-black text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  Home Base
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Label htmlFor="city" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Preferred Territory</Label>
+                <Input
+                  id="city"
+                  placeholder="CITY OR NEIGHBORHOOD"
+                  value={city}
+                  onChange={(e) => { setCity(e.target.value); setSaved(false); }}
+                  className="bg-zinc-50 border-black/5 h-12 rounded-xl text-sm font-bold uppercase focus:ring-primary"
+                />
+              </CardContent>
+            </Card>
+
+            <Card className={`ringer-card transition-colors duration-300 ${isWhatsAppLinked ? "bg-primary/5 border-primary/20" : "bg-white"}`}>
+              <CardHeader>
+                <CardTitle className="text-black text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-primary" />
+                  Alert Frequency
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">WhatsApp Hookup</Label>
+                <Input
+                  id="phone"
+                  placeholder="E.G. +91 00000 00000"
+                  value={phoneNumber}
+                  onChange={(e) => { setPhoneNumber(e.target.value); setSaved(false); }}
+                  className="bg-white border-black/5 h-12 rounded-xl text-sm font-bold uppercase focus:ring-primary"
+                />
+                {isWhatsAppLinked && (
+                  <p className="text-[9px] font-black tracking-widest text-primary uppercase animate-in fade-in">
+                    ✓ NEURAL LINK ACTIVE
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
+        {/* Right Col: Summary & Save */}
+        <div className="lg:col-span-4 h-fit sticky top-32">
+           <Card className="ringer-card bg-black text-white p-2">
+              <CardHeader className="p-8 pb-4">
+                 <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-none text-white">Identity Status</h3>
+              </CardHeader>
+              <CardContent className="p-8 pt-0 space-y-8">
+                 <div className="space-y-4">
+                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                       <span className="text-zinc-500">Categories Linked</span>
+                       <span className="text-white">{selected.length}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                       {selected.map(c => <Badge key={c} className="bg-primary text-black font-black border-none text-[8px] uppercase">{c}</Badge>)}
+                    </div>
+                 </div>
+
+                 <div className="pt-4 border-t border-white/10 space-y-6">
+                    {saved && (
+                      <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-[10px] animate-in bounce-in">
+                        <CheckCircle2 className="h-4 w-4" /> CONFIGS SYNCHRONIZED
+                      </div>
+                    )}
+                    <button
+                      onClick={handleSave}
+                      disabled={saving || selected.length === 0}
+                      className="ringer-button w-full bg-primary text-black h-16 text-xs font-black flex items-center justify-center gap-3 disabled:opacity-50 group hover:scale-[1.02] transition-all"
+                    >
+                      {saving ? "SYNCING..." : "COMMIT CHANGES"}
+                      <Sparkles className="h-4 w-4 group-hover:animate-spin" />
+                    </button>
+                 </div>
+              </CardContent>
+           </Card>
+        </div>
       </div>
     </div>
   );

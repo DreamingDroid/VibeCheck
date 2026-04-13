@@ -3,18 +3,34 @@
 import { useSession, signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
+import { ChevronDown, Sparkles, MapPin, Zap } from "lucide-react"
 
-const Spinner = ({ className }: { className?: string }) => (
-  <svg className={`animate-spin ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-  </svg>
-);
+const NEWS_ITEMS = [
+  {
+    id: 1,
+    title: "Rushikonda Beach Festival Announced",
+    content: "Get ready for a three-day musical extravaganza featuring national bands and local talent right on the golden sands of Rushikonda.",
+    category: "Events"
+  },
+  {
+    id: 2,
+    title: "New Tech Hub Opens in Madhurawada",
+    content: "A state-of-the-art collaborative space just opened its doors, aiming to foster Vizag's rapidly growing design and tech community.",
+    category: "Tech"
+  },
+  {
+    id: 3,
+    title: "Street Food Carnival at RK Beach",
+    content: "Experience the best of coastal flavors at this weekend's massive culinary block party along the iconic Beach Road.",
+    category: "Culture"
+  }
+];
 
 export default function Home() {
   const { status } = useSession()
   const router = useRouter()
   const [isSigningIn, setIsSigningIn] = useState(false)
+  const [openAccordion, setOpenAccordion] = useState<number | null>(1)
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -24,8 +40,8 @@ export default function Home() {
 
   if (status === "loading" || status === "authenticated") {
     return (
-      <main className="flex flex-1 items-center justify-center bg-zinc-950 text-indigo-400">
-         <Spinner className="h-10 w-10 text-indigo-500" />
+      <main className="flex flex-1 items-center justify-center bg-background">
+         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </main>
     )
   }
@@ -36,44 +52,92 @@ export default function Home() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Decorative ambient glowing orbs */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse-glow" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-green-500/10 rounded-full blur-[120px] pointer-events-none -z-10" />
+    <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-24 space-y-16 animate-in fade-in duration-700">
       
-      <div className="text-center max-w-xl z-10 animate-float relative">
-        <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-green-500 to-yellow-500 rounded-3xl blur opacity-25"></div>
-        <div className="relative bg-black/40 backdrop-blur-xl p-10 sm:p-14 rounded-3xl border border-white/10 shadow-2xl flex flex-col items-center">
-          <h1 className="text-6xl font-extrabold mb-6 tracking-tight bg-gradient-to-br from-cyan-300 via-green-300 to-yellow-400 bg-clip-text text-transparent drop-shadow-sm filter">
-            Vizag Vibes
-          </h1>
-          <p className="text-zinc-300 mb-10 text-lg leading-relaxed font-medium">
-            The future of networking and discovery in the City of Destiny. <br className="hidden sm:block"/> Powered by coastal energy and AI.
-          </p>
+      {/* Hero Section */}
+      <section className="flex flex-col items-center text-center space-y-8 max-w-4xl mx-auto">
+        <div className="flex items-center gap-2 sticker-badge bg-primary/10 text-primary border-none shadow-sm">
+          <Zap className="h-3.5 w-3.5" />
+          <span>vizag's exclusive network</span>
+        </div>
+        
+        <h1 className="text-6xl md:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] text-black drop-shadow-sm">
+          The City of Destiny, <br className="hidden md:block"/>
+          <span className="text-primary">Reimagined.</span>
+        </h1>
+        
+        <p className="text-lg md:text-xl font-bold text-zinc-500 max-w-2xl leading-relaxed">
+          VibeCheck is the ultimate insider's guide to networking, discovery, and culture in Visakhapatnam. Powered by coastal energy and community.
+        </p>
+        
+        <div className="pt-4 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+          <button 
+            onClick={handleSignIn} 
+            disabled={isSigningIn}
+            className="ringer-button w-full sm:w-auto bg-black text-white hover:bg-zinc-800 hover:scale-[1.02] h-16 px-10 text-sm font-black flex items-center justify-center gap-3 shadow-2xl transition-all"
+          >
+            {isSigningIn ? (
+               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <>JOIN THE VIBE <Sparkles className="h-4 w-4" /></>
+            )}
+          </button>
+          <a href="#happenings" className="text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors py-4 px-6">
+            Read the Latest
+          </a>
+        </div>
+      </section>
 
-          <div className="w-full flex flex-col items-center border-t border-white/10 pt-8 mt-2">
-            <h2 className="text-xl font-semibold mb-2 text-white/90">Access the Network</h2>
-            <p className="text-zinc-400 mb-6 text-sm">Discover the intelligent way to explore Visakhapatnam.</p>
-            <button 
-              onClick={handleSignIn} 
-              disabled={isSigningIn}
-              className="group relative px-8 py-3 bg-cyan-600 hover:bg-cyan-500 overflow-hidden text-white rounded-xl transition-all duration-300 font-bold flex items-center justify-center min-w-[240px] shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)]"
-            >
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
-              <span className="relative flex items-center">
-                {isSigningIn ? (
-                  <>
-                    <Spinner className="-ml-1 mr-3 h-5 w-5 text-white" />
-                    Initializing...
-                  </>
-                ) : (
-                  "Launch Portal"
-                )}
-              </span>
-            </button>
+      {/* Happenings Accordion */}
+      <section id="happenings" className="max-w-3xl mx-auto pt-12">
+        <div className="border-t border-black/5 pt-12 space-y-8">
+          <div className="text-center space-y-2">
+            <h2 className="text-3xl md:text-4xl font-black italic tracking-tighter uppercase">Local Currents</h2>
+            <p className="text-xs font-black tracking-widest uppercase text-zinc-400 flex items-center justify-center gap-2">
+               <MapPin className="h-3 w-3" /> Live from the coast
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {NEWS_ITEMS.map((item) => {
+              const isOpen = openAccordion === item.id;
+              
+              return (
+                <div 
+                  key={item.id} 
+                  className={`ringer-card overflow-hidden transition-all duration-300 border-2 ${isOpen ? 'border-primary ring-4 ring-primary/10' : 'border-black/5 hover:border-black/20 text-cursor-pointer'}`}
+                >
+                  <button 
+                    onClick={() => setOpenAccordion(isOpen ? null : item.id)}
+                    className="w-full text-left px-8 py-6 flex items-center justify-between bg-white"
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="sticker-badge bg-black text-white shrink-0">
+                        {item.category}
+                      </span>
+                      <span className="text-lg md:text-xl font-black tracking-tight leading-tight uppercase pr-4">
+                        {item.title}
+                      </span>
+                    </div>
+                    <ChevronDown className={`h-5 w-5 text-black shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  <div 
+                    className={`grid transition-all duration-300 ease-in-out bg-zinc-50 ${isOpen ? 'grid-rows-[1fr] border-t border-black/5' : 'grid-rows-[0fr]'}`}
+                  >
+                    <div className="overflow-hidden">
+                      <p className="px-8 py-6 text-zinc-600 font-bold leading-relaxed text-sm md:text-base">
+                        {item.content}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
-      </div>
+      </section>
+
     </main>
   )
 }
