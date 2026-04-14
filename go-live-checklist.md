@@ -21,9 +21,10 @@ Based on the latest System Requirements Specification (SRS), here is an updated 
 
 ---
 
-## 🚧 Phase 3: The Web Portal (Discovery Phase) — IN PROGRESS
+## ✅ Phase 3: The Web Portal (Discovery Phase) — COMPLETE
 - [x] **Initialize Frontend**: Scaffolded Next.js 14.2 project (App Router) with Tailwind CSS v3, Shadcn UI, and `tailwindcss-animate`.
 - [x] **Authentication**: NextAuth.js (Google OAuth 2.0) fully working — Google login tested and confirmed with session display.
+- [x] **UI/UX Overhaul**: Transitioned from dark theme to the high-energy "Soft Light" design system, redesigning the landing page and ensuring accessibility platform-wide.
 - [x] **Event Listing & Search UI**: Dashboard page built at `/dashboard` with category filter dropdown, text search input, and event card grid (API-driven from Express `/api/events`).
 - [x] **Backend Events API**: New `/api/events` endpoint added to Express server with dynamic `category` and `search` filtering.
 - [x] **Server Port Separation**: Express server moved to port `4000`, Next.js stays on `3000`.
@@ -44,11 +45,11 @@ Based on the latest System Requirements Specification (SRS), here is an updated 
 ## ✅ Operations & Tooling — COMPLETE
 - [x] **Standardized Dependencies**: Centralized package management into a unified `dependencies.txt` file and cross-platform startup scripts (`install_dependencies.bat`, `start.bat`, and `start.sh`) for rapid development onboarding.
 
-## 🚀 Phase 5: WhatsApp AI Agent Enhancements
+## ✅ Phase 5: WhatsApp AI Agent Enhancements — COMPLETE
 - [x] **Onboarding Flow**: Implemented silent profile building capturing the WhatsApp profile name and pointing users to the website for preferences.
-- [ ] **Personalization Engine**: Update `rag.ts` to continuously write interaction history to the `preferences` JSONB column.
+- [x] **Personalization Engine**: Update `rag.ts` to continuously write interaction history to the `preferences` JSONB column.
 - [x] **Proactive (Push) Alerts**: Implemented a Daily Cron job (9 AM) to cross-reference new events with preferences. To optimize Meta costs, a **System Settings Toggle** was added to the Admin UI to safely enable/disable the background engine.
-- [ ] **Cloud AI Integration**: Update backend to conditionally switch between Ollama (local) and Cloud Provider models (e.g., Gemini) based on `RUN_MODE`.
+- [x] **Cloud AI Integration**: Update backend to conditionally switch between Ollama (local) and Cloud Provider models (e.g., Gemini) based on `RUN_MODE`.
 
 ## 🚀 Phase 6: Cloud Deployment & Final Review
 - [ ] **Push the Backend Code**: Deploy the finished Node/Express app to Render/Railway.
