@@ -65,7 +65,7 @@ export async function checkAdminHandler(req: Request, res: Response, pool: Pool)
 export async function adminGetEventsHandler(req: Request, res: Response, pool: Pool) {
   try {
     const { rows } = await pool.query(
-      `SELECT id, title, category, location, city, date_time, description, external_link, contact_info
+      `SELECT id, title, category, location, city, date_time, end_time, timings, description, external_link, contact_info
        FROM events ORDER BY date_time ASC`
     );
     res.json({ success: true, data: rows });
@@ -76,16 +76,16 @@ export async function adminGetEventsHandler(req: Request, res: Response, pool: P
 
 // Create a new event
 export async function adminCreateEventHandler(req: Request, res: Response, pool: Pool) {
-  const { title, description, category, location, city, date_time, external_link, contact_info } = req.body;
+  const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info } = req.body;
   if (!title || !description || !category || !date_time) {
     return res.status(400).json({ success: false, error: 'title, description, category, and date_time are required' });
   }
   try {
     const { rows } = await pool.query(
-      `INSERT INTO events (title, description, category, location, city, date_time, external_link, contact_info)
-       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8)
+      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, contact_info)
+       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10)
        RETURNING id, title, category`,
-      [title, description, category, location || null, city || null, date_time, external_link || null, contact_info || null]
+      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, contact_info || null]
     );
     res.json({ success: true, data: rows[0], message: 'Event created successfully.' });
   } catch (error) {
@@ -97,13 +97,13 @@ export async function adminCreateEventHandler(req: Request, res: Response, pool:
 // Update an event
 export async function adminUpdateEventHandler(req: Request, res: Response, pool: Pool) {
   const { id } = req.params;
-  const { title, description, category, location, city, date_time, external_link, contact_info } = req.body;
+  const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info } = req.body;
   try {
     await pool.query(
       `UPDATE events SET title=$1, description=$2, category=$3::event_category, location=$4, city=$5,
-       date_time=$6, external_link=$7, contact_info=$8, updated_at=CURRENT_TIMESTAMP
-       WHERE id=$9`,
-      [title, description, category, location, city || null, date_time, external_link || null, contact_info || null, id]
+       date_time=$6, end_time=$7, timings=$8, external_link=$9, contact_info=$10, updated_at=CURRENT_TIMESTAMP
+       WHERE id=$11`,
+      [title, description, category, location, city || null, date_time, end_time || null, timings || null, external_link || null, contact_info || null, id]
     );
     res.json({ success: true, message: 'Event updated.' });
   } catch (error) {

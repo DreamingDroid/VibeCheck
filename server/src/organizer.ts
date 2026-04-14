@@ -3,16 +3,16 @@ import { Pool } from 'pg';
 import { sendWhatsAppMessage } from './whatsapp';
 
 export async function organizerCreateEventHandler(req: Request, res: Response, pool: Pool) {
-  const { title, description, category, location, city, date_time, external_link, contact_info, organizer_email } = req.body;
+  const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email } = req.body;
   
   if (!organizer_email) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
   try {
     const { rows } = await pool.query(
-      `INSERT INTO events (title, description, category, location, city, date_time, external_link, contact_info, status, organizer_email)
-       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, 'pending', $9)
+      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, status, organizer_email)
+       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, 'pending', $11)
        RETURNING id, title, status`,
-      [title, description, category, location || null, city || null, date_time, external_link || null, contact_info || null, organizer_email]
+      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, contact_info || null, organizer_email]
     );
     res.json({ success: true, data: rows[0], message: 'Event submitted for approval.' });
   } catch (error) {

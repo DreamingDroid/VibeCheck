@@ -396,7 +396,7 @@ export default function AdminPage() {
         
         <div className="space-y-10">
           {eventsList.length === 0 ? (
-            <p className="text-zinc-400 text-xs italic py-12 text-center">No vibrations detected in the database.</p>
+            <p className="text-zinc-400 text-xs italic py-12 text-center">No vibes detected in the database.</p>
           ) : (
             Object.entries(
               eventsList.reduce((acc: any, ev: any) => {

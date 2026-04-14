@@ -109,6 +109,8 @@ async function initializeDatabase() {
     // Add City tracking
     await client.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
     await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS timings VARCHAR(255)`);
+    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS end_time TIMESTAMP WITH TIME ZONE`);
 
     // Add Agentic RSVPs capability to Database
     await client.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS phone_number TEXT`);
