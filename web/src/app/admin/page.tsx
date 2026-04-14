@@ -390,16 +390,35 @@ export default function AdminPage() {
       </div>
 
       {/* Editorial RSVP List */}
-      <div className="pt-12 border-t border-black/5">
+      <div className="pt-12 border-t border-black/5 pb-16">
         <h2 className="text-4xl font-black italic tracking-tighter uppercase italic leading-none mb-2">Guest List Manifest</h2>
         <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-10">Expand a vibe to synchronize attendees</p>
         
-        <div className="space-y-2">
+        <div className="space-y-10">
           {eventsList.length === 0 ? (
             <p className="text-zinc-400 text-xs italic py-12 text-center">No vibrations detected in the database.</p>
           ) : (
-            eventsList.map((ev: any) => (
-              <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} dateStr={ev.date_time} />
+            Object.entries(
+              eventsList.reduce((acc: any, ev: any) => {
+                const city = ev.city || "Unspecified Location";
+                if (!acc[city]) acc[city] = [];
+                acc[city].push(ev);
+                return acc;
+              }, {})
+            ).map(([city, evs]: [string, any]) => (
+              <div key={city} className="flex flex-col gap-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-xs font-black tracking-[0.2em] uppercase text-black bg-white shadow-sm border border-black/5 px-4 py-2 rounded-full w-fit">
+                    <MapPin className="inline h-3 w-3 mr-1 -mt-0.5 text-primary" /> {city}
+                  </h3>
+                  <div className="h-px bg-black/5 flex-1" />
+                </div>
+                <div className="space-y-3">
+                  {evs.map((ev: any) => (
+                    <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} dateStr={ev.date_time} />
+                  ))}
+                </div>
+              </div>
             ))
           )}
         </div>
