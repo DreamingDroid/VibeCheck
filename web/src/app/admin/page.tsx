@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Users, Calendar, ShieldCheck, ListChecks, CheckCircle2, XCircle } from "lucide-react";
+import { Users, Calendar, ShieldCheck, ListChecks, CheckCircle2, XCircle, Sparkles, MapPin } from "lucide-react";
 
 // Joyful Ringer-style Palette
 const COLORS = ["#19A74E", "#E4FF00", "#6366f1", "#ec4899", "#f97316", "#06b6d4"];
