@@ -46,9 +46,9 @@ Based on the latest System Requirements Specification (SRS), here is an updated 
 
 ## 🚀 Phase 5: WhatsApp AI Agent Enhancements
 - [x] **Onboarding Flow**: Implemented silent profile building capturing the WhatsApp profile name and pointing users to the website for preferences.
-- [ ] **Personalization Engine**: Update `rag.ts` to continuously write interaction history to the `preferences` JSONB column.
+- [x] **Personalization Engine**: Update `rag.ts` to continuously write interaction history to the `preferences` JSONB column.
 - [x] **Proactive (Push) Alerts**: Implemented a Daily Cron job (9 AM) to cross-reference new events with preferences. To optimize Meta costs, a **System Settings Toggle** was added to the Admin UI to safely enable/disable the background engine.
-- [ ] **Cloud AI Integration**: Update backend to conditionally switch between Ollama (local) and Cloud Provider models (e.g., Gemini) based on `RUN_MODE`.
+- [x] **Cloud AI Integration**: Update backend to conditionally switch between Ollama (local) and Cloud Provider models (e.g., Gemini) based on `RUN_MODE`.
 
 ## 🚀 Phase 6: Cloud Deployment & Final Review
 - [ ] **Push the Backend Code**: Deploy the finished Node/Express app to Render/Railway.

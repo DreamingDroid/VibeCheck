@@ -4,7 +4,7 @@ import { StateGraph, Annotation } from '@langchain/langgraph';
 import { SystemMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
 import { z } from 'zod';
 
-const RUN_MODE = process.env.RUN_MODE || 'local';
+const RUN_MODE = process.env.RUN_MODE || 'cloud';
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
 
 const embeddings = new OllamaEmbeddings({
@@ -17,7 +17,7 @@ let chatModel: any = null;
 
 export function getChatModel() {
   if (chatModel) return chatModel;
-  const currentRunMode = (process.env.RUN_MODE || 'local').trim();
+  const currentRunMode = (process.env.RUN_MODE || 'cloud').trim();
   if (currentRunMode === 'cloud') {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');

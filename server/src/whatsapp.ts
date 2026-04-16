@@ -96,7 +96,8 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
     }
 
     // ── NORMAL FLOW: AI Personalization Engine ──
-    await extractAndSavePreferences(pool, from, msgBody);
+    // (Running asynchronously to avoid injecting extra LLM latency before responding)
+    extractAndSavePreferences(pool, from, msgBody).catch(e => console.error(e));
 
     // Grab specific city constraint if the user synced it via Web Portal
     let syncedCity: string | undefined = undefined;
