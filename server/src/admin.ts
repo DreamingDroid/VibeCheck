@@ -17,11 +17,11 @@ export async function checkAdminHandler(req: Request, res: Response, pool: Pool)
     }
     const role = adminStr.role;
     const normalizedRole = typeof role === 'string' ? role.toLowerCase() : '';
-    return res.json({ 
-      success: true, 
-      isAdmin: normalizedRole !== 'organizer', 
-      isOrganizer: normalizedRole === 'organizer', 
-      role 
+    return res.json({
+      success: true,
+      isAdmin: normalizedRole !== 'organizer',
+      isOrganizer: normalizedRole === 'organizer',
+      role
     });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Internal server error' });
@@ -119,13 +119,13 @@ export async function adminUpdateSettingsHandler(req: Request, res: Response, po
   try {
     await initSystemSettings(pool);
     if (key === 'cron_enabled') {
-       await toggleCronSetting(pool, value === true || value === 'true');
+      await toggleCronSetting(pool, value === true || value === 'true');
     } else {
-       await pool.query(
-         `INSERT INTO system_settings (key, value) VALUES ($1, $2::jsonb)
+      await pool.query(
+        `INSERT INTO system_settings (key, value) VALUES ($1, $2::jsonb)
           ON CONFLICT (key) DO UPDATE SET value = $2::jsonb, updated_at = CURRENT_TIMESTAMP`,
-         [key, JSON.stringify(value)]
-       );
+        [key, JSON.stringify(value)]
+      );
     }
     res.json({ success: true, message: 'Setting updated' });
   } catch (error) {
@@ -201,7 +201,7 @@ export async function adminAddCityHandler(req: Request, res: Response, pool: Poo
     res.json({ success: true, data: city, message: 'City added successfully.' });
   } catch (error: any) {
     if (error.code === '23505') {
-       return res.status(400).json({ success: false, error: 'City already exists' });
+      return res.status(400).json({ success: false, error: 'City already exists' });
     }
     console.error('Add city error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });

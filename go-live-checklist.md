@@ -21,9 +21,10 @@ Based on the latest System Requirements Specification (SRS), here is an updated 
 
 ---
 
-## 🚧 Phase 3: The Web Portal (Discovery Phase) — IN PROGRESS
+## ✅ Phase 3: The Web Portal (Discovery Phase) — COMPLETE
 - [x] **Initialize Frontend**: Scaffolded Next.js 14.2 project (App Router) with Tailwind CSS v3, Shadcn UI, and `tailwindcss-animate`.
 - [x] **Authentication**: NextAuth.js (Google OAuth 2.0) fully working — Google login tested and confirmed with session display.
+- [x] **UI/UX Overhaul**: Transitioned from dark theme to the high-energy "Soft Light" design system, redesigning the landing page and ensuring accessibility platform-wide.
 - [x] **Event Listing & Search UI**: Dashboard page built at `/dashboard` with category filter dropdown, text search input, and event card grid (API-driven from Express `/api/events`).
 - [x] **Backend Events API**: New `/api/events` endpoint added to Express server with dynamic `category` and `search` filtering.
 - [x] **Server Port Separation**: Express server moved to port `4000`, Next.js stays on `3000`.
@@ -35,6 +36,8 @@ Based on the latest System Requirements Specification (SRS), here is an updated 
 - [x] **Secure Admin Route**: `/admin` protected by email-based check against the `admins` table. Non-admins are redirected to `/dashboard` automatically.
 - [x] **Event CMS**: Full Create / Edit / Delete events UI at `/admin/events`. Wired to Express REST API with all event fields (title, description, category, date/time, location, contact, external link).
 - [x] **Analytics Engine**: Overview page with stat cards (Total Events, Web Users, WhatsApp Users) and two Recharts bar charts — Events by Category and User Preferred Categories — all confirmed working with live data.
+- [x] **Global RSVP Management**: Integrated the "Event RSVPs" viewer directly into the Admin Overview, allowing administrators to expand any event and access real-time guest lists and attendance records.
+- [x] **System Infrastructure Controls**: Built-in admin toggles for managing active Push Alerts (Cron Job operations) and the visibility of WhatsApp Notification components.
 
 ## ✅ Phase 4.5: Event Organizer System — COMPLETE
 - [x] **Organizer Role & Dashboard**: Created the `/organizer` hub where users granted Organizer permissions can manage and submit local events.
@@ -44,7 +47,7 @@ Based on the latest System Requirements Specification (SRS), here is an updated 
 ## ✅ Operations & Tooling — COMPLETE
 - [x] **Standardized Dependencies**: Centralized package management into a unified `dependencies.txt` file and cross-platform startup scripts (`install_dependencies.bat`, `start.bat`, and `start.sh`) for rapid development onboarding.
 
-## 🚀 Phase 5: WhatsApp AI Agent Enhancements
+## ✅ Phase 5: WhatsApp AI Agent Enhancements — COMPLETE
 - [x] **Onboarding Flow**: Implemented silent profile building capturing the WhatsApp profile name and pointing users to the website for preferences.
 - [x] **Personalization Engine**: Update `rag.ts` to continuously write interaction history to the `preferences` JSONB column.
 - [x] **Proactive (Push) Alerts**: Implemented a Daily Cron job (9 AM) to cross-reference new events with preferences. To optimize Meta costs, a **System Settings Toggle** was added to the Admin UI to safely enable/disable the background engine.

@@ -12,13 +12,20 @@ export function GlobalHeader() {
   const { currentCity, setCity, supportedCities, isLoading } = useCity()
   const [showCityMenu, setShowCityMenu] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isOrganizer, setIsOrganizer] = useState(false)
 
   useEffect(() => {
     if (session?.user?.email) {
       fetch(`http://localhost:4000/api/admin/check?email=${encodeURIComponent(session.user.email)}`)
         .then(r => r.json())
-        .then(data => setIsAdmin(data.isAdmin))
-        .catch(() => setIsAdmin(false))
+        .then(data => {
+          setIsAdmin(data.isAdmin)
+          setIsOrganizer(data.isOrganizer)
+        })
+        .catch(() => {
+          setIsAdmin(false)
+          setIsOrganizer(false)
+        })
     }
   }, [session])
 
@@ -112,9 +119,16 @@ export function GlobalHeader() {
                       PREFERENCES
                     </button>
                   </Link>
+                  {isOrganizer && (
+                    <Link href="/organizer">
+                      <button className="ringer-button bg-primary text-black hover:bg-black hover:text-white text-[10px] py-2 px-4 border-none transition-colors">
+                        ORGANIZER HUB
+                      </button>
+                    </Link>
+                  )}
                   {isAdmin && (
                     <Link href="/admin">
-                      <button className="ringer-button bg-primary text-black text-[10px] py-2 px-4 border-none">
+                      <button className="ringer-button bg-black text-white hover:bg-zinc-800 text-[10px] py-2 px-4 border-none transition-colors">
                         ADMIN
                       </button>
                     </Link>

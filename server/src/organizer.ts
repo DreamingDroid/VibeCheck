@@ -6,8 +6,8 @@ import { getSystemSetting } from './queries/analytics';
 import { config } from './config';
 
 export async function organizerCreateEventHandler(req: Request, res: Response, pool: Pool) {
-  const { title, description, category, location, city, date_time, external_link, contact_info, organizer_email } = req.body;
-  
+  const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email } = req.body;
+
   if (!organizer_email) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
   try {
@@ -36,7 +36,7 @@ export async function organizerGetEventsHandler(req: Request, res: Response, poo
 export async function organizerGetEventRsvpsHandler(req: Request, res: Response, pool: Pool) {
   const { id } = req.params;
   const { email } = req.query;
-  
+
   if (!email) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
   try {
@@ -60,7 +60,7 @@ export async function getBroadcastStatsHandler(req: Request, res: Response, pool
   const { email } = req.query;
 
   if (!email) return res.status(401).json({ success: false, error: 'Unauthorized' });
-  
+
   try {
     const eventCheck = await getEventByOrganizer(pool, id as string);
     if (!eventCheck || eventCheck.organizer_email !== email) {
@@ -69,13 +69,13 @@ export async function getBroadcastStatsHandler(req: Request, res: Response, pool
 
     let costPerMessage = 2;
     try {
-       const val = await getSystemSetting(pool, 'whatsapp_broadcast_rate');
-       if (val) costPerMessage = Number(val) || 2;
-    } catch(e) {}
+      const val = await getSystemSetting(pool, 'whatsapp_broadcast_rate');
+      if (val) costPerMessage = Number(val) || 2;
+    } catch (e) { }
 
     const attendees = await getBroadcastAttendees(pool, id as string);
     const count = attendees.length;
-    
+
     res.json({
       success: true,
       eligibleCount: count,
@@ -113,9 +113,9 @@ export async function broadcastMessageHandler(req: Request, res: Response, pool:
 
     for (const r of rows) {
       if (r.phone_number) {
-         const finalMsg = `*Update for ${eventTitle}*\n\n${message}\n\n- The Organizer`;
-         await sendWhatsAppMessage(phoneNumberId, r.phone_number, finalMsg);
-         sentCount++;
+        const finalMsg = `*Update for ${eventTitle}*\n\n${message}\n\n- The Organizer`;
+        await sendWhatsAppMessage(phoneNumberId, r.phone_number, finalMsg);
+        sentCount++;
       }
     }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,17 +9,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit3, Trash2, Calendar, MapPin, ExternalLink, Phone, FileText } from "lucide-react";
+import { VibeTimePicker } from "@/components/vibe-time-picker";
 
 const CATEGORIES = ["Sports", "Arts", "Education", "Spiritual", "Music", "Food", "Wellness", "Indie", "Techno", "General"];
 
+const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
+  const hour = Math.floor(i / 2);
+  const min = i % 2 === 0 ? "00" : "30";
+  const ampm = hour < 12 ? "AM" : "PM";
+  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${displayHour}:${min} ${ampm}`;
+});
+
 type Event = {
   id: string; title: string; description: string; category: string;
-  location: string; date_time: string; external_link: string; contact_info: string;
+  location: string; date_time: string; end_time?: string; timings?: string; external_link: string; contact_info: string;
 };
 
-const emptyForm = { title: "", description: "", category: "General", location: "", date_time: "", external_link: "", contact_info: "" };
+const emptyForm = { 
+  title: "", description: "", category: "General", location: "", 
+  startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM",
+  timings: "", external_link: "", contact_info: "" 
+};
 
 export default function AdminEventsPage() {
+  const [isMultiDay, setIsMultiDay] = useState(false);
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
@@ -37,9 +53,31 @@ export default function AdminEventsPage() {
   useEffect(() => { fetchEvents(); }, []);
 
   const handleEdit = (ev: Event) => {
+    const start = new Date(ev.date_time);
+    const end = ev.end_time ? new Date(ev.end_time) : new Date(start.getTime() + 3*3600*1000);
+    
+    // Format helpers
+    const fDate = (d: Date) => d.toISOString().split("T")[0];
+    const fTime = (d: Date) => {
+      let h = d.getHours();
+      const m = d.getMinutes() >= 30 ? "30" : "00";
+      const ampm = h >= 12 ? "PM" : "AM";
+      if (h > 12) h -= 12;
+      if (h === 0) h = 12;
+      return `${h}:${m} ${ampm}`;
+    };
+
+    const multi = fDate(start) !== fDate(end);
+    setIsMultiDay(multi);
+
     setForm({
       title: ev.title, description: ev.description, category: ev.category,
-      location: ev.location || "", date_time: ev.date_time?.slice(0, 16) || "",
+      location: ev.location || "", 
+      startDate: fDate(start),
+      endDate: fDate(end),
+      startTime: fTime(start),
+      endTime: fTime(end),
+      timings: ev.timings || "",
       external_link: ev.external_link || "", contact_info: ev.contact_info || "",
     });
     setEditingId(ev.id);
@@ -55,13 +93,44 @@ export default function AdminEventsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate
+    const newErrors: Record<string, boolean> = {};
+    if (!form.title) newErrors.title = true;
+    if (!form.startDate) newErrors.startDate = true;
+    if (isMultiDay && !form.endDate) newErrors.endDate = true;
+    if (!form.category) newErrors.category = true;
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
     setSaving(true);
     const method = editingId ? "PUT" : "POST";
     const url = editingId ? `http://localhost:4000/api/admin/events/${editingId}` : "http://localhost:4000/api/admin/events";
+    const combine = (date: string, timeStr: string) => {
+      const [time, ampm] = timeStr.split(" ");
+      let [hours, mins] = time.split(":").map(Number);
+      if (ampm === "PM" && hours < 12) hours += 12;
+      if (ampm === "AM" && hours === 12) hours = 0;
+      const d = new Date(date);
+      d.setHours(hours, mins, 0, 0);
+      return d.toISOString();
+    };
+
+    const start_iso = combine(form.startDate, form.startTime);
+    const end_iso = combine(isMultiDay ? form.endDate : form.startDate, form.endTime);
+
     await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, date_time: new Date(form.date_time).toISOString() }),
+      body: JSON.stringify({ 
+        ...form, 
+        date_time: start_iso,
+        end_time: end_iso
+      }),
     });
     setSaving(false);
     setForm(emptyForm);
@@ -104,8 +173,8 @@ export default function AdminEventsPage() {
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="md:col-span-2 space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Event Title</Label>
-                <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  required placeholder="Enter Catchy Vibe Title" className="bg-white border-black/5 h-12 text-sm font-bold uppercase tracking-tight rounded-xl focus:ring-primary" />
+                <Input value={form.title} onChange={e => {setForm(f => ({ ...f, title: e.target.value })); if(errors.title) setErrors({...errors, title: false})}}
+                  placeholder="Vibe Title" className={cn("bg-white border-black/5 h-12 rounded-xl text-xs font-bold", errors.title && "border-red-500 ring-red-500/20")} />
               </div>
               
               <div className="md:col-span-2 space-y-2">
@@ -117,8 +186,8 @@ export default function AdminEventsPage() {
 
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Category</Label>
-                <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v || "General" }))}>
-                  <SelectTrigger className="bg-white border-black/5 h-12 rounded-xl text-xs font-bold uppercase tracking-widest">
+                <Select value={form.category} onValueChange={v => {setForm(f => ({ ...f, category: v })); if(errors.category) setErrors({...errors, category: false})}}>
+                  <SelectTrigger className={cn("bg-white border-black/5 h-12 rounded-xl text-xs font-bold uppercase tracking-widest", errors.category && "border-red-500 ring-red-500/20")}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-black/5">
@@ -127,11 +196,59 @@ export default function AdminEventsPage() {
                 </Select>
               </div>
 
+              <div className="md:col-span-2 space-y-4">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Scheduling Logic</Label>
+                <div className="flex bg-white p-1 rounded-xl border border-black/5 divide-x divide-black/5">
+                  <button 
+                    type="button"
+                    onClick={() => setIsMultiDay(false)}
+                    className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${!isMultiDay ? 'bg-black text-white' : 'text-zinc-400 hover:text-black'}`}
+                  >
+                    Single Day
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setIsMultiDay(true)}
+                    className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${isMultiDay ? 'bg-black text-white' : 'text-zinc-400 hover:text-black'}`}
+                  >
+                    Multi Day
+                  </button>
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Temporal Coordinates</Label>
-                <Input type="datetime-local" value={form.date_time}
-                  onChange={e => setForm(f => ({ ...f, date_time: e.target.value }))}
-                  required className="bg-white border-black/5 h-12 rounded-xl text-xs font-bold" />
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">{isMultiDay ? "From Date" : "Date Coordinate"}</Label>
+                <Input type="date" value={form.startDate}
+                  onChange={e => {setForm(f => ({ ...f, startDate: e.target.value })); if(errors.startDate) setErrors({...errors, startDate: false})}}
+                  required className={cn("bg-white border-black/5 h-12 rounded-xl text-xs font-bold", errors.startDate && "border-red-500 ring-red-500/20")} />
+              </div>
+
+              {isMultiDay && (
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">To Date</Label>
+                  <Input type="date" value={form.endDate}
+                    onChange={e => {setForm(f => ({ ...f, endDate: e.target.value })); if(errors.endDate) setErrors({...errors, endDate: false})}}
+                    required className={cn("bg-white border-black/5 h-12 rounded-xl text-xs font-bold", errors.endDate && "border-red-500 ring-red-500/20")} />
+                </div>
+              )}
+
+              <VibeTimePicker 
+                label="Begins At"
+                value={form.startTime}
+                onChange={v => setForm(f => ({ ...f, startTime: v }))}
+              />
+
+              <VibeTimePicker 
+                label="Ends At"
+                value={form.endTime}
+                onChange={v => setForm(f => ({ ...f, endTime: v }))}
+              />
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Event Timings Note</Label>
+                <Input value={form.timings}
+                  onChange={e => setForm(f => ({ ...f, timings: e.target.value }))}
+                  placeholder="e.g. 10 PM - 3 AM" className="bg-white border-black/5 h-12 rounded-xl text-xs font-bold" />
               </div>
 
               <div className="space-y-2">
@@ -173,7 +290,7 @@ export default function AdminEventsPage() {
         {loading ? (
           <div className="p-12 text-center text-zinc-400 text-xs font-black uppercase tracking-widest animate-pulse">Scanning database frequencies...</div>
         ) : events.length === 0 ? (
-          <div className="ringer-card p-20 text-center text-zinc-400 text-xs font-bold italic">No vibrations detected in the catalog.</div>
+          <div className="ringer-card p-20 text-center text-zinc-400 text-xs font-bold italic">No vibes detected in the catalog.</div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {events.map(ev => (

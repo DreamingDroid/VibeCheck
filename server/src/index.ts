@@ -60,7 +60,7 @@ async function initializeDatabase() {
   const client = await pool.connect();
   try {
     console.log('[DB] Ensuring database schema...');
-    
+
     // Core tables used globally
     await client.query(`
       CREATE TABLE IF NOT EXISTS event_rsvps (
