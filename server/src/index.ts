@@ -18,20 +18,16 @@ import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHan
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
 import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler } from './organizer';
 import { getCitiesHandler } from './cities';
-import {
-  checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler,
-  adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler,
-  adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler,
-  adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingEventsHandler,
-  adminReviewEventHandler, adminAddCityHandler, adminDeleteCityHandler
-} from './admin';
+import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminAddCityHandler, adminDeleteCityHandler } from './admin';
 import { startPushAlertCron, runMatchmakerJob } from './cron';
 import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verification';
 import { initializeDatabaseSchema } from './queries/init';
-console.log('Loaded VERIFY_TOKEN:', process.env.WHATSAPP_VERIFY_TOKEN);
+import { config } from './config';
+
+console.log('Loaded VERIFY_TOKEN:', config.WHATSAPP_VERIFY_TOKEN);
 
 const app = express();
-const port = process.env.PORT || 4000;
+const port = config.PORT;
 
 app.use(cors());
 app.use(express.json());
@@ -44,9 +40,7 @@ app.use((req, res, next) => {
   next();
 });
 
-const connectionString =
-  process.env.DATABASE_URL ||
-  'postgresql://lead_arch:password123@localhost:5433/vibecheck_db';
+const connectionString = config.DATABASE_URL;
 
 console.log('Using DATABASE_URL for API:', connectionString);
 

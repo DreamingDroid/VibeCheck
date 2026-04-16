@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 import { sendWhatsAppMessage } from './whatsapp';
 import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees } from './queries/events';
 import { getSystemSetting } from './queries/analytics';
+import { config } from './config';
 
 export async function organizerCreateEventHandler(req: Request, res: Response, pool: Pool) {
   const { title, description, category, location, city, date_time, external_link, contact_info, organizer_email } = req.body;
@@ -107,7 +108,7 @@ export async function broadcastMessageHandler(req: Request, res: Response, pool:
     const rows = await getBroadcastAttendees(pool, id as string);
 
     // Send the message locally by calling sendWhatsAppMessage
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || '114670068407425';
+    const phoneNumberId = config.WHATSAPP_PHONE_NUMBER_ID;
     let sentCount = 0;
 
     for (const r of rows) {

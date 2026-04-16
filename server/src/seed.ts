@@ -1,14 +1,9 @@
-import dotenv from 'dotenv';
-import path from 'path';
 import { Pool } from 'pg';
 import { registerType } from 'pgvector/pg';
-
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+import { config } from './config';
 
 const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ||
-    'postgresql://lead_arch:password123@localhost:5433/vibecheck_db',
+  connectionString: config.DATABASE_URL,
 });
 
 function generateRandomEmbedding(dim = 1024): string {
@@ -20,7 +15,7 @@ function generateRandomEmbedding(dim = 1024): string {
 }
 
 async function main() {
-  console.log('Using DATABASE_URL:', process.env.DATABASE_URL);
+  console.log('Using DATABASE_URL:', config.DATABASE_URL);
   const client = await pool.connect();
   try {
     await registerType(client);

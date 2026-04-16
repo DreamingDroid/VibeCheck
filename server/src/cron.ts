@@ -5,8 +5,9 @@ import { getChatModel } from './rag';
 import { initSystemSettings, getSystemSetting } from './queries/analytics';
 import { getRecentEvents } from './queries/events';
 import { getUsersWithPreferences } from './queries/users';
+import { config } from './config';
 
-const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
+const WHATSAPP_PHONE_NUMBER_ID = config.WHATSAPP_PHONE_NUMBER_ID;
 
 /**
  * Proactive Push Alerts — core job logic.

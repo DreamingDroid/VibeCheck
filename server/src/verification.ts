@@ -2,11 +2,12 @@ import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { sendWhatsAppMessage } from './whatsapp';
 import { linkUserPhoneNumber } from './queries/users';
+import { config } from './config';
 
 // Internal cache for verification codes (phone_number -> {code, expiry, email})
 const verificationCache = new Map<string, { code: string; expiry: number; email: string }>();
 
-const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
+const WHATSAPP_PHONE_NUMBER_ID = config.WHATSAPP_PHONE_NUMBER_ID;
 
 export async function sendVerificationCodeHandler(req: Request, res: Response, pool: Pool) {
   const { phoneNumber, email } = req.body;

@@ -5,13 +5,11 @@ import { SystemMessage, HumanMessage, ToolMessage } from "@langchain/core/messag
 import { z } from 'zod';
 import { getUserByPhone, updateUserInteractionHistory } from './queries/users';
 import { searchEventsByVector, insertEventRSVP } from './queries/events';
-
-const RUN_MODE = process.env.RUN_MODE || 'cloud';
-const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+import { config } from './config';
 
 const embeddings = new OllamaEmbeddings({
-  model: process.env.EMBED_MODEL || 'mxbai-embed-large',
-  baseUrl: OLLAMA_BASE,
+  model: config.EMBED_MODEL,
+  baseUrl: config.OLLAMA_BASE_URL,
 });
 
 // ── Chat Model: Ollama (local) or Gemini (cloud) ─────────────────────────────
@@ -19,25 +17,26 @@ let chatModel: any = null;
 
 export function getChatModel() {
   if (chatModel) return chatModel;
-  const currentRunMode = (process.env.RUN_MODE || 'cloud').trim();
-  if (currentRunMode === 'cloud') {
+  
+  if (config.RUN_MODE === 'cloud') {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
     chatModel = new ChatGoogleGenerativeAI({
       model: 'gemini-1.5-flash',
-      apiKey: process.env.GEMINI_API_KEY?.trim(),
+      apiKey: config.GEMINI_API_KEY,
       temperature: 0.7,
     });
     console.log('[RAG] Running with Gemini Flash (cloud mode)');
   } else {
     chatModel = new ChatOllama({
-      model: process.env.CHAT_MODEL || 'llama3.1',
-      baseUrl: OLLAMA_BASE,
+      model: config.CHAT_MODEL,
+      baseUrl: config.OLLAMA_BASE_URL,
     });
     console.log('[RAG] Running with Ollama (local mode)');
   }
   return chatModel;
 }
+
 
 const QuerySchema = z.object({
   query: z.string().min(1),

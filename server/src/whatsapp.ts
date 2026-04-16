@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 import { handleEventQuery, extractAndSavePreferences } from './rag';
 import { insertEventRSVP } from './queries/events';
 import { getUserByPhone, createUser, updateUserChatHistory } from './queries/users';
+import { config } from './config';
 
 // ─── Category definitions ─────────────────────────────────────────────────────
 const CATEGORIES = ['Sports', 'Arts', 'Education', 'Spiritual', 'Music', 'Food', 'Wellness', 'Indie', 'Techno', 'General'];
@@ -137,7 +138,7 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
 
 // ─── Send a plain text WhatsApp message ──────────────────────────────────────
 export async function sendWhatsAppMessage(phoneNumberId: string, to: string, text: string) {
-  const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || '';
+  const WHATSAPP_ACCESS_TOKEN = config.WHATSAPP_ACCESS_TOKEN;
 
   if (!WHATSAPP_ACCESS_TOKEN) {
     console.log(`[Dev Mode] WhatsApp → ${to}:\n${text}\n`);
@@ -178,7 +179,7 @@ export async function sendInteractiveEventCards(
   to: string,
   events: any[]
 ) {
-  const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || '';
+  const WHATSAPP_ACCESS_TOKEN = config.WHATSAPP_ACCESS_TOKEN;
 
   if (!WHATSAPP_ACCESS_TOKEN) {
     console.log(`[Dev Mode] Interactive Cards → ${to}:`, events.map(e => e.title));
