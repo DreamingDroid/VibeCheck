@@ -2,6 +2,9 @@ import cron from 'node-cron';
 import { Pool } from 'pg';
 import { sendWhatsAppMessage } from './whatsapp';
 import { getChatModel } from './rag';
+import { initSystemSettings, getSystemSetting } from './queries/analytics';
+import { getRecentEvents } from './queries/events';
+import { getUsersWithPreferences } from './queries/users';
 
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
 
@@ -18,22 +21,10 @@ export async function runMatchmakerJob(pool: Pool): Promise<string> {
   }
 
   try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS system_settings (
-        key VARCHAR(100) PRIMARY KEY,
-        value JSONB NOT NULL DEFAULT 'null'::jsonb,
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    await pool.query(`
-      INSERT INTO system_settings (key, value)
-      VALUES ('cron_enabled', 'false'::jsonb)
-      ON CONFLICT (key) DO NOTHING;
-    `);
+    await initSystemSettings(pool);
 
     // Step 0: Check if Cron is enabled in settings
-    const { rows: settings } = await pool.query(`SELECT value FROM system_settings WHERE key = 'cron_enabled'`);
-    const rawValue = settings[0]?.value;
+    const rawValue = await getSystemSetting(pool, 'cron_enabled');
     const isEnabled = rawValue === true || rawValue === 'true';
 
     if (!isEnabled) {
@@ -42,12 +33,7 @@ export async function runMatchmakerJob(pool: Pool): Promise<string> {
     }
 
     // Step 1: Get events added in the last 48 hours
-    const { rows: newEvents } = await pool.query(`
-      SELECT id, title, category, location, date_time, description
-      FROM events
-      WHERE created_at >= NOW() - INTERVAL '48 hours'
-      ORDER BY created_at DESC
-    `);
+    const newEvents = await getRecentEvents(pool, 48);
 
     if (newEvents.length === 0) {
       log.push('[Cron] No new events in the last 48 hours. Skipping.');
@@ -57,12 +43,7 @@ export async function runMatchmakerJob(pool: Pool): Promise<string> {
     log.push(`[Cron] Found ${newEvents.length} new event(s). Checking user preferences...`);
 
     // Step 2: Get all WhatsApp-linked users with preferences
-    const { rows: users } = await pool.query(`
-      SELECT phone_number, name, preferences
-      FROM users
-      WHERE preferences->'categories' IS NOT NULL
-        AND jsonb_array_length(preferences->'categories') > 0
-    `);
+    const users = await getUsersWithPreferences(pool);
 
     log.push(`[Cron] ${users.length} user(s) with saved preferences.`);
 

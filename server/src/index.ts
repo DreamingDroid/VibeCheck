@@ -27,6 +27,7 @@ import {
 } from './admin';
 import { startPushAlertCron, runMatchmakerJob } from './cron';
 import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verification';
+import { initializeDatabaseSchema } from './queries/init';
 console.log('Loaded VERIFY_TOKEN:', process.env.WHATSAPP_VERIFY_TOKEN);
 
 const app = express();
@@ -65,6 +66,8 @@ async function initializeDatabase() {
   const client = await pool.connect();
   try {
     console.log('[DB] Ensuring database schema...');
+    
+    // Core tables used globally
     await client.query(`
       CREATE TABLE IF NOT EXISTS event_rsvps (
         id SERIAL PRIMARY KEY,
@@ -74,64 +77,10 @@ async function initializeDatabase() {
         UNIQUE(event_id, user_email)
       );
     `);
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS system_settings (
-        key VARCHAR(100) PRIMARY KEY,
-        value JSONB NOT NULL DEFAULT 'null'::jsonb,
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    await client.query(`
-      INSERT INTO system_settings (key, value)
-      VALUES ('cron_enabled', 'false'::jsonb)
-      ON CONFLICT (key) DO NOTHING;
-    `);
 
-    const adminRoleType = await client.query<{ exists: boolean }>(`
-      SELECT EXISTS (
-        SELECT 1
-        FROM pg_type
-        WHERE typname = 'admin_role'
-      ) AS exists
-    `);
+    // Bootstrap data schema via DAL
+    await initializeDatabaseSchema(client as any);
 
-    if (adminRoleType.rows[0]?.exists) {
-      await client.query(`ALTER TYPE admin_role ADD VALUE IF NOT EXISTS 'organizer'`);
-    }
-
-    // Non-destructive alters for Event Organizer feature
-    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'`);
-    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_email TEXT`);
-    
-    // Add Memory context column
-    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_history JSONB DEFAULT '[]'::jsonb`);
-
-    // Add City tracking
-    await client.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
-    await client.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
-
-    // Add Agentic RSVPs capability to Database
-    await client.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS phone_number TEXT`);
-    await client.query(`ALTER TABLE event_rsvps ALTER COLUMN user_email DROP NOT NULL`);
-
-    // Dynamic Cities Table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS cities (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(100) UNIQUE NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    // Initial Seeding for Cities
-    const { rows: cityRows } = await client.query('SELECT COUNT(*) FROM cities');
-    if (parseInt(cityRows[0].count) === 0) {
-      const initialCities = ["Vizag", "London", "New York", "Bangalore", "Tokyo", "Dubai"];
-      for (const city of initialCities) {
-        await client.query('INSERT INTO cities (name) VALUES ($1) ON CONFLICT DO NOTHING', [city]);
-      }
-      console.log(`[DB] Seeded ${initialCities.length} initial cities.`);
-    }
     console.log('[DB] Database schema is up to date.');
   } catch (err) {
     console.error('Failed to initialize database schema:', err);

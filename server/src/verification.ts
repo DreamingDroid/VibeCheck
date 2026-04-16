@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { sendWhatsAppMessage } from './whatsapp';
+import { linkUserPhoneNumber } from './queries/users';
 
 // Internal cache for verification codes (phone_number -> {code, expiry, email})
 const verificationCache = new Map<string, { code: string; expiry: number; email: string }>();
@@ -72,29 +73,7 @@ export async function verifyPhoneNumberHandler(req: Request, res: Response, pool
   }
 
   try {
-    // 1. Update web_users table
-    await pool.query(
-      `UPDATE web_users SET phone_number = $1 WHERE email = $2`,
-      [formattedPhone, email]
-    );
-
-    // 2. Also ensure user exists in WhatsApp users table (Tier 2)
-    // Fetch existing preferences if any
-    const webUserResult = await pool.query('SELECT categories FROM web_users WHERE email = $1', [email]);
-    const categories = webUserResult.rows[0]?.categories || [];
-
-    await pool.query(
-      `INSERT INTO users (phone_number, name, preferences)
-       VALUES ($1, (SELECT name FROM web_users WHERE email = $2), jsonb_build_object('categories', $3::jsonb))
-       ON CONFLICT (phone_number) DO UPDATE
-       SET preferences = jsonb_set(
-             COALESCE(users.preferences, '{}'::jsonb),
-             '{categories}',
-             $3::jsonb
-           ),
-           updated_at = CURRENT_TIMESTAMP`,
-      [formattedPhone, email, JSON.stringify(categories)]
-    );
+    await linkUserPhoneNumber(pool, email, formattedPhone);
 
     // Success! Clear cache
     verificationCache.delete(formattedPhone);

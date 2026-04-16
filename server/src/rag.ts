@@ -3,6 +3,8 @@ import { OllamaEmbeddings, ChatOllama } from '@langchain/ollama';
 import { StateGraph, Annotation } from '@langchain/langgraph';
 import { SystemMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
 import { z } from 'zod';
+import { getUserByPhone, updateUserInteractionHistory } from './queries/users';
+import { searchEventsByVector, insertEventRSVP } from './queries/events';
 
 const RUN_MODE = process.env.RUN_MODE || 'cloud';
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
@@ -61,82 +63,27 @@ export function buildRagGraph(pool: Pool) {
   // Node 1: Fetch user preferences if userId is provided
   async function retrievePreferences(state: typeof GraphState.State) {
     const { userId } = state;
-    if (!userId) {
-      return { preferences: null };
-    }
+    if (!userId) return { preferences: null };
 
-    const client = await pool.connect();
-    try {
-      const { rows } = await client.query(
-        `SELECT preferences FROM users WHERE phone_number = $1`,
-        [userId]
-      );
-      if (rows.length > 0 && rows[0].preferences) {
-        return { preferences: JSON.stringify(rows[0].preferences) };
-      }
-      return { preferences: null };
-    } finally {
-      client.release();
+    const user = await getUserByPhone(pool, userId);
+    if (user && user.preferences) {
+      return { preferences: JSON.stringify(user.preferences) };
     }
+    return { preferences: null };
   }
 
   // Node 2: Retrieve matching events from pgvector
   async function retrieveEvents(state: typeof GraphState.State) {
     const { query, city } = state;
     const queryEmbedding = await embeddings.embedQuery(query);
-    const client = await pool.connect();
     
-    try {
-      let rows: any[];
-
-      if (city) {
-        // Explicit city boost: events in the requested city sort first, then by vector similarity
-        const result = await client.query(
-          `
-          SELECT
-            id,
-            title,
-            description,
-            location,
-            city,
-            date_time AS event_date,
-            category,
-            1 - (embedding <=> $1::vector) AS similarity,
-            CASE WHEN city ILIKE $2 THEN 0 ELSE 1 END AS city_rank
-          FROM events
-          ORDER BY city_rank ASC, embedding <=> $1::vector ASC
-          LIMIT 8;
-          `,
-          [queryEmbedding, `%${city}%`]
-        );
-        rows = result.rows;
-        console.log(`[RAG] City boost applied for city: "${city}" — matches: ${rows.filter(r => r.city_rank === 0).length}`);
-      } else {
-        // No city preference — pure vector similarity
-        const result = await client.query(
-          `
-          SELECT
-            id,
-            title,
-            description,
-            location,
-            date_time AS event_date,
-            category,
-            1 - (embedding <=> $1::vector) AS similarity
-          FROM events
-          ORDER BY embedding <=> $1::vector
-          LIMIT 8;
-          `,
-          [queryEmbedding]
-        );
-        rows = result.rows;
-      }
-
-      // Update state with events found
-      return { events: rows };
-    } finally {
-      client.release();
+    const rows = await searchEventsByVector(pool, queryEmbedding, city);
+    
+    if (city) {
+      console.log(`[RAG] City boost applied for city: "${city}" — matches: ${rows.filter((r: any) => r.city_rank === 0).length}`);
     }
+
+    return { events: rows };
   }
 
   // Node 3: Generate answer using the retrieved context
@@ -193,10 +140,7 @@ Craft a short answer for WhatsApp (max ~4 sentences) suggesting the best options
     // ── Plain async RSVP action (no LangChain wrapper = no TS2589) ─────────
     const executeRsvp = async (eventId: string): Promise<string> => {
       try {
-        await pool.query(
-          `INSERT INTO event_rsvps (event_id, phone_number) VALUES ($1, $2)`,
-          [eventId, state.userId || 'unknown']
-        );
+        await insertEventRSVP(pool, eventId, state.userId || 'unknown');
         console.log(`[Agent] RSVP inserted for event ${eventId} by ${state.userId}`);
         return 'Successfully registered the user for the event.';
       } catch (e: any) {
@@ -332,32 +276,16 @@ If there are no clear preferences or location, output exactly "NONE". Keep it ve
       return; 
     }
 
-    const client = await pool.connect();
-    try {
-      const { rows } = await client.query(
-        `SELECT preferences FROM users WHERE phone_number = $1`, [phoneNumber]
-      );
-      
-      const currentPrefs = rows[0]?.preferences || {};
-      let history = Array.isArray(currentPrefs.interaction_history) ? currentPrefs.interaction_history : [];
-      if (typeof history === 'string') history = [history]; 
+    const user = await getUserByPhone(pool, phoneNumber);
+    const currentPrefs = user?.preferences || {};
+    let history = Array.isArray(currentPrefs.interaction_history) ? currentPrefs.interaction_history : [];
+    if (typeof history === 'string') history = [history]; 
 
-      history.push(`${new Date().toISOString().split('T')[0]}: ${extracted}`);
-      if (history.length > 5) history.shift(); // Keep last 5 behavioral impressions
+    history.push(`${new Date().toISOString().split('T')[0]}: ${extracted}`);
+    if (history.length > 5) history.shift(); // Keep last 5 behavioral impressions
 
-      await client.query(
-        `UPDATE users SET preferences = jsonb_set(
-            COALESCE(preferences, '{}'::jsonb),
-            '{interaction_history}',
-            $1::jsonb
-        ) WHERE phone_number = $2`,
-        [JSON.stringify(history), phoneNumber]
-      );
-
-      console.log(`[Personalization Engine] Deduced vibe for ${phoneNumber}: ${extracted}`);
-    } finally {
-      client.release();
-    }
+    await updateUserInteractionHistory(pool, phoneNumber, history);
+    console.log(`[Personalization Engine] Deduced vibe for ${phoneNumber}: ${extracted}`);
   } catch(e) {
     console.error("[Personalization Engine] LLM extraction failed:", e);
   }

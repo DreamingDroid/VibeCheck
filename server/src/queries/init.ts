@@ -1,0 +1,52 @@
+import { Pool } from 'pg';
+
+export async function initializeDatabaseSchema(pool: Pool) {
+  // Ensure admins table exists with roles
+  await pool.query(`
+    CREATE TYPE admin_role AS ENUM ('super_admin', 'editor');
+  `).catch(() => {}); // Ignore if already exists
+  
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admins (
+      email VARCHAR(255) PRIMARY KEY,
+      role admin_role DEFAULT 'editor',
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await pool.query(`ALTER TYPE admin_role ADD VALUE IF NOT EXISTS 'organizer'`).catch(() => {});
+
+  // Append new event properties seamlessly
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_email TEXT`);
+  
+  // Append missing columns implicitly as they were added in later iterations
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_history JSONB DEFAULT '[]'::jsonb`);
+  
+  // New columns for Web Preferences Tier 1 & 2 Syncing
+  await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
+  
+  // Update RSVP system to track by phone if they come from WhatsApp, or email if Web
+  await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS phone_number TEXT`);
+  await pool.query(`ALTER TABLE event_rsvps ALTER COLUMN user_email DROP NOT NULL`);
+
+  // Ensure cities table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS cities (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(100) UNIQUE NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Auto-seed default cities if empty
+  const { rows: cityRows } = await pool.query('SELECT COUNT(*) FROM cities');
+  if (parseInt(cityRows[0].count) === 0) {
+      const initialCities = ['Vizag', 'Bangalore', 'London'];
+      for (const city of initialCities) {
+          await pool.query('INSERT INTO cities (name) VALUES ($1) ON CONFLICT DO NOTHING', [city]);
+      }
+      console.log('Seeded initial cities');
+  }
+}

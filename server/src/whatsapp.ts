@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { handleEventQuery, extractAndSavePreferences } from './rag';
+import { insertEventRSVP } from './queries/events';
+import { getUserByPhone, createUser, updateUserChatHistory } from './queries/users';
 
 // ─── Category definitions ─────────────────────────────────────────────────────
 const CATEGORIES = ['Sports', 'Arts', 'Education', 'Spiritual', 'Music', 'Food', 'Wellness', 'Indie', 'Techno', 'General'];
@@ -41,10 +43,7 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
     res.sendStatus(200);
     const eventId = interactiveId.replace('rsvp_', '');
     try {
-      await pool.query(
-        `INSERT INTO event_rsvps (event_id, phone_number) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [eventId, from]
-      );
+      await insertEventRSVP(pool, eventId, from);
       console.log(`[Interactive RSVP] ${from} booked event ${eventId}`);
       await sendWhatsAppMessage(
         phoneNumberId, from,
@@ -68,30 +67,19 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
   try {
     // Fetch user record and their chat history
     let chatHistory: any[] = [];
-    const { rows } = await pool.query(
-      `SELECT phone_number, name, preferences, chat_history FROM users WHERE phone_number = $1`,
-      [from]
-    );
+    const user = await getUserByPhone(pool, from);
 
     let isNewUser = false;
-    // Extract WhatsApp Profile Name from the Meta payload
     let userName = entry?.contacts?.[0]?.profile?.name ?? 'Friend';
 
-    // ── NEW USER: Silent Onboarding ──────────────────────────────────────────
-    if (rows.length === 0) {
+    if (!user) {
       isNewUser = true;
-      await pool.query(
-        `INSERT INTO users (phone_number, name, preferences, chat_history)
-         VALUES ($1, $2, '{}'::jsonb, '[]'::jsonb)`,
-        [from, userName]
-      );
+      await createUser(pool, from, userName);
       console.log(`[Onboarding] Silently created new user: ${userName} (${from})`);
     } else {
-      // Use their database name if they've explicitly updated it via the web later
-      userName = rows[0].name || userName;
-      // Load current memory buffer
-      if (Array.isArray(rows[0].chat_history)) {
-        chatHistory = rows[0].chat_history;
+      userName = user.name || userName;
+      if (Array.isArray(user.chat_history)) {
+        chatHistory = user.chat_history;
       }
     }
 
@@ -101,8 +89,8 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
 
     // Grab specific city constraint if the user synced it via Web Portal
     let syncedCity: string | undefined = undefined;
-    if (rows.length > 0 && typeof rows[0].preferences === 'object') {
-      syncedCity = rows[0].preferences.city;
+    if (user && typeof user.preferences === 'object') {
+      syncedCity = user.preferences.city;
     }
 
     // ── NORMAL FLOW: RAG query ─────────────────────────────────────────────
@@ -131,7 +119,7 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
     }
 
     // Save immediate memory to persistence base asynchronously
-    pool.query(`UPDATE users SET chat_history = $1::jsonb WHERE phone_number = $2`, [JSON.stringify(chatHistory), from])
+    updateUserChatHistory(pool, from, chatHistory)
       .catch(e => console.error('[Memory] Error saving immediate context:', e));
 
     // Send text answer first
