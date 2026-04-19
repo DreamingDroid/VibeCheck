@@ -186,7 +186,7 @@ export default function AdminEventsPage() {
 
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Category</Label>
-                <Select value={form.category} onValueChange={v => {setForm(f => ({ ...f, category: v })); if(errors.category) setErrors({...errors, category: false})}}>
+                <Select value={form.category} onValueChange={v => {setForm(f => ({ ...f, category: v || "" })); if(errors.category) setErrors({...errors, category: false})}}>
                   <SelectTrigger className={cn("bg-white border-black/5 h-12 rounded-xl text-xs font-bold uppercase tracking-widest", errors.category && "border-red-500 ring-red-500/20")}>
                     <SelectValue />
                   </SelectTrigger>

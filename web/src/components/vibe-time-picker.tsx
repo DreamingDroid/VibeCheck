@@ -24,16 +24,13 @@ export function VibeTimePicker({ value, onChange, label, className }: VibeTimePi
         </label>
       )}
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button 
-            type="button"
-            className="flex h-12 w-full items-center justify-between rounded-xl border border-black/5 bg-zinc-50 px-4 py-2 text-xs font-black uppercase tracking-tight transition-all hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary/20"
-          >
-            <span className={cn(value ? "text-black" : "text-zinc-400")}>
-              {value || "Select Time"}
-            </span>
-            <Clock className="h-4 w-4 text-zinc-400" />
-          </button>
+        <PopoverTrigger
+          className="flex h-12 w-full items-center justify-between rounded-xl border border-black/5 bg-zinc-50 px-4 py-2 text-xs font-black uppercase tracking-tight transition-all hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary/20"
+        >
+          <span className={cn(value ? "text-black" : "text-zinc-400")}>
+            {value || "Select Time"}
+          </span>
+          <Clock className="h-4 w-4 text-zinc-400" />
         </PopoverTrigger>
         <PopoverContent 
           side="bottom" 
