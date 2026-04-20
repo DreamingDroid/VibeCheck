@@ -10,6 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit3, Trash2, Calendar, MapPin, ExternalLink, Phone, FileText } from "lucide-react";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
+import { VibeDatePicker } from "@/components/vibe-date-picker";
+import { toast } from "sonner";
+import { vibeConfirm } from "@/components/vibe-confirm";
 
 const CATEGORIES = ["Sports", "Arts", "Education", "Spiritual", "Music", "Food", "Wellness", "Indie", "Techno", "General"];
 
@@ -24,6 +27,7 @@ const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
 type Event = {
   id: string; title: string; description: string; category: string;
   location: string; date_time: string; end_time?: string; timings?: string; external_link: string; contact_info: string;
+  status?: string; admin_comment?: string; organizer_email?: string;
 };
 
 const emptyForm = { 
@@ -42,15 +46,20 @@ export default function AdminEventsPage() {
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
+  const [activeTab, setActiveTab] = useState("approved");
+
   const fetchEvents = () => {
     setLoading(true);
-    fetch("http://localhost:4000/api/admin/events")
+    let url = `http://localhost:4000/api/admin/events/status/${activeTab}`;
+    if (activeTab === 'rejected') url += '?days=30';
+    
+    fetch(url)
       .then(r => r.json())
       .then(data => { if (data.success) setEvents(data.data); })
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchEvents(); }, []);
+  useEffect(() => { fetchEvents(); }, [activeTab]);
 
   const handleEdit = (ev: Event) => {
     const start = new Date(ev.date_time);
@@ -86,8 +95,32 @@ export default function AdminEventsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this event permanently?")) return;
+    const confirmed = await vibeConfirm({
+      title: "Delete Event?",
+      message: "This action is permanent and cannot be undone. All RSVPs for this event will also be removed.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
     await fetch(`http://localhost:4000/api/admin/events/${id}`, { method: "DELETE" });
+    toast.success("Event deleted.");
+    fetchEvents();
+  };
+
+  const handleReview = async (id: string, status: string) => {
+    let comment = "";
+    if (status === "rejected" || status === "needs_changes") {
+      const reason = window.prompt(status === "rejected" ? "Reason for rejection:" : "What changes are needed?");
+      if (reason === null) return; // user cancelled
+      comment = reason;
+    }
+    
+    await fetch(`http://localhost:4000/api/admin/events/${id}/review`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, comment })
+    });
+    toast.success(`Event marked as ${status.replace('_', ' ')}`);
     fetchEvents();
   };
 
@@ -216,20 +249,20 @@ export default function AdminEventsPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">{isMultiDay ? "From Date" : "Date Coordinate"}</Label>
-                <Input type="date" value={form.startDate}
-                  onChange={e => {setForm(f => ({ ...f, startDate: e.target.value })); if(errors.startDate) setErrors({...errors, startDate: false})}}
-                  required className={cn("bg-white border-black/5 h-12 rounded-xl text-xs font-bold", errors.startDate && "border-red-500 ring-red-500/20")} />
-              </div>
+              <VibeDatePicker 
+                label={isMultiDay ? "From Date" : "Date Coordinate"}
+                value={form.startDate}
+                onChange={v => {setForm(f => ({ ...f, startDate: v })); if(errors.startDate) setErrors({...errors, startDate: false})}}
+                error={errors.startDate}
+              />
 
               {isMultiDay && (
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">To Date</Label>
-                  <Input type="date" value={form.endDate}
-                    onChange={e => {setForm(f => ({ ...f, endDate: e.target.value })); if(errors.endDate) setErrors({...errors, endDate: false})}}
-                    required className={cn("bg-white border-black/5 h-12 rounded-xl text-xs font-bold", errors.endDate && "border-red-500 ring-red-500/20")} />
-                </div>
+                <VibeDatePicker 
+                  label="To Date"
+                  value={form.endDate}
+                  onChange={v => {setForm(f => ({ ...f, endDate: v })); if(errors.endDate) setErrors({...errors, endDate: false})}}
+                  error={errors.endDate}
+                />
               )}
 
               <VibeTimePicker 
@@ -280,17 +313,44 @@ export default function AdminEventsPage() {
         </Card>
       )}
 
+      {/* Tabs */}
+      <div className="flex overflow-x-auto space-x-2 pb-2 no-scrollbar">
+        {[
+          { id: 'approved', label: 'Active Inventory' },
+          { id: 'pending', label: 'Pending Review' },
+          { id: 'needs_changes', label: 'Awaiting Changes' },
+          { id: 'rejected', label: 'Rejected (30d)' },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-6 py-3 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-colors ${
+              activeTab === tab.id
+                ? 'bg-black text-white shadow-md'
+                : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200 hover:text-black'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Events List */}
       <div className="space-y-6 pb-20">
         <h2 className="text-black text-xs font-black uppercase tracking-[0.2em] px-2 flex items-center gap-2">
           <FileText className="h-4 w-4 text-zinc-400" />
-          Active Inventory ({events.length})
+          {activeTab === 'approved' && 'Active Inventory'}
+          {activeTab === 'pending' && 'Pending Review'}
+          {activeTab === 'needs_changes' && 'Awaiting Organizer Changes'}
+          {activeTab === 'rejected' && 'Recently Rejected'}
+          <span className="text-zinc-400 ml-1">({events.length})</span>
         </h2>
 
         {loading ? (
           <div className="p-12 text-center text-zinc-400 text-xs font-black uppercase tracking-widest animate-pulse">Scanning database frequencies...</div>
         ) : events.length === 0 ? (
-          <div className="ringer-card p-20 text-center text-zinc-400 text-xs font-bold italic">No vibes detected in the catalog.</div>
+          <div className="ringer-card p-20 text-center text-zinc-400 text-xs font-bold italic">No vibes detected in this category.</div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {events.map(ev => (
@@ -306,12 +366,33 @@ export default function AdminEventsPage() {
                   <div className="flex flex-wrap gap-x-6 gap-y-2 items-center text-[10px] font-black uppercase tracking-widest text-zinc-400">
                     <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3 text-primary" /> {new Date(ev.date_time).toLocaleString()}</span>
                     <span className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-primary" /> {ev.location || "FIELD UNKNOWN"}</span>
+                    {ev.organizer_email && <span className="flex items-center gap-1.5 line-clamp-1"><span className="font-bold text-black">BY:</span> {ev.organizer_email}</span>}
                     {ev.contact_info && <span className="flex items-center gap-1.5 line-clamp-1"><Phone className="h-3 w-3" /> {ev.contact_info}</span>}
                     {ev.external_link && <span className="flex items-center gap-1.5 text-primary underline"><ExternalLink className="h-3 w-3" /> LINK</span>}
                   </div>
+                  
+                  {ev.admin_comment && (
+                    <div className="mt-2 bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-xl">
+                      <span className="font-bold uppercase tracking-widest text-[9px] block mb-1">Admin Feedback:</span>
+                      {ev.admin_comment}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-3 shrink-0">
+                  {activeTab === 'pending' && (
+                    <>
+                      <button onClick={() => handleReview(ev.id, 'approved')} className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2">
+                        APPROVE
+                      </button>
+                      <button onClick={() => handleReview(ev.id, 'needs_changes')} className="ringer-button bg-orange-500 text-white text-[10px] flex items-center gap-2">
+                        NEEDS CHANGES
+                      </button>
+                      <button onClick={() => handleReview(ev.id, 'rejected')} className="ringer-button bg-destructive text-white text-[10px] flex items-center gap-2">
+                        REJECT
+                      </button>
+                    </>
+                  )}
                   <button 
                     onClick={() => handleEdit(ev)}
                     className="ringer-button bg-zinc-50 border border-black/5 hover:bg-black hover:text-white text-black text-[10px] flex items-center gap-2"

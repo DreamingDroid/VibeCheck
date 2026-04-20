@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { getAdminByEmail, addOrganizer, getOrganizers } from './queries/admins';
-import { getAllEvents, createEvent, updateEvent, deleteEvent, getPendingEvents, updateEventStatus, getAdminEventRSVPs, addCity, deleteCity } from './queries/events';
+import { getAllEvents, createEvent, updateEvent, deleteEvent, getPendingEvents, updateEventStatus, getEventsByStatus, getAdminEventRSVPs, addCity, deleteCity } from './queries/events';
 import { initSystemSettings, getSystemSetting, getAnalyticsOverview, getEventsByCategoryStats, getPreferredCategoriesStats, toggleCronSetting } from './queries/analytics';
 
 // Check if an email belongs to an admin
@@ -181,11 +181,30 @@ export async function adminGetPendingEventsHandler(req: Request, res: Response, 
 
 export async function adminReviewEventHandler(req: Request, res: Response, pool: Pool) {
   const { id } = req.params;
-  const { status } = req.body; // 'approved' or 'rejected'
+  const { status, comment } = req.body; // 'approved', 'rejected', or 'needs_changes'
+  if (!['approved', 'rejected', 'needs_changes'].includes(status)) {
+    return res.status(400).json({ success: false, error: 'Invalid status. Must be approved, rejected, or needs_changes.' });
+  }
   try {
-    const rowCount = await updateEventStatus(pool, id as string, status);
+    const rowCount = await updateEventStatus(pool, id as string, status, comment || null);
     if (rowCount === 0) return res.status(404).json({ success: false, error: 'Event not found' });
-    res.json({ success: true, message: `Event ${status} successfully.` });
+    const messages: Record<string, string> = {
+      approved: 'Event approved and published.',
+      rejected: 'Event rejected.',
+      needs_changes: 'Organizer notified to update the event.',
+    };
+    res.json({ success: true, message: messages[status] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function adminGetEventsByStatusHandler(req: Request, res: Response, pool: Pool) {
+  const { status } = req.params;
+  const days = req.query.days ? parseInt(req.query.days as string) : undefined;
+  try {
+    const rows = await getEventsByStatus(pool, status as string, days);
+    res.json({ success: true, data: rows });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Internal server error' });
   }

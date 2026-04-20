@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Plus, MapPin, Sparkles } from "lucide-react";
+import { toast } from "sonner";
+import { vibeConfirm } from "@/components/vibe-confirm";
 
 type City = {
   id: number;
@@ -46,7 +48,7 @@ export default function AdminCitiesPage() {
         setNewCityName("");
         fetchCities();
       } else {
-        alert(data.error || "Failed to add city");
+        toast.error(data.error || "Failed to add city.");
       }
     } catch (err) {
       console.error("Failed to add city:", err);
@@ -56,7 +58,13 @@ export default function AdminCitiesPage() {
   };
 
   const handleDeleteCity = async (id: number, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"? This might cause issues for events currently assigned to this city.`)) return;
+    const confirmed = await vibeConfirm({
+      title: `Delete "${name}"?`,
+      message: "This may cause issues for events currently assigned to this city. This action cannot be undone.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
     
     try {
       const res = await fetch(`http://localhost:4000/api/admin/cities/${id}`, {
@@ -64,9 +72,10 @@ export default function AdminCitiesPage() {
       });
       const data = await res.json();
       if (data.success) {
+        toast.success(`"${name}" removed.`);
         fetchCities();
       } else {
-        alert(data.error || "Failed to delete city");
+        toast.error(data.error || "Failed to delete city.");
       }
     } catch (err) {
       console.error("Failed to delete city:", err);

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Users, Calendar, ShieldCheck, ListChecks, CheckCircle2, XCircle, Sparkles, MapPin } from "lucide-react";
+import { toast } from "sonner";
 
 // Joyful Ringer-style Palette
 const COLORS = ["#19A74E", "#E4FF00", "#6366f1", "#ec4899", "#f97316", "#06b6d4"];
@@ -98,8 +99,9 @@ function OrganizerManager() {
     if(d.success) {
       setEmail("");
       loadOrganizers();
+      toast.success("Guardian authorized.", { description: `${email} has been added as an organizer.` });
     } else {
-      alert("Failed to add organizer");
+      toast.error("Failed to add organizer.");
     }
   }
 

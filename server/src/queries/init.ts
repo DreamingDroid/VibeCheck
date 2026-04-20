@@ -40,6 +40,9 @@ export async function initializeDatabaseSchema(pool: Pool) {
     );
   `);
 
+  // Admin comment for rejection / change request feedback
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS admin_comment TEXT`);
+
   // Auto-seed default cities if empty
   const { rows: cityRows } = await pool.query('SELECT COUNT(*) FROM cities');
   if (parseInt(cityRows[0].count) === 0) {

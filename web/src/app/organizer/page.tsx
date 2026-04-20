@@ -11,8 +11,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
-
-const CATEGORIES = ["Live Music", "DJ Set", "Comedy", "Art & Culture", "Tech Meetup", "Wellness", "Food & Drink", "Sports"];
+import { VibeDatePicker } from "@/components/vibe-date-picker";
+import { toast } from "sonner";
+const CATEGORIES = ["Sports", "Arts", "Education", "Spiritual", "Music", "Food", "Wellness", "Indie", "Techno", "General"];
 
 const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
   const hour = Math.floor(i / 2);
@@ -22,7 +23,7 @@ const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
   return `${displayHour}:${min} ${ampm}`;
 });
 
-function EventRsvpList({ eventId, title, status, dateStr, organizerEmail }: { eventId: string, title: string, status: string, dateStr: string, organizerEmail: string }) {
+function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminComment, onEdit }: { eventId: string, title: string, status: string, dateStr: string, organizerEmail: string, adminComment?: string, onEdit?: () => void }) {
   const [rsvps, setRsvps] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -57,7 +58,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail }: { ev
   };
 
   const handlePayAndSend = () => {
-    if (!broadcastMessage.trim()) return alert("Message cannot be empty.");
+    if (!broadcastMessage.trim()) { toast.error("Message cannot be empty."); return; }
     setPaymentStatus("processing");
     setTimeout(() => {
        setPaymentStatus("success");
@@ -70,10 +71,10 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail }: { ev
        .then(r => r.json())
        .then(d => {
          if (d.success) {
-           alert(d.message);
+           toast.success(d.message);
            setBroadcastOpen(false);
          } else {
-           alert("Broadcast failed.");
+           toast.error("Broadcast failed. Please try again.");
          }
        })
        .finally(() => {
@@ -88,6 +89,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail }: { ev
     switch(status) {
       case 'approved': return <span className="sticker-badge bg-primary/10 text-primary border-primary/20">Approved</span>;
       case 'rejected': return <span className="sticker-badge bg-destructive/10 text-destructive border-destructive/20">Rejected</span>;
+      case 'needs_changes': return <span className="sticker-badge bg-orange-500/10 text-orange-600 border-orange-500/20">Needs Changes</span>;
       default: return <span className="sticker-badge bg-amber-500/10 text-amber-600 border-amber-500/20">Pending</span>;
     }
   };
@@ -103,11 +105,22 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail }: { ev
           <span className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mt-1">
             {new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}
           </span>
+          {adminComment && (status === 'rejected' || status === 'needs_changes') && (
+            <div className="mt-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-xl max-w-xl">
+              <span className="font-bold uppercase tracking-widest text-[9px] block mb-1">Admin Feedback:</span>
+              {adminComment}
+            </div>
+          )}
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-col md:flex-row gap-2 items-center shrink-0">
           {status === 'approved' && (
              <button onClick={openBroadcast} className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2">
                📢 WHATSAPP UPDATE
+             </button>
+          )}
+          {status === 'needs_changes' && onEdit && (
+             <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="ringer-button bg-orange-500 text-white text-[10px] flex items-center gap-2">
+               ✏️ EDIT & RESUBMIT
              </button>
           )}
           <button onClick={(e) => { e.stopPropagation(); loadRsvps(); }} className="ringer-button border border-black/5 hover:bg-black/5 text-black text-[10px]">
@@ -202,6 +215,7 @@ export default function OrganizerDashboard() {
   const [isOrganizer, setIsOrganizer] = useState(false);
   const [myEvents, setMyEvents] = useState<any[]>([]);
 
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({
@@ -242,6 +256,38 @@ export default function OrganizerDashboard() {
       });
   };
 
+  const handleEditInit = (ev: any) => {
+    const start = new Date(ev.date_time);
+    const end = ev.end_time ? new Date(ev.end_time) : new Date(start.getTime() + 3*3600*1000);
+    const fDate = (d: Date) => d.toISOString().split("T")[0];
+    const fTime = (d: Date) => {
+      let h = d.getHours();
+      const m = d.getMinutes() >= 30 ? "30" : "00";
+      const ampm = h >= 12 ? "PM" : "AM";
+      if (h > 12) h -= 12;
+      if (h === 0) h = 12;
+      return `${h}:${m} ${ampm}`;
+    };
+
+    setIsMultiDay(fDate(start) !== fDate(end));
+    setFormData({
+      title: ev.title, description: ev.description, category: ev.category,
+      location: ev.location || "", timings: ev.timings || "",
+      startDate: fDate(start), endDate: fDate(end),
+      startTime: fTime(start), endTime: fTime(end),
+    });
+    setEditingEventId(ev.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEventId(null);
+    setFormData({
+      title: "", description: "", category: "", location: "", timings: "",
+      startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM"
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -279,9 +325,15 @@ export default function OrganizerDashboard() {
     const end_iso = combine(isMultiDay ? formData.endDate : formData.startDate, formData.endTime);
 
     setSubmitting(true);
+    const toastId = toast.loading("Submitting your event...");
     try {
-      const res = await fetch("http://localhost:4000/api/organizer/events", {
-        method: "POST",
+      const url = editingEventId 
+        ? `http://localhost:4000/api/organizer/events/${editingEventId}` 
+        : "http://localhost:4000/api/organizer/events";
+      const method = editingEventId ? "PUT" : "POST";
+      
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           ...formData, 
@@ -297,12 +349,15 @@ export default function OrganizerDashboard() {
           startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM"
         });
         setIsMultiDay(false);
+        setEditingEventId(null);
         loadMyEvents();
-        alert("Event submitted successfully and is pending review!");
+        toast.success("Event submitted!", { id: toastId, description: "Your event is pending review by the platform team." });
+      } else {
+        toast.error("Submission failed.", { id: toastId, description: data.error || "The server rejected the request. Please check your details." });
       }
     } catch (e) {
       console.error(e);
-      alert("Failed to submit event");
+      toast.error("Submission failed.", { id: toastId, description: "Could not reach the server. Please try again." });
     }
     setSubmitting(false);
   };
@@ -333,9 +388,18 @@ export default function OrganizerDashboard() {
           {/* Submission Form */}
           <div className="lg:col-span-4 h-fit">
             <div className="ringer-card overflow-hidden">
-              <div className="bg-primary/5 border-b border-black/5 p-6">
-                <h2 className="text-[10px] font-black uppercase tracking-widest text-black">NEW EVENT</h2>
-                <p className="text-[10px] font-bold text-zinc-400 mt-1 uppercase">Awaiting platform guardian approval</p>
+              <div className="bg-primary/5 border-b border-black/5 p-6 flex justify-between items-center">
+                <div>
+                  <h2 className="text-[10px] font-black uppercase tracking-widest text-black">
+                    {editingEventId ? "EDIT EVENT" : "NEW EVENT"}
+                  </h2>
+                  <p className="text-[10px] font-bold text-zinc-400 mt-1 uppercase">Awaiting platform guardian approval</p>
+                </div>
+                {editingEventId && (
+                  <button type="button" onClick={handleCancelEdit} className="ringer-button bg-zinc-200 text-black text-[9px] px-3 py-1.5">
+                    CANCEL
+                  </button>
+                )}
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 <div className="space-y-4">
@@ -377,15 +441,19 @@ export default function OrganizerDashboard() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 ml-1">{isMultiDay ? "From Date" : "Date"}</label>
-                      <Input name="startDate" type="date" value={formData.startDate} onChange={e=>{setFormData({...formData, startDate: e.target.value}); if(errors.startDate) setErrors({...errors, startDate: false})}} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.startDate && "border-red-500 ring-red-500/20")} />
-                    </div>
+                    <VibeDatePicker 
+                      label={isMultiDay ? "From Date" : "Date"}
+                      value={formData.startDate}
+                      onChange={v => {setFormData({...formData, startDate: v}); if(errors.startDate) setErrors({...errors, startDate: false})}}
+                      error={errors.startDate}
+                    />
                     {isMultiDay && (
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 ml-1">To Date</label>
-                        <Input name="endDate" type="date" value={formData.endDate} onChange={e=>{setFormData({...formData, endDate: e.target.value}); if(errors.endDate) setErrors({...errors, endDate: false})}} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.endDate && "border-red-500 ring-red-500/20")} />
-                      </div>
+                      <VibeDatePicker 
+                        label="To Date"
+                        value={formData.endDate}
+                        onChange={v => {setFormData({...formData, endDate: v}); if(errors.endDate) setErrors({...errors, endDate: false})}}
+                        error={errors.endDate}
+                      />
                     )}
                   </div>
 
@@ -416,7 +484,7 @@ export default function OrganizerDashboard() {
                 </div>
                 
                 <button type="submit" disabled={submitting} className="ringer-button w-full bg-black text-white hover:bg-zinc-800 text-[11px]">
-                  {submitting ? "DEPLOYING..." : "SUBMIT FOR REVIEW"}
+                  {submitting ? "DEPLOYING..." : editingEventId ? "RESUBMIT FOR REVIEW" : "SUBMIT FOR REVIEW"}
                 </button>
               </form>
             </div>
@@ -432,7 +500,7 @@ export default function OrganizerDashboard() {
             ) : (
               <div className="space-y-4">
                 {myEvents.map(ev => (
-                  <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} dateStr={ev.date_time} organizerEmail={session?.user?.email || ""} />
+                  <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} dateStr={ev.date_time} organizerEmail={session?.user?.email || ""} adminComment={ev.admin_comment} onEdit={() => handleEditInit(ev)} />
                 ))}
               </div>
             )}

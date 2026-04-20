@@ -115,20 +115,21 @@ export async function getEventByOrganizer(pool: Pool, eventId: string) {
 }
 
 export async function createOrganizerEvent(pool: Pool, data: any) {
-    const { title, description, category, location, city, date_time, external_link, contact_info, organizer_email } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email } = data;
     const { rows } = await pool.query(
-      `INSERT INTO events (title, description, category, location, city, date_time, external_link, contact_info, status, organizer_email)
-       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, 'pending', $9)
+      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, status, organizer_email)
+       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, 'pending', $11)
        RETURNING id, title, status`,
-      [title, description, category, location || null, city || null, date_time, external_link || null, contact_info || null, organizer_email]
+      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, contact_info || null, organizer_email]
     );
     return rows[0];
 }
 
 export async function getEventsByOrganizerEmail(pool: Pool, email: string) {
     const { rows } = await pool.query(
-      `SELECT id, title, category, location, date_time, status, created_at 
-       FROM events WHERE organizer_email = $1 ORDER BY date_time DESC`,
+      `SELECT id, title, category, location, city, date_time, end_time, timings, description,
+              external_link, contact_info, status, admin_comment, created_at 
+       FROM events WHERE organizer_email = $1 ORDER BY created_at DESC`,
       [email]
     );
     return rows;
@@ -176,23 +177,23 @@ export async function getAllEvents(pool: Pool) {
 }
 
 export async function createEvent(pool: Pool, data: any) {
-    const { title, description, category, location, city, date_time, external_link, contact_info } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info } = data;
     const { rows } = await pool.query(
-      `INSERT INTO events (title, description, category, location, city, date_time, external_link, contact_info)
-       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8)
+      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, contact_info)
+       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10)
        RETURNING id, title, category`,
-      [title, description, category, location || null, city || null, date_time, external_link || null, contact_info || null]
+      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, contact_info || null]
     );
     return rows[0];
 }
 
 export async function updateEvent(pool: Pool, id: string, data: any) {
-    const { title, description, category, location, city, date_time, external_link, contact_info } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info } = data;
     await pool.query(
       `UPDATE events SET title=$1, description=$2, category=$3::event_category, location=$4, city=$5,
-       date_time=$6, external_link=$7, contact_info=$8, updated_at=CURRENT_TIMESTAMP
-       WHERE id=$9`,
-      [title, description, category, location, city || null, date_time, external_link || null, contact_info || null, id]
+       date_time=$6, end_time=$7, timings=$8, external_link=$9, contact_info=$10, updated_at=CURRENT_TIMESTAMP
+       WHERE id=$11`,
+      [title, description, category, location, city || null, date_time, end_time || null, timings || null, external_link || null, contact_info || null, id]
     );
 }
 
@@ -201,12 +202,56 @@ export async function deleteEvent(pool: Pool, id: string) {
 }
 
 export async function getPendingEvents(pool: Pool) {
-    const { rows } = await pool.query(`SELECT * FROM events WHERE status = 'pending' ORDER BY date_time ASC`);
+    const { rows } = await pool.query(
+      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status
+       FROM events WHERE status = 'pending' ORDER BY created_at ASC`
+    );
     return rows;
 }
 
-export async function updateEventStatus(pool: Pool, id: string, status: string) {
-    const { rowCount } = await pool.query(`UPDATE events SET status = $1 WHERE id = $2`, [status, id]);
+export async function getEventsByStatus(pool: Pool, status: string, days?: number) {
+    let statusCondition = `status = $1`;
+    if (status === 'approved') {
+        statusCondition = `(status = $1 OR status IS NULL)`;
+    }
+
+    if (days) {
+        const { rows } = await pool.query(
+          `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at
+           FROM events WHERE ${statusCondition} AND updated_at >= NOW() - INTERVAL '${days} days'
+           ORDER BY updated_at DESC`,
+          [status]
+        );
+        return rows;
+    }
+    const { rows } = await pool.query(
+      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at
+       FROM events WHERE ${statusCondition} ORDER BY updated_at DESC`,
+      [status]
+    );
+    return rows;
+}
+
+export async function updateEventStatus(pool: Pool, id: string, status: string, comment?: string) {
+    const { rowCount } = await pool.query(
+      `UPDATE events SET status = $1, admin_comment = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+      [status, comment ?? null, id]
+    );
+    return rowCount;
+}
+
+export async function updateOrganizerEvent(pool: Pool, id: string, organizerEmail: string, data: any) {
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info } = data;
+    const { rowCount } = await pool.query(
+      `UPDATE events
+       SET title=$1, description=$2, category=$3::event_category, location=$4, city=$5,
+           date_time=$6, end_time=$7, timings=$8, external_link=$9, contact_info=$10,
+           status='pending', admin_comment=NULL, updated_at=CURRENT_TIMESTAMP
+       WHERE id=$11 AND organizer_email=$12 AND status='needs_changes'`,
+      [title, description, category, location || null, city || null,
+       date_time, end_time || null, timings || null, external_link || null, contact_info || null,
+       id, organizerEmail]
+    );
     return rowCount;
 }
 

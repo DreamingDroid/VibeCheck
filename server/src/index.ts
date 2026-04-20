@@ -16,9 +16,9 @@ import { handleEventQuery, saveUserPreferences } from './rag';
 import { verifyWebhook, handleIncomingMessage } from './whatsapp';
 import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHandler } from './events';
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
-import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler } from './organizer';
+import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler } from './organizer';
 import { getCitiesHandler } from './cities';
-import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminAddCityHandler, adminDeleteCityHandler } from './admin';
+import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminGetEventsByStatusHandler, adminAddCityHandler, adminDeleteCityHandler } from './admin';
 import { startPushAlertCron, runMatchmakerJob } from './cron';
 import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verification';
 import { initializeDatabaseSchema } from './queries/init';
@@ -151,6 +151,7 @@ app.post('/api/admin/settings', (req, res) => adminUpdateSettingsHandler(req, re
 app.get('/api/admin/organizers', (req, res) => adminGetOrganizersHandler(req, res, pool));
 app.post('/api/admin/organizers', (req, res) => adminAddOrganizerHandler(req, res, pool));
 app.get('/api/admin/events/pending', (req, res) => adminGetPendingEventsHandler(req, res, pool));
+app.get('/api/admin/events/status/:status', (req, res) => adminGetEventsByStatusHandler(req, res, pool));
 app.put('/api/admin/events/:id/review', (req, res) => adminReviewEventHandler(req, res, pool));
 
 // Cities API
@@ -161,6 +162,7 @@ app.delete('/api/admin/cities/:id', (req, res) => adminDeleteCityHandler(req, re
 // Organizer API
 app.get('/api/organizer/events', (req, res) => organizerGetEventsHandler(req, res, pool));
 app.post('/api/organizer/events', (req, res) => organizerCreateEventHandler(req, res, pool));
+app.put('/api/organizer/events/:id', (req, res) => organizerUpdateEventHandler(req, res, pool));
 app.get('/api/organizer/events/:id/rsvps', (req, res) => organizerGetEventRsvpsHandler(req, res, pool));
 app.get('/api/organizer/events/:id/broadcast-stats', (req, res) => getBroadcastStatsHandler(req, res, pool));
 app.post('/api/organizer/events/:id/broadcast', (req, res) => broadcastMessageHandler(req, res, pool));

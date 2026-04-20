@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { sendWhatsAppMessage } from './whatsapp';
-import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees } from './queries/events';
+import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent } from './queries/events';
 import { getSystemSetting } from './queries/analytics';
 import { config } from './config';
 
@@ -126,3 +126,21 @@ export async function broadcastMessageHandler(req: Request, res: Response, pool:
   }
 }
 
+
+export async function organizerUpdateEventHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  const { organizer_email, ...data } = req.body;
+
+  if (!organizer_email) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+  try {
+    const rowCount = await updateOrganizerEvent(pool, id as string, organizer_email, data);
+    if (!rowCount || rowCount === 0) {
+      return res.status(403).json({ success: false, error: 'Cannot update this event. It may not be in needs_changes status or you may not be the owner.' });
+    }
+    res.json({ success: true, message: 'Event updated and resubmitted for approval.' });
+  } catch (error) {
+    console.error('Organizer update event error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
