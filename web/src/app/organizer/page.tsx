@@ -34,6 +34,10 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
   const [broadcasting, setBroadcasting] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "success">("idle");
 
+  const [promoModalOpen, setPromoModalOpen] = useState(false);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoData, setPromoData] = useState("");
+
   const loadRsvps = () => {
     if (!open) {
       setLoading(true);
@@ -85,6 +89,28 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
     }, 2000);
   };
 
+  const openPromoKit = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPromoModalOpen(true);
+    if (!promoData) {
+      setPromoLoading(true);
+      try {
+        const r = await fetch(`http://localhost:4000/api/organizer/events/${eventId}/promo?email=${encodeURIComponent(organizerEmail)}`);
+        const d = await r.json();
+        if (d.success) setPromoData(d.data);
+      } catch (e) {
+        console.error("Promo fetch failed", e);
+      } finally {
+        setPromoLoading(false);
+      }
+    }
+  };
+
+  const copyPromoText = () => {
+    navigator.clipboard.writeText(promoData);
+    toast.success("Promo text copied to clipboard!");
+  };
+
   const getStatusBadge = (status: string) => {
     switch(status) {
       case 'approved': return <span className="sticker-badge bg-primary/10 text-primary border-primary/20">Approved</span>;
@@ -114,9 +140,14 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
         </div>
         <div className="flex flex-col md:flex-row gap-2 items-center shrink-0">
           {status === 'approved' && (
-             <button onClick={openBroadcast} className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2">
-               📢 WHATSAPP UPDATE
-             </button>
+             <>
+               <button onClick={openPromoKit} className="ringer-button bg-black text-white hover:bg-zinc-800 text-[10px] flex items-center gap-2">
+                 ✨ AI PROMO KIT
+               </button>
+               <button onClick={openBroadcast} className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2">
+                 📢 WHATSAPP UPDATE
+               </button>
+             </>
           )}
           {status === 'needs_changes' && onEdit && (
              <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="ringer-button bg-orange-500 text-white text-[10px] flex items-center gap-2">
@@ -201,6 +232,39 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
                   </button>
                 </div>
              )}
+          </div>
+        </div>
+      )}
+
+      {promoModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-[40px] p-10 max-w-2xl w-full shadow-2xl border border-black/5 animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+             <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-2 text-primary">✨ AI Promo Kit</h3>
+             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-6">Generated exclusively for {title}</p>
+             
+             <div className="flex-1 overflow-y-auto mb-6 bg-zinc-50 border border-black/5 rounded-[24px] p-6 custom-scrollbar">
+               {promoLoading ? (
+                 <div className="flex flex-col items-center justify-center py-12 gap-4">
+                   <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 animate-pulse">Consulting the digital oracle...</p>
+                 </div>
+               ) : (
+                 <div className="prose prose-sm prose-zinc max-w-none text-xs font-medium text-black">
+                   <pre className="whitespace-pre-wrap font-sans text-xs text-black">{promoData}</pre>
+                 </div>
+               )}
+             </div>
+
+             <div className="flex gap-4 shrink-0">
+               <button className="ringer-button flex-1 border border-black/5 hover:bg-black/5 text-black" onClick={() => setPromoModalOpen(false)}>CLOSE</button>
+               <button 
+                 className="ringer-button flex-1 bg-black text-white hover:bg-zinc-800 disabled:opacity-30" 
+                 onClick={copyPromoText}
+                 disabled={promoLoading || !promoData}
+               >
+                 📋 COPY TO CLIPBOARD
+               </button>
+             </div>
           </div>
         </div>
       )}

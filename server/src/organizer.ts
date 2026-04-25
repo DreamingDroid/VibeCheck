@@ -4,6 +4,7 @@ import { sendWhatsAppMessage } from './whatsapp';
 import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent } from './queries/events';
 import { getSystemSetting } from './queries/analytics';
 import { config } from './config';
+import { getChatModel } from './rag';
 
 export async function organizerCreateEventHandler(req: Request, res: Response, pool: Pool) {
   const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email } = req.body;
@@ -141,6 +142,59 @@ export async function organizerUpdateEventHandler(req: Request, res: Response, p
     res.json({ success: true, message: 'Event updated and resubmitted for approval.' });
   } catch (error) {
     console.error('Organizer update event error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function organizerGeneratePromoHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  const { email } = req.query;
+
+  if (!email) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT title, category, location, date_time, description 
+       FROM events 
+       WHERE id = $1 AND organizer_email = $2`,
+      [id, email]
+    );
+    const event = rows[0];
+    if (!event) return res.status(404).json({ success: false, error: 'Event not found or unauthorized' });
+
+    const prompt = `You are a hype-building marketing assistant for VibeCheck. 
+Generate a short marketing promo kit for the following event:
+Title: ${event.title}
+Category: ${event.category}
+Location: ${event.location || 'TBA'}
+Date: ${new Date(event.date_time).toLocaleString()}
+Description: ${event.description}
+
+Please output strictly in the following Markdown format:
+
+### 📱 Instagram Captions
+1. [Caption option 1]
+2. [Caption option 2]
+3. [Caption option 3]
+
+### 💬 WhatsApp Blast
+[A punchy, emoji-filled, short message to send to past attendees or groups]
+
+### ✉️ Newsletter Blurb
+[A slightly longer, exciting paragraph for an email newsletter]
+
+Keep it fun, high-energy, and suited to the event category! Do not include any other text besides the requested sections.`;
+
+    const response = await getChatModel().invoke([
+      ['system', 'You are an expert event marketer.'],
+      ['user', prompt]
+    ]);
+
+    const generatedText = typeof response?.content === 'string' ? response.content.trim() : 'Failed to generate promo kit.';
+
+    res.json({ success: true, data: generatedText });
+  } catch (error) {
+    console.error('Error generating promo kit:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
