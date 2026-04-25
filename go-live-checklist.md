@@ -32,6 +32,8 @@ Based on the latest System Requirements Specification (SRS), here is an updated 
 - [x] **Preference Dashboard**: Category toggle UI built at `/preferences`. Saves to `web_users` table (JSONB). Optional WhatsApp phone number field for Tier 2 linking — confirmed working end-to-end.
 - [x] **WhatsApp Bridge**: "Notify Me on WhatsApp" button added to every event card. Generates a `wa.me` deep link with a pre-filled message (event name, date, location). Requires `NEXT_PUBLIC_WHATSAPP_NUMBER` in `.env.local`.
 
+---
+
 ## ✅ Phase 4: Admin Dashboard & Analytics — COMPLETE
 - [x] **Secure Admin Route**: `/admin` protected by email-based check against the `admins` table. Non-admins are redirected to `/dashboard` automatically.
 - [x] **Event CMS**: Full Create / Edit / Delete events UI at `/admin/events`. Wired to Express REST API with all event fields (title, description, category, date/time, location, contact, external link).
@@ -39,19 +41,36 @@ Based on the latest System Requirements Specification (SRS), here is an updated 
 - [x] **Global RSVP Management**: Integrated the "Event RSVPs" viewer directly into the Admin Overview, allowing administrators to expand any event and access real-time guest lists and attendance records.
 - [x] **System Infrastructure Controls**: Built-in admin toggles for managing active Push Alerts (Cron Job operations) and the visibility of WhatsApp Notification components.
 
+---
+
 ## ✅ Phase 4.5: Event Organizer System — COMPLETE
 - [x] **Organizer Role & Dashboard**: Created the `/organizer` hub where users granted Organizer permissions can manage and submit local events.
 - [x] **Approval Workflow**: Organizer events start in a "pending" state and require Administrator approval before being published to the main platform.
 - [x] **RSVP Guestlists**: Organizers can expand their approved events to track attendee numbers and view guestlists in real-time.
 
+---
+
 ## ✅ Operations & Tooling — COMPLETE
 - [x] **Standardized Dependencies**: Centralized package management into a unified `dependencies.txt` file and cross-platform startup scripts (`install_dependencies.bat`, `start.bat`, and `start.sh`) for rapid development onboarding.
+
+---
 
 ## ✅ Phase 5: WhatsApp AI Agent Enhancements — COMPLETE
 - [x] **Onboarding Flow**: Implemented silent profile building capturing the WhatsApp profile name and pointing users to the website for preferences.
 - [x] **Personalization Engine**: Update `rag.ts` to continuously write interaction history to the `preferences` JSONB column.
 - [x] **Proactive (Push) Alerts**: Implemented a Daily Cron job (9 AM) to cross-reference new events with preferences. To optimize Meta costs, a **System Settings Toggle** was added to the Admin UI to safely enable/disable the background engine.
 - [x] **Cloud AI Integration**: Update backend to conditionally switch between Ollama (local) and Cloud Provider models (e.g., Gemini) based on `RUN_MODE`.
+
+---
+
+## ✅ Phase 5.5: Organizer Growth Toolkit — COMPLETE
+- [x] **AI Marketing Assistant** *(Parked — pending performance improvements)*: Backend fully integrated with LangChain to generate promo kits (Instagram captions, WhatsApp blasts, Newsletter blurbs). Currently rate-limited on the free-tier Gemini API; local Ollama models too slow for real-time UX. Will resume with streaming responses.
+- [x] **Event Performance Metrics**: "Vibe Velocity" analytics dashboard embedded in the Organizer Hub. Tracks daily RSVPs over time via a gradient Recharts area chart, with metric cards for Total RSVPs, Peak Day, and Avg Velocity benchmarked across all organizer events.
+- [x] **Organizer Followers/CRM**: Users can "follow" organizers directly from event cards on the dashboard. Organizers gain a dedicated "Community CRM" tab in their Hub — a full data table of followers (Name, Email, City, Follow Date).
+- [ ] **Audience Demographics**: Provide organizers with insights into the age, gender, and location distribution of their attendees. *(Deprioritized — requires collecting additional demographic data at signup.)*
+- [ ] **Post-Event Vibe Score**: Automated feedback collection system post-event to generate a public or private "Vibe Score" for organizers.
+
+---
 
 ## 🚀 Phase 6: Cloud Deployment & Final Review
 - [ ] **Push the Backend Code**: Deploy the finished Node/Express app to Render/Railway.

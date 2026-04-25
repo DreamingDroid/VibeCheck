@@ -43,6 +43,17 @@ export async function initializeDatabaseSchema(pool: Pool) {
   // Admin comment for rejection / change request feedback
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS admin_comment TEXT`);
 
+  // Organizer Followers CRM
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS organizer_followers (
+      id SERIAL PRIMARY KEY,
+      user_email VARCHAR(255) REFERENCES web_users(email) ON DELETE CASCADE,
+      organizer_email VARCHAR(255) REFERENCES admins(email) ON DELETE CASCADE,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_email, organizer_email)
+    );
+  `);
+
   // Auto-seed default cities if empty
   const { rows: cityRows } = await pool.query('SELECT COUNT(*) FROM cities');
   if (parseInt(cityRows[0].count) === 0) {

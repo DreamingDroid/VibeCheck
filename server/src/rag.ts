@@ -22,9 +22,8 @@ export function getChatModel() {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
     chatModel = new ChatGoogleGenerativeAI({
-      model: 'gemini-1.5-flash',
-      apiKey: config.GEMINI_API_KEY,
-      temperature: 0.7,
+      model: 'gemini-2.5-flash',
+      apiKey: config.GEMINI_API_KEY
     });
     console.log('[RAG] Running with Gemini Flash (cloud mode)');
   } else {

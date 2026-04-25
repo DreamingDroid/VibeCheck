@@ -25,6 +25,7 @@ type VibeEvent = {
   description: string;
   date_time: string;
   location: string;
+  organizer_email: string;
 };
 
 export default function Dashboard() {
@@ -33,6 +34,7 @@ export default function Dashboard() {
   const [events, setEvents] = useState<VibeEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
+  const [following, setFollowing] = useState<string[]>([]);
 
   useEffect(() => {
     fetch("http://localhost:4000/api/admin/settings")
@@ -60,9 +62,54 @@ export default function Dashboard() {
     setLoading(false);
   };
 
+  const fetchFollowing = async () => {
+    if (!session?.user?.email) return;
+    try {
+      const res = await fetch(`http://localhost:4000/api/followers/user/${session.user.email}`);
+      const data = await res.json();
+      if (data.success) setFollowing(data.data);
+    } catch (err) {
+      console.error("Failed to fetch following:", err);
+    }
+  };
+
+  const toggleFollow = async (e: React.MouseEvent, organizerEmail: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!session?.user?.email) {
+      // toast.error("Please login to follow organizers");
+      return;
+    }
+    const isFollowing = following.includes(organizerEmail);
+    const method = isFollowing ? "DELETE" : "POST";
+    try {
+      const res = await fetch(`http://localhost:4000/api/followers`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail: session.user.email, organizerEmail })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (isFollowing) {
+          setFollowing(following.filter(email => email !== organizerEmail));
+        } else {
+          setFollowing([...following, organizerEmail]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to toggle follow:", err);
+    }
+  };
+
   useEffect(() => {
     fetchEvents();
   }, [currentCity]);
+
+  useEffect(() => {
+    if (session?.user?.email) {
+      fetchFollowing();
+    }
+  }, [session]);
 
   // Color mapping for Joyful vibe
   const getCategoryColor = (cat: string) => {
@@ -131,6 +178,14 @@ export default function Dashboard() {
                 <div className="sticker-badge border-black text-black">{featuredEvent.category}</div>
                 <div className="sticker-badge bg-zinc-100 border-none text-zinc-500">Free Entry</div>
               </div>
+              <div className="pt-6 border-t border-black/5 mt-4">
+                <button 
+                  onClick={(e) => toggleFollow(e, featuredEvent.organizer_email)}
+                  className={`ringer-button text-xs ${following.includes(featuredEvent.organizer_email) ? 'bg-zinc-200 text-black' : 'bg-white text-black border border-black hover:bg-zinc-50'}`}
+                >
+                  {following.includes(featuredEvent.organizer_email) ? '✓ FOLLOWING ORGANIZER' : '➕ FOLLOW ORGANIZER'}
+                </button>
+              </div>
            </div>
         </section>
       )}
@@ -152,9 +207,17 @@ export default function Dashboard() {
                    <div className={`sticker-badge ${getCategoryColor(ev.category)} text-black border-none font-black`}>
                      {ev.category}
                    </div>
-                   <button className="text-zinc-300 hover:text-black transition-colors">
-                     <Share2 className="h-4 w-4" />
-                   </button>
+                   <div className="flex items-center gap-2">
+                     <button 
+                       onClick={(e) => toggleFollow(e, ev.organizer_email)}
+                       className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${following.includes(ev.organizer_email) ? 'bg-zinc-200 border-transparent text-black' : 'border-zinc-200 text-zinc-400 hover:text-black hover:border-black'}`}
+                     >
+                       {following.includes(ev.organizer_email) ? '✓ Following' : 'Follow'}
+                     </button>
+                     <button className="text-zinc-300 hover:text-black transition-colors">
+                       <Share2 className="h-4 w-4" />
+                     </button>
+                   </div>
                  </div>
 
                  <div className="space-y-3 flex-1">

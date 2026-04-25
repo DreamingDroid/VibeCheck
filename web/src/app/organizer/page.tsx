@@ -13,6 +13,7 @@ import Link from "next/link";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
 import { toast } from "sonner";
+import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 const CATEGORIES = ["Sports", "Arts", "Education", "Spiritual", "Music", "Food", "Wellness", "Indie", "Techno", "General"];
 
 const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
@@ -38,13 +39,20 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoData, setPromoData] = useState("");
 
+  const [analytics, setAnalytics] = useState<any>(null);
+
   const loadRsvps = () => {
     if (!open) {
       setLoading(true);
-      fetch(`http://localhost:4000/api/organizer/events/${eventId}/rsvps?email=${encodeURIComponent(organizerEmail)}`)
-        .then(r => r.json())
-        .then(d => { if (d.success) setRsvps(d.data); })
-        .finally(() => setLoading(false));
+      Promise.all([
+        fetch(`http://localhost:4000/api/organizer/events/${eventId}/rsvps?email=${encodeURIComponent(organizerEmail)}`).then(r => r.json()),
+        fetch(`http://localhost:4000/api/organizer/events/${eventId}/analytics?email=${encodeURIComponent(organizerEmail)}`).then(r => r.json())
+      ])
+      .then(([rsvpsData, analyticsData]) => {
+        if (rsvpsData.success) setRsvps(rsvpsData.data);
+        if (analyticsData.success) setAnalytics(analyticsData.data);
+      })
+      .finally(() => setLoading(false));
     }
     setOpen(!open);
   };
@@ -166,16 +174,83 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
           ) : rsvps.length === 0 ? (
              <p className="p-8 text-zinc-400 text-xs font-bold text-center italic">The vibes are quiet. No RSVPs received yet.</p>
           ) : (
-            <ul className="divide-y divide-black/5">
-              {rsvps.map((r, i) => (
-                <li key={i} className="text-sm p-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 hover:bg-white transition-colors">
-                  <span className="text-black font-bold">
-                    {r.name || 'Anonymous Guest'}
-                  </span>
-                  <span className="text-zinc-300 text-[10px] font-black uppercase tracking-widest">{new Date(r.created_at).toLocaleDateString(undefined, {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'})}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="p-6">
+              {analytics && (
+                <div className="mb-8">
+                  <h4 className="text-black font-black uppercase tracking-tighter italic mb-4">Performance Metrics</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-white p-4 rounded-2xl border border-black/5">
+                      <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Total RSVPs</p>
+                      <p className="text-2xl font-black">{analytics.totalRsvps}</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-2xl border border-black/5">
+                      <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Peak Day</p>
+                      <p className="text-2xl font-black text-primary">
+                        {analytics.timeline && analytics.timeline.length > 0 
+                          ? [...analytics.timeline].sort((a,b) => b.count - a.count)[0].count 
+                          : 0}
+                      </p>
+                    </div>
+                    <div className="bg-white p-4 rounded-2xl border border-black/5 col-span-2 md:col-span-1">
+                      <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Avg Velocity</p>
+                      <div className="flex items-end gap-2">
+                        <p className="text-2xl font-black">{analytics.avgVelocity}/day</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white p-6 rounded-3xl border border-black/5 mb-8">
+                    <h5 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-6">Vibe Velocity (RSVPs over time)</h5>
+                    <div className="h-[200px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={analytics.timeline}>
+                          <defs>
+                            <linearGradient id="colorVibe" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#C1FF00" stopOpacity={0.8}/>
+                              <stop offset="95%" stopColor="#C1FF00" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <XAxis 
+                            dataKey="date" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fontSize: 10, fill: '#a1a1aa' }} 
+                            dy={10}
+                            tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
+                          />
+                          <Tooltip 
+                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.1)' }}
+                            labelStyle={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.1em' }}
+                            itemStyle={{ color: '#000', fontWeight: 900 }}
+                            labelFormatter={(label) => new Date(label as string).toLocaleDateString()}
+                          />
+                          <Area 
+                            type="monotone" 
+                            dataKey="count" 
+                            stroke="#C1FF00" 
+                            strokeWidth={4}
+                            fillOpacity={1} 
+                            fill="url(#colorVibe)" 
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <h4 className="text-black font-black uppercase tracking-tighter italic mb-4">Guestlist ({rsvps.length})</h4>
+              <ul className="divide-y divide-black/5 bg-white rounded-3xl border border-black/5 overflow-hidden">
+                {rsvps.map((r, i) => (
+                  <li key={i} className="text-sm p-4 px-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 hover:bg-zinc-50 transition-colors">
+                    <span className="text-black font-bold">
+                      {r.name || 'Anonymous Guest'}
+                    </span>
+                    <span className="text-zinc-300 text-[10px] font-black uppercase tracking-widest">{new Date(r.created_at).toLocaleDateString(undefined, {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'})}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       )}
@@ -278,6 +353,8 @@ export default function OrganizerDashboard() {
   const [loading, setLoading] = useState(true);
   const [isOrganizer, setIsOrganizer] = useState(false);
   const [myEvents, setMyEvents] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'events' | 'crm'>('events');
+  const [followers, setFollowers] = useState<any[]>([]);
 
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [isMultiDay, setIsMultiDay] = useState(false);
@@ -303,6 +380,7 @@ export default function OrganizerDashboard() {
         }
         setIsOrganizer(true);
         loadMyEvents();
+        loadFollowers(session.user?.email ?? '');
       })
       .catch(err => {
         console.error("Check role error", err);
@@ -317,6 +395,14 @@ export default function OrganizerDashboard() {
       .then(r => r.json())
       .then(data => {
         if (data.success) setMyEvents(data.data);
+      });
+  };
+
+  const loadFollowers = (email: string) => {
+    fetch(`http://localhost:4000/api/organizer/followers?email=${encodeURIComponent(email)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) setFollowers(data.data);
       });
   };
 
@@ -448,7 +534,23 @@ export default function OrganizerDashboard() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div className="flex gap-4 border-b border-black/5 pb-6">
+          <button 
+            className={`text-xs font-black uppercase tracking-widest pb-2 border-b-2 ${activeTab === 'events' ? 'border-primary text-black' : 'border-transparent text-zinc-400 hover:text-black'}`}
+            onClick={() => setActiveTab('events')}
+          >
+            Manage Events
+          </button>
+          <button 
+            className={`text-xs font-black uppercase tracking-widest pb-2 border-b-2 ${activeTab === 'crm' ? 'border-primary text-black' : 'border-transparent text-zinc-400 hover:text-black'}`}
+            onClick={() => setActiveTab('crm')}
+          >
+            Community CRM ({followers.length})
+          </button>
+        </div>
+
+        {activeTab === 'events' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           {/* Submission Form */}
           <div className="lg:col-span-4 h-fit">
             <div className="ringer-card overflow-hidden">
@@ -569,7 +671,40 @@ export default function OrganizerDashboard() {
               </div>
             )}
           </div>
-        </div>
+          </div>
+        ) : (
+          <div className="ringer-card">
+            <h2 className="text-2xl font-black italic uppercase tracking-tighter mb-6">Your Community CRM</h2>
+            {followers.length === 0 ? (
+              <div className="p-12 text-center text-zinc-400 font-bold italic text-sm">
+                Nobody is following you yet. Keep hosting great events!
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-[10px] font-black uppercase tracking-widest text-zinc-400 border-b border-black/5">
+                    <tr>
+                      <th className="px-4 py-3">Name</th>
+                      <th className="px-4 py-3">Email</th>
+                      <th className="px-4 py-3">City</th>
+                      <th className="px-4 py-3">Follow Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {followers.map((f, i) => (
+                      <tr key={i} className="border-b border-black/5 last:border-0 hover:bg-zinc-50 transition-colors">
+                        <td className="px-4 py-4 font-bold text-black">{f.name || 'Anonymous User'}</td>
+                        <td className="px-4 py-4 text-zinc-600 font-medium">{f.email}</td>
+                        <td className="px-4 py-4 text-zinc-600 font-medium">{f.city || 'Unknown'}</td>
+                        <td className="px-4 py-4 text-zinc-400 font-bold">{new Date(f.follow_date).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
     </div>

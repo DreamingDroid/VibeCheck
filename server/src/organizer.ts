@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { sendWhatsAppMessage } from './whatsapp';
-import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent } from './queries/events';
+import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity } from './queries/events';
 import { getSystemSetting } from './queries/analytics';
 import { config } from './config';
 import { getChatModel } from './rag';
+import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 
 export async function organizerCreateEventHandler(req: Request, res: Response, pool: Pool) {
   const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email } = req.body;
@@ -146,6 +147,33 @@ export async function organizerUpdateEventHandler(req: Request, res: Response, p
   }
 }
 
+export async function organizerGetEventAnalyticsHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  const email = req.query.email as string;
+
+  if (!email) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+  try {
+    const analytics = await getOrganizerEventAnalytics(pool, id as string);
+    const avgVelocity = await getOrganizerAverageVelocity(pool, email);
+    
+    // We can also compute total RSVPs for this event specifically
+    const totalRsvps = analytics.reduce((sum, item) => sum + parseInt(item.count as unknown as string, 10), 0);
+
+    res.json({
+      success: true,
+      data: {
+        timeline: analytics,
+        totalRsvps,
+        avgVelocity: parseFloat(Number(avgVelocity).toFixed(2))
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching event analytics:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
 export async function organizerGeneratePromoHandler(req: Request, res: Response, pool: Pool) {
   const { id } = req.params;
   const { email } = req.query;
@@ -153,6 +181,7 @@ export async function organizerGeneratePromoHandler(req: Request, res: Response,
   if (!email) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
   try {
+    console.log('[Promo] Fetching event from DB...');
     const { rows } = await pool.query(
       `SELECT title, category, location, date_time, description 
        FROM events 
@@ -161,35 +190,39 @@ export async function organizerGeneratePromoHandler(req: Request, res: Response,
     );
     const event = rows[0];
     if (!event) return res.status(404).json({ success: false, error: 'Event not found or unauthorized' });
+    console.log('[Promo] Event found. Constructing prompt...');
 
     const prompt = `You are a hype-building marketing assistant for VibeCheck. 
-Generate a short marketing promo kit for the following event:
-Title: ${event.title}
-Category: ${event.category}
-Location: ${event.location || 'TBA'}
-Date: ${new Date(event.date_time).toLocaleString()}
-Description: ${event.description}
+      Generate a short marketing promo kit for the following event:
+      Title: ${event.title}
+      Category: ${event.category}
+      Location: ${event.location || 'TBA'}
+      Date: ${new Date(event.date_time).toLocaleString()}
+      Description: ${event.description}
 
-Please output strictly in the following Markdown format:
+      Please output strictly in the following Markdown format:
 
-### 📱 Instagram Captions
-1. [Caption option 1]
-2. [Caption option 2]
-3. [Caption option 3]
+      ### 📱 Instagram Captions
+      1. [Caption option 1]
+      2. [Caption option 2]
+      3. [Caption option 3]
 
-### 💬 WhatsApp Blast
-[A punchy, emoji-filled, short message to send to past attendees or groups]
+      ### 💬 WhatsApp Blast
+      [A punchy, emoji-filled, short message to send to past attendees or groups]
 
-### ✉️ Newsletter Blurb
-[A slightly longer, exciting paragraph for an email newsletter]
+      ### ✉️ Newsletter Blurb
+      [A slightly longer, exciting paragraph for an email newsletter]
 
-Keep it fun, high-energy, and suited to the event category! Do not include any other text besides the requested sections.`;
+      Keep it fun, high-energy, and suited to the event category! Do not include any other text besides the requested sections.`;
 
-    const response = await getChatModel().invoke([
-      ['system', 'You are an expert event marketer.'],
-      ['user', prompt]
-    ]);
+    console.log('[Promo] Invoking getChatModel()...');
+    const llm = getChatModel();
+    console.log('[Promo] Invoking LLM via LangChain...');
 
+    const combinedPrompt = `You are an expert event marketer.\n\n${prompt}`;
+    const response = await llm.invoke(combinedPrompt);
+
+    console.log('[Promo] LLM Responded!');
     const generatedText = typeof response?.content === 'string' ? response.content.trim() : 'Failed to generate promo kit.';
 
     res.json({ success: true, data: generatedText });

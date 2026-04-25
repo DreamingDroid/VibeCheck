@@ -16,11 +16,12 @@ import { handleEventQuery, saveUserPreferences } from './rag';
 import { verifyWebhook, handleIncomingMessage } from './whatsapp';
 import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHandler } from './events';
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
-import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler } from './organizer';
+import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler, organizerGetEventAnalyticsHandler } from './organizer';
 import { getCitiesHandler } from './cities';
 import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminGetEventsByStatusHandler, adminAddCityHandler, adminDeleteCityHandler } from './admin';
 import { startPushAlertCron, runMatchmakerJob } from './cron';
 import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verification';
+import { followOrganizerHandler, unfollowOrganizerHandler, getUserFollowingHandler, getOrganizerFollowersHandler } from './followers';
 import { initializeDatabaseSchema } from './queries/init';
 import { config } from './config';
 
@@ -167,6 +168,13 @@ app.get('/api/organizer/events/:id/rsvps', (req, res) => organizerGetEventRsvpsH
 app.get('/api/organizer/events/:id/broadcast-stats', (req, res) => getBroadcastStatsHandler(req, res, pool));
 app.post('/api/organizer/events/:id/broadcast', (req, res) => broadcastMessageHandler(req, res, pool));
 app.get('/api/organizer/events/:id/promo', (req, res) => organizerGeneratePromoHandler(req, res, pool));
+app.get('/api/organizer/events/:id/analytics', (req, res) => organizerGetEventAnalyticsHandler(req, res, pool));
+app.get('/api/organizer/followers', (req, res) => getOrganizerFollowersHandler(req, res, pool));
+
+// Followers API
+app.post('/api/followers', (req, res) => followOrganizerHandler(req, res, pool));
+app.delete('/api/followers', (req, res) => unfollowOrganizerHandler(req, res, pool));
+app.get('/api/followers/user/:email', (req, res) => getUserFollowingHandler(req, res, pool));
 
 // Verification API
 app.post('/api/verify/send-code', (req, res) => sendVerificationCodeHandler(req, res, pool));

@@ -57,7 +57,7 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
 
 export async function getEventsList(pool: Pool, category: any, search: any, city: any) {
     let queryText = `
-      SELECT id, title, description, location, city, date_time, category 
+      SELECT id, title, description, location, city, date_time, category, organizer_email 
       FROM events
       WHERE (status = 'approved' OR status IS NULL)
     `;
@@ -87,7 +87,7 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
 
 export async function getEventById(pool: Pool, id: string) {
     const { rows } = await pool.query(
-      `SELECT id, title, description, location, city, date_time, category 
+      `SELECT id, title, description, location, city, date_time, category, organizer_email 
        FROM events WHERE id = $1 AND (status = 'approved' OR status IS NULL)`,
       [id]
     );
@@ -145,6 +145,34 @@ export async function getOrganizerEventRSVPs(pool: Pool, eventId: string) {
       [eventId]
     );
     return rows;
+}
+
+export async function getOrganizerEventAnalytics(pool: Pool, eventId: string) {
+    const { rows } = await pool.query(
+      `SELECT DATE(created_at) as date, COUNT(*) as count 
+       FROM event_rsvps 
+       WHERE event_id = $1 
+       GROUP BY DATE(created_at) 
+       ORDER BY DATE(created_at) ASC`,
+      [eventId]
+    );
+    return rows;
+}
+
+export async function getOrganizerAverageVelocity(pool: Pool, email: string) {
+    const { rows } = await pool.query(
+      `WITH EventDailyCounts AS (
+         SELECT er.event_id, DATE(er.created_at) as date, COUNT(*) as daily_count
+         FROM event_rsvps er
+         JOIN events e ON er.event_id = e.id
+         WHERE e.organizer_email = $1
+         GROUP BY er.event_id, DATE(er.created_at)
+       )
+       SELECT AVG(daily_count) as avg_velocity
+       FROM EventDailyCounts`,
+      [email]
+    );
+    return rows[0]?.avg_velocity || 0;
 }
 
 export async function getBroadcastAttendees(pool: Pool, eventId: string) {
