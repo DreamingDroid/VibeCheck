@@ -119,10 +119,16 @@ export function GlobalHeader() {
                       PREFERENCES
                     </button>
                   </Link>
-                  {isOrganizer && (
+                  {isOrganizer ? (
                     <Link href="/organizer">
                       <button className="ringer-button bg-primary text-black hover:bg-black hover:text-white text-[10px] py-2 px-4 border-none transition-colors">
                         ORGANIZER HUB
+                      </button>
+                    </Link>
+                  ) : (
+                    <Link href="/organizer/apply">
+                      <button className="ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-4">
+                        BECOME AN ORGANIZER
                       </button>
                     </Link>
                   )}

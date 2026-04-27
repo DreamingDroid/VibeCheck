@@ -188,7 +188,7 @@ export async function adminGetPendingOrganizersHandler(req: Request, res: Respon
 export async function adminApproveOrganizerHandler(req: Request, res: Response, pool: Pool) {
   const { id } = req.params;
   try {
-    const row = await updateOrganizerStatus(pool, id, 'approved');
+    const row = await updateOrganizerStatus(pool, id as string, 'approved');
     if (!row) return res.status(404).json({ success: false, error: 'Organizer not found' });
     
     // Optional: send approval email
@@ -214,7 +214,7 @@ export async function adminRejectOrganizerHandler(req: Request, res: Response, p
   if (!reason) return res.status(400).json({ success: false, error: 'Rejection reason is required' });
   
   try {
-    const row = await updateOrganizerStatus(pool, id, 'rejected', reason);
+    const row = await updateOrganizerStatus(pool, id as string, 'rejected', reason);
     if (!row) return res.status(404).json({ success: false, error: 'Organizer not found' });
 
     // Send rejection email
