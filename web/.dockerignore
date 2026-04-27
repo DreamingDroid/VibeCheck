@@ -1,0 +1,14 @@
+# Dependencies - will be reinstalled inside container
+node_modules
+
+# Local build output - will be rebuilt inside container
+.next
+
+# Local environment secrets - passed via docker-compose environment block
+.env.local
+.env*.local
+
+# Misc
+.DS_Store
+*.log
+README.md

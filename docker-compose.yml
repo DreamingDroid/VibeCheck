@@ -57,6 +57,28 @@ services:
       - ./vibecheck-admin-stacks:/appsmith-stacks
     restart: unless-stopped
 
+  # The Frontend: VibeCheck Next.js Web App
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        # Public env vars must be passed at BUILD TIME in Next.js
+        NEXT_PUBLIC_WHATSAPP_NUMBER: ${NEXT_PUBLIC_WHATSAPP_NUMBER:-15551433589}
+    container_name: vibecheck_web
+    ports:
+      - "3500:3500"
+    environment:
+      # Secret env vars are passed at RUNTIME (more secure)
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3500}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+    depends_on:
+      server:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   vibecheck_postgres_data:
   vibecheck_ollama_data:
