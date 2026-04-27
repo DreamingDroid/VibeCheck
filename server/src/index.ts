@@ -18,10 +18,11 @@ import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHan
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
 import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler, organizerGetEventAnalyticsHandler } from './organizer';
 import { getCitiesHandler } from './cities';
-import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminGetEventsByStatusHandler, adminAddCityHandler, adminDeleteCityHandler } from './admin';
+import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingOrganizersHandler, adminApproveOrganizerHandler, adminRejectOrganizerHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminGetEventsByStatusHandler, adminAddCityHandler, adminDeleteCityHandler } from './admin';
 import { startPushAlertCron, runMatchmakerJob } from './cron';
 import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verification';
 import { followOrganizerHandler, unfollowOrganizerHandler, getUserFollowingHandler, getOrganizerFollowersHandler } from './followers';
+import { sendApplyOtpHandler, verifyApplyOtpHandler, submitApplicationHandler } from './organizer-apply';
 import { initializeDatabaseSchema } from './queries/init';
 import { config } from './config';
 
@@ -138,6 +139,11 @@ app.get('/api/events/:id/rsvp/check', (req, res) => checkRsvpHandler(req, res, p
 app.get('/api/user', (req, res) => getWebUserHandler(req, res, pool));
 app.post('/api/user', (req, res) => saveWebUserHandler(req, res, pool));
 
+// Organizer Application & Verification API
+app.post('/api/apply/send-otp', sendApplyOtpHandler);
+app.post('/api/apply/verify-otp', verifyApplyOtpHandler);
+app.post('/api/apply/submit', (req, res) => submitApplicationHandler(req, res, pool));
+
 // Admin API
 app.get('/api/admin/check', (req, res) => checkAdminHandler(req, res, pool));
 app.get('/api/admin/events', (req, res) => adminGetEventsHandler(req, res, pool));
@@ -151,6 +157,10 @@ app.post('/api/admin/settings', (req, res) => adminUpdateSettingsHandler(req, re
 
 app.get('/api/admin/organizers', (req, res) => adminGetOrganizersHandler(req, res, pool));
 app.post('/api/admin/organizers', (req, res) => adminAddOrganizerHandler(req, res, pool));
+app.get('/api/admin/organizers/pending', (req, res) => adminGetPendingOrganizersHandler(req, res, pool));
+app.post('/api/admin/organizers/:id/approve', (req, res) => adminApproveOrganizerHandler(req, res, pool));
+app.post('/api/admin/organizers/:id/reject', (req, res) => adminRejectOrganizerHandler(req, res, pool));
+
 app.get('/api/admin/events/pending', (req, res) => adminGetPendingEventsHandler(req, res, pool));
 app.get('/api/admin/events/status/:status', (req, res) => adminGetEventsByStatusHandler(req, res, pool));
 app.put('/api/admin/events/:id/review', (req, res) => adminReviewEventHandler(req, res, pool));

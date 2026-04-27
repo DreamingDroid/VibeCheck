@@ -53,6 +53,14 @@ CREATE TABLE IF NOT EXISTS admins (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     role admin_role DEFAULT 'Editor',
+    status VARCHAR(50) DEFAULT 'pending_approval',
+    brand_name VARCHAR(255),
+    description TEXT,
+    social_links JSONB,
+    phone_number VARCHAR(255) UNIQUE,
+    email_verified BOOLEAN DEFAULT false,
+    phone_verified BOOLEAN DEFAULT false,
+    rejection_reason TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

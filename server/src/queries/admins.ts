@@ -15,7 +15,7 @@ export async function ensureOrganizerRole(pool: Pool) {
 }
 
 export async function getAdminByEmail(pool: Pool, email: string) {
-  const { rows } = await pool.query('SELECT email, role FROM admins WHERE email = $1', [email]);
+  const { rows } = await pool.query('SELECT id, email, role, status FROM admins WHERE email = $1', [email]);
   return rows[0] || null;
 }
 
@@ -31,10 +31,32 @@ export async function addOrganizer(pool: Pool, email: string) {
 export async function getOrganizers(pool: Pool) {
   await ensureOrganizerRole(pool);
   const { rows } = await pool.query(
-    `SELECT email, role
+    `SELECT id, email, role, status, brand_name, description, social_links, phone_number, created_at
      FROM admins
-     WHERE LOWER(role::text) = 'organizer'
+     WHERE LOWER(role::text) = 'organizer' AND status = 'approved'
      ORDER BY created_at DESC`
   );
   return rows;
+}
+
+export async function getPendingOrganizers(pool: Pool) {
+  await ensureOrganizerRole(pool);
+  const { rows } = await pool.query(
+    `SELECT id, email, role, status, brand_name, description, social_links, phone_number, created_at
+     FROM admins
+     WHERE LOWER(role::text) = 'organizer' AND status = 'pending_approval'
+     ORDER BY created_at DESC`
+  );
+  return rows;
+}
+
+export async function updateOrganizerStatus(pool: Pool, id: string, status: string, rejectionReason?: string) {
+  const { rowCount, rows } = await pool.query(
+    `UPDATE admins 
+     SET status = $1, rejection_reason = $2 
+     WHERE id = $3 
+     RETURNING email`,
+    [status, rejectionReason || null, id]
+  );
+  return rows[0] || null;
 }

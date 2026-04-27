@@ -378,6 +378,11 @@ export default function OrganizerDashboard() {
           router.push("/dashboard");
           return;
         }
+        if (data.isOrganizer && data.status !== 'approved') {
+          toast.error("Your organizer application is pending or rejected.");
+          router.push("/");
+          return;
+        }
         setIsOrganizer(true);
         loadMyEvents();
         loadFollowers(session.user?.email ?? '');

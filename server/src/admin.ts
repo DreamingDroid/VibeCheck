@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
-import { getAdminByEmail, addOrganizer, getOrganizers } from './queries/admins';
+import { getAdminByEmail, addOrganizer, getOrganizers, getPendingOrganizers, updateOrganizerStatus } from './queries/admins';
+import { Resend } from 'resend';
+import { config } from './config';
+
+const resend = new Resend(config.RESEND_API_KEY);
 import { getAllEvents, createEvent, updateEvent, deleteEvent, getPendingEvents, updateEventStatus, getEventsByStatus, getAdminEventRSVPs, addCity, deleteCity } from './queries/events';
 import { initSystemSettings, getSystemSetting, getAnalyticsOverview, getEventsByCategoryStats, getPreferredCategoriesStats, toggleCronSetting } from './queries/analytics';
 
@@ -21,7 +25,8 @@ export async function checkAdminHandler(req: Request, res: Response, pool: Pool)
       success: true,
       isAdmin: normalizedRole !== 'organizer',
       isOrganizer: normalizedRole === 'organizer',
-      role
+      role,
+      status: adminStr.status
     });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Internal server error' });
@@ -166,6 +171,65 @@ export async function adminGetOrganizersHandler(req: Request, res: Response, poo
     res.json({ success: true, data: rows });
   } catch (error) {
     console.error('Get organizers error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function adminGetPendingOrganizersHandler(req: Request, res: Response, pool: Pool) {
+  try {
+    const rows = await getPendingOrganizers(pool);
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('Get pending organizers error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function adminApproveOrganizerHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  try {
+    const row = await updateOrganizerStatus(pool, id, 'approved');
+    if (!row) return res.status(404).json({ success: false, error: 'Organizer not found' });
+    
+    // Optional: send approval email
+    if (config.RESEND_API_KEY && config.RESEND_API_KEY !== 're_dummy_key_123') {
+      await resend.emails.send({
+        from: 'VibeCheck <onboarding@resend.dev>',
+        to: row.email,
+        subject: 'Welcome to VibeCheck! Your Application is Approved',
+        html: `<p>Great news! Your organizer application has been approved.</p><p>You can now log in to the Organizer Dashboard.</p>`
+      });
+    }
+
+    res.json({ success: true, message: 'Organizer approved successfully.' });
+  } catch (error) {
+    console.error('Approve organizer error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function adminRejectOrganizerHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  const { reason } = req.body;
+  if (!reason) return res.status(400).json({ success: false, error: 'Rejection reason is required' });
+  
+  try {
+    const row = await updateOrganizerStatus(pool, id, 'rejected', reason);
+    if (!row) return res.status(404).json({ success: false, error: 'Organizer not found' });
+
+    // Send rejection email
+    if (config.RESEND_API_KEY && config.RESEND_API_KEY !== 're_dummy_key_123') {
+      await resend.emails.send({
+        from: 'VibeCheck <onboarding@resend.dev>',
+        to: row.email,
+        subject: 'Update on your VibeCheck Application',
+        html: `<p>We have reviewed your application.</p><p>Unfortunately, it has been rejected for the following reason:</p><blockquote style="border-left: 4px solid #ccc; padding-left: 10px;">${reason}</blockquote>`
+      });
+    }
+
+    res.json({ success: true, message: 'Organizer rejected successfully.' });
+  } catch (error) {
+    console.error('Reject organizer error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
