@@ -1,0 +1,21 @@
+Project: VibeCheck (Next.js + React + Node.js)
+
+Database: PostgreSQL (strictly avoid Oracle references)
+
+Hardware: NVIDIA DGX OS with Blackwell GPU
+
+Strategy: Use DeepSeek-R1 70B for Planning and Qwen2.5-Coder 32B for Acting.
+
+Instruction: Always use the Postgres MCP to verify table schema before writing any queries.
+Instruction: Use puppeteer to access websites on the internet.
+
+Tech Stack:
+  - Frontend: Next.js, React, Tailwind CSS
+  - Backend: Node.js, TypeScript, Express
+  - Database: PostgreSQL with pg and pgvector
+  - Config: dotenv
+  - CORS: cors
+  - Scheduling: node-cron
+  - AI/LLM tooling: @langchain/core, @langchain/community, @langchain/google-genai, @langchain/langgraph, @langchain/ollama
+  - Build tools: TypeScript, ts-node, nodemon
+  - Web Scraping: puppeteer
