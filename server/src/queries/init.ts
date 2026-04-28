@@ -3,13 +3,13 @@ import { Pool } from 'pg';
 export async function initializeDatabaseSchema(pool: Pool) {
   // Ensure admins table exists with roles
   await pool.query(`
-    CREATE TYPE admin_role AS ENUM ('super_admin', 'editor');
+    CREATE TYPE admin_role AS ENUM ('SuperAdmin', 'Editor', 'organizer');
   `).catch(() => {}); // Ignore if already exists
   
   await pool.query(`
     CREATE TABLE IF NOT EXISTS admins (
       email VARCHAR(255) PRIMARY KEY,
-      role admin_role DEFAULT 'editor',
+      role admin_role DEFAULT 'Editor',
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
   `);
