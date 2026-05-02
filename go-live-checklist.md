@@ -78,5 +78,6 @@ Based on the latest System Requirements Specification (SRS), here is an updated 
 ## 🚀 Phase 6: Cloud Deployment & Final Review
 - [ ] **Push the Backend Code**: Deploy the finished Node/Express app to Render/Railway.
 - [ ] **Push the Frontend Code**: Deploy the Next.js web portal to Vercel.
-- [ ] **Transfer `.env` Variables**: Ensure `GEMINI_API_KEY`, `WHATSAPP_` tokens, and `DATABASE_URL` are set on production platforms.
+- [ ] **Transfer `.env` Variables**: Ensure `GEMINI_API_KEY`, `WHATSAPP_` tokens, `RESEND_API_KEY`, and `DATABASE_URL` are set on production platforms.
+- [ ] **Resend Setup**: Create a Resend account, get an API key, and verify the `vibecheck.dev` (or similar) domain for sending emails in production.
 - [ ] **Final Meta Adjustments**: Remove proxy tunnels, set a permanent access token via Meta Business Manager, connect a real phone number, and switch from Development to **Live** Mode.

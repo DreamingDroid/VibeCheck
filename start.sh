@@ -30,6 +30,38 @@ open_in_terminal() {
     fi
 }
 
+# --- Helper: Port Management ---
+clear_port() {
+    local port="$1"
+    local service_name="$2"
+    
+    # Check if anything is listening on the port
+    if ss -ltn "( sport = :$port )" 2>/dev/null | grep -q ":$port"; then
+        echo "[INFO] Port $port is occupied. Cleaning up..."
+        
+        # 1. Check if it's a Docker container
+        local container_id=$(docker ps -q --filter "publish=$port")
+        if [ -n "$container_id" ]; then
+            local name=$(docker inspect --format '{{.Name}}' "$container_id" | sed 's/\///')
+            echo "[INFO] Stopping Docker container '$name' on port $port..."
+            docker stop "$container_id" >/dev/null
+        fi
+        
+        # 2. Check if it's a local process (requires sudo for some, but tries anyway)
+        # We use a silent kill if it's the current user's process
+        if command -v fuser >/dev/null 2>&1; then
+            fuser -k "$port/tcp" >/dev/null 2>&1 || true
+        else
+            # Fallback to lsof if available
+            if command -v lsof >/dev/null 2>&1; then
+                lsof -ti :"$port" | xargs kill -9 >/dev/null 2>&1 || true
+            fi
+        fi
+        
+        sleep 1
+    fi
+}
+
 echo "----------------------------------------------------------"
 echo "🚀 Starting VibeCheck Development Environment..."
 echo "----------------------------------------------------------"
@@ -87,6 +119,10 @@ echo "[OK] Starting infrastructure services: ${COMPOSE_SERVICES[*]}"
 "${COMPOSE_CMD[@]}" up -d "${COMPOSE_SERVICES[@]}"
 
 # --- Step 3: Application Services ---
+echo "Cleaning up local ports..."
+clear_port 3500 "Web"
+clear_port 4000 "Backend"
+
 echo "Starting VibeCheck App Components..."
 
 server_started=false
