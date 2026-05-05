@@ -160,7 +160,6 @@ export default function AdminEventsPage() {
     const start_iso = combine(form.startDate, form.startTime);
     const end_iso = combine(isMultiDay ? form.endDate : form.startDate, form.endTime);
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
     await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
