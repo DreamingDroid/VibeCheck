@@ -44,9 +44,10 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
   const loadRsvps = () => {
     if (!open) {
       setLoading(true);
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
       Promise.all([
-        fetch(`http://localhost:4000/api/organizer/events/${eventId}/rsvps?email=${encodeURIComponent(organizerEmail)}`).then(r => r.json()),
-        fetch(`http://localhost:4000/api/organizer/events/${eventId}/analytics?email=${encodeURIComponent(organizerEmail)}`).then(r => r.json())
+        fetch(`${baseUrl}/api/organizer/events/${eventId}/rsvps?email=${encodeURIComponent(organizerEmail)}`).then(r => r.json()),
+        fetch(`${baseUrl}/api/organizer/events/${eventId}/analytics?email=${encodeURIComponent(organizerEmail)}`).then(r => r.json())
       ])
       .then(([rsvpsData, analyticsData]) => {
         if (rsvpsData.success) setRsvps(rsvpsData.data);
@@ -60,7 +61,8 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
   const openBroadcast = (e: React.MouseEvent) => {
     e.stopPropagation();
     setBroadcastOpen(true);
-    fetch(`http://localhost:4000/api/organizer/events/${eventId}/broadcast-stats?email=${encodeURIComponent(organizerEmail)}`)
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    fetch(`${baseUrl}/api/organizer/events/${eventId}/broadcast-stats?email=${encodeURIComponent(organizerEmail)}`)
       .then(r => r.json())
       .then(d => {
         if (d.success) {
@@ -75,7 +77,8 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
     setTimeout(() => {
        setPaymentStatus("success");
        setBroadcasting(true);
-       fetch(`http://localhost:4000/api/organizer/events/${eventId}/broadcast`, {
+       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+       fetch(`${baseUrl}/api/organizer/events/${eventId}/broadcast`, {
          method: "POST",
          headers: { "Content-Type": "application/json" },
          body: JSON.stringify({ organizer_email: organizerEmail, message: broadcastMessage })
@@ -103,7 +106,8 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
     if (!promoData) {
       setPromoLoading(true);
       try {
-        const r = await fetch(`http://localhost:4000/api/organizer/events/${eventId}/promo?email=${encodeURIComponent(organizerEmail)}`);
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const r = await fetch(`${baseUrl}/api/organizer/events/${eventId}/promo?email=${encodeURIComponent(organizerEmail)}`);
         const d = await r.json();
         if (d.success) setPromoData(d.data);
       } catch (e) {
@@ -371,7 +375,8 @@ export default function OrganizerDashboard() {
        return;
     }
 
-    fetch(`http://localhost:4000/api/admin/check?email=${encodeURIComponent(session.user.email)}`)
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    fetch(`${baseUrl}/api/admin/check?email=${encodeURIComponent(session.user.email)}`)
       .then(r => r.json())
       .then(data => {
         if (!data.success || (!data.isOrganizer && !data.isAdmin)) {
@@ -396,7 +401,8 @@ export default function OrganizerDashboard() {
   }, [session, router]);
 
   const loadMyEvents = () => {
-    fetch(`http://localhost:4000/api/organizer/events?email=${encodeURIComponent(session!.user!.email!)}`)
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    fetch(`${baseUrl}/api/organizer/events?email=${encodeURIComponent(session!.user!.email!)}`)
       .then(r => r.json())
       .then(data => {
         if (data.success) setMyEvents(data.data);
@@ -404,7 +410,8 @@ export default function OrganizerDashboard() {
   };
 
   const loadFollowers = (email: string) => {
-    fetch(`http://localhost:4000/api/organizer/followers?email=${encodeURIComponent(email)}`)
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    fetch(`${baseUrl}/api/organizer/followers?email=${encodeURIComponent(email)}`)
       .then(r => r.json())
       .then(data => {
         if (data.success) setFollowers(data.data);
@@ -482,9 +489,10 @@ export default function OrganizerDashboard() {
     setSubmitting(true);
     const toastId = toast.loading("Submitting your event...");
     try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
       const url = editingEventId 
-        ? `http://localhost:4000/api/organizer/events/${editingEventId}` 
-        : "http://localhost:4000/api/organizer/events";
+        ? `${baseUrl}/api/organizer/events/${editingEventId}` 
+        : `${baseUrl}/api/organizer/events`;
       const method = editingEventId ? "PUT" : "POST";
       
       const res = await fetch(url, {

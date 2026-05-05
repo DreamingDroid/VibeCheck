@@ -27,7 +27,8 @@ function EventRsvpList({ eventId, title, dateStr }: { eventId: string, title: st
   const loadRsvps = () => {
     if (!open) {
       setLoading(true);
-      fetch(`http://localhost:4000/api/admin/events/${eventId}/rsvps`)
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      fetch(`${baseUrl}/api/admin/events/${eventId}/rsvps`)
         .then(r => r.json())
         .then(d => { if (d.success) setRsvps(d.data); })
         .finally(() => setLoading(false));
@@ -85,7 +86,8 @@ function PendingOrganizerRequests() {
   const [rejectionReason, setRejectionReason] = useState("");
   
   const loadRequests = () => {
-    fetch("http://localhost:4000/api/admin/organizers/pending").then(r=>r.json()).then(d => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    fetch(`${baseUrl}/api/admin/organizers/pending`).then(r=>r.json()).then(d => {
       if(d.success) setRequests(d.data);
     });
   }
@@ -94,7 +96,8 @@ function PendingOrganizerRequests() {
   
   const handleApprove = async (id: string) => {
     setLoading(true);
-    const r = await fetch(`http://localhost:4000/api/admin/organizers/${id}/approve`, { method: "POST" });
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    const r = await fetch(`${baseUrl}/api/admin/organizers/${id}/approve`, { method: "POST" });
     const d = await r.json();
     if(d.success) {
       toast.success("Organizer Approved.");
@@ -108,7 +111,8 @@ function PendingOrganizerRequests() {
   const handleReject = async () => {
     if(!rejectModal.id || !rejectionReason) return;
     setLoading(true);
-    const r = await fetch(`http://localhost:4000/api/admin/organizers/${rejectModal.id}/reject`, {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    const r = await fetch(`${baseUrl}/api/admin/organizers/${rejectModal.id}/reject`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason: rejectionReason })
     });
     const d = await r.json();
@@ -177,7 +181,8 @@ function PendingEventsList() {
   const [events, setEvents] = useState<any[]>([]);
   
   const loadEvents = () => {
-    fetch("http://localhost:4000/api/admin/events/pending").then(r=>r.json()).then(d => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    fetch(`${baseUrl}/api/admin/events/pending`).then(r=>r.json()).then(d => {
       if(d.success) setEvents(d.data);
     });
   }
@@ -185,7 +190,8 @@ function PendingEventsList() {
   useEffect(() => { loadEvents(); }, []);
   
   const handleReview = async (id: string, status: string) => {
-    const r = await fetch(`http://localhost:4000/api/admin/events/${id}/review`, {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    const r = await fetch(`${baseUrl}/api/admin/events/${id}/review`, {
       method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status })
     });
     const d = await r.json();
@@ -240,10 +246,11 @@ export default function AdminPage() {
   const [eventsList, setEventsList] = useState<any[]>([]);
 
   useEffect(() => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
     Promise.all([
-      fetch("http://localhost:4000/api/admin/analytics").then(r => r.json()),
-      fetch("http://localhost:4000/api/admin/settings").then(r => r.json()),
-      fetch("http://localhost:4000/api/admin/events").then(r => r.json())
+      fetch(`${baseUrl}/api/admin/analytics`).then(r => r.json()),
+      fetch(`${baseUrl}/api/admin/settings`).then(r => r.json()),
+      fetch(`${baseUrl}/api/admin/events`).then(r => r.json())
     ])
     .then(([analyticsRes, settingsRes, eventsRes]) => {
       if (analyticsRes.success) setAnalytics(analyticsRes.data);
@@ -265,7 +272,8 @@ export default function AdminPage() {
     setUpdatingCron(true);
     const newValue = !cronEnabled;
     try {
-      const res = await fetch("http://localhost:4000/api/admin/settings", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/admin/settings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: "cron_enabled", value: newValue ? "true" : "false" })
@@ -284,7 +292,8 @@ export default function AdminPage() {
     setUpdatingWhatsapp(true);
     const newValue = !whatsappEnabled;
     try {
-      const res = await fetch("http://localhost:4000/api/admin/settings", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/admin/settings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: "whatsapp_enabled", value: newValue ? "true" : "false" })

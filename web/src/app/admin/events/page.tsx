@@ -50,7 +50,8 @@ export default function AdminEventsPage() {
 
   const fetchEvents = () => {
     setLoading(true);
-    let url = `http://localhost:4000/api/admin/events/status/${activeTab}`;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    let url = `${baseUrl}/api/admin/events/status/${activeTab}`;
     if (activeTab === 'rejected') url += '?days=30';
     
     fetch(url)
@@ -102,7 +103,8 @@ export default function AdminEventsPage() {
       variant: "danger",
     });
     if (!confirmed) return;
-    await fetch(`http://localhost:4000/api/admin/events/${id}`, { method: "DELETE" });
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    await fetch(`${baseUrl}/api/admin/events/${id}`, { method: "DELETE" });
     toast.success("Event deleted.");
     fetchEvents();
   };
@@ -115,7 +117,8 @@ export default function AdminEventsPage() {
       comment = reason;
     }
     
-    await fetch(`http://localhost:4000/api/admin/events/${id}/review`, {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    await fetch(`${baseUrl}/api/admin/events/${id}/review`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, comment })
@@ -142,7 +145,8 @@ export default function AdminEventsPage() {
     setErrors({});
     setSaving(true);
     const method = editingId ? "PUT" : "POST";
-    const url = editingId ? `http://localhost:4000/api/admin/events/${editingId}` : "http://localhost:4000/api/admin/events";
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    const url = editingId ? `${baseUrl}/api/admin/events/${editingId}` : `${baseUrl}/api/admin/events`;
     const combine = (date: string, timeStr: string) => {
       const [time, ampm] = timeStr.split(" ");
       let [hours, mins] = time.split(":").map(Number);
@@ -156,6 +160,7 @@ export default function AdminEventsPage() {
     const start_iso = combine(form.startDate, form.startTime);
     const end_iso = combine(isMultiDay ? form.endDate : form.startDate, form.endTime);
 
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
     await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },

@@ -26,7 +26,8 @@ export function CityProvider({ children }: { children: ReactNode }) {
   // Fetch cities from DB
   const fetchCities = async () => {
     try {
-      const res = await fetch("http://localhost:4000/api/cities");
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/cities`);
       const data = await res.json();
       if (data.success) {
         setSupportedCities(data.data);

@@ -55,7 +55,8 @@ export default function OrganizerApplyPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:4000/api/apply/send-otp", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/apply/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, value }),
@@ -80,7 +81,8 @@ export default function OrganizerApplyPage() {
     const value = verifyModal.type === "email" ? formData.email : formData.phone;
 
     try {
-      const res = await fetch("http://localhost:4000/api/apply/verify-otp", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/apply/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: verifyModal.type, value, code: otpCode }),
@@ -114,7 +116,8 @@ export default function OrganizerApplyPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:4000/api/apply/submit", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/apply/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...formData, emailToken, phoneToken }),

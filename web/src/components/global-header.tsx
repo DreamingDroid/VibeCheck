@@ -16,7 +16,8 @@ export function GlobalHeader() {
 
   useEffect(() => {
     if (session?.user?.email) {
-      fetch(`http://localhost:4000/api/admin/check?email=${encodeURIComponent(session.user.email)}`)
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      fetch(`${baseUrl}/api/admin/check?email=${encodeURIComponent(session.user.email)}`)
         .then(r => r.json())
         .then(data => {
           setIsAdmin(data.isAdmin)

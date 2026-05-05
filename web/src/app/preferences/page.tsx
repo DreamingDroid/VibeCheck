@@ -32,7 +32,8 @@ export default function PreferencesPage() {
 
   useEffect(() => {
     if (!session?.user?.email) return;
-    fetch(`http://localhost:4000/api/user?email=${encodeURIComponent(session.user.email)}`)
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    fetch(`${baseUrl}/api/user?email=${encodeURIComponent(session.user.email)}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.success) {
@@ -57,7 +58,8 @@ export default function PreferencesPage() {
     setSaving(true);
     setSaved(false);
     try {
-      await fetch("http://localhost:4000/api/user", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      await fetch(`${baseUrl}/api/user`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -23,7 +23,8 @@ export default function AdminCitiesPage() {
 
   const fetchCities = () => {
     setLoading(true);
-    fetch("http://localhost:4000/api/cities")
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    fetch(`${baseUrl}/api/cities`)
       .then(r => r.json())
       .then(data => { if (data.success) setCities(data.data); })
       .catch(err => console.error("Fetch cities error:", err))
@@ -38,7 +39,8 @@ export default function AdminCitiesPage() {
     
     setSaving(true);
     try {
-      const res = await fetch("http://localhost:4000/api/admin/cities", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/admin/cities`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newCityName.trim() }),
@@ -67,7 +69,8 @@ export default function AdminCitiesPage() {
     if (!confirmed) return;
     
     try {
-      const res = await fetch(`http://localhost:4000/api/admin/cities/${id}`, {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/admin/cities/${id}`, {
         method: "DELETE",
       });
       const data = await res.json();

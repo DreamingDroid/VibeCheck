@@ -23,7 +23,8 @@ export default function EventDetailsPage() {
     if (!params.id) return;
     
     if (session?.user?.email) {
-      fetch(`http://localhost:4000/api/user?email=${encodeURIComponent(session.user.email)}`)
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      fetch(`${baseUrl}/api/user?email=${encodeURIComponent(session.user.email)}`)
         .then(r => r.json())
         .then(res => {
           if (res.success && res.data.phone_number) {
@@ -32,13 +33,15 @@ export default function EventDetailsPage() {
         });
     }
 
-    fetch(`http://localhost:4000/api/events/${params.id}`)
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    fetch(`${baseUrl}/api/events/${params.id}`)
       .then(r => r.json())
       .then(res => {
         if (res.success) {
           setEvent(res.data);
           if (session?.user?.email) {
-            fetch(`http://localhost:4000/api/events/${params.id}/rsvp/check?email=${encodeURIComponent(session.user.email)}`)
+            const baseUrlInner = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+            fetch(`${baseUrlInner}/api/events/${params.id}/rsvp/check?email=${encodeURIComponent(session.user.email)}`)
               .then(r => r.json())
               .then(d => {
                 if (d.success && d.rsvped) {
@@ -102,7 +105,8 @@ export default function EventDetailsPage() {
     }
     
     try {
-      const res = await fetch(`http://localhost:4000/api/events/${params.id}/rsvp`, {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/events/${params.id}/rsvp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: session.user.email })

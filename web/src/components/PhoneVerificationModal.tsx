@@ -41,7 +41,8 @@ export function PhoneVerificationModal({
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:4000/api/verify/send-code", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/verify/send-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber, email }),
@@ -68,7 +69,8 @@ export function PhoneVerificationModal({
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:4000/api/verify/confirm-code", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/verify/confirm-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber, code: verificationCode, email }),

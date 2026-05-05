@@ -37,7 +37,8 @@ export default function Dashboard() {
   const [following, setFollowing] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/admin/settings")
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    fetch(`${baseUrl}/api/admin/settings`)
       .then(r => r.json())
       .then(res => {
         if (res.success && res.data) {
@@ -51,7 +52,8 @@ export default function Dashboard() {
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      const url = new URL("http://localhost:4000/api/events");
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const url = new URL(`${baseUrl}/api/events`);
       if (currentCity) url.searchParams.append("city", currentCity);
       const res = await fetch(url.toString());
       const data = await res.json();
@@ -65,7 +67,8 @@ export default function Dashboard() {
   const fetchFollowing = async () => {
     if (!session?.user?.email) return;
     try {
-      const res = await fetch(`http://localhost:4000/api/followers/user/${session.user.email}`);
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/followers/user/${session.user.email}`);
       const data = await res.json();
       if (data.success) setFollowing(data.data);
     } catch (err) {
@@ -83,7 +86,8 @@ export default function Dashboard() {
     const isFollowing = following.includes(organizerEmail);
     const method = isFollowing ? "DELETE" : "POST";
     try {
-      const res = await fetch(`http://localhost:4000/api/followers`, {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/followers`, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userEmail: session.user.email, organizerEmail })
