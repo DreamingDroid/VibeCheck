@@ -1,0 +1,38 @@
+[
+  {
+    "id": "mock-1",
+    "title": "Neon Garden: Melodic Techno",
+    "description": "An immersive botanical techno experience with deep melodic beats and custom light installations.",
+    "location": "The Glass House, Bangalore",
+    "city": "Bangalore",
+    "date_time": "2026-06-10T20:00:00Z",
+    "category": "Techno"
+  },
+  {
+    "id": "mock-2",
+    "title": "Sunset Rooftop Yoga",
+    "description": "Find your zen with a 60-minute Vinyasa flow followed by fresh organic juices and networking.",
+    "location": "Sky Deck, Vizag",
+    "city": "Vizag",
+    "date_time": "2026-06-11T17:30:00Z",
+    "category": "Wellness"
+  },
+  {
+    "id": "mock-3",
+    "title": "Indie Vibes Night",
+    "description": "Discover the city's best emerging indie bands in an intimate warehouse setting.",
+    "location": "Warehouse 42, London",
+    "city": "London",
+    "date_time": "2026-06-12T21:00:00Z",
+    "category": "Indie"
+  },
+  {
+    "id": "mock-4",
+    "title": "Abstract Painting Workshop",
+    "description": "Learn the basics of abstract expressionism with local artists. All materials provided.",
+    "location": "Art Collective, Bangalore",
+    "city": "Bangalore",
+    "date_time": "2026-06-13T10:00:00Z",
+    "category": "Workshop"
+  }
+]

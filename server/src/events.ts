@@ -1,12 +1,19 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { getEventsList, getEventById, insertEventRSVPEmail, checkEventRSVPEmail } from './queries/events';
+import mockData from './mock-data-for-testing.json';
 
 export async function getEventsHandler(req: Request, res: Response, pool: Pool) {
   try {
     const { category, search, city } = req.query;
     
-    const rows = await getEventsList(pool, category, search, city);
+    let rows = await getEventsList(pool, category, search, city);
+    
+    // Fallback to mock data if DB is empty
+    if (rows.length === 0 && !category && !search && !city) {
+      console.log('[API] DB is empty, serving mock data fallback');
+      rows = mockData;
+    }
     
     res.json({
       success: true,
