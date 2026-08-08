@@ -23,7 +23,14 @@ fi
 
 # 2. Start Infrastructure
 echo "[OK] Starting DB and Ollama via Docker Compose..."
-docker-compose up -d
+if command -v docker-compose >/dev/null 2>&1; then
+    docker-compose up -d
+elif docker compose version >/dev/null 2>&1; then
+    docker compose up -d
+else
+    echo "[ERROR] Neither 'docker-compose' nor 'docker compose' is installed."
+    exit 1
+fi
 
 # 3. Handle process cleanup on exit
 cleanup() {

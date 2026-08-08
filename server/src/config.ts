@@ -2,9 +2,13 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // MUST LOAD DOTENV BEFORE EXPORTING CONFIGS
-const result = dotenv.config({ path: path.join(__dirname, '..', '.env') });
+const appEnv = process.env.APP_ENV || 'local';
+const envFile = `.env.${appEnv}`;
+console.log(`[Config] Loading environment: ${appEnv} (${envFile})`);
+const result = dotenv.config({ path: path.join(__dirname, '..', envFile) });
 if (result.error) {
-  console.log('Error loading .env file:', result.error);
+  console.log(`[Config] Error loading ${envFile}, falling back to .env:`, result.error.message);
+  dotenv.config({ path: path.join(__dirname, '..', '.env') });
 }
 
 export const config = {

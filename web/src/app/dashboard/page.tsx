@@ -30,9 +30,7 @@ type VibeEvent = {
 
 export default function Dashboard() {
   const { data: session } = useSession();
-  const { currentCity } = useCity();
-  const [events, setEvents] = useState<VibeEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { currentCity, events, isLoadingEvents: loading, selectedCategory } = useCity();
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
   const [following, setFollowing] = useState<string[]>([]);
 
@@ -49,20 +47,6 @@ export default function Dashboard() {
       .catch(err => console.error("Could not fetch settings", err));
   }, []);
 
-  const fetchEvents = async () => {
-    setLoading(true);
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      const url = new URL(`${baseUrl}/api/events`);
-      if (currentCity) url.searchParams.append("city", currentCity);
-      const res = await fetch(url.toString());
-      const data = await res.json();
-      if (data.success) setEvents(data.data);
-    } catch (err) {
-      console.error("Failed to fetch events:", err);
-    }
-    setLoading(false);
-  };
 
   const fetchFollowing = async () => {
     if (!session?.user?.email) return;
@@ -105,9 +89,6 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    fetchEvents();
-  }, [currentCity]);
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -140,8 +121,12 @@ export default function Dashboard() {
     </div>
   );
 
-  const featuredEvent = events[0];
-  const otherEvents = events.slice(1);
+  const filteredEvents = selectedCategory && selectedCategory !== "The Latest"
+    ? events.filter(ev => ev.category.toLowerCase() === selectedCategory.toLowerCase())
+    : events;
+
+  const featuredEvent = filteredEvents[0];
+  const otherEvents = filteredEvents.slice(1);
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12 space-y-12">

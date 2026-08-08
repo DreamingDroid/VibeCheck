@@ -5,9 +5,13 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // MUST LOAD DOTENV BEFORE ANY LOCAL IMPORTS
-const result = dotenv.config({ path: path.join(__dirname, '..', '.env') });
+const appEnv = process.env.APP_ENV || 'local';
+const envFile = `.env.${appEnv}`;
+console.log(`[Server] Loading environment: ${appEnv} (${envFile})`);
+const result = dotenv.config({ path: path.join(__dirname, '..', envFile) });
 if (result.error) {
-  console.log('Error loading .env file:', result.error);
+  console.log(`[Server] Error loading ${envFile}, falling back to .env:`, result.error.message);
+  dotenv.config({ path: path.join(__dirname, '..', '.env') });
 }
 
 import { Pool } from 'pg';

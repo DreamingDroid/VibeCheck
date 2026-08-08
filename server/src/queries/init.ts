@@ -16,6 +16,17 @@ export async function initializeDatabaseSchema(pool: Pool) {
 
   await pool.query(`ALTER TYPE admin_role ADD VALUE IF NOT EXISTS 'organizer'`).catch(() => {});
 
+  // Append organizer properties to admins table if missing in older schema versions
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS id UUID DEFAULT gen_random_uuid()`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending_approval'`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS brand_name VARCHAR(255)`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS description TEXT`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS social_links JSONB`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS phone_number VARCHAR(255)`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN DEFAULT false`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS rejection_reason TEXT`);
+
   // Append new event properties seamlessly
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_email TEXT`);

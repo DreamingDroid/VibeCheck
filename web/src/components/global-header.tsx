@@ -4,12 +4,38 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useSession, signOut, signIn } from "next-auth/react"
 import { useCity } from "@/context/CityContext"
-import { ChevronDown, MapPin, Search, Music, Mic2, Tv } from "lucide-react"
+import { 
+  ChevronDown, MapPin, Search, Music, Mic2, Tv,
+  Trophy, Palette, BookOpen, Compass, Heart,
+  Activity, Wine, Smile, Briefcase, Sparkles
+} from "lucide-react"
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  "Music": <Music className="h-3 w-3" />,
+  "Live Music": <Mic2 className="h-3 w-3" />,
+  "Podcasts": <Tv className="h-3 w-3" />,
+  "Sports": <Trophy className="h-3 w-3" />,
+  "Arts": <Palette className="h-3 w-3" />,
+  "Education": <BookOpen className="h-3 w-3" />,
+  "Spiritual": <Compass className="h-3 w-3" />,
+  "Wellness": <Heart className="h-3 w-3" />,
+  "Indie": <Activity className="h-3 w-3" />,
+  "Techno": <Music className="h-3 w-3" />,
+  "Food": <Wine className="h-3 w-3" />,
+  "Comedy": <Smile className="h-3 w-3" />,
+  "Workshops": <Briefcase className="h-3 w-3" />,
+  "Nightlife": <Wine className="h-3 w-3" />,
+  "Night Life": <Wine className="h-3 w-3" />,
+  "General": <Sparkles className="h-3 w-3" />,
+};
 
 export function GlobalHeader() {
   const { data: session } = useSession()
   const [isSigningOut, setIsSigningOut] = useState(false)
-  const { currentCity, setCity, supportedCities, isLoading } = useCity()
+  const { 
+    currentCity, setCity, supportedCities, isLoading,
+    selectedCategory, setSelectedCategory, activeCategories
+  } = useCity()
   const [showCityMenu, setShowCityMenu] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isOrganizer, setIsOrganizer] = useState(false)
@@ -36,12 +62,11 @@ export function GlobalHeader() {
   }
 
   const categories = [
-    { name: "The Latest", icon: <Music className="h-3 w-3" /> },
-    { name: "Live Music", icon: <Mic2 className="h-3 w-3" /> },
-    { name: "Podcasts", icon: <Tv className="h-3 w-3" /> },
-    { name: "Nightlife", icon: null },
-    { name: "Comedy", icon: null },
-    { name: "Workshops", icon: null },
+    { name: "The Latest", icon: <Sparkles className="h-3 w-3" /> },
+    ...activeCategories.map(cat => ({
+      name: cat,
+      icon: CATEGORY_ICONS[cat] || null
+    }))
   ];
 
   return (
@@ -169,15 +194,23 @@ export function GlobalHeader() {
 
         {/* Category Pills Bar */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-12 flex items-center border-t border-black/5 overflow-x-auto no-scrollbar gap-2 py-1">
-           {categories.map((cat, i) => (
-             <button 
-               key={i}
-               className="sticker-badge bg-white hover:bg-zinc-100 flex items-center gap-1.5 whitespace-nowrap text-zinc-600 hover:text-black h-8 px-4"
-             >
-               {cat.icon}
-               {cat.name}
-             </button>
-           ))}
+           {categories.map((cat, i) => {
+             const isActive = selectedCategory === cat.name;
+             return (
+               <button 
+                 key={i}
+                 onClick={() => setSelectedCategory(cat.name)}
+                 className={`sticker-badge flex items-center gap-1.5 whitespace-nowrap h-8 px-4 transition-all ${
+                   isActive 
+                     ? 'bg-black text-white border-transparent' 
+                     : 'bg-white hover:bg-zinc-100 text-zinc-600 hover:text-black border-black/10'
+                 }`}
+               >
+                 {cat.icon}
+                 {cat.name}
+               </button>
+             );
+           })}
         </div>
       </header>
     </div>
