@@ -6,12 +6,13 @@ import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
-import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2 } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle } from "lucide-react";
+import { toast } from "sonner";
 
 export default function EventDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [rsvped, setRsvped] = useState(false);
@@ -20,6 +21,11 @@ export default function EventDetailsPage() {
   const [userHasPhone, setUserHasPhone] = useState(false);
 
   useEffect(() => {
+    if (status === "loading") return;
+    if (status === "unauthenticated") {
+      signIn("google", { callbackUrl: window.location.href });
+      return;
+    }
     if (!params.id) return;
     
     if (session?.user?.email) {
@@ -67,7 +73,7 @@ export default function EventDetailsPage() {
       else if (/Android/i.test(ua)) setDevice('android');
       else setDevice('desktop');
     }
-  }, [params.id, router, session]);
+  }, [params.id, router, session, status]);
 
   const handleDownloadICS = () => {
     if (!event) return;
@@ -118,6 +124,38 @@ export default function EventDetailsPage() {
     } catch (err) {
       console.error("RSVP failed", err);
     }
+  };
+
+  const handleShare = async () => {
+    if (!event) return;
+    const shareData = {
+      title: event.title,
+      text: event.description,
+      url: window.location.href,
+    };
+    
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        toast.success("Vibe shared successfully!");
+      } catch (err) {
+        // user cancelled or error
+      }
+    } else {
+      handleCopyLink();
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success("Vibe link copied to clipboard!");
+  };
+
+  const handleWhatsappShare = () => {
+    if (!event) return;
+    const text = `Check out this vibe: ${event.title}\n\n${window.location.href}`;
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   if (loading) return (
@@ -212,11 +250,27 @@ export default function EventDetailsPage() {
            <div className="pt-8 border-t border-black/5 flex flex-col gap-4">
               <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Share This Vibe</div>
               <div className="flex gap-2">
-                 {[1,2,3].map(i => (
-                   <button key={i} className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all">
-                     <Share2 className="h-4 w-4" />
-                   </button>
-                 ))}
+                 <button 
+                   onClick={handleCopyLink} 
+                   title="Copy Link"
+                   className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-zinc-50"
+                 >
+                   <Link2 className="h-4 w-4 text-black" />
+                 </button>
+                 <button 
+                   onClick={handleShare} 
+                   title="System Share"
+                   className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-zinc-50"
+                 >
+                   <Share2 className="h-4 w-4 text-black" />
+                 </button>
+                 <button 
+                   onClick={handleWhatsappShare} 
+                   title="Share on WhatsApp"
+                   className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-zinc-50"
+                 >
+                   <MessageCircle className="h-4 w-4 text-black" />
+                 </button>
               </div>
            </div>
         </div>
