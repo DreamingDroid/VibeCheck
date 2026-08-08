@@ -42,7 +42,12 @@ app.use(express.json());
 app.use((req, res, next) => {
   console.log(`\n--- Incoming ${req.method} ${req.originalUrl} ---`);
   console.log(`User-Agent: ${req.headers['user-agent']}`);
-  if (req.method === 'POST') console.log(`Body:`, JSON.stringify(req.body).substring(0, 500));
+  if (req.method === 'POST' && req.body) {
+    const bodyStr = JSON.stringify(req.body);
+    if (bodyStr) {
+      console.log(`Body:`, bodyStr.substring(0, 500));
+    }
+  }
   next();
 });
 

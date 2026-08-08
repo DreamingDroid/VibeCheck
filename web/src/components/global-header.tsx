@@ -7,7 +7,7 @@ import { useCity } from "@/context/CityContext"
 import { 
   ChevronDown, MapPin, Search, Music, Mic2, Tv,
   Trophy, Palette, BookOpen, Compass, Heart,
-  Activity, Wine, Smile, Briefcase, Sparkles
+  Activity, Wine, Smile, Briefcase, Sparkles, Bell
 } from "lucide-react"
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
@@ -39,6 +39,9 @@ export function GlobalHeader() {
   const [showCityMenu, setShowCityMenu] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isOrganizer, setIsOrganizer] = useState(false)
+  const [organizerStatus, setOrganizerStatus] = useState<string | null>(null)
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null)
+  const [showNotifications, setShowNotifications] = useState(false)
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -48,10 +51,14 @@ export function GlobalHeader() {
         .then(data => {
           setIsAdmin(data.isAdmin)
           setIsOrganizer(data.isOrganizer)
+          setOrganizerStatus(data.status || null)
+          setRejectionReason(data.rejectionReason || null)
         })
         .catch(() => {
           setIsAdmin(false)
           setIsOrganizer(false)
+          setOrganizerStatus(null)
+          setRejectionReason(null)
         })
     }
   }, [session])
@@ -145,18 +152,20 @@ export function GlobalHeader() {
                       PREFERENCES
                     </button>
                   </Link>
-                  {isOrganizer ? (
+                  {isOrganizer && organizerStatus === 'approved' ? (
                     <Link href="/organizer">
                       <button className="ringer-button bg-primary text-black hover:bg-black hover:text-white text-[10px] py-2 px-4 border-none transition-colors">
                         ORGANIZER HUB
                       </button>
                     </Link>
                   ) : (
-                    <Link href="/organizer/apply">
-                      <button className="ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-4">
-                        BECOME AN ORGANIZER
-                      </button>
-                    </Link>
+                    !(organizerStatus === 'pending_approval' || organizerStatus === 'rejected') && (
+                      <Link href="/organizer/apply">
+                        <button className="ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-4">
+                          BECOME AN ORGANIZER
+                        </button>
+                      </Link>
+                    )
                   )}
                   {isAdmin && (
                     <Link href="/admin">
@@ -168,6 +177,46 @@ export function GlobalHeader() {
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                  {isOrganizer && (organizerStatus === 'pending_approval' || organizerStatus === 'rejected') && (
+                    <div className="relative mr-1">
+                      <button 
+                        onClick={() => setShowNotifications(!showNotifications)}
+                        className="relative p-2 hover:bg-black/5 rounded-full transition-all text-zinc-600 hover:text-black flex items-center justify-center shrink-0"
+                      >
+                        <Bell className="h-4.5 w-4.5" />
+                        <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+                      </button>
+
+                      {showNotifications && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setShowNotifications(false)} />
+                          <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-black/5 rounded-[24px] shadow-2xl z-20 p-5 animate-in fade-in zoom-in-95 duration-200">
+                            <h4 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-3 border-b border-black/5 pb-2 text-left">Notifications</h4>
+                            <div className="space-y-3">
+                              {organizerStatus === 'pending_approval' ? (
+                                <div className="flex flex-col gap-1 bg-amber-50/50 p-3 rounded-2xl border border-amber-100/50 text-left">
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-600">Application Pending</span>
+                                  <p className="text-xs font-bold text-zinc-700 leading-tight">Your organizer application is currently under review by our team.</p>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col gap-2 bg-red-50/50 p-3 rounded-2xl border border-red-100/50 text-left">
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-red-600">Application Rejected</span>
+                                  <p className="text-xs font-bold text-zinc-700 leading-tight">Unfortunately, your organizer application was rejected.</p>
+                                  {rejectionReason && (
+                                    <div className="bg-white/80 p-2 rounded-xl border border-red-100/30 mt-1">
+                                      <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400 block mb-1">Reason for Rejection</span>
+                                      <p className="text-[11px] font-bold text-zinc-800 leading-normal italic">"{rejectionReason}"</p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   <div className="hidden sm:flex flex-col items-end mr-1">
                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 leading-none mb-1">Authenticated</span>
                     <span className="text-xs font-bold text-black leading-none">{session.user?.name}</span>
