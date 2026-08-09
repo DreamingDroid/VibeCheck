@@ -116,63 +116,40 @@ function OrganizerRequestsSummaryCard() {
   );
 }
 
-function PendingEventsList() {
-  const [events, setEvents] = useState<any[]>([]);
+function EventRequestsSummaryCard() {
+  const [count, setCount] = useState<number | null>(null);
   
-  const loadEvents = () => {
+  useEffect(() => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-    fetch(`${baseUrl}/api/admin/events/pending`).then(r=>r.json()).then(d => {
-      if(d.success) setEvents(d.data);
-    });
-  }
-  
-  useEffect(() => { loadEvents(); }, []);
-  
-  const handleReview = async (id: string, status: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-    const r = await fetch(`${baseUrl}/api/admin/events/${id}/review`, {
-      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status })
-    });
-    const d = await r.json();
-    if(d.success) loadEvents();
-  }
-
-  if (events.length === 0) return null;
+    fetch(`${baseUrl}/api/admin/events/pending`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) setCount(d.data.length);
+      })
+      .catch(err => console.error(err));
+  }, []);
 
   return (
-    <Card className="ringer-card border-accent bg-accent/5 mb-12 relative overflow-hidden">
-      <div className="absolute top-0 w-full h-1 bg-accent" />
-      <CardHeader>
-        <CardTitle className="text-black text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          Submissions Awaiting Vibes ({events.length})
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {events.map(ev => (
-          <div key={ev.id} className="p-6 bg-white rounded-[30px] border border-black/5 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6 shadow-sm">
-             <div className="space-y-2">
-               <div className="sticker-badge bg-black text-white w-fit">{ev.category}</div>
-               <p className="text-black font-black uppercase italic tracking-tighter text-2xl">{ev.title}</p>
-               <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                  <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {ev.location}</span>
-                  <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {new Date(ev.date_time).toLocaleDateString()}</span>
-               </div>
-               <p className="text-zinc-400 text-[10px] font-bold">BY: {ev.organizer_email}</p>
-             </div>
-             <div className="flex gap-4">
-               <button onClick={() => handleReview(ev.id, 'approved')} className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2">
-                 <CheckCircle2 className="h-4 w-4" /> APPROVE & PUBLISH
-               </button>
-               <button onClick={() => handleReview(ev.id, 'rejected')} className="ringer-button border-2 border-black/5 hover:bg-black/5 text-black text-[10px] flex items-center gap-2">
-                 <XCircle className="h-4 w-4" /> REJECT
-               </button>
-             </div>
+    <Card className="ringer-card h-full flex flex-col justify-between p-8 min-h-[250px] bg-white">
+      <div>
+        <div className="flex justify-between items-start mb-6">
+          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Event Approvals</span>
+          <div className="h-10 w-10 rounded-[15px] bg-primary/10 flex items-center justify-center shadow-sm">
+            <Calendar className="h-5 w-5 text-primary" />
           </div>
-        ))}
-      </CardContent>
+        </div>
+        <h3 className="text-black text-sm font-black uppercase tracking-[0.1em] mb-2 leading-none">Event Requests</h3>
+        <p className="text-5xl font-black italic tracking-tighter leading-none mt-2 text-black">
+          {count === null ? "..." : `${count} Pending`}
+        </p>
+      </div>
+      <Link href="/admin/events?tab=pending" className="mt-8">
+        <Button className="w-full bg-black text-white text-[10px] uppercase font-black hover:bg-zinc-800 h-10 tracking-widest">
+          MANAGE SUBMISSIONS
+        </Button>
+      </Link>
     </Card>
-  )
+  );
 }
 
 export default function AdminPage() {
@@ -259,7 +236,7 @@ export default function AdminPage() {
   }
 
   const statCards = [
-    { label: "Active Vibes", value: analytics?.totalEvents ?? 0, icon: <Sparkles className="h-6 w-6 text-primary" />, bg: "bg-primary/5" },
+    { label: "Active Vibes", value: analytics?.totalEvents ?? 0, icon: <Sparkles className="h-6 w-6 text-primary" />, bg: "bg-primary/5", href: "/admin/events" },
     { label: "Total Explorers", value: analytics?.totalWebUsers ?? 0, icon: <Users className="h-6 w-6 text-indigo-500" />, bg: "bg-indigo-50" },
     { label: "Phone Alerts", value: analytics?.totalWhatsappUsers ?? 0, icon: <CheckCircle2 className="h-6 w-6 text-emerald-500" />, bg: "bg-emerald-50" },
   ];
@@ -308,31 +285,44 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <PendingEventsList />
-
       {/* High impact Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {statCards.map(s => (
-          <div key={s.label} className={`ringer-card ${s.bg} p-8 border-none flex flex-col justify-between h-48`}>
-             <div className="flex justify-between items-start">
-               <span className="text-[10px] font-black uppercase tracking-widest text-black/60">{s.label}</span>
-               <div className="h-10 w-10 rounded-[15px] bg-white flex items-center justify-center shadow-sm">
-                 {s.icon}
+        {statCards.map(s => {
+          const content = (
+            <div className={`ringer-card ${s.bg} p-8 border-none flex flex-col justify-between h-48 transition-all ${s.href ? 'hover:scale-[1.02] hover:shadow-lg cursor-pointer' : ''}`}>
+               <div className="flex justify-between items-start">
+                 <span className="text-[10px] font-black uppercase tracking-widest text-black/60">{s.label}</span>
+                 <div className="h-10 w-10 rounded-[15px] bg-white flex items-center justify-center shadow-sm">
+                   {s.icon}
+                 </div>
                </div>
-             </div>
-             <p className="text-6xl font-black italic tracking-tighter leading-none">{s.value}</p>
-          </div>
-        ))}
+               <p className="text-6xl font-black italic tracking-tighter leading-none">{s.value}</p>
+            </div>
+          );
+
+          return s.href ? (
+            <Link href={s.href} key={s.label}>
+              {content}
+            </Link>
+          ) : (
+            <div key={s.label}>
+              {content}
+            </div>
+          );
+        })}
       </div>
 
       {/* Grid of tools */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-4">
+        <div className="lg:col-span-6">
            <OrganizerRequestsSummaryCard />
+        </div>
+        <div className="lg:col-span-6">
+           <EventRequestsSummaryCard />
         </div>
         
         {/* Charts */}
-        <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8">
           <Card className="ringer-card">
             <CardHeader>
               <CardTitle className="text-black text-[10px] font-black uppercase tracking-widest">Events By Vibe</CardTitle>

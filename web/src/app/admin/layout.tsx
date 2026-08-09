@@ -11,6 +11,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const [checking, setChecking] = useState(true);
+  const [pendingEventsCount, setPendingEventsCount] = useState(0);
+  const [pendingOrganizersCount, setPendingOrganizersCount] = useState(0);
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/"); return; }
@@ -26,6 +28,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [status, session, router]);
 
+  useEffect(() => {
+    if (status === "authenticated" && !checking) {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+      // Fetch pending events count
+      fetch(`${baseUrl}/api/admin/events/pending`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && Array.isArray(data.data)) {
+            setPendingEventsCount(data.data.length);
+          }
+        })
+        .catch(err => console.error(err));
+
+      // Fetch pending organizers count
+      fetch(`${baseUrl}/api/admin/organizers/pending`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && Array.isArray(data.data)) {
+            setPendingOrganizersCount(data.data.length);
+          }
+        })
+        .catch(err => console.error(err));
+    }
+  }, [status, checking, pathname]);
+
   if (status === "loading" || checking) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -39,8 +67,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { label: "Overview", href: "/admin", icon: <LayoutDashboard className="h-4 w-4" /> },
-    { label: "Pending Organizers", href: "/admin/organizers", icon: <Users className="h-4 w-4" /> },
-    { label: "Manage Events", href: "/admin/events", icon: <FileText className="h-4 w-4" /> },
+    { label: "Pending Organizers", href: "/admin/organizers", icon: <Users className="h-4 w-4" />, badge: pendingOrganizersCount },
+    { label: "Manage Events", href: "/admin/events", icon: <FileText className="h-4 w-4" />, badge: pendingEventsCount },
     { label: "Manage Cities", href: "/admin/cities", icon: <MapPin className="h-4 w-4" /> },
   ];
 
@@ -56,13 +84,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <nav className="flex-1 p-6 space-y-2 flex flex-row md:flex-col overflow-x-auto md:overflow-visible gap-2 md:gap-0">
           {navItems.map(item => (
             <Link key={item.href} href={item.href} className="w-full">
-              <div className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-3 transition-all cursor-pointer whitespace-nowrap
+              <div className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-between transition-all cursor-pointer whitespace-nowrap
                 ${pathname === item.href
                   ? "bg-black text-white shadow-xl translate-x-1"
                   : "text-zinc-400 hover:bg-black/5 hover:text-black"
                 }`}>
-                {item.icon}
-                {item.label}
+                <div className="flex items-center gap-3">
+                  {item.icon}
+                  {item.label}
+                </div>
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 transition-colors
+                    ${pathname === item.href
+                      ? "bg-primary text-black"
+                      : "bg-red-500 text-white"
+                    }`}>
+                    {item.badge}
+                  </span>
+                )}
               </div>
             </Link>
           ))}
