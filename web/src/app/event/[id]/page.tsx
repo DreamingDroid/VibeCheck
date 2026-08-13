@@ -6,7 +6,9 @@ import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
-import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle } from "lucide-react";
+import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
+import { useTheme } from "@/context/ThemeContext";
+import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle, Users } from "lucide-react";
 import { toast } from "sonner";
 
 export default function EventDetailsPage() {
@@ -19,6 +21,7 @@ export default function EventDetailsPage() {
   const [device, setDevice] = useState<'desktop' | 'ios' | 'android'>('desktop');
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [userHasPhone, setUserHasPhone] = useState(false);
+  const { isVibrant } = useTheme();
 
   useEffect(() => {
     if (status === "loading") return;
@@ -174,12 +177,18 @@ export default function EventDetailsPage() {
         Back to Explore
       </Link>
       
-      <div className="ringer-card p-0 overflow-hidden shadow-2xl flex flex-col md:flex-row">
+      <div className={`ringer-card p-0 overflow-hidden shadow-2xl flex flex-col md:flex-row relative ${isVibrant ? getCategoryCardClass(event.category) : ''}`}>
+        {isVibrant && <CategoryDecorations category={event.category} />}
         {/* Left Side: Editorial Content */}
-        <div className="flex-1 p-8 sm:p-12 space-y-10">
+        <div className="flex-1 p-8 sm:p-12 space-y-10 relative z-10">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="sticker-badge bg-primary text-white border-none">{event.category}</div>
+              <div 
+                className={`sticker-badge text-white border-none ${isVibrant ? '' : 'bg-primary'}`}
+                style={isVibrant ? { backgroundColor: getCategoryAccentColor(event.category) } : {}}
+              >
+                {event.category}
+              </div>
               <div className="sticker-badge bg-zinc-100 border-none text-zinc-400">Verified Vibe</div>
             </div>
             
@@ -199,7 +208,9 @@ export default function EventDetailsPage() {
               className={`ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all rounded-[20px] ${
                 rsvped 
                 ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed' 
-                : 'bg-black text-white hover:bg-zinc-800'
+                : isVibrant 
+                  ? 'bg-black text-white hover:bg-zinc-800 vibe-shimmer'
+                  : 'bg-black text-white hover:bg-zinc-800'
               }`}
             >
               {rsvped ? <CheckCircle2 className="h-5 w-5" /> : null}
@@ -243,7 +254,22 @@ export default function EventDetailsPage() {
                    <MapPin className="h-4 w-4 text-primary" />
                    {event.location}
                  </div>
-                 <div className="text-xs font-bold text-zinc-400 underline cursor-pointer hover:text-black">Open in Maps</div>
+                 <a
+                   href={event.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.location}, ${event.city || ''}`)}`}
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   className="text-xs font-bold text-zinc-400 underline hover:text-black block w-fit"
+                 >
+                   Open in Maps
+                 </a>
+              </div>
+
+              <div className="space-y-1">
+                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">People Interested</div>
+                 <div className="flex items-center gap-2 text-black font-black">
+                   <Users className="h-4 w-4 text-primary" />
+                   {event.rsvp_count || 0} {event.rsvp_count === 1 ? 'Vibe Seeker' : 'Vibe Seekers'}
+                 </div>
               </div>
            </div>
 

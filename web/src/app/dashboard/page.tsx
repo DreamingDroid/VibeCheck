@@ -6,7 +6,9 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCity } from "@/context/CityContext";
-import { Calendar, MapPin, Share2, Sparkles, TrendingUp } from "lucide-react";
+import { useTheme } from "@/context/ThemeContext";
+import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
+import { Calendar, MapPin, Share2, Sparkles, TrendingUp, Zap, Users } from "lucide-react";
 
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "";
 
@@ -26,11 +28,15 @@ type VibeEvent = {
   date_time: string;
   location: string;
   organizer_email: string;
+  rsvp_count?: number;
+  google_maps_link?: string;
+  city?: string;
 };
 
 export default function Dashboard() {
   const { data: session } = useSession();
   const { currentCity, events, isLoadingEvents: loading, selectedCategory } = useCity();
+  const { isVibrant } = useTheme();
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
   const [following, setFollowing] = useState<string[]>([]);
 
@@ -134,12 +140,13 @@ export default function Dashboard() {
       {/* Editorial Hero Section */}
       {featuredEvent && (
         <section className="relative group cursor-pointer overflow-hidden ringer-card h-[500px] flex flex-col md:flex-row shadow-2xl rounded-[24px] md:rounded-[40px]">
-           <div className={`w-full md:w-1/2 ${getCategoryColor(featuredEvent.category)} p-5 sm:p-8 flex flex-col justify-between relative`}>
-              <div className="sticker-badge bg-black text-white w-fit px-4 border-none flex items-center gap-2">
+           <div className={`w-full md:w-1/2 ${getCategoryColor(featuredEvent.category)} p-5 sm:p-8 flex flex-col justify-between relative overflow-hidden`}>
+              {isVibrant && <CategoryDecorations category={featuredEvent.category} showAccent={false} />}
+              <div className="sticker-badge bg-black text-white w-fit px-4 border-none flex items-center gap-2 relative z-10">
                 <TrendingUp className="h-3 w-3" />
                 Featured Vibe
               </div>
-              <div className="space-y-4">
+              <div className="space-y-4 relative z-10">
                 <h2 className="text-4xl sm:text-5xl font-black tracking-tighter leading-none uppercase italic break-words hyphens-auto">
                   {featuredEvent.title}
                 </h2>
@@ -158,7 +165,14 @@ export default function Dashboard() {
            <div className="w-full md:w-1/2 bg-white p-5 sm:p-8 flex flex-col justify-center gap-6">
               <div className="space-y-2 border-l-4 border-black pl-6">
                 <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Where & When</div>
-                <div className="text-2xl font-black tracking-tight">{featuredEvent.location}</div>
+                <a
+                  href={featuredEvent.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${featuredEvent.location}, ${featuredEvent.city || ''}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-2xl font-black tracking-tight hover:text-primary hover:underline cursor-pointer block w-fit"
+                >
+                  {featuredEvent.location}
+                </a>
                 <div className="text-xl font-bold text-zinc-600">
                   {new Date(featuredEvent.date_time).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
                 </div>
@@ -166,6 +180,10 @@ export default function Dashboard() {
               <div className="flex items-center gap-3">
                 <div className="sticker-badge border-black text-black">{featuredEvent.category}</div>
                 <div className="sticker-badge bg-zinc-100 border-none text-zinc-500">Free Entry</div>
+                <div className="sticker-badge bg-primary/10 border-none text-primary flex items-center gap-1.5 font-black">
+                  <Users className="h-3 w-3" />
+                  <span>{featuredEvent.rsvp_count || 0} Interested</span>
+                </div>
               </div>
               <div className="pt-6 border-t border-black/5 mt-4">
                 <button 
@@ -187,11 +205,13 @@ export default function Dashboard() {
             <div 
               key={ev.id} 
               className={`
-                ringer-card p-0 group flex flex-col
+                ringer-card p-0 group flex flex-col relative overflow-hidden
                 ${isLarge ? 'md:col-span-6 lg:col-span-8' : 'md:col-span-3 lg:col-span-4'}
+                ${isVibrant ? `${getCategoryCardClass(ev.category)} vibe-hover-lift` : ''}
               `}
             >
-              <div className="p-5 sm:p-8 flex flex-col h-full space-y-6">
+              {isVibrant && <CategoryDecorations category={ev.category} showAccent={false} />}
+              <div className="p-5 sm:p-8 flex flex-col h-full space-y-6 relative z-10">
                  <div className="flex justify-between items-start">
                    <div className={`sticker-badge ${getCategoryColor(ev.category)} text-black border-none font-black`}>
                      {ev.category}
@@ -224,14 +244,31 @@ export default function Dashboard() {
                         <Calendar className="h-3.5 w-3.5" />
                         {new Date(ev.date_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </div>
-                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-wide">
+                      <a
+                        href={ev.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ev.location}, ${ev.city || ''}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-wide hover:text-black hover:underline cursor-pointer"
+                      >
                         <MapPin className="h-2.5 w-2.5" />
                         {ev.location}
+                      </a>
+                      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide mt-1" style={{ color: isVibrant ? getCategoryAccentColor(ev.category) : '#19A74E' }}>
+                        <Users className="h-2.5 w-2.5" />
+                        <span>{ev.rsvp_count || 0} Interested</span>
                       </div>
                     </div>
                     
                     <Link href={`/event/${ev.id}`}>
-                      <button className="h-10 w-10 flex items-center justify-center bg-black text-white rounded-full hover:bg-primary transition-all">
+                      <button 
+                        className={`h-10 w-10 flex items-center justify-center rounded-full hover:scale-110 transition-all ${
+                          isVibrant 
+                            ? 'text-white shadow-lg' 
+                            : 'bg-black text-white hover:bg-primary'
+                        }`}
+                        style={isVibrant ? { backgroundColor: getCategoryAccentColor(ev.category) } : {}}
+                      >
                         <Sparkles className="h-4 w-4" />
                       </button>
                     </Link>
@@ -243,9 +280,20 @@ export default function Dashboard() {
       </section>
 
       {/* Discovery Sidebar Style Section */}
-      <section className="bg-black text-white p-6 sm:p-12 rounded-[24px] sm:rounded-[40px] flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8">
-         <div className="space-y-4 max-w-xl text-center md:text-left">
-           <h2 className="text-3xl sm:text-4xl font-black italic tracking-tighter uppercase leading-none">
+      <section className={`p-6 sm:p-12 rounded-[24px] sm:rounded-[40px] flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 relative overflow-hidden ${
+        isVibrant 
+          ? 'bg-gradient-to-br from-zinc-900 via-purple-950 to-zinc-900 text-white' 
+          : 'bg-black text-white'
+      }`}>
+         {isVibrant && (
+           <>
+             <div className="vibe-float-icon animate-float-gentle" style={{ top: '10%', left: '5%', opacity: 0.06, color: '#A855F7' }}><Sparkles className="h-8 w-8" /></div>
+             <div className="vibe-float-icon animate-float-slow" style={{ top: '20%', right: '15%', opacity: 0.05, color: '#EC4899' }}><Zap className="h-6 w-6" /></div>
+             <div className="vibe-float-icon animate-float-drift" style={{ bottom: '15%', left: '20%', opacity: 0.05, color: '#06B6D4' }}><Sparkles className="h-5 w-5" /></div>
+           </>
+         )}
+         <div className="space-y-4 max-w-xl text-center md:text-left relative z-10">
+           <h2 className="text-3xl sm:text-4xl font-black italic tracking-tighter uppercase leading-none text-white">
              Don't miss a single beat.
            </h2>
            <p className="font-bold text-zinc-400 text-sm">

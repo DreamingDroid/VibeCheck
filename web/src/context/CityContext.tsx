@@ -15,6 +15,9 @@ export interface VibeEvent {
   date_time: string;
   location: string;
   organizer_email: string;
+  rsvp_count?: number;
+  google_maps_link?: string;
+  city?: string;
 }
 
 interface CityContextType {

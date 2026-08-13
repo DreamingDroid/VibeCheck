@@ -367,7 +367,7 @@ export default function OrganizerDashboard() {
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({
-    title: "", description: "", category: "", location: "", city: "", timings: "",
+    title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
     startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM"
   });
   const [submitting, setSubmitting] = useState(false);
@@ -446,7 +446,7 @@ export default function OrganizerDashboard() {
     setIsMultiDay(fDate(start) !== fDate(end));
     setFormData({
       title: ev.title, description: ev.description, category: ev.category,
-      location: ev.location || "", city: ev.city || "", timings: ev.timings || "",
+      location: ev.location || "", city: ev.city || "", google_maps_link: ev.google_maps_link || "", timings: ev.timings || "",
       startDate: fDate(start), endDate: fDate(end),
       startTime: fTime(start), endTime: fTime(end),
     });
@@ -457,7 +457,7 @@ export default function OrganizerDashboard() {
   const handleCancelEdit = () => {
     setEditingEventId(null);
     setFormData({
-      title: "", description: "", category: "", location: "", city: "", timings: "",
+      title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
       startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM"
     });
   };
@@ -521,7 +521,7 @@ export default function OrganizerDashboard() {
       const data = await res.json();
       if (data.success) {
         setFormData({
-          title: "", description: "", category: "", location: "", city: "", timings: "",
+          title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
           startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM"
         });
         setIsMultiDay(false);
@@ -679,8 +679,13 @@ export default function OrganizerDashboard() {
                     <Input placeholder="Extra Timings Note (Optional)" value={formData.timings} onChange={e => setFormData({ ...formData, timings: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
 
                     <div className="space-y-1">
-                      <Input name="location" placeholder="Location (e.g. Rushikonda Beach)" value={formData.location} onChange={e => { setFormData({ ...formData, location: e.target.value }); if (errors.location) setErrors({ ...errors, location: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.location && "border-red-500 ring-red-500/20")} />
-                      {errors.location && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Location coordinate required</p>}
+                      <Input name="location" placeholder="Location Name (e.g. Rushikonda Beach)" value={formData.location} onChange={e => { setFormData({ ...formData, location: e.target.value }); if (errors.location) setErrors({ ...errors, location: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.location && "border-red-500 ring-red-500/20")} />
+                      {errors.location && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Location name is required</p>}
+                    </div>
+
+                    <div className="space-y-1">
+                      <Input name="google_maps_link" placeholder="Google Maps Link / URL (Optional)" value={formData.google_maps_link} onChange={e => setFormData({ ...formData, google_maps_link: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
+                      <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Copy & paste a Google Maps sharing URL so users can navigate exactly to your location.</p>
                     </div>
 
                     <div className="space-y-1">

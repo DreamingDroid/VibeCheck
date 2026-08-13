@@ -7,8 +7,10 @@ import { useCity } from "@/context/CityContext"
 import { 
   ChevronDown, MapPin, Search, Music, Mic2, Tv,
   Trophy, Palette, BookOpen, Compass, Heart,
-  Activity, Wine, Smile, Briefcase, Sparkles, Bell
+  Activity, Wine, Smile, Briefcase, Sparkles, Bell,
+  SunMoon
 } from "lucide-react"
+import { useTheme } from "@/context/ThemeContext"
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   "Music": <Music className="h-3 w-3" />,
@@ -29,8 +31,28 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   "General": <Sparkles className="h-3 w-3" />,
 };
 
+// Category-specific active colors for vibrant theme
+const VIBRANT_PILL_COLORS: Record<string, string> = {
+  "Music": "bg-amber-400 text-black",
+  "Live Music": "bg-amber-400 text-black",
+  "Arts": "bg-purple-400 text-white",
+  "Sports": "bg-orange-400 text-black",
+  "Education": "bg-blue-400 text-white",
+  "Spiritual": "bg-violet-400 text-white",
+  "Wellness": "bg-teal-400 text-black",
+  "Indie": "bg-pink-400 text-white",
+  "Techno": "bg-cyan-400 text-black",
+  "Food": "bg-emerald-400 text-black",
+  "Comedy": "bg-yellow-400 text-black",
+  "Workshops": "bg-indigo-400 text-white",
+  "Nightlife": "bg-indigo-500 text-white",
+  "Night Life": "bg-indigo-500 text-white",
+  "General": "bg-zinc-400 text-white",
+}
+
 export function GlobalHeader() {
   const { data: session } = useSession()
+  const { theme, toggleTheme, isVibrant } = useTheme()
   const [isSigningOut, setIsSigningOut] = useState(false)
   const { 
     currentCity, setCity, supportedCities, isLoading,
@@ -127,6 +149,19 @@ export function GlobalHeader() {
               )}
             </div>
           </div>
+
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            title={`Switch to ${isVibrant ? 'Ringer' : 'Vibrant'} theme`}
+            className={`hidden sm:flex items-center justify-center h-8 w-8 rounded-full border transition-all duration-300 shrink-0 ${
+              isVibrant
+                ? 'bg-gradient-to-br from-purple-100 to-pink-100 border-purple-200 text-purple-600 hover:shadow-md hover:scale-110'
+                : 'bg-zinc-50 border-black/10 text-zinc-500 hover:text-black hover:bg-zinc-100'
+            }`}
+          >
+            {isVibrant ? <Sparkles className="h-3.5 w-3.5" /> : <SunMoon className="h-3.5 w-3.5" />}
+          </button>
 
           {/* Search Bar */}
           <div className="hidden md:flex flex-1 max-w-sm mx-8">
@@ -245,13 +280,16 @@ export function GlobalHeader() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-12 flex items-center border-t border-black/5 overflow-x-auto no-scrollbar gap-2 py-1">
            {categories.map((cat, i) => {
              const isActive = selectedCategory === cat.name;
+             const vibrantActiveClass = isVibrant && isActive
+               ? (VIBRANT_PILL_COLORS[cat.name] || 'bg-black text-white') + ' border-transparent'
+               : '';
              return (
                <button 
                  key={i}
                  onClick={() => setSelectedCategory(cat.name)}
                  className={`sticker-badge flex items-center gap-1.5 whitespace-nowrap h-8 px-4 transition-all ${
                    isActive 
-                     ? 'bg-black text-white border-transparent' 
+                     ? (isVibrant ? vibrantActiveClass : 'bg-black text-white border-transparent')
                      : 'bg-white hover:bg-zinc-100 text-zinc-600 hover:text-black border-black/10'
                  }`}
                >

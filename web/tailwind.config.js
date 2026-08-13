@@ -78,6 +78,21 @@ module.exports = {
         "pulse-glow": {
           "0%, 100%": { opacity: "1", filter: "brightness(1) blur(0px)" },
           "50%": { opacity: "0.8", filter: "brightness(1.3) blur(2px)" },
+        },
+        "float-gentle": {
+          "0%, 100%": { transform: "translateY(0) rotate(0deg)" },
+          "50%": { transform: "translateY(-8px) rotate(3deg)" },
+        },
+        "float-slow": {
+          "0%, 100%": { transform: "translateY(0) rotate(0deg)" },
+          "33%": { transform: "translateY(-6px) rotate(-2deg)" },
+          "66%": { transform: "translateY(4px) rotate(2deg)" },
+        },
+        "float-drift": {
+          "0%, 100%": { transform: "translate(0, 0) rotate(0deg)" },
+          "25%": { transform: "translate(4px, -6px) rotate(5deg)" },
+          "50%": { transform: "translate(-2px, -10px) rotate(-3deg)" },
+          "75%": { transform: "translate(6px, -4px) rotate(4deg)" },
         }
       },
       animation: {
@@ -85,6 +100,9 @@ module.exports = {
         "accordion-up": "accordion-up 0.2s ease-out",
         "float": "float 6s ease-in-out infinite",
         "pulse-glow": "pulse-glow 4s ease-in-out infinite",
+        "float-gentle": "float-gentle 5s ease-in-out infinite",
+        "float-slow": "float-slow 7s ease-in-out infinite",
+        "float-drift": "float-drift 9s ease-in-out infinite",
       },
     },
   },
