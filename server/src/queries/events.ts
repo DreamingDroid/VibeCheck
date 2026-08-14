@@ -55,11 +55,11 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
   }
 }
 
-export async function getEventsList(pool: Pool, category: any, search: any, city: any) {
+export async function getEventsList(pool: Pool, category: any, search: any, city: any, userEmail?: string) {
     let queryText = `
-      SELECT id, title, description, location, city, date_time, category, organizer_email 
+      SELECT id, title, description, location, city, date_time, category, organizer_email, venue_type, telegram_group_link 
       FROM events
-      WHERE (status = 'approved' OR status IS NULL)
+      WHERE (status = 'approved' OR status = 'Live' OR status IS NULL)
     `;
     const queryParams: any[] = [];
     let paramIndex = 1;
@@ -79,6 +79,13 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
       queryParams.push(`%${search}%`);
       paramIndex++;
     }
+    if (userEmail) {
+      queryText += ` AND (organizer_email IS NULL OR organizer_email NOT IN (
+        SELECT organizer_email FROM organizer_blocks WHERE user_email = $${paramIndex}
+      ))`;
+      queryParams.push(userEmail);
+      paramIndex++;
+    }
 
     queryText += ` ORDER BY date_time ASC LIMIT 50;`;
     const { rows } = await pool.query(queryText, queryParams);
@@ -87,8 +94,8 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
 
 export async function getEventById(pool: Pool, id: string) {
     const { rows } = await pool.query(
-      `SELECT id, title, description, location, city, date_time, category, organizer_email 
-       FROM events WHERE id = $1 AND (status = 'approved' OR status IS NULL)`,
+      `SELECT id, title, description, location, city, date_time, category, organizer_email, venue_type, telegram_group_link 
+       FROM events WHERE id = $1 AND (status = 'approved' OR status = 'Live' OR status IS NULL)`,
       [id]
     );
     return rows[0] || null;
@@ -115,12 +122,12 @@ export async function getEventByOrganizer(pool: Pool, eventId: string) {
 }
 
 export async function createOrganizerEvent(pool: Pool, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email, venue_type } = data;
     const { rows } = await pool.query(
-      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, status, organizer_email)
-       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, 'pending', $11)
+      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, status, organizer_email, venue_type)
+       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, 'pending', $11, $12)
        RETURNING id, title, status`,
-      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, contact_info || null, organizer_email]
+      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, contact_info || null, organizer_email, venue_type || 'Indoor']
     );
     return rows[0];
 }
@@ -128,7 +135,7 @@ export async function createOrganizerEvent(pool: Pool, data: any) {
 export async function getEventsByOrganizerEmail(pool: Pool, email: string) {
     const { rows } = await pool.query(
       `SELECT id, title, category, location, city, date_time, end_time, timings, description,
-              external_link, contact_info, status, admin_comment, created_at 
+              external_link, contact_info, status, admin_comment, venue_type, telegram_group_link, created_at 
        FROM events WHERE organizer_email = $1 ORDER BY created_at DESC`,
       [email]
     );
@@ -188,7 +195,7 @@ export async function getBroadcastAttendees(pool: Pool, eventId: string) {
 
 export async function getRecentEvents(pool: Pool, hours: number) {
     const { rows } = await pool.query(`
-      SELECT id, title, category, location, date_time, description
+      SELECT id, title, category, location, date_time, description, organizer_email
       FROM events
       WHERE created_at >= NOW() - INTERVAL '${hours} hours'
       ORDER BY created_at DESC
@@ -205,23 +212,23 @@ export async function getAllEvents(pool: Pool) {
 }
 
 export async function createEvent(pool: Pool, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, venue_type } = data;
     const { rows } = await pool.query(
-      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, contact_info)
-       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, venue_type)
+       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id, title, category`,
-      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, contact_info || null]
+      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, contact_info || null, venue_type || 'Indoor']
     );
     return rows[0];
 }
 
 export async function updateEvent(pool: Pool, id: string, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, venue_type } = data;
     await pool.query(
       `UPDATE events SET title=$1, description=$2, category=$3::event_category, location=$4, city=$5,
-       date_time=$6, end_time=$7, timings=$8, external_link=$9, contact_info=$10, updated_at=CURRENT_TIMESTAMP
-       WHERE id=$11`,
-      [title, description, category, location, city || null, date_time, end_time || null, timings || null, external_link || null, contact_info || null, id]
+       date_time=$6, end_time=$7, timings=$8, external_link=$9, contact_info=$10, venue_type=$11, updated_at=CURRENT_TIMESTAMP
+       WHERE id=$12`,
+      [title, description, category, location, city || null, date_time, end_time || null, timings || null, external_link || null, contact_info || null, venue_type || 'Indoor', id]
     );
 }
 
@@ -239,13 +246,13 @@ export async function getPendingEvents(pool: Pool) {
 
 export async function getEventsByStatus(pool: Pool, status: string, days?: number) {
     let statusCondition = `status = $1`;
-    if (status === 'approved') {
-        statusCondition = `(status = $1 OR status IS NULL)`;
+    if (status === 'approved' || status === 'Live') {
+        statusCondition = `(status = 'approved' OR status = 'Live' OR status IS NULL)`;
     }
 
     if (days) {
         const { rows } = await pool.query(
-          `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at
+          `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, venue_type, telegram_group_link, updated_at
            FROM events WHERE ${statusCondition} AND updated_at >= NOW() - INTERVAL '${days} days'
            ORDER BY updated_at DESC`,
           [status]
@@ -253,7 +260,7 @@ export async function getEventsByStatus(pool: Pool, status: string, days?: numbe
         return rows;
     }
     const { rows } = await pool.query(
-      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at
+      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, venue_type, telegram_group_link, updated_at
        FROM events WHERE ${statusCondition} ORDER BY updated_at DESC`,
       [status]
     );
@@ -269,23 +276,23 @@ export async function updateEventStatus(pool: Pool, id: string, status: string, 
 }
 
 export async function updateOrganizerEvent(pool: Pool, id: string, organizerEmail: string, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, venue_type } = data;
     const { rowCount } = await pool.query(
       `UPDATE events
        SET title=$1, description=$2, category=$3::event_category, location=$4, city=$5,
            date_time=$6, end_time=$7, timings=$8, external_link=$9, contact_info=$10,
-           status='pending', admin_comment=NULL, updated_at=CURRENT_TIMESTAMP
-       WHERE id=$11 AND organizer_email=$12 AND status='needs_changes'`,
+           venue_type=$11, status='pending', admin_comment=NULL, updated_at=CURRENT_TIMESTAMP
+       WHERE id=$12 AND organizer_email=$13 AND (status='needs_changes' OR status='rejected')`,
       [title, description, category, location || null, city || null,
        date_time, end_time || null, timings || null, external_link || null, contact_info || null,
-       id, organizerEmail]
+       venue_type || 'Indoor', id, organizerEmail]
     );
     return rowCount;
 }
 
 export async function getAdminEventRSVPs(pool: Pool, eventId: string) {
     const { rows } = await pool.query(
-      `SELECT er.user_email, er.created_at, u.name 
+      `SELECT er.user_email, er.created_at, u.name, u.telegram_username 
        FROM event_rsvps er 
        LEFT JOIN web_users u ON er.user_email = u.email 
        WHERE er.event_id = $1 
@@ -306,4 +313,59 @@ export async function addCity(pool: Pool, name: string) {
 export async function deleteCity(pool: Pool, id: string) {
     const { rowCount } = await pool.query('DELETE FROM cities WHERE id = $1', [id]);
     return rowCount;
+}
+
+export async function insertShareClick(pool: Pool, eventId: string, referrerEmail: string | null, clickedBy: string | null) {
+    await pool.query(
+        `INSERT INTO share_tracking (event_id, referrer_email, clicked_by)
+         VALUES ($1, $2, $3)`,
+        [eventId, referrerEmail || null, clickedBy || null]
+    );
+}
+
+export async function getEventForFeedback(pool: Pool, id: string) {
+    const { rows } = await pool.query(
+      `SELECT id, title, description, location, city, date_time, category 
+       FROM events 
+       WHERE id = $1 AND (status = 'approved' OR status = 'Live' OR status = 'archived' OR status IS NULL)`,
+      [id]
+    );
+    return rows[0] || null;
+}
+
+export async function insertFeedback(pool: Pool, eventId: string, email: string, rating: number, feedbackText: string) {
+    await pool.query(
+      `INSERT INTO feedbacks (event_id, user_email, rating, feedback)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (event_id, user_email) DO NOTHING`,
+      [eventId, email, rating, feedbackText || null]
+    );
+}
+
+export async function checkUserFeedback(pool: Pool, eventId: string, email: string) {
+    const { rows } = await pool.query(
+      `SELECT 1 FROM feedbacks WHERE event_id = $1 AND user_email = $2`,
+      [eventId, email]
+    );
+    return rows.length > 0;
+}
+
+export async function getArchivedEventsToProcess(pool: Pool) {
+    const { rows } = await pool.query(
+      `SELECT id, title, date_time, end_time, telegram_group_link 
+       FROM events 
+       WHERE (status = 'approved' OR status = 'Live' OR status IS NULL)
+         AND (
+           end_time < CURRENT_TIMESTAMP 
+           OR (end_time IS NULL AND date_time < CURRENT_TIMESTAMP - INTERVAL '3 hours')
+         )`
+    );
+    return rows;
+}
+
+export async function archiveEvent(pool: Pool, eventId: string) {
+    await pool.query(
+      `UPDATE events SET status = 'archived', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+      [eventId]
+    );
 }

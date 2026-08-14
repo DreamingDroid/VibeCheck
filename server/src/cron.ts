@@ -3,8 +3,10 @@ import { Pool } from 'pg';
 import { sendWhatsAppMessage } from './whatsapp';
 import { getChatModel } from './rag';
 import { initSystemSettings, getSystemSetting } from './queries/analytics';
-import { getRecentEvents } from './queries/events';
+import { getRecentEvents, getArchivedEventsToProcess, archiveEvent, getAdminEventRSVPs } from './queries/events';
 import { getUsersWithPreferences } from './queries/users';
+import { getUserBlocks } from './queries/blocks';
+import { sendTelegramMessage } from './telegram';
 import { config } from './config';
 
 const WHATSAPP_PHONE_NUMBER_ID = config.WHATSAPP_PHONE_NUMBER_ID;
@@ -50,19 +52,33 @@ export async function runMatchmakerJob(pool: Pool): Promise<string> {
 
     const llm = getChatModel();
 
-    // Compact events payload to minimize tokens
-    const compactEvents = newEvents.map((ev: any) => ({
-      id: ev.id,
-      title: ev.title,
-      category: ev.category,
-      location: ev.location,
-      date: new Date(ev.date_time).toLocaleString('en-IN')
-    }));
-
     // Step 3: For each user, perform semantic matchmaking
     for (const user of users) {
       const firstName = user.name?.split(' ')[0] ?? 'there';
       const userPrefsStr = JSON.stringify(user.preferences || {});
+
+      // Filter events created by blocked organizers for this user
+      let userEvents = newEvents;
+      if (user.email) {
+        const blockedOrganizers = await getUserBlocks(pool, user.email);
+        if (blockedOrganizers.length > 0) {
+          userEvents = newEvents.filter((ev: any) => !ev.organizer_email || !blockedOrganizers.includes(ev.organizer_email));
+        }
+      }
+
+      if (userEvents.length === 0) {
+        log.push(`[Cron Matchmaker] All events filtered by blocklist for ${user.phone_number}. Skipping.`);
+        continue;
+      }
+
+      // Compact events payload to minimize tokens for this specific user
+      const compactEvents = userEvents.map((ev: any) => ({
+        id: ev.id,
+        title: ev.title,
+        category: ev.category,
+        location: ev.location,
+        date: new Date(ev.date_time).toLocaleString('en-IN')
+      }));
 
       const systemPrompt = `You are the VibeCheck Proactive Matchmaker AI.
 You evaluate if brand new events match a specific user's preferences.
@@ -104,6 +120,54 @@ Do not output anything else if NO_MATCH. No explanations.`;
 }
 
 /**
+ * Event Archiving and Feedback Notification Job.
+ * Finds all approved/live events in the past, notifies attendees via Telegram, and sets status to 'archived'.
+ */
+export async function runArchiveJob(pool: Pool): Promise<string> {
+  const log: string[] = [];
+  try {
+    const eventsToArchive = await getArchivedEventsToProcess(pool);
+    if (eventsToArchive.length === 0) {
+      return '[Archive Cron] No ended events to archive.';
+    }
+
+    log.push(`[Archive Cron] Found ${eventsToArchive.length} ended event(s) to process.`);
+
+    for (const event of eventsToArchive) {
+      log.push(`[Archive Cron] Processing event "${event.title}" (ID: ${event.id})`);
+
+      // Fetch attendees (RSVPs)
+      const attendees = await getAdminEventRSVPs(pool, event.id);
+      let notifiedCount = 0;
+
+      for (const attendee of attendees) {
+        if (attendee.telegram_username) {
+          const feedbackLink = `${config.VIBECHECK_WEB_URL}/event/${event.id}/feedback`;
+          const messageText = `Hey ${attendee.name || 'Friend'}! 🌟 Hope you had a great time at <b>${event.title}</b>.\n\nPlease rate your experience and share feedback here:\n${feedbackLink}`;
+          
+          try {
+            await sendTelegramMessage(attendee.telegram_username, messageText);
+            notifiedCount++;
+          } catch (err: any) {
+            console.error(`Failed to send Telegram message to ${attendee.telegram_username}:`, err);
+          }
+        }
+      }
+
+      // Archive the event in DB
+      await archiveEvent(pool, event.id);
+      log.push(`[Archive Cron] Event "${event.title}" archived. Notified ${notifiedCount} attendee(s) on Telegram.`);
+    }
+
+    log.push('[Archive Cron] Archiving job complete.');
+  } catch (error: any) {
+    log.push(`[Archive Cron] Error during archiving job: ${error.message}`);
+    console.error('[Archive Cron] Error during archiving job:', error);
+  }
+  return log.join('\n');
+}
+
+/**
  * Schedules the daily cron job.
  * Runs daily at 9:00 AM IST (3:30 AM UTC).
  */
@@ -115,5 +179,13 @@ export function startPushAlertCron(pool: Pool) {
     console.log(result);
   });
 
+  // Run the event archive and feedback notification job every 10 minutes
+  cron.schedule('*/10 * * * *', async () => {
+    console.log('[Cron] Running event archiving and feedback notification job...');
+    const result = await runArchiveJob(pool);
+    console.log(result);
+  });
+
   console.log('[Cron] Daily push alert job scheduled for 9:00 AM IST.');
+  console.log('[Cron] Event archiving job scheduled to run every 10 minutes.');
 }

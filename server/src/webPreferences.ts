@@ -10,7 +10,7 @@ export async function getWebUserHandler(req: Request, res: Response, pool: Pool)
   try {
     const user = await getWebUserByEmail(pool, email);
     if (!user) {
-      return res.json({ success: true, data: { email, categories: [], phone_number: null, city: null } });
+      return res.json({ success: true, data: { email, categories: [], phone_number: null, city: null, telegram_username: null } });
     }
     return res.json({ success: true, data: user });
   } catch (error) {
@@ -20,13 +20,13 @@ export async function getWebUserHandler(req: Request, res: Response, pool: Pool)
 }
 
 export async function saveWebUserHandler(req: Request, res: Response, pool: Pool) {
-  const { email, name, categories, phone_number, city } = req.body;
+  const { email, name, categories, phone_number, city, telegram_username } = req.body;
   if (!email || !Array.isArray(categories)) {
     return res.status(400).json({ success: false, error: 'email and categories[] required' });
   }
   try {
     // Upsert into web_users (Tier 1)
-    await upsertWebUser(pool, email, name || null, categories, phone_number || null, city || null);
+    await upsertWebUser(pool, email, name || null, categories, phone_number || null, city || null, telegram_username || null);
 
     // If phone number given, also upsert into users (Tier 2 — WhatsApp table)
     if (phone_number) {

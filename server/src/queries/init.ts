@@ -25,6 +25,7 @@ export async function initializeDatabaseSchema(pool: Pool) {
   
   // New columns for Web Preferences Tier 1 & 2 Syncing
   await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
+  await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS telegram_username VARCHAR(255)`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
   
   // Update RSVP system to track by phone if they come from WhatsApp, or email if Web
@@ -40,8 +41,27 @@ export async function initializeDatabaseSchema(pool: Pool) {
     );
   `);
 
+  // Ensure feedbacks table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS feedbacks (
+      id SERIAL PRIMARY KEY,
+      event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+      user_email VARCHAR(255) REFERENCES web_users(email) ON DELETE CASCADE,
+      rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+      feedback TEXT,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(event_id, user_email)
+    );
+  `);
+
   // Admin comment for rejection / change request feedback
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS admin_comment TEXT`);
+
+  // Venue type (Indoor | Outdoor)
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS venue_type VARCHAR(20) DEFAULT 'Indoor'`);
+
+  // Telegram Group Invite Link
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS telegram_group_link VARCHAR(255)`);
 
   // Organizer Followers CRM
   await pool.query(`
@@ -51,6 +71,28 @@ export async function initializeDatabaseSchema(pool: Pool) {
       organizer_email VARCHAR(255) REFERENCES admins(email) ON DELETE CASCADE,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(user_email, organizer_email)
+    );
+  `);
+
+  // Organizer Blocks
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS organizer_blocks (
+      id SERIAL PRIMARY KEY,
+      user_email VARCHAR(255) REFERENCES web_users(email) ON DELETE CASCADE,
+      organizer_email VARCHAR(255) REFERENCES admins(email) ON DELETE CASCADE,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_email, organizer_email)
+    );
+  `);
+
+  // Share Tracking
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS share_tracking (
+      id SERIAL PRIMARY KEY,
+      event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+      referrer_email VARCHAR(255),
+      clicked_by VARCHAR(255),
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
   `);
 

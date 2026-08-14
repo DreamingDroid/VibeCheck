@@ -231,3 +231,53 @@ export async function organizerGeneratePromoHandler(req: Request, res: Response,
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
+
+export async function organizerCreateTelegramGroupHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  const { email } = req.body;
+
+  if (!email) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+  try {
+    const eventCheck = await getEventByOrganizer(pool, id as string);
+    if (!eventCheck) return res.status(404).json({ success: false, error: 'Event not found' });
+    if (eventCheck.organizer_email !== email) {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
+
+    const eventTitle = eventCheck.title;
+    const cleanTitle = eventTitle.replace(/[^a-zA-Z0-9]/g, '_');
+    const telegramLink = `https://t.me/vibecheck_${cleanTitle}_${(id as string).substring(0, 8)}`;
+
+    // Save to database
+    await pool.query(
+      `UPDATE events SET telegram_group_link = $1 WHERE id = $2`,
+      [telegramLink, id as string]
+    );
+
+    // Fetch RSVP phone numbers
+    const attendees = await getBroadcastAttendees(pool, id as string);
+    let sentCount = 0;
+
+    for (const attendee of attendees) {
+      if (attendee.phone_number) {
+        const text = `Hey there! 🌟 The official group chat for *${eventTitle}* has been set up on Telegram to keep everyone's phone numbers hidden and private. 🔒\n\nJoin the vibe here: ${telegramLink}`;
+        try {
+          await sendWhatsAppMessage(config.WHATSAPP_PHONE_NUMBER_ID, attendee.phone_number, text);
+          sentCount++;
+        } catch (err) {
+          console.error(`Failed to send Telegram link WhatsApp to ${attendee.phone_number}:`, err);
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      telegram_group_link: telegramLink,
+      message: `Telegram group created and link broadcasted to ${sentCount} attendees.`
+    });
+  } catch (error) {
+    console.error('Error creating Telegram group:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}

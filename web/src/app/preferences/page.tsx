@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CheckCircle2, Heart, MapPin, Phone, Sparkles } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Heart, MapPin, Phone, Sparkles, ShieldAlert, Send } from "lucide-react";
+import { toast } from "sonner";
 
 const ALL_CATEGORIES = [
   "Sports", "Arts", "Education", "Spiritual",
@@ -22,9 +23,11 @@ export default function PreferencesPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [city, setCity] = useState("");
+  const [telegramUsername, setTelegramUsername] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [blockedOrganizers, setBlockedOrganizers] = useState<string[]>([]);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -40,11 +43,44 @@ export default function PreferencesPage() {
           setSelected(data.data.categories || []);
           setPhoneNumber(data.data.phone_number || "");
           setCity(data.data.city || "");
+          setTelegramUsername(data.data.telegram_username || "");
         }
       })
       .catch(err => console.error("Pref load error:", err))
       .finally(() => setLoading(false));
   }, [session?.user?.email]);
+
+  useEffect(() => {
+    if (!session?.user?.email) return;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    fetch(`${baseUrl}/api/blocks/user/${session.user.email}`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && Array.isArray(res.data)) {
+          setBlockedOrganizers(res.data);
+        }
+      })
+      .catch(err => console.error("Blocks load error:", err));
+  }, [session?.user?.email]);
+
+  const handleUnblock = async (orgEmail: string) => {
+    if (!session?.user?.email) return;
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/blocks`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail: session.user.email, organizerEmail: orgEmail })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBlockedOrganizers(prev => prev.filter(email => email !== orgEmail));
+        toast.success("Host unblocked successfully!");
+      }
+    } catch (err) {
+      console.error("Error unblocking:", err);
+    }
+  };
 
   const toggleCategory = (cat: string) => {
     setSelected((prev) =>
@@ -68,6 +104,7 @@ export default function PreferencesPage() {
           categories: selected,
           phone_number: phoneNumber.trim() || null,
           city: city.trim() || null,
+          telegram_username: telegramUsername.trim() || null,
         }),
       });
       setSaved(true);
@@ -141,7 +178,7 @@ export default function PreferencesPage() {
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
              <Card className="ringer-card">
               <CardHeader>
                 <CardTitle className="text-black text-xs font-black uppercase tracking-widest flex items-center gap-2">
@@ -184,7 +221,62 @@ export default function PreferencesPage() {
                 )}
               </CardContent>
             </Card>
+
+            <Card className={`ringer-card transition-colors duration-300 ${telegramUsername.trim() ? "bg-primary/5 border-primary/20" : "bg-white"}`}>
+              <CardHeader>
+                <CardTitle className="text-black text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                  <Send className="h-4 w-4 text-primary" />
+                  Telegram Link
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Label htmlFor="telegram" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Telegram Handle</Label>
+                <Input
+                  id="telegram"
+                  placeholder="E.G. @USERNAME OR CHAT_ID"
+                  value={telegramUsername}
+                  onChange={(e) => { setTelegramUsername(e.target.value); setSaved(false); }}
+                  className="bg-white border-black/5 h-12 rounded-xl text-sm font-bold uppercase focus:ring-primary"
+                />
+                {telegramUsername.trim() && (
+                  <p className="text-[9px] font-black tracking-widest text-primary uppercase animate-in fade-in">
+                    ✓ TELEGRAM LINKED
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </div>
+
+          <Card className="ringer-card mt-8">
+            <CardHeader>
+              <CardTitle className="text-black text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 text-red-500" />
+                Blocked Hosts
+              </CardTitle>
+              <CardDescription className="text-zinc-400 text-[11px] font-bold">
+                Events hosted by these organizers are suppressed in your feeds and notifications.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {blockedOrganizers.length === 0 ? (
+                <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest ml-1">No hosts are currently blocked.</p>
+              ) : (
+                <div className="space-y-3">
+                  {blockedOrganizers.map((orgEmail) => (
+                    <div key={orgEmail} className="flex justify-between items-center bg-zinc-50 p-4 rounded-xl border border-black/5">
+                      <span className="text-xs font-bold text-black">{orgEmail}</span>
+                      <button 
+                        onClick={() => handleUnblock(orgEmail)}
+                        className="ringer-button text-[9px] font-black tracking-widest px-3 py-1.5 bg-zinc-200 text-black hover:bg-zinc-300"
+                      >
+                        UNBLOCK
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Right Col: Summary & Save */}

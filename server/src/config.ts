@@ -22,5 +22,9 @@ export const config = {
   CHAT_MODEL: process.env.CHAT_MODEL || 'llama3.1',
   EMBED_MODEL: process.env.EMBED_MODEL || 'mxbai-embed-large',
   OLLAMA_BASE_URL: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
-  RESEND_API_KEY: process.env.RESEND_API_KEY || 're_dummy_key_123'
+  RESEND_API_KEY: process.env.RESEND_API_KEY || 're_dummy_key_123',
+
+  // Telegram and Web Client Config
+  TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '',
+  VIBECHECK_WEB_URL: process.env.VIBECHECK_WEB_URL || 'http://localhost:3500'
 };

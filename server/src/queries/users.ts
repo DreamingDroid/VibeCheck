@@ -2,23 +2,24 @@ import { Pool } from 'pg';
 
 export async function getWebUserByEmail(pool: Pool, email: string) {
   const { rows } = await pool.query(
-    `SELECT email, name, categories, phone_number, city FROM web_users WHERE email = $1`,
+    `SELECT email, name, categories, phone_number, city, telegram_username FROM web_users WHERE email = $1`,
     [email]
   );
   return rows[0] || null;
 }
 
-export async function upsertWebUser(pool: Pool, email: string, name: string | null, categories: any[], phone_number: string | null, city: string | null) {
+export async function upsertWebUser(pool: Pool, email: string, name: string | null, categories: any[], phone_number: string | null, city: string | null, telegram_username: string | null) {
   await pool.query(
-    `INSERT INTO web_users (email, name, categories, phone_number, city)
-     VALUES ($1, $2, $3::jsonb, $4, $5)
+    `INSERT INTO web_users (email, name, categories, phone_number, city, telegram_username)
+     VALUES ($1, $2, $3::jsonb, $4, $5, $6)
      ON CONFLICT (email) DO UPDATE
      SET name       = EXCLUDED.name,
          categories = EXCLUDED.categories,
          phone_number = COALESCE(EXCLUDED.phone_number, web_users.phone_number),
          city       = EXCLUDED.city,
+         telegram_username = EXCLUDED.telegram_username,
          updated_at = CURRENT_TIMESTAMP`,
-    [email, name, JSON.stringify(categories), phone_number, city]
+    [email, name, JSON.stringify(categories), phone_number, city, telegram_username]
   );
 }
 
@@ -76,10 +77,11 @@ export async function updateUserInteractionHistory(pool: Pool, phone: string, hi
 
 export async function getUsersWithPreferences(pool: Pool) {
   const { rows } = await pool.query(`
-    SELECT phone_number, name, preferences
-    FROM users
-    WHERE preferences->'categories' IS NOT NULL
-      AND jsonb_array_length(preferences->'categories') > 0
+    SELECT u.phone_number, u.name, u.preferences, w.email
+    FROM users u
+    LEFT JOIN web_users w ON u.phone_number = w.phone_number
+    WHERE u.preferences->'categories' IS NOT NULL
+      AND jsonb_array_length(u.preferences->'categories') > 0
   `);
   return rows;
 }

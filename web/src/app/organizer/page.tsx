@@ -24,7 +24,7 @@ const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
   return `${displayHour}:${min} ${ampm}`;
 });
 
-function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminComment, onEdit }: { eventId: string, title: string, status: string, dateStr: string, organizerEmail: string, adminComment?: string, onEdit?: () => void }) {
+function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminComment, onEdit, telegramGroupLink: initialTelegramGroupLink }: { eventId: string, title: string, status: string, dateStr: string, organizerEmail: string, adminComment?: string, onEdit?: () => void, telegramGroupLink?: string }) {
   const [rsvps, setRsvps] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -40,6 +40,35 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
   const [promoData, setPromoData] = useState("");
 
   const [analytics, setAnalytics] = useState<any>(null);
+
+  const [telegramLink, setTelegramLink] = useState(initialTelegramGroupLink || "");
+  const [creatingTelegram, setCreatingTelegram] = useState(false);
+
+  const handleCreateTelegramGroup = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCreatingTelegram(true);
+    const toastId = toast.loading("Creating Telegram group & broadcasting invite...");
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/organizer/events/${eventId}/telegram-group`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: organizerEmail })
+      });
+      const d = await res.json();
+      if (d.success) {
+        setTelegramLink(d.telegram_group_link);
+        toast.success("Telegram group created and invitations sent!", { id: toastId });
+      } else {
+        toast.error("Failed to create group: " + d.error, { id: toastId });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not connect to Telegram group service.", { id: toastId });
+    } finally {
+      setCreatingTelegram(false);
+    }
+  };
 
   const loadRsvps = () => {
     if (!open) {
@@ -156,12 +185,21 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
                <button onClick={openPromoKit} className="ringer-button bg-black text-white hover:bg-zinc-800 text-[10px] flex items-center gap-2">
                  ✨ AI PROMO KIT
                </button>
+               {telegramLink ? (
+                 <a href={telegramLink} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="ringer-button bg-blue-500 text-white hover:bg-blue-600 text-[10px] flex items-center gap-2">
+                   💬 TELEGRAM CHAT
+                 </a>
+               ) : (
+                 <button onClick={handleCreateTelegramGroup} disabled={creatingTelegram} className="ringer-button bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 text-[10px] flex items-center gap-2">
+                   💬 TELEGRAM GROUP
+                 </button>
+               )}
                <button onClick={openBroadcast} className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2">
                  📢 WHATSAPP UPDATE
                </button>
              </>
           )}
-          {status === 'needs_changes' && onEdit && (
+          {(status === 'needs_changes' || status === 'rejected') && onEdit && (
              <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="ringer-button bg-orange-500 text-white text-[10px] flex items-center gap-2">
                ✏️ EDIT & RESUBMIT
              </button>
@@ -365,9 +403,87 @@ export default function OrganizerDashboard() {
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({
     title: "", description: "", category: "", location: "", timings: "",
-    startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM"
+    startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM",
+    venue_type: "Indoor"
   });
   const [submitting, setSubmitting] = useState(false);
+
+  const [vibeChecking, setVibeChecking] = useState(false);
+  const [vibeCheckResult, setVibeCheckResult] = useState<string | null>(null);
+
+  const [visualPromptOpen, setVisualPromptOpen] = useState(false);
+  const [visualPromptText, setVisualPromptText] = useState("");
+
+  const handleVibeCheck = async () => {
+    if (!formData.title || !formData.startDate || !formData.category) {
+      toast.error("Please fill in Title, Date, and Category first.");
+      return;
+    }
+    setVibeChecking(true);
+    setVibeCheckResult(null);
+    try {
+      const combine = (date: string, timeStr: string) => {
+        const [time, ampm] = timeStr.split(" ");
+        let [hours, mins] = time.split(":").map(Number);
+        if (ampm === "PM" && hours < 12) hours += 12;
+        if (ampm === "AM" && hours === 12) hours = 0;
+        const d = new Date(date);
+        d.setHours(hours, mins, 0, 0);
+        return d.toISOString();
+      };
+      const start_iso = combine(formData.startDate, formData.startTime);
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/events/vibecheck`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: formData.title,
+          date_time: start_iso,
+          city: "Vizag",
+          location: formData.location,
+          venue_type: formData.venue_type
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setVibeCheckResult(data.advice);
+      } else {
+        toast.error("VibeCheck failed: " + (data.error || "Unknown error"));
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not reach VibeCheck service.");
+    } finally {
+      setVibeChecking(false);
+    }
+  };
+
+  const handleGenerateVisualPrompt = () => {
+    if (!formData.title || !formData.description) {
+      toast.error("Please fill in Title and Description first.");
+      return;
+    }
+    const prompt = `Create a professional, high-impact promotional flyer image for an event.
+
+Event Details:
+- Title: ${formData.title}
+- Category: ${formData.category || "General"}
+- Location: ${formData.location || "Visakhapatnam"}
+- Date: ${formData.startDate} (${formData.startTime})
+- Venue Type: ${formData.venue_type || "Indoor"}
+- Vibe Description: ${formData.description}
+
+Design Requirements:
+- Visual style: Modern, vibrant, and energetic, tailored to the ${formData.category || "General"} category.
+- Text overlay should include: The event title "${formData.title}", date, and location clearly readable.
+- Aesthetic keywords: Aesthetic, trending poster, high resolution, commercial photography.
+
+When sharing this flyer on Instagram, Facebook, or LinkedIn, copy and paste this deep link back to the VibeCheck app so attendees can RSVP:
+${window.location.origin}/event/${editingEventId || "YOUR_EVENT_ID"}`;
+
+    setVisualPromptText(prompt);
+    setVisualPromptOpen(true);
+  };
 
   useEffect(() => {
     if (!session?.user?.email) {
@@ -437,16 +553,20 @@ export default function OrganizerDashboard() {
       location: ev.location || "", timings: ev.timings || "",
       startDate: fDate(start), endDate: fDate(end),
       startTime: fTime(start), endTime: fTime(end),
+      venue_type: ev.venue_type || "Indoor"
     });
     setEditingEventId(ev.id);
+    setVibeCheckResult(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleCancelEdit = () => {
     setEditingEventId(null);
+    setVibeCheckResult(null);
     setFormData({
       title: "", description: "", category: "", location: "", timings: "",
-      startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM"
+      startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM",
+      venue_type: "Indoor"
     });
   };
 
@@ -509,10 +629,12 @@ export default function OrganizerDashboard() {
       if (data.success) {
         setFormData({ 
           title: "", description: "", category: "", location: "", timings: "",
-          startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM"
+          startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM",
+          venue_type: "Indoor"
         });
         setIsMultiDay(false);
         setEditingEventId(null);
+        setVibeCheckResult(null);
         loadMyEvents();
         toast.success("Event submitted!", { id: toastId, description: "Your event is pending review by the platform team." });
       } else {
@@ -601,6 +723,18 @@ export default function OrganizerDashboard() {
                     {errors.category && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Pick a category</p>}
                   </div>
 
+                  <div className="space-y-1">
+                    <Select value={formData.venue_type} onValueChange={v => setFormData({...formData, venue_type: v || "Indoor"})}>
+                      <SelectTrigger className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold">
+                        <SelectValue placeholder="Venue Type" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-black/5 rounded-[20px] shadow-2xl p-2">
+                        <SelectItem value="Indoor" className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer">Indoor</SelectItem>
+                        <SelectItem value="Outdoor" className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer">Outdoor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   {/* Single vs Multi Day Switcher */}
                   <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/5">
                     <button 
@@ -662,6 +796,22 @@ export default function OrganizerDashboard() {
                   </div>
                 </div>
                 
+                {vibeCheckResult && (
+                  <div className="bg-primary/5 border border-primary/20 text-black text-xs p-4 rounded-2xl">
+                    <span className="font-bold uppercase tracking-widest text-[9px] block mb-1">🤖 AI VibeCheck Insights:</span>
+                    {vibeCheckResult}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <button type="button" onClick={handleVibeCheck} disabled={vibeChecking || submitting} className="ringer-button flex-1 border border-black/5 hover:bg-black/5 text-black text-[10px]">
+                    {vibeChecking ? "CHECKING..." : "🔍 VIBECHECK"}
+                  </button>
+                  <button type="button" onClick={handleGenerateVisualPrompt} disabled={submitting} className="ringer-button flex-1 border border-black/5 hover:bg-black/5 text-black text-[10px]">
+                    🎨 FLYER PROMPT
+                  </button>
+                </div>
+                
                 <button type="submit" disabled={submitting} className="ringer-button w-full bg-black text-white hover:bg-zinc-800 text-[11px]">
                   {submitting ? "DEPLOYING..." : editingEventId ? "RESUBMIT FOR REVIEW" : "SUBMIT FOR REVIEW"}
                 </button>
@@ -679,7 +829,7 @@ export default function OrganizerDashboard() {
             ) : (
               <div className="space-y-4">
                 {myEvents.map(ev => (
-                  <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} dateStr={ev.date_time} organizerEmail={session?.user?.email || ""} adminComment={ev.admin_comment} onEdit={() => handleEditInit(ev)} />
+                  <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} dateStr={ev.date_time} organizerEmail={session?.user?.email || ""} adminComment={ev.admin_comment} onEdit={() => handleEditInit(ev)} telegramGroupLink={ev.telegram_group_link} />
                 ))}
               </div>
             )}
@@ -719,6 +869,31 @@ export default function OrganizerDashboard() {
           </div>
         )}
 
+      {visualPromptOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-[40px] p-10 max-w-2xl w-full shadow-2xl border border-black/5 animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+             <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-2 text-primary">🎨 Flyer Visual Prompt</h3>
+             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-6">Visual instructions for multimodal AIs</p>
+             
+             <div className="flex-1 overflow-y-auto mb-6 bg-zinc-50 border border-black/5 rounded-[24px] p-6 custom-scrollbar">
+               <pre className="whitespace-pre-wrap font-mono text-[11px] text-zinc-800 leading-relaxed select-all">{visualPromptText}</pre>
+             </div>
+
+             <div className="flex gap-4 shrink-0">
+               <button className="ringer-button flex-1 border border-black/5 hover:bg-black/5 text-black" onClick={() => setVisualPromptOpen(false)}>CLOSE</button>
+               <button 
+                 className="ringer-button flex-1 bg-black text-white hover:bg-zinc-800" 
+                 onClick={() => {
+                   navigator.clipboard.writeText(visualPromptText);
+                   toast.success("Flyer visual prompt copied to clipboard!");
+                 }}
+               >
+                 📋 COPY PROMPT
+               </button>
+             </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

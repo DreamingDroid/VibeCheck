@@ -114,6 +114,8 @@ CREATE TABLE IF NOT EXISTS events (
     status VARCHAR(20) DEFAULT 'approved',       -- approved | pending | rejected
     organizer_email TEXT,                        -- links event to its organizer
     admin_comment TEXT,                          -- admin feedback on rejection/review
+    venue_type VARCHAR(20) DEFAULT 'Indoor',     -- Indoor | Outdoor
+    telegram_group_link VARCHAR(255),            -- Telegram Group Invite Link
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -150,3 +152,22 @@ CREATE TABLE IF NOT EXISTS organizer_followers (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_email, organizer_email)
 );
+
+-- 9. Organizer Blocks
+CREATE TABLE IF NOT EXISTS organizer_blocks (
+    id SERIAL PRIMARY KEY,
+    user_email VARCHAR(255) REFERENCES web_users(email) ON DELETE CASCADE,
+    organizer_email VARCHAR(255) REFERENCES admins(email) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_email, organizer_email)
+);
+
+-- 10. Share Tracking
+CREATE TABLE IF NOT EXISTS share_tracking (
+    id SERIAL PRIMARY KEY,
+    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+    referrer_email VARCHAR(255),
+    clicked_by VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+

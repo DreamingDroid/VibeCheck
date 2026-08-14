@@ -14,14 +14,16 @@ import { Pool } from 'pg';
 import { registerType } from 'pgvector/pg';
 import { handleEventQuery, saveUserPreferences } from './rag';
 import { verifyWebhook, handleIncomingMessage } from './whatsapp';
-import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHandler } from './events';
+import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHandler, trackShareHandler, getEventForFeedbackHandler, checkFeedbackHandler, submitFeedbackHandler } from './events';
+import { vibeCheckHandler } from './vibecheck';
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
-import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler, organizerGetEventAnalyticsHandler } from './organizer';
+import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler, organizerGetEventAnalyticsHandler, organizerCreateTelegramGroupHandler } from './organizer';
 import { getCitiesHandler } from './cities';
 import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingOrganizersHandler, adminApproveOrganizerHandler, adminRejectOrganizerHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminGetEventsByStatusHandler, adminAddCityHandler, adminDeleteCityHandler } from './admin';
-import { startPushAlertCron, runMatchmakerJob } from './cron';
+import { startPushAlertCron, runMatchmakerJob, runArchiveJob } from './cron';
 import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verification';
 import { followOrganizerHandler, unfollowOrganizerHandler, getUserFollowingHandler, getOrganizerFollowersHandler } from './followers';
+import { blockOrganizerHandler, unblockOrganizerHandler, getUserBlocksHandler } from './blocks';
 import { sendApplyOtpHandler, verifyApplyOtpHandler, submitApplicationHandler } from './organizer-apply';
 import { initializeDatabaseSchema } from './queries/init';
 import { config } from './config';
@@ -129,11 +131,17 @@ app.post('/preferences', async (req, res) => {
 app.get('/webhook', verifyWebhook);
 app.post('/webhook', (req, res) => handleIncomingMessage(req, res, pool));
 
-// Serve the Event Discovery data to the Next.js frontend
 app.get('/api/events', (req, res) => getEventsHandler(req, res, pool));
 app.get('/api/events/:id', (req, res) => getSingleEventHandler(req, res, pool));
 app.post('/api/events/:id/rsvp', (req, res) => rsvpEventHandler(req, res, pool));
 app.get('/api/events/:id/rsvp/check', (req, res) => checkRsvpHandler(req, res, pool));
+app.post('/api/events/vibecheck', (req, res) => vibeCheckHandler(req, res, pool));
+app.post('/api/events/:id/track-share', (req, res) => trackShareHandler(req, res, pool));
+
+// Feedback API
+app.get('/api/events/:id/feedback-detail', (req, res) => getEventForFeedbackHandler(req, res, pool));
+app.get('/api/events/:id/feedback/check', (req, res) => checkFeedbackHandler(req, res, pool));
+app.post('/api/events/:id/feedback', (req, res) => submitFeedbackHandler(req, res, pool));
 
 // Web User Preferences API (Tier 1 + Tier 2 linking)
 app.get('/api/user', (req, res) => getWebUserHandler(req, res, pool));
@@ -180,11 +188,17 @@ app.post('/api/organizer/events/:id/broadcast', (req, res) => broadcastMessageHa
 app.get('/api/organizer/events/:id/promo', (req, res) => organizerGeneratePromoHandler(req, res, pool));
 app.get('/api/organizer/events/:id/analytics', (req, res) => organizerGetEventAnalyticsHandler(req, res, pool));
 app.get('/api/organizer/followers', (req, res) => getOrganizerFollowersHandler(req, res, pool));
+app.post('/api/organizer/events/:id/telegram-group', (req, res) => organizerCreateTelegramGroupHandler(req, res, pool));
 
 // Followers API
 app.post('/api/followers', (req, res) => followOrganizerHandler(req, res, pool));
 app.delete('/api/followers', (req, res) => unfollowOrganizerHandler(req, res, pool));
 app.get('/api/followers/user/:email', (req, res) => getUserFollowingHandler(req, res, pool));
+
+// Blocks API
+app.post('/api/blocks', (req, res) => blockOrganizerHandler(req, res, pool));
+app.delete('/api/blocks', (req, res) => unblockOrganizerHandler(req, res, pool));
+app.get('/api/blocks/user/:email', (req, res) => getUserBlocksHandler(req, res, pool));
 
 // Verification API
 app.post('/api/verify/send-code', (req, res) => sendVerificationCodeHandler(req, res, pool));
@@ -195,6 +209,17 @@ app.post('/admin/trigger-cron', async (req, res) => {
   try {
     console.log('[Dev] Manually triggering AI Matchmaker Cron...');
     const result = await runMatchmakerJob(pool);
+    console.log(result);
+    res.json({ success: true, log: result });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/admin/trigger-archive', async (req, res) => {
+  try {
+    console.log('[Dev] Manually triggering Event Archiving Cron...');
+    const result = await runArchiveJob(pool);
     console.log(result);
     res.json({ success: true, log: result });
   } catch (err: any) {

@@ -27,13 +27,13 @@ const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
 type Event = {
   id: string; title: string; description: string; category: string;
   location: string; date_time: string; end_time?: string; timings?: string; external_link: string; contact_info: string;
-  status?: string; admin_comment?: string; organizer_email?: string;
+  status?: string; admin_comment?: string; organizer_email?: string; venue_type?: string;
 };
 
 const emptyForm = { 
   title: "", description: "", category: "General", location: "", 
   startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM",
-  timings: "", external_link: "", contact_info: "" 
+  timings: "", external_link: "", contact_info: "", venue_type: "Indoor" 
 };
 
 export default function AdminEventsPage() {
@@ -89,6 +89,7 @@ export default function AdminEventsPage() {
       endTime: fTime(end),
       timings: ev.timings || "",
       external_link: ev.external_link || "", contact_info: ev.contact_info || "",
+      venue_type: ev.venue_type || "Indoor"
     });
     setEditingId(ev.id);
     setShowForm(true);
@@ -229,6 +230,19 @@ export default function AdminEventsPage() {
                   </SelectTrigger>
                   <SelectContent className="bg-white border-black/5">
                     {CATEGORIES.map(c => <SelectItem key={c} value={c} className="text-xs font-bold uppercase tracking-widest">{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Venue Type</Label>
+                <Select value={form.venue_type} onValueChange={v => setForm(f => ({ ...f, venue_type: v || "Indoor" }))}>
+                  <SelectTrigger className="bg-white border-black/5 h-12 rounded-xl text-xs font-bold uppercase tracking-widest">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-black/5">
+                    <SelectItem value="Indoor" className="text-xs font-bold uppercase tracking-widest">Indoor</SelectItem>
+                    <SelectItem value="Outdoor" className="text-xs font-bold uppercase tracking-widest">Outdoor</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
