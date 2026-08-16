@@ -3,7 +3,8 @@
 import { useSession, signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
-import { ChevronDown, Sparkles, MapPin, Zap } from "lucide-react"
+import { ChevronDown, Sparkles, MapPin, Zap, Music, Heart, Star } from "lucide-react"
+import { useTheme } from "@/context/ThemeContext"
 
 const NEWS_ITEMS = [
   {
@@ -31,6 +32,7 @@ export default function Home() {
   const router = useRouter()
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [openAccordion, setOpenAccordion] = useState<number | null>(1)
+  const { isVibrant } = useTheme()
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -55,15 +57,28 @@ export default function Home() {
     <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-24 space-y-16 animate-in fade-in duration-700">
       
       {/* Hero Section */}
-      <section className="flex flex-col items-center text-center space-y-8 max-w-4xl mx-auto">
+      <section className="flex flex-col items-center text-center space-y-8 max-w-4xl mx-auto relative">
+        {/* Vibrant theme floating decorations */}
+        {isVibrant && (
+          <div className="absolute inset-0 pointer-events-none hidden sm:block">
+            <div className="vibe-float-icon animate-float-gentle" style={{ top: '5%', left: '2%', opacity: 0.07, color: '#A855F7' }}><Music className="h-6 w-6" /></div>
+            <div className="vibe-float-icon animate-float-slow" style={{ top: '15%', right: '5%', opacity: 0.06, color: '#EC4899' }}><Heart className="h-5 w-5" /></div>
+            <div className="vibe-float-icon animate-float-drift" style={{ bottom: '20%', left: '8%', opacity: 0.06, color: '#F59E0B' }}><Star className="h-5 w-5" /></div>
+            <div className="vibe-float-icon animate-float-gentle" style={{ bottom: '10%', right: '3%', opacity: 0.05, color: '#06B6D4' }}><Zap className="h-6 w-6" /></div>
+            <div className="vibe-float-icon animate-float-slow" style={{ top: '50%', left: '0%', opacity: 0.05, color: '#10B981' }}><Sparkles className="h-4 w-4" /></div>
+          </div>
+        )}
         <div className="flex items-center gap-2 sticker-badge bg-primary/10 text-primary border-none shadow-sm">
           <Zap className="h-3.5 w-3.5" />
           <span>vizag's exclusive network</span>
         </div>
         
-        <h1 className="text-6xl md:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] text-black drop-shadow-sm">
+        <h1 className="text-6xl md:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] text-black drop-shadow-sm relative">
+          {isVibrant && (
+            <span className="absolute inset-0 blur-3xl opacity-10 bg-gradient-to-r from-purple-400 via-pink-300 to-amber-300 rounded-full -z-10" />
+          )}
           The City of Destiny, <br className="hidden md:block"/>
-          <span className="text-primary">Reimagined.</span>
+          <span className={isVibrant ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-amber-500 bg-clip-text text-transparent' : 'text-primary'}>Reimagined.</span>
         </h1>
         
         <p className="text-lg md:text-xl font-bold text-zinc-500 max-w-2xl leading-relaxed">

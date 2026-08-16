@@ -28,9 +28,9 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
   const [rsvps, setRsvps] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   const [broadcastOpen, setBroadcastOpen] = useState(false);
-  const [broadcastStats, setBroadcastStats] = useState<{eligibleCount: number, costPerMessage: number, totalCost: number} | null>(null);
+  const [broadcastStats, setBroadcastStats] = useState<{ eligibleCount: number, costPerMessage: number, totalCost: number } | null>(null);
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcasting, setBroadcasting] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "success">("idle");
@@ -49,11 +49,11 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
         fetch(`${baseUrl}/api/organizer/events/${eventId}/rsvps?email=${encodeURIComponent(organizerEmail)}`).then(r => r.json()),
         fetch(`${baseUrl}/api/organizer/events/${eventId}/analytics?email=${encodeURIComponent(organizerEmail)}`).then(r => r.json())
       ])
-      .then(([rsvpsData, analyticsData]) => {
-        if (rsvpsData.success) setRsvps(rsvpsData.data);
-        if (analyticsData.success) setAnalytics(analyticsData.data);
-      })
-      .finally(() => setLoading(false));
+        .then(([rsvpsData, analyticsData]) => {
+          if (rsvpsData.success) setRsvps(rsvpsData.data);
+          if (analyticsData.success) setAnalytics(analyticsData.data);
+        })
+        .finally(() => setLoading(false));
     }
     setOpen(!open);
   };
@@ -66,7 +66,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
       .then(r => r.json())
       .then(d => {
         if (d.success) {
-           setBroadcastStats(d);
+          setBroadcastStats(d);
         }
       });
   };
@@ -75,28 +75,28 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
     if (!broadcastMessage.trim()) { toast.error("Message cannot be empty."); return; }
     setPaymentStatus("processing");
     setTimeout(() => {
-       setPaymentStatus("success");
-       setBroadcasting(true);
-       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-       fetch(`${baseUrl}/api/organizer/events/${eventId}/broadcast`, {
-         method: "POST",
-         headers: { "Content-Type": "application/json" },
-         body: JSON.stringify({ organizer_email: organizerEmail, message: broadcastMessage })
-       })
-       .then(r => r.json())
-       .then(d => {
-         if (d.success) {
-           toast.success(d.message);
-           setBroadcastOpen(false);
-         } else {
-           toast.error("Broadcast failed. Please try again.");
-         }
-       })
-       .finally(() => {
-         setBroadcasting(false);
-         setPaymentStatus("idle");
-         setBroadcastMessage("");
-       });
+      setPaymentStatus("success");
+      setBroadcasting(true);
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      fetch(`${baseUrl}/api/organizer/events/${eventId}/broadcast`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizer_email: organizerEmail, message: broadcastMessage })
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) {
+            toast.success(d.message);
+            setBroadcastOpen(false);
+          } else {
+            toast.error("Broadcast failed. Please try again.");
+          }
+        })
+        .finally(() => {
+          setBroadcasting(false);
+          setPaymentStatus("idle");
+          setBroadcastMessage("");
+        });
     }, 2000);
   };
 
@@ -124,7 +124,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
   };
 
   const getStatusBadge = (status: string) => {
-    switch(status) {
+    switch (status) {
       case 'approved': return <span className="sticker-badge bg-primary/10 text-primary border-primary/20">Approved</span>;
       case 'rejected': return <span className="sticker-badge bg-destructive/10 text-destructive border-destructive/20">Rejected</span>;
       case 'needs_changes': return <span className="sticker-badge bg-orange-500/10 text-orange-600 border-orange-500/20">Needs Changes</span>;
@@ -141,7 +141,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
             {getStatusBadge(status)}
           </div>
           <span className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mt-1">
-            {new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}
+            {new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </span>
           {adminComment && (status === 'rejected' || status === 'needs_changes') && (
             <div className="mt-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-xl max-w-xl">
@@ -152,31 +152,33 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
         </div>
         <div className="flex flex-col md:flex-row gap-2 items-center shrink-0">
           {status === 'approved' && (
-             <>
-               <button onClick={openPromoKit} className="ringer-button bg-black text-white hover:bg-zinc-800 text-[10px] flex items-center gap-2">
-                 ✨ AI PROMO KIT
-               </button>
-               <button onClick={openBroadcast} className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2">
-                 📢 WHATSAPP UPDATE
-               </button>
-             </>
+            <>
+              <button onClick={openPromoKit} className="ringer-button bg-black text-white hover:bg-zinc-800 text-[10px] flex items-center gap-2">
+                ✨ AI PROMO KIT
+              </button>
+              <button onClick={openBroadcast} className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2">
+                📢 WHATSAPP UPDATE
+              </button>
+            </>
           )}
           {status === 'needs_changes' && onEdit && (
-             <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="ringer-button bg-orange-500 text-white text-[10px] flex items-center gap-2">
-               ✏️ EDIT & RESUBMIT
-             </button>
+            <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="ringer-button bg-orange-500 text-white text-[10px] flex items-center gap-2">
+              ✏️ EDIT & RESUBMIT
+            </button>
           )}
-          <button onClick={(e) => { e.stopPropagation(); loadRsvps(); }} className="ringer-button border border-black/5 hover:bg-black/5 text-black text-[10px]">
-            {open ? "HIDE GUESTLIST" : "VIEW GUESTLIST"}
-          </button>
+          {(status === 'approved' || !status) && (
+            <button onClick={(e) => { e.stopPropagation(); loadRsvps(); }} className="ringer-button border border-black/5 hover:bg-black/5 text-black text-[10px]">
+              {open ? "HIDE GUESTLIST" : "VIEW GUESTLIST"}
+            </button>
+          )}
         </div>
       </div>
       {open && (
         <div className="p-0 border-t border-black/5 bg-zinc-50/50">
           {loading ? (
-             <p className="p-8 text-zinc-400 text-xs font-black uppercase tracking-[0.2em] text-center animate-pulse">Gathering the crowd...</p>
+            <p className="p-8 text-zinc-400 text-xs font-black uppercase tracking-[0.2em] text-center animate-pulse">Gathering the crowd...</p>
           ) : rsvps.length === 0 ? (
-             <p className="p-8 text-zinc-400 text-xs font-bold text-center italic">The vibes are quiet. No RSVPs received yet.</p>
+            <p className="p-8 text-zinc-400 text-xs font-bold text-center italic">The vibes are quiet. No RSVPs received yet.</p>
           ) : (
             <div className="p-6">
               {analytics && (
@@ -190,8 +192,8 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
                     <div className="bg-white p-4 rounded-2xl border border-black/5">
                       <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Peak Day</p>
                       <p className="text-2xl font-black text-primary">
-                        {analytics.timeline && analytics.timeline.length > 0 
-                          ? [...analytics.timeline].sort((a,b) => b.count - a.count)[0].count 
+                        {analytics.timeline && analytics.timeline.length > 0
+                          ? [...analytics.timeline].sort((a, b) => b.count - a.count)[0].count
                           : 0}
                       </p>
                     </div>
@@ -202,7 +204,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="bg-white p-6 rounded-3xl border border-black/5 mb-8">
                     <h5 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-6">Vibe Velocity (RSVPs over time)</h5>
                     <div className="h-[200px] w-full">
@@ -210,31 +212,31 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
                         <AreaChart data={analytics.timeline}>
                           <defs>
                             <linearGradient id="colorVibe" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#C1FF00" stopOpacity={0.8}/>
-                              <stop offset="95%" stopColor="#C1FF00" stopOpacity={0}/>
+                              <stop offset="5%" stopColor="#C1FF00" stopOpacity={0.8} />
+                              <stop offset="95%" stopColor="#C1FF00" stopOpacity={0} />
                             </linearGradient>
                           </defs>
-                          <XAxis 
-                            dataKey="date" 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fontSize: 10, fill: '#a1a1aa' }} 
+                          <XAxis
+                            dataKey="date"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 10, fill: '#a1a1aa' }}
                             dy={10}
-                            tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
+                            tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                           />
-                          <Tooltip 
+                          <Tooltip
                             contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.1)' }}
                             labelStyle={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.1em' }}
                             itemStyle={{ color: '#000', fontWeight: 900 }}
                             labelFormatter={(label) => new Date(label as string).toLocaleDateString()}
                           />
-                          <Area 
-                            type="monotone" 
-                            dataKey="count" 
-                            stroke="#C1FF00" 
+                          <Area
+                            type="monotone"
+                            dataKey="count"
+                            stroke="#C1FF00"
                             strokeWidth={4}
-                            fillOpacity={1} 
-                            fill="url(#colorVibe)" 
+                            fillOpacity={1}
+                            fill="url(#colorVibe)"
                           />
                         </AreaChart>
                       </ResponsiveContainer>
@@ -242,7 +244,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
                   </div>
                 </div>
               )}
-              
+
               <h4 className="text-black font-black uppercase tracking-tighter italic mb-4">Guestlist ({rsvps.length})</h4>
               <ul className="divide-y divide-black/5 bg-white rounded-3xl border border-black/5 overflow-hidden">
                 {rsvps.map((r, i) => (
@@ -250,7 +252,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
                     <span className="text-black font-bold">
                       {r.name || 'Anonymous Guest'}
                     </span>
-                    <span className="text-zinc-300 text-[10px] font-black uppercase tracking-widest">{new Date(r.created_at).toLocaleDateString(undefined, {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'})}</span>
+                    <span className="text-zinc-300 text-[10px] font-black uppercase tracking-widest">{new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                   </li>
                 ))}
               </ul>
@@ -262,55 +264,55 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
       {broadcastOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
           <div className="bg-white rounded-[40px] p-10 max-w-md w-full shadow-2xl border border-black/5 animate-in zoom-in-95 duration-200">
-             <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-2">Sync the Vibe</h3>
-             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-8">Direct WhatsApp update to your community</p>
-             
-             {broadcastStats ? (
-               <div className="bg-zinc-50 border border-black/5 p-6 rounded-[24px] mb-8">
-                 <div className="flex justify-between items-center mb-2">
-                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Attendees</span> 
-                   <span className="font-black text-black">{broadcastStats.eligibleCount}</span>
-                 </div>
-                 <div className="flex justify-between items-center mb-4">
-                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Unit Cost</span> 
-                   <span className="font-black text-black">₹{broadcastStats.costPerMessage}</span>
-                 </div>
-                 <div className="flex justify-between items-center pt-4 border-t border-black/5">
-                   <span className="text-[11px] font-black uppercase tracking-widest text-black">Total Investment</span> 
-                   <span className="font-black text-primary text-xl">₹{broadcastStats.totalCost}</span>
-                 </div>
-               </div>
-             ) : (
-               <div className="p-8 mb-8 text-[10px] font-black uppercase tracking-widest text-zinc-300 text-center animate-pulse bg-zinc-50 rounded-[24px] border border-black/5">Calculating stats...</div>
-             )}
-             
-             <Textarea 
-               placeholder="Write your update here..." 
-               className="bg-zinc-50 border-black/5 text-black mb-8 min-h-[120px] rounded-[20px] p-4 text-xs font-bold focus:ring-primary"
-               value={broadcastMessage}
-               onChange={e => setBroadcastMessage(e.target.value)}
-             />
-             
-             {paymentStatus === "processing" ? (
-               <div className="ringer-button w-full bg-accent text-black text-center animate-pulse flex justify-center items-center gap-2">
-                 💳 Processing...
-               </div>
-             ) : broadcasting ? (
-               <div className="ringer-button w-full bg-primary text-black text-center animate-pulse flex justify-center items-center gap-2">
-                 📲 Sending...
-               </div>
-             ) : (
-                <div className="flex gap-4">
-                  <button className="ringer-button flex-1 border border-black/5 hover:bg-black/5 text-black" onClick={() => setBroadcastOpen(false)}>CANCEL</button>
-                  <button 
-                    className="ringer-button flex-1 bg-black text-white hover:bg-zinc-800 disabled:opacity-30" 
-                    onClick={handlePayAndSend}
-                    disabled={!broadcastStats || broadcastStats.eligibleCount === 0 || !broadcastMessage.trim()}
-                  >
-                    PAY & SEND
-                  </button>
+            <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-2">Sync the Vibe</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-8">Direct WhatsApp update to your community</p>
+
+            {broadcastStats ? (
+              <div className="bg-zinc-50 border border-black/5 p-6 rounded-[24px] mb-8">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Attendees</span>
+                  <span className="font-black text-black">{broadcastStats.eligibleCount}</span>
                 </div>
-             )}
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Unit Cost</span>
+                  <span className="font-black text-black">₹{broadcastStats.costPerMessage}</span>
+                </div>
+                <div className="flex justify-between items-center pt-4 border-t border-black/5">
+                  <span className="text-[11px] font-black uppercase tracking-widest text-black">Total Investment</span>
+                  <span className="font-black text-primary text-xl">₹{broadcastStats.totalCost}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-8 mb-8 text-[10px] font-black uppercase tracking-widest text-zinc-300 text-center animate-pulse bg-zinc-50 rounded-[24px] border border-black/5">Calculating stats...</div>
+            )}
+
+            <Textarea
+              placeholder="Write your update here..."
+              className="bg-zinc-50 border-black/5 text-black mb-8 min-h-[120px] rounded-[20px] p-4 text-xs font-bold focus:ring-primary"
+              value={broadcastMessage}
+              onChange={e => setBroadcastMessage(e.target.value)}
+            />
+
+            {paymentStatus === "processing" ? (
+              <div className="ringer-button w-full bg-accent text-black text-center animate-pulse flex justify-center items-center gap-2">
+                💳 Processing...
+              </div>
+            ) : broadcasting ? (
+              <div className="ringer-button w-full bg-primary text-black text-center animate-pulse flex justify-center items-center gap-2">
+                📲 Sending...
+              </div>
+            ) : (
+              <div className="flex gap-4">
+                <button className="ringer-button flex-1 border border-black/5 hover:bg-black/5 text-black" onClick={() => setBroadcastOpen(false)}>CANCEL</button>
+                <button
+                  className="ringer-button flex-1 bg-black text-white hover:bg-zinc-800 disabled:opacity-30"
+                  onClick={handlePayAndSend}
+                  disabled={!broadcastStats || broadcastStats.eligibleCount === 0 || !broadcastMessage.trim()}
+                >
+                  PAY & SEND
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -318,32 +320,32 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
       {promoModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
           <div className="bg-white rounded-[40px] p-10 max-w-2xl w-full shadow-2xl border border-black/5 animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
-             <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-2 text-primary">✨ AI Promo Kit</h3>
-             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-6">Generated exclusively for {title}</p>
-             
-             <div className="flex-1 overflow-y-auto mb-6 bg-zinc-50 border border-black/5 rounded-[24px] p-6 custom-scrollbar">
-               {promoLoading ? (
-                 <div className="flex flex-col items-center justify-center py-12 gap-4">
-                   <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 animate-pulse">Consulting the digital oracle...</p>
-                 </div>
-               ) : (
-                 <div className="prose prose-sm prose-zinc max-w-none text-xs font-medium text-black">
-                   <pre className="whitespace-pre-wrap font-sans text-xs text-black">{promoData}</pre>
-                 </div>
-               )}
-             </div>
+            <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-2 text-primary">✨ AI Promo Kit</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-6">Generated exclusively for {title}</p>
 
-             <div className="flex gap-4 shrink-0">
-               <button className="ringer-button flex-1 border border-black/5 hover:bg-black/5 text-black" onClick={() => setPromoModalOpen(false)}>CLOSE</button>
-               <button 
-                 className="ringer-button flex-1 bg-black text-white hover:bg-zinc-800 disabled:opacity-30" 
-                 onClick={copyPromoText}
-                 disabled={promoLoading || !promoData}
-               >
-                 📋 COPY TO CLIPBOARD
-               </button>
-             </div>
+            <div className="flex-1 overflow-y-auto mb-6 bg-zinc-50 border border-black/5 rounded-[24px] p-6 custom-scrollbar">
+              {promoLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-4">
+                  <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 animate-pulse">Consulting the digital oracle...</p>
+                </div>
+              ) : (
+                <div className="prose prose-sm prose-zinc max-w-none text-xs font-medium text-black">
+                  <pre className="whitespace-pre-wrap font-sans text-xs text-black">{promoData}</pre>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-4 shrink-0">
+              <button className="ringer-button flex-1 border border-black/5 hover:bg-black/5 text-black" onClick={() => setPromoModalOpen(false)}>CLOSE</button>
+              <button
+                className="ringer-button flex-1 bg-black text-white hover:bg-zinc-800 disabled:opacity-30"
+                onClick={copyPromoText}
+                disabled={promoLoading || !promoData}
+              >
+                📋 COPY TO CLIPBOARD
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -359,23 +361,33 @@ export default function OrganizerDashboard() {
   const [myEvents, setMyEvents] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'events' | 'crm'>('events');
   const [followers, setFollowers] = useState<any[]>([]);
+  const [supportedCities, setSupportedCities] = useState<{ id: number; name: string }[]>([]);
 
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({
-    title: "", description: "", category: "", location: "", timings: "",
+    title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
     startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM"
   });
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!session?.user?.email) {
-       router.push("/dashboard");
-       return;
+      router.push("/dashboard");
+      return;
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+    // Fetch supported cities
+    fetch(`${baseUrl}/api/cities`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) setSupportedCities(data.data);
+      })
+      .catch(err => console.error("Failed to load cities", err));
+
     fetch(`${baseUrl}/api/admin/check?email=${encodeURIComponent(session.user.email)}`)
       .then(r => r.json())
       .then(data => {
@@ -420,7 +432,7 @@ export default function OrganizerDashboard() {
 
   const handleEditInit = (ev: any) => {
     const start = new Date(ev.date_time);
-    const end = ev.end_time ? new Date(ev.end_time) : new Date(start.getTime() + 3*3600*1000);
+    const end = ev.end_time ? new Date(ev.end_time) : new Date(start.getTime() + 3 * 3600 * 1000);
     const fDate = (d: Date) => d.toISOString().split("T")[0];
     const fTime = (d: Date) => {
       let h = d.getHours();
@@ -434,7 +446,7 @@ export default function OrganizerDashboard() {
     setIsMultiDay(fDate(start) !== fDate(end));
     setFormData({
       title: ev.title, description: ev.description, category: ev.category,
-      location: ev.location || "", timings: ev.timings || "",
+      location: ev.location || "", city: ev.city || "", google_maps_link: ev.google_maps_link || "", timings: ev.timings || "",
       startDate: fDate(start), endDate: fDate(end),
       startTime: fTime(start), endTime: fTime(end),
     });
@@ -445,20 +457,21 @@ export default function OrganizerDashboard() {
   const handleCancelEdit = () => {
     setEditingEventId(null);
     setFormData({
-      title: "", description: "", category: "", location: "", timings: "",
+      title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
       startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM"
     });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate
     const newErrors: Record<string, boolean> = {};
     if (!formData.title) newErrors.title = true;
     if (!formData.startDate) newErrors.startDate = true;
     if (isMultiDay && !formData.endDate) newErrors.endDate = true;
     if (!formData.category) newErrors.category = true;
+    if (!formData.city) newErrors.city = true;
     if (!formData.location) newErrors.location = true;
     if (!formData.description) newErrors.description = true;
 
@@ -470,7 +483,7 @@ export default function OrganizerDashboard() {
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    
+
     setErrors({});
     // Combine date and time
     const combine = (date: string, timeStr: string) => {
@@ -490,37 +503,37 @@ export default function OrganizerDashboard() {
     const toastId = toast.loading("Submitting your event...");
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      const url = editingEventId 
-        ? `${baseUrl}/api/organizer/events/${editingEventId}` 
+      const url = editingEventId
+        ? `${baseUrl}/api/organizer/events/${editingEventId}`
         : `${baseUrl}/api/organizer/events`;
       const method = editingEventId ? "PUT" : "POST";
-      
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          ...formData, 
-          date_time: start_iso, 
+        body: JSON.stringify({
+          ...formData,
+          date_time: start_iso,
           end_time: end_iso,
-          organizer_email: session?.user?.email 
+          organizer_email: session?.user?.email
         })
       });
       const data = await res.json();
       if (data.success) {
-        setFormData({ 
-          title: "", description: "", category: "", location: "", timings: "",
+        setFormData({
+          title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
           startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM"
         });
         setIsMultiDay(false);
         setEditingEventId(null);
         loadMyEvents();
-        toast.success("Event submitted!", { id: toastId, description: "Your event is pending review by the platform team." });
+        toast.success("Event submitted!", { id: toastId, description: "Your event is pending review by the VibeCheck team." });
       } else {
-        toast.error("Submission failed.", { id: toastId, description: data.error || "The server rejected the request. Please check your details." });
+        toast.error("Submission failed.", { id: toastId, description: data.error || "VibeCheck server rejected the request. Please check your details." });
       }
     } catch (e) {
       console.error(e);
-      toast.error("Submission failed.", { id: toastId, description: "Could not reach the server. Please try again." });
+      toast.error("Submission failed.", { id: toastId, description: "Could not reach the VibeCheck. Please try again." });
     }
     setSubmitting(false);
   };
@@ -532,7 +545,7 @@ export default function OrganizerDashboard() {
   return (
     <div className="min-h-screen bg-background text-black p-4 sm:p-8 animate-in fade-in duration-700">
       <div className="max-w-7xl mx-auto space-y-12 mt-4">
-        
+
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-black/5 pb-12 gap-8">
           <div>
             <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-[0.9]">
@@ -548,13 +561,13 @@ export default function OrganizerDashboard() {
         </div>
 
         <div className="flex gap-4 border-b border-black/5 pb-6">
-          <button 
+          <button
             className={`text-xs font-black uppercase tracking-widest pb-2 border-b-2 ${activeTab === 'events' ? 'border-primary text-black' : 'border-transparent text-zinc-400 hover:text-black'}`}
             onClick={() => setActiveTab('events')}
           >
             Manage Events
           </button>
-          <button 
+          <button
             className={`text-xs font-black uppercase tracking-widest pb-2 border-b-2 ${activeTab === 'crm' ? 'border-primary text-black' : 'border-transparent text-zinc-400 hover:text-black'}`}
             onClick={() => setActiveTab('crm')}
           >
@@ -564,126 +577,145 @@ export default function OrganizerDashboard() {
 
         {activeTab === 'events' ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          {/* Submission Form */}
-          <div className="lg:col-span-4 h-fit">
-            <div className="ringer-card overflow-hidden">
-              <div className="bg-primary/5 border-b border-black/5 p-6 flex justify-between items-center">
-                <div>
-                  <h2 className="text-[10px] font-black uppercase tracking-widest text-black">
-                    {editingEventId ? "EDIT EVENT" : "NEW EVENT"}
-                  </h2>
-                  <p className="text-[10px] font-bold text-zinc-400 mt-1 uppercase">Awaiting platform guardian approval</p>
+            {/* Submission Form */}
+            <div className="lg:col-span-4 h-fit">
+              <div className="ringer-card overflow-hidden">
+                <div className="bg-primary/5 border-b border-black/5 p-6 flex justify-between items-center">
+                  <div>
+                    <h2 className="text-[10px] font-black uppercase tracking-widest text-black">
+                      {editingEventId ? "EDIT EVENT" : "NEW EVENT"}
+                    </h2>
+                    <p className="text-[10px] font-bold text-zinc-400 mt-1 uppercase">Awaiting platform guardian approval</p>
+                  </div>
+                  {editingEventId && (
+                    <button type="button" onClick={handleCancelEdit} className="ringer-button bg-zinc-200 text-black text-[9px] px-3 py-1.5">
+                      CANCEL
+                    </button>
+                  )}
                 </div>
-                {editingEventId && (
-                  <button type="button" onClick={handleCancelEdit} className="ringer-button bg-zinc-200 text-black text-[9px] px-3 py-1.5">
-                    CANCEL
-                  </button>
-                )}
-              </div>
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <Input name="title" placeholder="Event Title" value={formData.title} onChange={e=>{setFormData({...formData, title: e.target.value}); if(errors.title) setErrors({...errors, title: false})}} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.title && "border-red-500 ring-red-500/20")} />
-                    {errors.title && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Title is required</p>}
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <Select value={formData.category} onValueChange={v => {setFormData({...formData, category: v || ""}); if(errors.category) setErrors({...errors, category: false})}}>
-                      <SelectTrigger className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.category && "border-red-500 ring-red-500/20")}>
-                        <SelectValue placeholder="Category" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border-black/5 rounded-[20px] shadow-2xl p-2">
-                        {CATEGORIES.map(cat => (
-                          <SelectItem key={cat} value={cat} className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer">{cat}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.category && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Pick a category</p>}
-                  </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <Input name="title" placeholder="Event Title" value={formData.title} onChange={e => { setFormData({ ...formData, title: e.target.value }); if (errors.title) setErrors({ ...errors, title: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.title && "border-red-500 ring-red-500/20")} />
+                      {errors.title && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Title is required</p>}
+                    </div>
 
-                  {/* Single vs Multi Day Switcher */}
-                  <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/5">
-                    <button 
-                      type="button"
-                      onClick={() => setIsMultiDay(false)}
-                      className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${!isMultiDay ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
-                    >
-                      Single Day
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => setIsMultiDay(true)}
-                      className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${isMultiDay ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
-                    >
-                      Multi Day
-                    </button>
-                  </div>
+                    <div className="space-y-1">
+                      <Select value={formData.category} onValueChange={v => { setFormData({ ...formData, category: v || "" }); if (errors.category) setErrors({ ...errors, category: false }) }}>
+                        <SelectTrigger className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.category && "border-red-500 ring-red-500/20")}>
+                          <SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-black/5 rounded-[20px] shadow-2xl p-2">
+                          {CATEGORIES.map(cat => (
+                            <SelectItem key={cat} value={cat} className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer">{cat}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.category && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Pick a category</p>}
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <VibeDatePicker 
-                      label={isMultiDay ? "From Date" : "Date"}
-                      value={formData.startDate}
-                      onChange={v => {setFormData({...formData, startDate: v}); if(errors.startDate) setErrors({...errors, startDate: false})}}
-                      error={errors.startDate}
-                    />
-                    {isMultiDay && (
-                      <VibeDatePicker 
-                        label="To Date"
-                        value={formData.endDate}
-                        onChange={v => {setFormData({...formData, endDate: v}); if(errors.endDate) setErrors({...errors, endDate: false})}}
-                        error={errors.endDate}
+                    <div className="space-y-1">
+                      <Select value={formData.city} onValueChange={v => { setFormData({ ...formData, city: v || "" }); if (errors.city) setErrors({ ...errors, city: false }) }}>
+                        <SelectTrigger className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.city && "border-red-500 ring-red-500/20")}>
+                          <SelectValue placeholder="Select City" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-black/5 rounded-[20px] shadow-2xl p-2">
+                          {supportedCities.map(c => (
+                            <SelectItem key={c.id} value={c.name} className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer">{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.city && <p className="text-[9px] text-red-500 font-black uppercase ml-1">City is required</p>}
+                    </div>
+
+                    {/* Single vs Multi Day Switcher */}
+                    <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/5">
+                      <button
+                        type="button"
+                        onClick={() => setIsMultiDay(false)}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${!isMultiDay ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
+                      >
+                        Single Day
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsMultiDay(true)}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${isMultiDay ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
+                      >
+                        Multi Day
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <VibeDatePicker
+                        label={isMultiDay ? "From Date" : "Date"}
+                        value={formData.startDate}
+                        onChange={v => { setFormData({ ...formData, startDate: v }); if (errors.startDate) setErrors({ ...errors, startDate: false }) }}
+                        error={errors.startDate}
                       />
-                    )}
+                      {isMultiDay && (
+                        <VibeDatePicker
+                          label="To Date"
+                          value={formData.endDate}
+                          onChange={v => { setFormData({ ...formData, endDate: v }); if (errors.endDate) setErrors({ ...errors, endDate: false }) }}
+                          error={errors.endDate}
+                        />
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <VibeTimePicker
+                        label="Begins At"
+                        value={formData.startTime}
+                        onChange={v => setFormData({ ...formData, startTime: v })}
+                      />
+                      <VibeTimePicker
+                        label="Ends At"
+                        value={formData.endTime}
+                        onChange={v => setFormData({ ...formData, endTime: v })}
+                      />
+                    </div>
+
+                    <Input placeholder="Extra Timings Note (Optional)" value={formData.timings} onChange={e => setFormData({ ...formData, timings: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
+
+                    <div className="space-y-1">
+                      <Input name="location" placeholder="Location Name (e.g. Rushikonda Beach)" value={formData.location} onChange={e => { setFormData({ ...formData, location: e.target.value }); if (errors.location) setErrors({ ...errors, location: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.location && "border-red-500 ring-red-500/20")} />
+                      {errors.location && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Location name is required</p>}
+                    </div>
+
+                    <div className="space-y-1">
+                      <Input name="google_maps_link" placeholder="Google Maps Link / URL (Optional)" value={formData.google_maps_link} onChange={e => setFormData({ ...formData, google_maps_link: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
+                      <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Copy & paste a Google Maps sharing URL so users can navigate exactly to your location.</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Textarea name="description" placeholder="Vibe Manifest (Description)..." value={formData.description} onChange={e => { setFormData({ ...formData, description: e.target.value }); if (errors.description) setErrors({ ...errors, description: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary min-h-[140px] rounded-[24px] p-4 text-xs font-bold", errors.description && "border-red-500 ring-red-500/20")} />
+                      {errors.description && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Vibe manifest is empty</p>}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <VibeTimePicker 
-                      label="Begins At"
-                      value={formData.startTime}
-                      onChange={v => setFormData({...formData, startTime: v})}
-                    />
-                    <VibeTimePicker 
-                      label="Ends At"
-                      value={formData.endTime}
-                      onChange={v => setFormData({...formData, endTime: v})}
-                    />
-                  </div>
-                  
-                  <Input placeholder="Extra Timings Note (Optional)" value={formData.timings} onChange={e=>setFormData({...formData, timings: e.target.value})} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
-
-                  <div className="space-y-1">
-                    <Input name="location" placeholder="Location (e.g. Rushikonda Beach)" value={formData.location} onChange={e=>{setFormData({...formData, location: e.target.value}); if(errors.location) setErrors({...errors, location: false})}} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.location && "border-red-500 ring-red-500/20")} />
-                    {errors.location && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Location coordinate required</p>}
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <Textarea name="description" placeholder="Vibe Manifest (Description)..." value={formData.description} onChange={e=>{setFormData({...formData, description: e.target.value}); if(errors.description) setErrors({...errors, description: false})}} className={cn("bg-zinc-50 border-black/5 focus:ring-primary min-h-[140px] rounded-[24px] p-4 text-xs font-bold", errors.description && "border-red-500 ring-red-500/20")} />
-                    {errors.description && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Vibe manifest is empty</p>}
-                  </div>
-                </div>
-                
-                <button type="submit" disabled={submitting} className="ringer-button w-full bg-black text-white hover:bg-zinc-800 text-[11px]">
-                  {submitting ? "DEPLOYING..." : editingEventId ? "RESUBMIT FOR REVIEW" : "SUBMIT FOR REVIEW"}
-                </button>
-              </form>
+                  <button type="submit" disabled={submitting} className="ringer-button w-full bg-black text-white hover:bg-zinc-800 text-[11px]">
+                    {submitting ? "DEPLOYING..." : editingEventId ? "RESUBMIT FOR REVIEW" : "SUBMIT FOR REVIEW"}
+                  </button>
+                </form>
+              </div>
             </div>
-          </div>
 
-          {/* My Events */}
-          <div className="lg:col-span-8 space-y-8">
-            <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Deployment Log</h2>
-            {myEvents.length === 0 ? (
-              <div className="text-center py-20 text-zinc-300 ringer-card border-dashed">
-                <p className="text-[10px] font-black uppercase tracking-widest">No active vibes detected.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {myEvents.map(ev => (
-                  <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} dateStr={ev.date_time} organizerEmail={session?.user?.email || ""} adminComment={ev.admin_comment} onEdit={() => handleEditInit(ev)} />
-                ))}
-              </div>
-            )}
-          </div>
+            {/* My Events */}
+            <div className="lg:col-span-8 space-y-8">
+              <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Deployment Log</h2>
+              {myEvents.length === 0 ? (
+                <div className="text-center py-20 text-zinc-300 ringer-card border-dashed">
+                  <p className="text-[10px] font-black uppercase tracking-widest">No active vibes detected.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {myEvents.map(ev => (
+                    <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} dateStr={ev.date_time} organizerEmail={session?.user?.email || ""} adminComment={ev.admin_comment} onEdit={() => handleEditInit(ev)} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <div className="ringer-card">

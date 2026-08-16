@@ -26,7 +26,8 @@ export async function checkAdminHandler(req: Request, res: Response, pool: Pool)
       isAdmin: normalizedRole !== 'organizer',
       isOrganizer: normalizedRole === 'organizer',
       role,
-      status: adminStr.status
+      status: adminStr.status,
+      rejectionReason: adminStr.rejection_reason
     });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Internal server error' });

@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS events (
     city VARCHAR(100),                           -- explicit city for global/multi-city support
     age_group int4range,                         -- PostgreSQL range type [min, max]
     external_link TEXT,
+    google_maps_link TEXT,
     contact_info VARCHAR(255),
     embedding vector(1024),                      -- 1024 dims for mxbai-embed-large (Ollama)
     status VARCHAR(20) DEFAULT 'approved',       -- approved | pending | rejected

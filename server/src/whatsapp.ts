@@ -145,6 +145,9 @@ export async function sendWhatsAppMessage(phoneNumberId: string, to: string, tex
     return;
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
   try {
     const response = await fetch(
       `https://graph.facebook.com/v17.0/${phoneNumberId}/messages`,
@@ -160,16 +163,24 @@ export async function sendWhatsAppMessage(phoneNumberId: string, to: string, tex
           type: 'text',
           text: { body: text },
         }),
+        signal: controller.signal,
       }
     );
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       console.error('[WhatsApp] Send failed:', await response.text());
     } else {
       console.log(`[WhatsApp] Sent to ${to}`);
     }
-  } catch (error) {
-    console.error('[WhatsApp] Network error:', error);
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error('[WhatsApp] Send request timed out after 5 seconds');
+    } else {
+      console.error('[WhatsApp] Network error:', error);
+    }
   }
 }
 
