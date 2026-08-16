@@ -5,9 +5,13 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // MUST LOAD DOTENV BEFORE ANY LOCAL IMPORTS
-const result = dotenv.config({ path: path.join(__dirname, '..', '.env') });
+const appEnv = process.env.APP_ENV || 'local';
+const envFile = `.env.${appEnv}`;
+console.log(`[Server] Loading environment: ${appEnv} (${envFile})`);
+const result = dotenv.config({ path: path.join(__dirname, '..', envFile) });
 if (result.error) {
-  console.log('Error loading .env file:', result.error);
+  console.log(`[Server] Error loading ${envFile}, falling back to .env:`, result.error.message);
+  dotenv.config({ path: path.join(__dirname, '..', '.env') });
 }
 
 import { Pool } from 'pg';
@@ -40,7 +44,12 @@ app.use(express.json());
 app.use((req, res, next) => {
   console.log(`\n--- Incoming ${req.method} ${req.originalUrl} ---`);
   console.log(`User-Agent: ${req.headers['user-agent']}`);
-  if (req.method === 'POST') console.log(`Body:`, JSON.stringify(req.body).substring(0, 500));
+  if (req.method === 'POST' && req.body) {
+    const bodyStr = JSON.stringify(req.body);
+    if (bodyStr) {
+      console.log(`Body:`, bodyStr.substring(0, 500));
+    }
+  }
   next();
 });
 

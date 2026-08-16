@@ -34,12 +34,12 @@ export async function sendApplyOtpHandler(req: Request, res: Response) {
     if (type === 'email') {
       console.log(`[Verification] [Dev Mode] Email Code for ${value}: ${code}`);
       if (config.RESEND_API_KEY && config.RESEND_API_KEY !== 're_dummy_key_123') {
-        await resend.emails.send({
+        resend.emails.send({
           from: 'VibeCheck <onboarding@resend.dev>', // Needs a verified domain in prod
           to: value,
           subject: 'VibeCheck Verification Code',
           html: `<p>Your VibeCheck verification code is: <strong>${code}</strong></p><p>It will expire in 10 minutes.</p>`
-        });
+        }).catch(err => console.error('[Verification] Error sending Resend email in background:', err));
       }
     } else if (type === 'phone') {
       let formattedPhone = value.replace(/\D/g, '');
@@ -47,10 +47,11 @@ export async function sendApplyOtpHandler(req: Request, res: Response) {
       
       const message = `Your VibeCheck verification code is: *${code}*. It will expire in 10 minutes.`;
       
+      console.log(`[Verification] [Dev Mode] Phone Code for ${formattedPhone}: ${code}`);
+      
       if (config.WHATSAPP_PHONE_NUMBER_ID) {
-        await sendWhatsAppMessage(config.WHATSAPP_PHONE_NUMBER_ID, formattedPhone, message);
-      } else {
-        console.log(`[Verification] [Dev Mode] Phone Code for ${formattedPhone}: ${code}`);
+        sendWhatsAppMessage(config.WHATSAPP_PHONE_NUMBER_ID, formattedPhone, message)
+          .catch(err => console.error('[Verification] Error sending WhatsApp message in background:', err));
       }
     }
     

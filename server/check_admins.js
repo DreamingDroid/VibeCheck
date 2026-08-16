@@ -1,7 +1,11 @@
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
-const path = require('path');
-dotenv.config({ path: path.join(__dirname, '.env') });
+const appEnv = process.env.APP_ENV || 'local';
+const envFile = `.env.${appEnv}`;
+const result = dotenv.config({ path: path.join(__dirname, envFile) });
+if (result.error) {
+  dotenv.config({ path: path.join(__dirname, '.env') });
+}
 const pool = new Pool();
 pool.query('SELECT * FROM admins').then(res => {
   console.log(res.rows);

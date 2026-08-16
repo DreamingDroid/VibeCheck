@@ -2,6 +2,7 @@
 
 import { SessionProvider } from "next-auth/react"
 import { CityProvider } from "@/context/CityContext"
+import { ThemeProvider } from "@/context/ThemeContext"
 import { Toaster } from "sonner"
 import { VibeConfirmProvider } from "@/components/vibe-confirm"
 import { AppProgressBar as ProgressBar } from 'next-nprogress-bar';
@@ -42,6 +43,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
       <CityProvider>
+        <ThemeProvider>
         {children}
         <FetchProgressBar />
         <ProgressBar
@@ -67,6 +69,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           }}
         />
         <VibeConfirmProvider />
+        </ThemeProvider>
       </CityProvider>
     </SessionProvider>
   )

@@ -15,7 +15,7 @@ export async function ensureOrganizerRole(pool: Pool) {
 }
 
 export async function getAdminByEmail(pool: Pool, email: string) {
-  const { rows } = await pool.query('SELECT id, email, role, status FROM admins WHERE email = $1', [email]);
+  const { rows } = await pool.query('SELECT id, email, role, status, rejection_reason FROM admins WHERE email = $1', [email]);
   return rows[0] || null;
 }
 

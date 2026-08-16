@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit3, Trash2, Calendar, MapPin, ExternalLink, Phone, FileText } from "lucide-react";
+import { Plus, Edit3, Trash2, Calendar, MapPin, ExternalLink, Phone, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
 import { toast } from "sonner";
@@ -36,7 +37,11 @@ const emptyForm = {
   timings: "", external_link: "", contact_info: "", venue_type: "Indoor" 
 };
 
-export default function AdminEventsPage() {
+function AdminEventsPageContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tabParam = searchParams.get("tab");
+
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [events, setEvents] = useState<Event[]>([]);
@@ -46,7 +51,28 @@ export default function AdminEventsPage() {
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
-  const [activeTab, setActiveTab] = useState("approved");
+  const [activeTab, setActiveTab] = useState(tabParam || "approved");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Review Dialogue Modal State
+  const [reviewModal, setReviewModal] = useState<{
+    isOpen: boolean;
+    id: string | null;
+    status: "rejected" | "needs_changes" | null;
+  }>({ isOpen: false, id: null, status: null });
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewLoading, setReviewLoading] = useState(false);
+
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    router.push(`/admin/events?tab=${tabId}`);
+  };
 
   const fetchEvents = () => {
     setLoading(true);
@@ -60,7 +86,10 @@ export default function AdminEventsPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchEvents(); }, [activeTab]);
+  useEffect(() => { 
+    fetchEvents(); 
+    setExpandedId(null);
+  }, [activeTab]);
 
   const handleEdit = (ev: Event) => {
     const start = new Date(ev.date_time);
@@ -111,21 +140,60 @@ export default function AdminEventsPage() {
   };
 
   const handleReview = async (id: string, status: string) => {
-    let comment = "";
     if (status === "rejected" || status === "needs_changes") {
-      const reason = window.prompt(status === "rejected" ? "Reason for rejection:" : "What changes are needed?");
-      if (reason === null) return; // user cancelled
-      comment = reason;
+      setReviewModal({
+        isOpen: true,
+        id,
+        status: status as "rejected" | "needs_changes",
+      });
+      setReviewComment("");
+      return;
     }
-    
+
+    // Approved flow
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-    await fetch(`${baseUrl}/api/admin/events/${id}/review`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, comment })
-    });
-    toast.success(`Event marked as ${status.replace('_', ' ')}`);
-    fetchEvents();
+    try {
+      const response = await fetch(`${baseUrl}/api/admin/events/${id}/review`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, comment: "" })
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success("Event approved and published successfully.");
+        fetchEvents();
+      } else {
+        toast.error("Failed to approve event.");
+      }
+    } catch (err) {
+      toast.error("An error occurred during approval.");
+    }
+  };
+
+  const handleReviewSubmit = async () => {
+    if (!reviewModal.id || !reviewModal.status || !reviewComment) return;
+    setReviewLoading(true);
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    try {
+      const response = await fetch(`${baseUrl}/api/admin/events/${reviewModal.id}/review`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: reviewModal.status, comment: reviewComment })
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success(`Event status updated to ${reviewModal.status.replace("_", " ")}.`);
+        setReviewModal({ isOpen: false, id: null, status: null });
+        setReviewComment("");
+        fetchEvents();
+      } else {
+        toast.error("Failed to update event status.");
+      }
+    } catch (err) {
+      toast.error("An error occurred during status update.");
+    } finally {
+      setReviewLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -342,7 +410,7 @@ export default function AdminEventsPage() {
           <button
             key={tab.id}
             type="button"
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabChange(tab.id)}
             className={`px-6 py-3 rounded-full text-xs font-black uppercase tracking-widest whitespace-nowrap transition-colors ${
               activeTab === tab.id
                 ? 'bg-black text-white shadow-md'
@@ -371,64 +439,202 @@ export default function AdminEventsPage() {
           <div className="ringer-card p-20 text-center text-zinc-400 text-xs font-bold italic">No vibes detected in this category.</div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {events.map(ev => (
-              <div key={ev.id} className="ringer-card group bg-white border-black/5 p-6 hover:shadow-xl transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div className="flex-1 min-w-0 space-y-3">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="sticker-badge bg-black text-white px-3 flex items-center gap-1">
-                      {ev.category}
-                    </div>
-                    <h3 className="text-2xl font-black italic tracking-tighter uppercase leading-none group-hover:text-primary transition-colors">{ev.title}</h3>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-x-6 gap-y-2 items-center text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                    <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3 text-primary" /> {new Date(ev.date_time).toLocaleString()}</span>
-                    <span className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-primary" /> {ev.location || "FIELD UNKNOWN"}</span>
-                    {ev.organizer_email && <span className="flex items-center gap-1.5 line-clamp-1"><span className="font-bold text-black">BY:</span> {ev.organizer_email}</span>}
-                    {ev.contact_info && <span className="flex items-center gap-1.5 line-clamp-1"><Phone className="h-3 w-3" /> {ev.contact_info}</span>}
-                    {ev.external_link && <span className="flex items-center gap-1.5 text-primary underline"><ExternalLink className="h-3 w-3" /> LINK</span>}
-                  </div>
-                  
-                  {ev.admin_comment && (
-                    <div className="mt-2 bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-xl">
-                      <span className="font-bold uppercase tracking-widest text-[9px] block mb-1">Admin Feedback:</span>
-                      {ev.admin_comment}
-                    </div>
+            {events.map(ev => {
+              const isExpanded = expandedId === ev.id;
+              return (
+                <div 
+                  key={ev.id} 
+                  className={cn(
+                    "ringer-card group bg-white border-black/5 p-6 hover:shadow-xl transition-all flex flex-col gap-6 cursor-pointer",
+                    isExpanded && "border-primary/50 shadow-lg"
                   )}
-                </div>
+                  onClick={() => setExpandedId(isExpanded ? null : ev.id)}
+                >
+                  {/* Top Header Row (always visible) */}
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div className="flex-1 min-w-0 space-y-3">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="sticker-badge bg-black text-white px-3 flex items-center gap-1">
+                          {ev.category}
+                        </div>
+                        <h3 className="text-2xl font-black italic tracking-tighter uppercase leading-none group-hover:text-primary transition-colors">
+                          {ev.title}
+                        </h3>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-x-6 gap-y-2 items-center text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="h-3 w-3 text-primary" /> {new Date(ev.date_time).toLocaleString()}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <MapPin className="h-3 w-3 text-primary" /> {ev.location || "FIELD UNKNOWN"}
+                        </span>
+                        {ev.organizer_email && (
+                          <span className="flex items-center gap-1.5">
+                            <span className="font-bold text-black">BY:</span> {ev.organizer_email}
+                          </span>
+                        )}
+                      </div>
+                    </div>
 
-                <div className="flex items-center gap-3 shrink-0">
-                  {activeTab === 'pending' && (
-                    <>
-                      <button onClick={() => handleReview(ev.id, 'approved')} className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2">
-                        APPROVE
-                      </button>
-                      <button onClick={() => handleReview(ev.id, 'needs_changes')} className="ringer-button bg-orange-500 text-white text-[10px] flex items-center gap-2">
-                        NEEDS CHANGES
-                      </button>
-                      <button onClick={() => handleReview(ev.id, 'rejected')} className="ringer-button bg-destructive text-white text-[10px] flex items-center gap-2">
-                        REJECT
-                      </button>
-                    </>
+                    {/* Action buttons or expand/collapse indicator */}
+                    <div className="flex items-center gap-3 shrink-0" onClick={e => e.stopPropagation()}>
+                      {!isExpanded ? (
+                        <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-black flex items-center gap-1.5">
+                          SHOW DETAILS <ChevronDown className="h-4 w-4" />
+                        </div>
+                      ) : (
+                        <div className="text-[10px] font-black uppercase tracking-widest text-black flex items-center gap-1.5">
+                          HIDE DETAILS <ChevronUp className="h-4 w-4" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Expanded Section */}
+                  {isExpanded && (
+                    <div className="border-t border-black/5 pt-6 space-y-6 animate-in fade-in duration-300" onClick={e => e.stopPropagation()}>
+                      {/* Description / Vibe Manifest */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-zinc-400">Vibe Description</h4>
+                        <p className="text-sm font-semibold text-zinc-800 leading-relaxed whitespace-pre-wrap">
+                          {ev.description || "No description provided."}
+                        </p>
+                      </div>
+
+                      {/* Info grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-50/50 p-6 rounded-[24px] border border-black/5 text-xs font-bold text-zinc-600">
+                        <div className="space-y-3">
+                          {ev.timings && (
+                            <div>
+                              <span className="text-[9px] uppercase tracking-wider text-zinc-400 block mb-1">timings note</span>
+                              <span className="text-zinc-800 font-black">{ev.timings}</span>
+                            </div>
+                          )}
+                          {ev.end_time && (
+                            <div>
+                              <span className="text-[9px] uppercase tracking-wider text-zinc-400 block mb-1">end time coordinate</span>
+                              <span className="text-zinc-800 font-black">{new Date(ev.end_time).toLocaleString()}</span>
+                            </div>
+                          )}
+                          {ev.contact_info && (
+                            <div>
+                              <span className="text-[9px] uppercase tracking-wider text-zinc-400 block mb-1">contact frequency</span>
+                              <span className="text-zinc-800 font-black flex items-center gap-1.5 select-all"><Phone className="h-3.5 w-3.5 text-primary" /> {ev.contact_info}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          {ev.external_link && (
+                            <div>
+                              <span className="text-[9px] uppercase tracking-wider text-zinc-400 block mb-1">external linkage</span>
+                              <a href={ev.external_link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-black flex items-center gap-1.5 break-all">
+                                <ExternalLink className="h-3.5 w-3.5" /> {ev.external_link}
+                              </a>
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-[9px] uppercase tracking-wider text-zinc-400 block mb-1">venue coordinates</span>
+                            <span className="text-zinc-800 font-black flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-primary" /> {ev.location || "None"}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Rejection comment / admin comment */}
+                      {ev.admin_comment && (
+                        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-4 rounded-2xl">
+                          <span className="font-black uppercase tracking-widest text-[9px] block mb-1">Admin Feedback:</span>
+                          {ev.admin_comment}
+                        </div>
+                      )}
+
+                      {/* Action buttons inside expanded card */}
+                      <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-black/5">
+                        <div className="flex items-center gap-3">
+                          {activeTab === 'pending' && (
+                            <>
+                              <button onClick={() => handleReview(ev.id, 'approved')} className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2">
+                                APPROVE & PUBLISH
+                              </button>
+                              <button onClick={() => handleReview(ev.id, 'needs_changes')} className="ringer-button bg-orange-500 text-white text-[10px] flex items-center gap-2">
+                                REQUEST CHANGES
+                              </button>
+                              <button onClick={() => handleReview(ev.id, 'rejected')} className="ringer-button bg-destructive text-white text-[10px] flex items-center gap-2">
+                                REJECT SUBMISSION
+                              </button>
+                            </>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => handleEdit(ev)}
+                            className="ringer-button bg-zinc-50 border border-black/5 hover:bg-black hover:text-white text-black text-[10px] flex items-center gap-2"
+                          >
+                            <Edit3 className="h-3 w-3" /> EDIT
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(ev.id)}
+                            className="ringer-button bg-zinc-50 border border-black/5 hover:bg-red-500 hover:text-white text-black text-[10px] flex items-center gap-2"
+                          >
+                            <Trash2 className="h-3 w-3" /> DELETE
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   )}
-                  <button 
-                    onClick={() => handleEdit(ev)}
-                    className="ringer-button bg-zinc-50 border border-black/5 hover:bg-black hover:text-white text-black text-[10px] flex items-center gap-2"
-                  >
-                    <Edit3 className="h-3 w-3" /> EDIT
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(ev.id)}
-                    className="ringer-button bg-zinc-50 border border-black/5 hover:bg-red-500 hover:text-white text-black text-[10px] flex items-center gap-2"
-                  >
-                    <Trash2 className="h-3 w-3" /> DELETE
-                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* Review Modal */}
+      {reviewModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl border border-black/5 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <h2 className="text-2xl font-black italic tracking-tighter uppercase mb-2">
+              {reviewModal.status === "rejected" ? "Reject Submission" : "Request Changes"}
+            </h2>
+            <p className="text-zinc-400 text-[10px] font-black uppercase tracking-[0.2em] mb-6">
+              {reviewModal.status === "rejected" ? "Provide feedback for rejection" : "Specify changes required from organizer"}
+            </p>
+            <textarea
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              placeholder={reviewModal.status === "rejected" ? "Reason for rejection..." : "Changes needed..."}
+              className="w-full h-36 p-4 text-xs bg-zinc-50 border border-black/10 rounded-2xl mb-6 font-medium focus:outline-none focus:border-black/30 resize-none text-black"
+            />
+            <div className="flex gap-4">
+              <Button
+                onClick={handleReviewSubmit}
+                disabled={reviewLoading || !reviewComment}
+                className="flex-1 bg-black text-white uppercase text-xs font-black h-12 rounded-xl"
+              >
+                Confirm
+              </Button>
+              <Button
+                onClick={() => setReviewModal({ isOpen: false, id: null, status: null })}
+                disabled={reviewLoading}
+                variant="outline"
+                className="flex-1 uppercase text-xs font-black h-12 rounded-xl border border-black/10 hover:bg-black/5 text-black bg-white"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function AdminEventsPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-zinc-400 text-xs font-black uppercase tracking-widest animate-pulse">Scanning database frequencies...</div>}>
+      <AdminEventsPageContent />
+    </Suspense>
   );
 }
