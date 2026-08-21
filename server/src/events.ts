@@ -52,6 +52,19 @@ export async function rsvpEventHandler(req: Request, res: Response, pool: Pool) 
       return res.status(400).json({ success: false, error: 'Email is required' });
     }
 
+    const event = await getEventById(pool, id as string);
+    if (!event) {
+      return res.status(404).json({ success: false, error: 'Event not found' });
+    }
+
+    if (event.status === 'housefull') {
+      return res.status(400).json({ success: false, error: 'This event is housefull' });
+    }
+
+    if (event.participant_limit && event.rsvp_count >= event.participant_limit) {
+      return res.status(400).json({ success: false, error: 'This event is full' });
+    }
+
     await insertEventRSVPEmail(pool, id as string, email as string);
 
     return res.json({ success: true, message: 'RSVP confirmed' });

@@ -115,6 +115,8 @@ CREATE TABLE IF NOT EXISTS events (
     status VARCHAR(20) DEFAULT 'approved',       -- approved | pending | rejected
     organizer_email TEXT,                        -- links event to its organizer
     admin_comment TEXT,                          -- admin feedback on rejection/review
+    participant_limit INTEGER,                   -- max number of allowed participants
+    is_paid BOOLEAN DEFAULT false,               -- whether event is free or paid
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

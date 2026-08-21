@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { handleEventQuery, extractAndSavePreferences } from './rag';
-import { insertEventRSVP } from './queries/events';
+import { insertEventRSVP, getEventById } from './queries/events';
 import { getUserByPhone, createUser, updateUserChatHistory } from './queries/users';
 import { config } from './config';
 
@@ -44,6 +44,19 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
     res.sendStatus(200);
     const eventId = interactiveId.replace('rsvp_', '');
     try {
+      const event = await getEventById(pool, eventId);
+      if (!event) {
+        await sendWhatsAppMessage(phoneNumberId, from, `❌ Sorry, we couldn't find that event.`);
+        return;
+      }
+      if (event.status === 'housefull' || (event.participant_limit && event.rsvp_count >= event.participant_limit)) {
+        await sendWhatsAppMessage(
+          phoneNumberId, from,
+          `😔 Sorry, *${event.title}* is already housefull! We hope to see you at another event soon.`
+        );
+        return;
+      }
+
       await insertEventRSVP(pool, eventId, from);
       console.log(`[Interactive RSVP] ${from} booked event ${eventId}`);
       await sendWhatsAppMessage(

@@ -123,9 +123,18 @@ export default function EventDetailsPage() {
       const data = await res.json();
       if (data.success) {
         setRsvped(true);
+        // Refresh event data to update rsvp_count
+        const refreshedEventRes = await fetch(`${baseUrl}/api/events/${params.id}`);
+        const refreshedEvent = await refreshedEventRes.json();
+        if (refreshedEvent.success) {
+          setEvent(refreshedEvent.data);
+        }
+      } else {
+        toast.error(data.error || "RSVP failed");
       }
     } catch (err) {
       console.error("RSVP failed", err);
+      toast.error("An error occurred during RSVP");
     }
   };
 
@@ -170,6 +179,8 @@ export default function EventDetailsPage() {
 
   if (!event) return null;
 
+  const isHousefull = event.status === 'housefull' || (event.participant_limit && (event.rsvp_count || 0) >= event.participant_limit);
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-8 animate-in fade-in duration-700">
       <Link href="/dashboard" className="group flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
@@ -182,7 +193,7 @@ export default function EventDetailsPage() {
         {/* Left Side: Editorial Content */}
         <div className="flex-1 p-8 sm:p-12 space-y-10 relative z-10">
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <div 
                 className={`sticker-badge text-white border-none ${isVibrant ? '' : 'bg-primary'}`}
                 style={isVibrant ? { backgroundColor: getCategoryAccentColor(event.category) } : {}}
@@ -190,6 +201,12 @@ export default function EventDetailsPage() {
                 {event.category}
               </div>
               <div className="sticker-badge bg-zinc-100 border-none text-zinc-400">Verified Vibe</div>
+              <div className="sticker-badge bg-zinc-100 border-none text-zinc-500 font-bold">
+                {event.is_paid ? "Paid Event" : "Free Entry"}
+              </div>
+              {event.status === 'housefull' && (
+                <div className="sticker-badge bg-red-500 border-none text-white font-black animate-pulse">Housefull</div>
+              )}
             </div>
             
             <h1 className="text-4xl sm:text-6xl font-black tracking-tighter text-black leading-[0.9] uppercase italic">
@@ -204,17 +221,19 @@ export default function EventDetailsPage() {
           <div className="flex flex-col sm:flex-row gap-4 pt-6">
             <button 
               onClick={handleRSVP}
-              disabled={rsvped}
+              disabled={rsvped || isHousefull}
               className={`ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all rounded-[20px] ${
-                rsvped 
-                ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed' 
-                : isVibrant 
-                  ? 'bg-black text-white hover:bg-zinc-800 vibe-shimmer'
-                  : 'bg-black text-white hover:bg-zinc-800'
+                isHousefull
+                ? 'bg-red-500 text-white cursor-not-allowed hover:bg-red-600'
+                : rsvped 
+                  ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed' 
+                  : isVibrant 
+                    ? 'bg-black text-white hover:bg-zinc-800 vibe-shimmer'
+                    : 'bg-black text-white hover:bg-zinc-800'
               }`}
             >
               {rsvped ? <CheckCircle2 className="h-5 w-5" /> : null}
-              {rsvped ? "ALREADY IN" : "RSVP TO EVENT"}
+              {isHousefull ? "HOUSEFULL" : rsvped ? "ALREADY IN" : "RSVP TO EVENT"}
             </button>
             
             <button 
@@ -271,6 +290,16 @@ export default function EventDetailsPage() {
                    {event.rsvp_count || 0} {event.rsvp_count === 1 ? 'Vibe Seeker' : 'Vibe Seekers'}
                  </div>
               </div>
+
+              {event.participant_limit && (
+                <div className="space-y-1">
+                   <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Event Capacity</div>
+                   <div className="flex items-center gap-2 text-black font-black">
+                     <Users className="h-4 w-4 text-primary" />
+                     {event.participant_limit} spots
+                   </div>
+                </div>
+              )}
            </div>
 
            <div className="pt-8 border-t border-black/5 flex flex-col gap-4">

@@ -53,6 +53,8 @@ export async function initializeDatabaseSchema(pool: Pool) {
 
   // Admin comment for rejection / change request feedback
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS admin_comment TEXT`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS participant_limit INTEGER`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_paid BOOLEAN DEFAULT false`);
 
   // Organizer Followers CRM
   await pool.query(`

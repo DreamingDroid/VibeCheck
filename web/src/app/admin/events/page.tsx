@@ -29,12 +29,14 @@ type Event = {
   id: string; title: string; description: string; category: string;
   location: string; date_time: string; end_time?: string; timings?: string; external_link: string; contact_info: string;
   status?: string; admin_comment?: string; organizer_email?: string;
+  participant_limit?: number; is_paid?: boolean;
 };
 
 const emptyForm = { 
   title: "", description: "", category: "General", location: "", 
   startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM",
-  timings: "", external_link: "", contact_info: "" 
+  timings: "", external_link: "", contact_info: "",
+  participantLimit: "", isPaid: false
 };
 
 function AdminEventsPageContent() {
@@ -118,6 +120,8 @@ function AdminEventsPageContent() {
       endTime: fTime(end),
       timings: ev.timings || "",
       external_link: ev.external_link || "", contact_info: ev.contact_info || "",
+      participantLimit: ev.participant_limit ? String(ev.participant_limit) : "",
+      isPaid: ev.is_paid || false
     });
     setEditingId(ev.id);
     setShowForm(true);
@@ -233,6 +237,8 @@ function AdminEventsPageContent() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
         ...form, 
+        participant_limit: form.participantLimit ? parseInt(form.participantLimit, 10) : null,
+        is_paid: form.isPaid,
         date_time: start_iso,
         end_time: end_iso
       }),
@@ -372,6 +378,33 @@ function AdminEventsPageContent() {
                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">External Linkages</Label>
                 <Input value={form.external_link} onChange={e => setForm(f => ({ ...f, external_link: e.target.value }))}
                   placeholder="https://..." className="bg-white border-black/5 h-12 rounded-xl text-xs font-bold" />
+              </div>
+
+              <div className="md:col-span-2 space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Pricing Logic</Label>
+                <div className="flex bg-white p-1 rounded-xl border border-black/5 divide-x divide-black/5">
+                  <button 
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, isPaid: false }))}
+                    className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${!form.isPaid ? 'bg-black text-white' : 'text-zinc-400 hover:text-black'}`}
+                  >
+                    Free Entry
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, isPaid: true }))}
+                    className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${form.isPaid ? 'bg-black text-white' : 'text-zinc-400 hover:text-black'}`}
+                  >
+                    Paid Entry
+                  </button>
+                </div>
+              </div>
+
+              <div className="md:col-span-2 space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Event Capacity Limit</Label>
+                <Input type="number" min="1" value={form.participantLimit}
+                  onChange={e => setForm(f => ({ ...f, participantLimit: e.target.value }))}
+                  placeholder="e.g. 50 (leave blank for unlimited)" className="bg-white border-black/5 h-12 rounded-xl text-xs font-bold" />
               </div>
 
               <div className="md:col-span-2 flex justify-end pt-4">

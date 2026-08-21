@@ -31,6 +31,9 @@ type VibeEvent = {
   rsvp_count?: number;
   google_maps_link?: string;
   city?: string;
+  participant_limit?: number;
+  is_paid?: boolean;
+  status?: string;
 };
 
 export default function Dashboard() {
@@ -177,9 +180,14 @@ export default function Dashboard() {
                   {new Date(featuredEvent.date_time).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <div className="sticker-badge border-black text-black">{featuredEvent.category}</div>
-                <div className="sticker-badge bg-zinc-100 border-none text-zinc-500">Free Entry</div>
+                <div className="sticker-badge bg-zinc-100 border-none text-zinc-500">
+                  {featuredEvent.is_paid ? "Paid Entry" : "Free Entry"}
+                </div>
+                {featuredEvent.status === 'housefull' && (
+                  <div className="sticker-badge bg-red-500 border-none text-white font-black animate-pulse">Housefull</div>
+                )}
                 <div className="sticker-badge bg-primary/10 border-none text-primary flex items-center gap-1.5 font-black">
                   <Users className="h-3 w-3" />
                   <span>{featuredEvent.rsvp_count || 0} Interested</span>
@@ -213,8 +221,18 @@ export default function Dashboard() {
               {isVibrant && <CategoryDecorations category={ev.category} showAccent={false} />}
               <div className="p-5 sm:p-8 flex flex-col h-full space-y-6 relative z-10">
                  <div className="flex justify-between items-start">
-                   <div className={`sticker-badge ${getCategoryColor(ev.category)} text-black border-none font-black`}>
-                     {ev.category}
+                   <div className="flex flex-wrap gap-2">
+                     <div className={`sticker-badge ${getCategoryColor(ev.category)} text-black border-none font-black`}>
+                       {ev.category}
+                     </div>
+                     <div className="sticker-badge bg-zinc-100 border-none text-zinc-500 font-bold text-[10px]">
+                       {ev.is_paid ? "Paid" : "Free"}
+                     </div>
+                     {ev.status === 'housefull' && (
+                       <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] animate-pulse">
+                         Housefull
+                       </div>
+                     )}
                    </div>
                    <div className="flex items-center gap-2">
                      <button 

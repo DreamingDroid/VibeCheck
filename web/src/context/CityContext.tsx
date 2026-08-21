@@ -18,6 +18,9 @@ export interface VibeEvent {
   rsvp_count?: number;
   google_maps_link?: string;
   city?: string;
+  participant_limit?: number;
+  is_paid?: boolean;
+  status?: string;
 }
 
 interface CityContextType {

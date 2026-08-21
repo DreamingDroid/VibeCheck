@@ -24,7 +24,7 @@ const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
   return `${displayHour}:${min} ${ampm}`;
 });
 
-function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminComment, onEdit }: { eventId: string, title: string, status: string, dateStr: string, organizerEmail: string, adminComment?: string, onEdit?: () => void }) {
+function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminComment, onEdit, onStatusUpdated }: { eventId: string, title: string, status: string, dateStr: string, organizerEmail: string, adminComment?: string, onEdit?: () => void, onStatusUpdated?: () => void }) {
   const [rsvps, setRsvps] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -126,6 +126,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved': return <span className="sticker-badge bg-primary/10 text-primary border-primary/20">Approved</span>;
+      case 'housefull': return <span className="sticker-badge bg-red-500/10 text-red-600 border-red-500/20">Housefull</span>;
       case 'rejected': return <span className="sticker-badge bg-destructive/10 text-destructive border-destructive/20">Rejected</span>;
       case 'needs_changes': return <span className="sticker-badge bg-orange-500/10 text-orange-600 border-orange-500/20">Needs Changes</span>;
       default: return <span className="sticker-badge bg-amber-500/10 text-amber-600 border-amber-500/20">Pending</span>;
@@ -151,7 +152,34 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
           )}
         </div>
         <div className="flex flex-col md:flex-row gap-2 items-center shrink-0">
-          {status === 'approved' && (
+          {(status === 'approved' || status === 'housefull') && (
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                try {
+                  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+                  const res = await fetch(`${baseUrl}/api/organizer/events/${eventId}/toggle-housefull`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ organizer_email: organizerEmail })
+                  });
+                  const d = await res.json();
+                  if (d.success) {
+                    toast.success(d.message);
+                    if (onStatusUpdated) onStatusUpdated();
+                  } else {
+                    toast.error(d.error || "Failed to toggle status");
+                  }
+                } catch (err) {
+                  toast.error("An error occurred");
+                }
+              }}
+              className="ringer-button border border-red-500 text-red-500 hover:bg-red-50 text-[10px]"
+            >
+              {status === 'housefull' ? 'REOPEN EVENT' : 'MARK HOUSEFULL'}
+            </button>
+          )}
+          {(status === 'approved' || status === 'housefull') && (
             <>
               <button onClick={openPromoKit} className="ringer-button bg-black text-white hover:bg-zinc-800 text-[10px] flex items-center gap-2">
                 ✨ AI PROMO KIT
@@ -166,7 +194,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
               ✏️ EDIT & RESUBMIT
             </button>
           )}
-          {(status === 'approved' || !status) && (
+          {(status === 'approved' || status === 'housefull' || !status) && (
             <button onClick={(e) => { e.stopPropagation(); loadRsvps(); }} className="ringer-button border border-black/5 hover:bg-black/5 text-black text-[10px]">
               {open ? "HIDE GUESTLIST" : "VIEW GUESTLIST"}
             </button>
@@ -368,7 +396,8 @@ export default function OrganizerDashboard() {
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({
     title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
-    startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM"
+    startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM",
+    participantLimit: "", isPaid: false
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -449,6 +478,8 @@ export default function OrganizerDashboard() {
       location: ev.location || "", city: ev.city || "", google_maps_link: ev.google_maps_link || "", timings: ev.timings || "",
       startDate: fDate(start), endDate: fDate(end),
       startTime: fTime(start), endTime: fTime(end),
+      participantLimit: ev.participant_limit ? String(ev.participant_limit) : "",
+      isPaid: ev.is_paid || false
     });
     setEditingEventId(ev.id);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -458,7 +489,8 @@ export default function OrganizerDashboard() {
     setEditingEventId(null);
     setFormData({
       title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
-      startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM"
+      startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM",
+      participantLimit: "", isPaid: false
     });
   };
 
@@ -513,6 +545,8 @@ export default function OrganizerDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          participant_limit: formData.participantLimit ? parseInt(formData.participantLimit, 10) : null,
+          is_paid: formData.isPaid,
           date_time: start_iso,
           end_time: end_iso,
           organizer_email: session?.user?.email
@@ -522,7 +556,8 @@ export default function OrganizerDashboard() {
       if (data.success) {
         setFormData({
           title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
-          startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM"
+          startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM",
+          participantLimit: "", isPaid: false
         });
         setIsMultiDay(false);
         setEditingEventId(null);
@@ -678,6 +713,36 @@ export default function OrganizerDashboard() {
 
                     <Input placeholder="Extra Timings Note (Optional)" value={formData.timings} onChange={e => setFormData({ ...formData, timings: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
 
+                    {/* Free vs Paid Switcher */}
+                    <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/5">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, isPaid: false })}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${!formData.isPaid ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
+                      >
+                        Free Entry
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, isPaid: true })}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${formData.isPaid ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
+                      >
+                        Paid Entry
+                      </button>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="Event Capacity Limit (Optional)"
+                        value={formData.participantLimit}
+                        onChange={e => setFormData({ ...formData, participantLimit: e.target.value })}
+                        className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold"
+                      />
+                      <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Leave blank for no limit.</p>
+                    </div>
+
                     <div className="space-y-1">
                       <Input name="location" placeholder="Location Name (e.g. Rushikonda Beach)" value={formData.location} onChange={e => { setFormData({ ...formData, location: e.target.value }); if (errors.location) setErrors({ ...errors, location: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.location && "border-red-500 ring-red-500/20")} />
                       {errors.location && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Location name is required</p>}
@@ -711,7 +776,7 @@ export default function OrganizerDashboard() {
               ) : (
                 <div className="space-y-4">
                   {myEvents.map(ev => (
-                    <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} dateStr={ev.date_time} organizerEmail={session?.user?.email || ""} adminComment={ev.admin_comment} onEdit={() => handleEditInit(ev)} />
+                    <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} dateStr={ev.date_time} organizerEmail={session?.user?.email || ""} adminComment={ev.admin_comment} onEdit={() => handleEditInit(ev)} onStatusUpdated={() => loadMyEvents()} />
                   ))}
                 </div>
               )}
