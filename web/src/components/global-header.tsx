@@ -8,7 +8,7 @@ import {
   ChevronDown, MapPin, Search, Music, Mic2, Tv,
   Trophy, Palette, BookOpen, Compass, Heart,
   Activity, Wine, Smile, Briefcase, Sparkles, Bell,
-  SunMoon
+  SunMoon, Menu, X
 } from "lucide-react"
 import { useTheme } from "@/context/ThemeContext"
 
@@ -54,6 +54,7 @@ export function GlobalHeader() {
   const { data: session } = useSession()
   const { theme, toggleTheme, isVibrant } = useTheme()
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { 
     currentCity, setCity, supportedCities, isLoading,
     selectedCategory, setSelectedCategory, activeCategories
@@ -105,7 +106,7 @@ export function GlobalHeader() {
           {/* Logo & City */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-1.5 sm:gap-2">
-              <div className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full bg-primary shrink-0" />
+              <img src="/logo.png" alt="VibeCheck Logo" className="h-5 w-5 sm:h-6 sm:w-6 rounded-lg shrink-0 object-contain" />
               <span className="text-lg sm:text-xl font-black tracking-tighter uppercase italic">VIBECHECK</span>
             </Link>
 
@@ -273,6 +274,15 @@ export function GlobalHeader() {
                 JOIN THE VIBE
               </button>
             )}
+
+            {/* Hamburger Button for Mobile */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="lg:hidden p-2 hover:bg-black/5 rounded-full transition-all text-zinc-600 hover:text-black shrink-0"
+              aria-label="Toggle Menu"
+            >
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
 
@@ -300,6 +310,93 @@ export function GlobalHeader() {
            })}
         </div>
       </header>
+
+      {/* Mobile Menu Drawer */}
+      {isMobileMenuOpen && (
+        <>
+          <div className="fixed inset-0 top-[125px] z-40 bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setIsMobileMenuOpen(false)} />
+          <div className="fixed top-[125px] left-0 right-0 z-50 bg-white border-b border-black/5 shadow-2xl p-6 flex flex-col gap-6 animate-in slide-in-from-top duration-300 lg:hidden overflow-y-auto max-h-[calc(100vh-125px)] no-scrollbar">
+            {/* Search Bar in Mobile Menu */}
+            <div className="relative w-full">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-zinc-400" />
+              </div>
+              <input 
+                type="text"
+                placeholder="Discover your next vibe"
+                className="block w-full pl-11 pr-4 py-3 bg-zinc-100/50 border-none rounded-full text-xs font-bold focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all placeholder:text-zinc-500 text-black"
+              />
+            </div>
+
+            {/* Navigation links */}
+            <nav className="flex flex-col gap-3">
+              {session ? (
+                <>
+                  <Link href="/preferences" onClick={() => setIsMobileMenuOpen(false)}>
+                    <div className="w-full text-left px-5 py-4 rounded-2xl bg-zinc-50 hover:bg-black hover:text-white transition-all text-xs font-black uppercase tracking-widest">
+                      PREFERENCES
+                    </div>
+                  </Link>
+
+                  {isOrganizer && organizerStatus === 'approved' ? (
+                    <Link href="/organizer" onClick={() => setIsMobileMenuOpen(false)}>
+                      <div className="w-full text-left px-5 py-4 rounded-2xl bg-primary/10 text-primary hover:bg-primary hover:text-black transition-all text-xs font-black uppercase tracking-widest">
+                        ORGANIZER HUB
+                      </div>
+                    </Link>
+                  ) : (
+                    !(organizerStatus === 'pending_approval' || organizerStatus === 'rejected') && (
+                      <Link href="/organizer/apply" onClick={() => setIsMobileMenuOpen(false)}>
+                        <div className="w-full text-left px-5 py-4 rounded-2xl bg-zinc-50 hover:bg-black hover:text-white transition-all text-xs font-black uppercase tracking-widest">
+                          BECOME AN ORGANIZER
+                        </div>
+                      </Link>
+                    )
+                  )}
+
+                  {isAdmin && (
+                    <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)}>
+                      <div className="w-full text-left px-5 py-4 rounded-2xl bg-black text-white hover:bg-zinc-800 transition-all text-xs font-black uppercase tracking-widest">
+                        ADMIN PANEL
+                      </div>
+                    </Link>
+                  )}
+                </>
+              ) : (
+                <button
+                  onClick={() => { signIn("google"); setIsMobileMenuOpen(false); }}
+                  className="w-full text-center py-4 rounded-2xl bg-primary text-black font-black uppercase tracking-widest text-xs hover:bg-primary/90 transition-all shadow-md"
+                >
+                  JOIN THE VIBE
+                </button>
+              )}
+            </nav>
+
+            {/* Mobile Actions / Theme Toggle */}
+            <div className="flex items-center justify-between pt-4 border-t border-black/5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Theme Preference</span>
+              <button
+                onClick={() => { toggleTheme(); setIsMobileMenuOpen(false); }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-xs font-bold transition-all ${
+                  isVibrant
+                    ? 'bg-gradient-to-br from-purple-100 to-pink-100 border-purple-200 text-purple-600'
+                    : 'bg-zinc-50 border-black/10 text-zinc-600'
+                }`}
+              >
+                {isVibrant ? (
+                  <>
+                    <Sparkles className="h-3.5 w-3.5" /> Vibrant Theme
+                  </>
+                ) : (
+                  <>
+                    <SunMoon className="h-3.5 w-3.5" /> Ringer Theme
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

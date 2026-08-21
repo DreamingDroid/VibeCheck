@@ -548,7 +548,7 @@ export default function OrganizerDashboard() {
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-black/5 pb-12 gap-8">
           <div>
-            <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-[0.9]">
+            <h1 className="text-3xl sm:text-5xl font-black italic tracking-tighter uppercase leading-[0.9]">
               The Control Room
             </h1>
             <p className="text-zinc-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Deploy and manage your local vibes</p>

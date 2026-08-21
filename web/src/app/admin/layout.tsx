@@ -76,15 +76,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-background text-black flex flex-col md:flex-row">
       {/* Sidebar */}
       <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-black/5 flex flex-col shrink-0">
-        <div className="p-8 border-b border-black/5">
-          <p className="text-[10px] text-primary font-black tracking-[0.2em] uppercase mb-1">VIBECHECK</p>
-          <h2 className="text-xl font-black italic tracking-tighter uppercase italic">Admin Panel</h2>
+        <div className="p-4 md:p-8 border-b border-black/5 flex flex-row md:flex-col justify-between items-center md:items-start">
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="VibeCheck Logo" className="h-6 w-6 rounded-lg shrink-0 object-contain" />
+            <div>
+              <p className="text-[9px] text-primary font-black tracking-[0.2em] uppercase mb-0.5 leading-none">VIBECHECK</p>
+              <h2 className="text-xs md:text-sm font-black italic tracking-tighter uppercase leading-none">Admin Panel</h2>
+            </div>
+          </div>
+          <Link href="/dashboard" className="md:hidden">
+            <div className="px-3 py-1.5 rounded-full border border-black/10 text-[9px] font-black uppercase tracking-widest text-zinc-600 hover:bg-black/5 hover:text-black transition-all flex items-center gap-1.5">
+              <ArrowLeft className="h-3 w-3" /> Exit
+            </div>
+          </Link>
         </div>
         
-        <nav className="flex-1 p-6 space-y-2 flex flex-row md:flex-col overflow-x-auto md:overflow-visible gap-2 md:gap-0">
+        <nav className="flex-1 p-4 md:p-6 space-y-0 md:space-y-2 flex flex-row md:flex-col overflow-x-auto md:overflow-visible gap-2 md:gap-0 no-scrollbar">
           {navItems.map(item => (
-            <Link key={item.href} href={item.href} className="w-full">
-              <div className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-between transition-all cursor-pointer whitespace-nowrap
+            <Link key={item.href} href={item.href} className="w-auto md:w-full shrink-0">
+              <div className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-between transition-all cursor-pointer whitespace-nowrap gap-4 md:gap-0
                 ${pathname === item.href
                   ? "bg-black text-white shadow-xl translate-x-1"
                   : "text-zinc-400 hover:bg-black/5 hover:text-black"
@@ -107,7 +117,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ))}
         </nav>
 
-        <div className="p-6 border-t border-black/5">
+        <div className="hidden md:block p-6 border-t border-black/5">
           <Link href="/dashboard">
             <div className="px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:bg-black/5 hover:text-black transition-all cursor-pointer flex items-center gap-2">
               <ArrowLeft className="h-3 w-3" />

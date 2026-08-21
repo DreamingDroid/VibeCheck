@@ -73,7 +73,7 @@ export default function Home() {
           <span>vizag's exclusive network</span>
         </div>
         
-        <h1 className="text-6xl md:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] text-black drop-shadow-sm relative">
+        <h1 className="text-4xl sm:text-6xl md:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] text-black drop-shadow-sm relative">
           {isVibrant && (
             <span className="absolute inset-0 blur-3xl opacity-10 bg-gradient-to-r from-purple-400 via-pink-300 to-amber-300 rounded-full -z-10" />
           )}

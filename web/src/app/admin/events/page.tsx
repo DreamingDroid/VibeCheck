@@ -250,7 +250,7 @@ function AdminEventsPageContent() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-black/5 pb-10">
         <div>
-          <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-[0.9]">
+          <h1 className="text-3xl sm:text-5xl font-black italic tracking-tighter uppercase leading-[0.9]">
             Vibe Catalog
           </h1>
           <p className="text-zinc-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Inventory Management of Experiences</p>

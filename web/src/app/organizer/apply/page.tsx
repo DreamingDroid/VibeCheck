@@ -144,7 +144,7 @@ export default function OrganizerApplyPage() {
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col items-center py-12 md:py-20 px-4">
       <div className="max-w-4xl w-full">
-        <h1 className="text-5xl font-black italic tracking-tighter uppercase mb-4 text-center">Become a <span className="text-primary">Guardian</span></h1>
+        <h1 className="text-3xl sm:text-5xl font-black italic tracking-tighter uppercase mb-4 text-center">Become a <span className="text-primary">Guardian</span></h1>
         <p className="text-zinc-500 text-sm font-bold text-center mb-12 uppercase tracking-widest">Apply to organize events on VibeCheck</p>
 
         <Card className="ringer-card border-none bg-white shadow-xl">

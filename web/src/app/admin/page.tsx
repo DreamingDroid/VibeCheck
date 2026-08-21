@@ -39,14 +39,14 @@ function EventRsvpList({ eventId, title, dateStr }: { eventId: string, title: st
 
   return (
     <div className="ringer-card overflow-hidden group mb-4">
-      <div className="flex justify-between items-center p-6 bg-white cursor-pointer hover:bg-zinc-50 transition-colors" onClick={loadRsvps}>
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center p-6 bg-white cursor-pointer hover:bg-zinc-50 transition-colors gap-4" onClick={loadRsvps}>
         <div className="flex flex-col">
           <span className="text-black font-black uppercase tracking-tighter italic text-lg">{title}</span>
           <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mt-1">
             {new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric'})}
           </span>
         </div>
-        <button className="ringer-button bg-black text-white text-[10px]">
+        <button className="ringer-button bg-black text-white text-[10px] w-full sm:w-auto shrink-0">
           {open ? "CLOSE" : "VIEW GUEST LIST"}
         </button>
       </div>
@@ -103,7 +103,7 @@ function OrganizerRequestsSummaryCard() {
           </div>
         </div>
         <h3 className="text-black text-sm font-black uppercase tracking-[0.1em] mb-2 leading-none">Organizer Requests</h3>
-        <p className="text-5xl font-black italic tracking-tighter leading-none mt-2 text-black">
+        <p className="text-3xl sm:text-5xl font-black italic tracking-tighter leading-none mt-2 text-black">
           {count === null ? "..." : `${count} Pending`}
         </p>
       </div>
@@ -139,7 +139,7 @@ function EventRequestsSummaryCard() {
           </div>
         </div>
         <h3 className="text-black text-sm font-black uppercase tracking-[0.1em] mb-2 leading-none">Event Requests</h3>
-        <p className="text-5xl font-black italic tracking-tighter leading-none mt-2 text-black">
+        <p className="text-3xl sm:text-5xl font-black italic tracking-tighter leading-none mt-2 text-black">
           {count === null ? "..." : `${count} Pending`}
         </p>
       </div>
@@ -247,7 +247,7 @@ export default function AdminPage() {
       {/* Editorial Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 border-b border-black/5 pb-12">
         <div>
-          <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-[0.9]">
+          <h1 className="text-3xl sm:text-5xl font-black italic tracking-tighter uppercase leading-[0.9]">
             The Mission Room
           </h1>
           <p className="text-zinc-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Core Platform Integrity & Analytics</p>
@@ -296,7 +296,7 @@ export default function AdminPage() {
                    {s.icon}
                  </div>
                </div>
-               <p className="text-6xl font-black italic tracking-tighter leading-none">{s.value}</p>
+               <p className="text-4xl sm:text-6xl font-black italic tracking-tighter leading-none">{s.value}</p>
             </div>
           );
 

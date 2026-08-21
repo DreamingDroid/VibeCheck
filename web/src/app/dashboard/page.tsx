@@ -139,8 +139,8 @@ export default function Dashboard() {
       
       {/* Editorial Hero Section */}
       {featuredEvent && (
-        <section className="relative group cursor-pointer overflow-hidden ringer-card h-[500px] flex flex-col md:flex-row shadow-2xl rounded-[24px] md:rounded-[40px]">
-           <div className={`w-full md:w-1/2 ${getCategoryColor(featuredEvent.category)} p-5 sm:p-8 flex flex-col justify-between relative overflow-hidden`}>
+        <section className="relative group cursor-pointer overflow-hidden ringer-card h-auto md:h-[500px] flex flex-col md:flex-row shadow-2xl rounded-[24px] md:rounded-[40px]">
+           <div className={`w-full md:w-1/2 ${getCategoryColor(featuredEvent.category)} p-6 sm:p-8 flex flex-col justify-between gap-8 md:gap-0 min-h-[320px] md:min-h-0 relative overflow-hidden`}>
               {isVibrant && <CategoryDecorations category={featuredEvent.category} showAccent={false} />}
               <div className="sticker-badge bg-black text-white w-fit px-4 border-none flex items-center gap-2 relative z-10">
                 <TrendingUp className="h-3 w-3" />

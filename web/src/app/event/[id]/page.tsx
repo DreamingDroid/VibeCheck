@@ -228,7 +228,7 @@ export default function EventDetailsPage() {
         </div>
 
         {/* Right Side: Meta Info Box */}
-        <div className="w-full md:w-80 bg-zinc-50 border-l border-black/5 p-8 sm:p-12 space-y-12">
+        <div className="w-full md:w-80 bg-zinc-50 border-t md:border-t-0 md:border-l border-black/5 p-8 sm:p-12 space-y-12">
            <div className="space-y-6">
               <div className="space-y-1">
                  <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Date & Time</div>
