@@ -72,18 +72,7 @@ async function initializeDatabase() {
   try {
     console.log('[DB] Ensuring database schema...');
 
-    // Core tables used globally
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS event_rsvps (
-        id SERIAL PRIMARY KEY,
-        event_id UUID REFERENCES events(id) ON DELETE CASCADE,
-        user_email TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(event_id, user_email)
-      );
-    `);
-
-    // Bootstrap data schema via DAL
+    // Bootstrap data schema via DAL (handles all table creation and references safely)
     await initializeDatabaseSchema(client as any);
 
     console.log('[DB] Database schema is up to date.');
