@@ -1,48 +1,128 @@
 import { Pool } from 'pg';
 
 export async function initializeDatabaseSchema(pool: Pool) {
-  // Ensure admins table exists with roles
+  // 1. Ensure the pgvector extension is available
+  await pool.query(`CREATE EXTENSION IF NOT EXISTS vector;`).catch((err) => {
+    console.error('Failed to create vector extension:', err.message);
+  });
+
+  // 2. Create Enums
+  await pool.query(`
+    CREATE TYPE event_category AS ENUM (
+      'Sports', 'Arts', 'Education', 'Spiritual', 'Music', 'Food', 'Wellness', 'Indie', 'Techno', 'General'
+    );
+  `).catch(() => {}); // Ignore if already exists
+
   await pool.query(`
     CREATE TYPE admin_role AS ENUM ('SuperAdmin', 'Editor', 'organizer');
   `).catch(() => {}); // Ignore if already exists
-  
+
+  // 3. Create Users table (WhatsApp Users / Tier 2)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      phone_number VARCHAR(255) UNIQUE NOT NULL,
+      name VARCHAR(255),
+      preferences JSONB DEFAULT '{}'::jsonb,
+      chat_history JSONB DEFAULT '[]'::jsonb,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // 4. Create Web Users table (Google-authenticated / Tier 1)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS web_users (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      email VARCHAR(255) UNIQUE NOT NULL,
+      name VARCHAR(255),
+      categories JSONB DEFAULT '[]'::jsonb,
+      phone_number VARCHAR(255) UNIQUE,
+      city VARCHAR(100),
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // 5. Create Admins & Organizers table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS admins (
-      email VARCHAR(255) PRIMARY KEY,
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      email VARCHAR(255) UNIQUE NOT NULL,
       role admin_role DEFAULT 'Editor',
+      status VARCHAR(50) DEFAULT 'pending_approval',
+      brand_name VARCHAR(255),
+      description TEXT,
+      social_links JSONB,
+      phone_number VARCHAR(255) UNIQUE,
+      email_verified BOOLEAN DEFAULT false,
+      phone_verified BOOLEAN DEFAULT false,
+      rejection_reason TEXT,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
-  await pool.query(`ALTER TYPE admin_role ADD VALUE IF NOT EXISTS 'organizer'`).catch(() => {});
+  // 6. Create System Settings table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS system_settings (
+      key VARCHAR(100) PRIMARY KEY,
+      value JSONB NOT NULL DEFAULT 'null'::jsonb,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 
-  // Append organizer properties to admins table if missing in older schema versions
-  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS id UUID DEFAULT gen_random_uuid()`);
-  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending_approval'`);
-  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS brand_name VARCHAR(255)`);
-  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS description TEXT`);
-  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS social_links JSONB`);
-  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS phone_number VARCHAR(255)`);
-  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false`);
-  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN DEFAULT false`);
-  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS rejection_reason TEXT`);
+  // Seed default system settings
+  await pool.query(`
+    INSERT INTO system_settings (key, value)
+    VALUES ('cron_enabled', 'false'::jsonb)
+    ON CONFLICT (key) DO NOTHING;
+  `);
 
-  // Append new event properties seamlessly
-  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'`);
-  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_email TEXT`);
-  
-  // Append missing columns implicitly as they were added in later iterations
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_history JSONB DEFAULT '[]'::jsonb`);
-  
-  // New columns for Web Preferences Tier 1 & 2 Syncing
-  await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
-  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
-  
-  // Update RSVP system to track by phone if they come from WhatsApp, or email if Web
-  await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS phone_number TEXT`);
-  await pool.query(`ALTER TABLE event_rsvps ALTER COLUMN user_email DROP NOT NULL`);
+  // 7. Create Events table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS events (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      category event_category NOT NULL DEFAULT 'General',
+      title VARCHAR(255) NOT NULL,
+      description TEXT NOT NULL,
+      date_time TIMESTAMP WITH TIME ZONE,
+      location VARCHAR(255),
+      city VARCHAR(100),
+      age_group int4range,
+      external_link TEXT,
+      google_maps_link TEXT,
+      contact_info VARCHAR(255),
+      embedding vector(1024),
+      status VARCHAR(20) DEFAULT 'approved',
+      organizer_email TEXT,
+      admin_comment TEXT,
+      participant_limit INTEGER,
+      is_paid BOOLEAN DEFAULT false,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 
-  // Ensure cities table
+  // Index on event embeddings
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS events_embedding_hnsw_idx ON events USING hnsw (embedding vector_cosine_ops);
+  `).catch((err) => {
+    console.error('Failed to create hnsw index:', err.message);
+  });
+
+  // 8. Create Event RSVPs table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS event_rsvps (
+      id SERIAL PRIMARY KEY,
+      event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+      user_email TEXT,
+      phone_number TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(event_id, user_email)
+    );
+  `);
+
+  // 9. Create Cities table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS cities (
       id SERIAL PRIMARY KEY,
@@ -51,12 +131,7 @@ export async function initializeDatabaseSchema(pool: Pool) {
     );
   `);
 
-  // Admin comment for rejection / change request feedback
-  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS admin_comment TEXT`);
-  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS participant_limit INTEGER`);
-  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_paid BOOLEAN DEFAULT false`);
-
-  // Organizer Followers CRM
+  // 10. Create Organizer Followers table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS organizer_followers (
       id SERIAL PRIMARY KEY,
@@ -67,13 +142,37 @@ export async function initializeDatabaseSchema(pool: Pool) {
     );
   `);
 
-  // Auto-seed default cities if empty
+  // ─── Schema Migration Safeguards ───────────────────────────────────────────
+  // These keep backward compatibility with older database builds. Since this is a
+  // fresh schema, they will mostly act as no-ops.
+  await pool.query(`ALTER TYPE admin_role ADD VALUE IF NOT EXISTS 'organizer'`).catch(() => {});
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS id UUID DEFAULT gen_random_uuid()`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending_approval'`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS brand_name VARCHAR(255)`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS description TEXT`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS social_links JSONB`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS phone_number VARCHAR(255)`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN DEFAULT false`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS rejection_reason TEXT`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_email TEXT`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_history JSONB DEFAULT '[]'::jsonb`);
+  await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
+  await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS phone_number TEXT`);
+  await pool.query(`ALTER TABLE event_rsvps ALTER COLUMN user_email DROP NOT NULL`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS admin_comment TEXT`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS participant_limit INTEGER`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_paid BOOLEAN DEFAULT false`);
+
+  // Seed default cities if empty
   const { rows: cityRows } = await pool.query('SELECT COUNT(*) FROM cities');
   if (parseInt(cityRows[0].count) === 0) {
-      const initialCities = ['Vizag', 'Bangalore', 'London'];
-      for (const city of initialCities) {
-          await pool.query('INSERT INTO cities (name) VALUES ($1) ON CONFLICT DO NOTHING', [city]);
-      }
-      console.log('Seeded initial cities');
+    const initialCities = ['Vizag', 'Bangalore', 'London'];
+    for (const city of initialCities) {
+      await pool.query('INSERT INTO cities (name) VALUES ($1) ON CONFLICT DO NOTHING', [city]);
+    }
+    console.log('Seeded initial cities');
   }
 }
