@@ -111,6 +111,27 @@ app.get('/health', async (_req, res) => {
   }
 });
 
+app.get('/debug/db', async (_req, res) => {
+  try {
+    const tablesResult = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `);
+    const tables = tablesResult.rows.map(r => r.table_name);
+    res.json({
+      success: true,
+      tables,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+      stack: (error as Error).stack,
+    });
+  }
+});
+
 app.post('/query', async (req, res) => {
   try {
     const result = await handleEventQuery(pool, req.body);
