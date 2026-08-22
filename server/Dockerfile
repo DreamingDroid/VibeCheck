@@ -2,7 +2,7 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --include=dev
 
 # ---- Stage 2: Compile TypeScript ----
 FROM node:20-alpine AS builder
