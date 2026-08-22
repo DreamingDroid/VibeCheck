@@ -11,15 +11,15 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: "ringer",
+  theme: "vibrant",
   toggleTheme: () => {},
-  isVibrant: false,
+  isVibrant: true,
 })
 
 const STORAGE_KEY = "vibecheck-theme"
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<ThemeName>("ringer")
+  const [theme, setTheme] = useState<ThemeName>("vibrant")
   const [mounted, setMounted] = useState(false)
 
   // Read from localStorage on mount
@@ -28,6 +28,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const stored = localStorage.getItem(STORAGE_KEY) as ThemeName | null
       if (stored === "vibrant" || stored === "ringer") {
         setTheme(stored)
+      } else {
+        setTheme("vibrant")
       }
     } catch {
       // localStorage not available

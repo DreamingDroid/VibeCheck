@@ -97,20 +97,15 @@ export async function verifyApplyOtpHandler(req: Request, res: Response) {
 export async function submitApplicationHandler(req: Request, res: Response, pool: Pool) {
   const { 
     brandName, description, facebookUrl, instagramUrl, 
-    email, emailToken, phone, phoneToken 
+    email, phone, phoneToken 
   } = req.body;
   
-  if (!brandName || !description || !email || !phone || !emailToken || !phoneToken) {
+  if (!brandName || !description || !email || !phone || !phoneToken) {
     return res.status(400).json({ success: false, error: 'Missing required fields or tokens' });
   }
 
-  // Validate tokens
-  const emailVerif = verifiedTokens.get(emailToken);
+  // Validate phone token
   const phoneVerif = verifiedTokens.get(phoneToken);
-
-  if (!emailVerif || emailVerif.type !== 'email' || emailVerif.value !== email || Date.now() > emailVerif.expiry) {
-    return res.status(400).json({ success: false, error: 'Invalid or expired email verification token' });
-  }
 
   let formattedPhone = phone.replace(/\D/g, '');
   if (formattedPhone.length === 10) formattedPhone = '91' + formattedPhone;
@@ -123,7 +118,6 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
   }
 
   // Clean up tokens
-  verifiedTokens.delete(emailToken);
   verifiedTokens.delete(phoneToken);
 
   const socialLinks = { facebook: facebookUrl, instagram: instagramUrl };

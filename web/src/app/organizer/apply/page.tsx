@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { toast } from "sonner";
 
 export default function OrganizerApplyPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [formData, setFormData] = useState({
     brandName: "",
     description: "",
@@ -20,24 +22,35 @@ export default function OrganizerApplyPage() {
     phone: "",
   });
 
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [emailToken, setEmailToken] = useState("");
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [phoneToken, setPhoneToken] = useState("");
 
-  const [verifyModal, setVerifyModal] = useState<{ isOpen: boolean; type: "email" | "phone" | null }>({ isOpen: false, type: null });
+  const [verifyModal, setVerifyModal] = useState<{ isOpen: boolean; type: "phone" | null }>({ isOpen: false, type: null });
   const [otpCode, setOtpCode] = useState("");
   const [loading, setLoading] = useState(false);
   
   // Timer state
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes = 180 seconds
 
+  // Prefill email from Google session
+  useEffect(() => {
+    if (session?.user?.email) {
+      setFormData((prev) => ({ ...prev, email: session?.user?.email || "" }));
+    }
+  }, [session]);
+
+  // Protect route
+  useEffect(() => {
+    if (session === null) {
+      toast.error("Please sign in first.");
+      router.push("/dashboard");
+    }
+  }, [session, router]);
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (verifyModal.isOpen && timeLeft > 0) {
       timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
-    } else if (timeLeft === 0) {
-      // Timer hit 0
     }
     return () => clearInterval(timer);
   }, [verifyModal.isOpen, timeLeft]);
@@ -46,10 +59,10 @@ export default function OrganizerApplyPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSendOtp = async (type: "email" | "phone") => {
-    const value = type === "email" ? formData.email : formData.phone;
+  const handleSendOtp = async (type: "phone") => {
+    const value = formData.phone;
     if (!value) {
-      toast.error(`Please enter your ${type} first.`);
+      toast.error(`Please enter your WhatsApp number first.`);
       return;
     }
 
@@ -78,7 +91,7 @@ export default function OrganizerApplyPage() {
   const handleVerifyOtp = async () => {
     if (!verifyModal.type || !otpCode) return;
     setLoading(true);
-    const value = verifyModal.type === "email" ? formData.email : formData.phone;
+    const value = formData.phone;
 
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -89,14 +102,9 @@ export default function OrganizerApplyPage() {
       });
       const data = await res.json();
       if (data.success) {
-        if (verifyModal.type === "email") {
-          setEmailVerified(true);
-          setEmailToken(data.token);
-        } else {
-          setPhoneVerified(true);
-          setPhoneToken(data.token);
-        }
-        toast.success(`${verifyModal.type} verified successfully!`);
+        setPhoneVerified(true);
+        setPhoneToken(data.token);
+        toast.success(`Phone verified successfully!`);
         setVerifyModal({ isOpen: false, type: null });
       } else {
         toast.error(data.error || "Invalid OTP");
@@ -109,8 +117,8 @@ export default function OrganizerApplyPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!emailVerified || !phoneVerified) {
-      toast.error("Please verify both email and phone number before submitting.");
+    if (!phoneVerified) {
+      toast.error("Please verify your phone number before submitting.");
       return;
     }
 
@@ -120,7 +128,7 @@ export default function OrganizerApplyPage() {
       const res = await fetch(`${baseUrl}/api/apply/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, emailToken, phoneToken }),
+        body: JSON.stringify({ ...formData, phoneToken }),
       });
       const data = await res.json();
       if (data.success) {
@@ -177,26 +185,18 @@ export default function OrganizerApplyPage() {
                 <h3 className="text-sm font-black uppercase tracking-widest mb-4">Contact & Verification</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Email Verification Row */}
-                  <div className="bg-white border border-black/5 p-4 sm:p-5 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-black mb-3 block">Email Address *</label>
-                    <div className="flex flex-col lg:flex-row gap-3">
-                      <Input 
-                        name="email" 
-                        required 
-                        disabled={emailVerified} 
-                        value={formData.email} 
-                        onChange={handleChange} 
-                        className={`bg-zinc-100/80 font-bold border-transparent focus-visible:ring-2 focus-visible:ring-primary h-12 px-5 rounded-2xl transition-all flex-1 ${emailVerified ? 'text-primary opacity-70' : ''}`} 
-                        placeholder="guardian@vibecheck.com" 
-                        type="email" 
-                      />
-                      {emailVerified ? (
-                        <Button type="button" disabled className="bg-primary/20 text-primary border-none text-[10px] uppercase font-black px-6 h-12 rounded-2xl shrink-0"><CheckCircle2 className="h-4 w-4 mr-2" /> Verified</Button>
-                      ) : (
-                        <Button type="button" onClick={() => handleSendOtp("email")} disabled={loading || !formData.email} className="bg-black text-white text-[10px] uppercase font-black px-6 h-12 rounded-2xl hover:bg-primary hover:text-black transition-colors shadow-md hover:shadow-xl hover:-translate-y-0.5 duration-200 shrink-0">Verify</Button>
-                      )}
-                    </div>
+                  {/* Email Address (Read-only from session) */}
+                  <div className="bg-white border border-black/5 p-4 sm:p-5 rounded-3xl shadow-sm opacity-80">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-black mb-3 block">Email Address (Linked Account)</label>
+                    <Input 
+                      name="email" 
+                      readOnly 
+                      disabled
+                      value={formData.email} 
+                      className="bg-zinc-100/80 font-bold border-transparent h-12 px-5 rounded-2xl cursor-not-allowed text-zinc-500" 
+                      placeholder="guardian@vibecheck.com" 
+                      type="email" 
+                    />
                   </div>
 
                   {/* Phone Verification Row */}
@@ -223,12 +223,12 @@ export default function OrganizerApplyPage() {
               </div>
 
               <div className="pt-6">
-                <Button type="submit" disabled={loading || !emailVerified || !phoneVerified} className="w-full bg-primary text-black font-black italic tracking-tighter uppercase text-xl h-16 rounded-2xl hover:bg-primary/80 transition-colors shadow-lg hover:shadow-xl hover:-translate-y-1 duration-300">
+                <Button type="submit" disabled={loading || !phoneVerified} className="w-full bg-primary text-black font-black italic tracking-tighter uppercase text-xl h-16 rounded-2xl hover:bg-primary/80 transition-colors shadow-lg hover:shadow-xl hover:-translate-y-1 duration-300">
                   Submit Application
                 </Button>
-                {(!emailVerified || !phoneVerified) && (
+                {!phoneVerified && (
                   <p className="text-center text-xs text-zinc-400 font-bold mt-4 flex items-center justify-center gap-2">
-                    <ShieldAlert className="h-4 w-4" /> Please verify contact details to continue
+                    <ShieldAlert className="h-4 w-4" /> Please verify your WhatsApp number to continue
                   </p>
                 )}
               </div>
@@ -246,12 +246,12 @@ export default function OrganizerApplyPage() {
                 <ShieldAlert className="h-8 w-8 text-primary" />
               </div>
               <h2 className="text-2xl font-black italic uppercase tracking-tighter">Verify {verifyModal.type}</h2>
-              <p className="text-zinc-500 text-xs font-bold mt-2 mb-4">Enter the 6-digit code sent to your {verifyModal.type}</p>
+              <p className="text-zinc-500 text-xs font-bold mt-2 mb-4">Enter the 6-digit code sent to your WhatsApp</p>
               
               {timeLeft > 0 && (
                 <div className="inline-flex items-center gap-2 bg-primary/20 text-primary px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest animate-in fade-in zoom-in slide-in-from-bottom-2 duration-300">
                   <CheckCircle2 className="h-3.5 w-3.5" /> 
-                  {verifyModal.type} OTP Sent!
+                  WhatsApp OTP Sent!
                 </div>
               )}
             </div>
