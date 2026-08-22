@@ -388,6 +388,7 @@ export default function OrganizerDashboard() {
   const [isOrganizer, setIsOrganizer] = useState(false);
   const [myEvents, setMyEvents] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'events' | 'crm'>('events');
+  const [showForm, setShowForm] = useState(false);
   const [followers, setFollowers] = useState<any[]>([]);
   const [supportedCities, setSupportedCities] = useState<{ id: number; name: string }[]>([]);
 
@@ -396,7 +397,7 @@ export default function OrganizerDashboard() {
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({
     title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
-    startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM",
+    startDate: "", endDate: "", startTime: "", endTime: "",
     participantLimit: "", isPaid: false
   });
   const [submitting, setSubmitting] = useState(false);
@@ -482,16 +483,17 @@ export default function OrganizerDashboard() {
       isPaid: ev.is_paid || false
     });
     setEditingEventId(ev.id);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setShowForm(true);
   };
 
   const handleCancelEdit = () => {
     setEditingEventId(null);
     setFormData({
       title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
-      startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM",
+      startDate: "", endDate: "", startTime: "", endTime: "",
       participantLimit: "", isPaid: false
     });
+    setShowForm(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -502,6 +504,8 @@ export default function OrganizerDashboard() {
     if (!formData.title) newErrors.title = true;
     if (!formData.startDate) newErrors.startDate = true;
     if (isMultiDay && !formData.endDate) newErrors.endDate = true;
+    if (!formData.startTime) newErrors.startTime = true;
+    if (!formData.endTime) newErrors.endTime = true;
     if (!formData.category) newErrors.category = true;
     if (!formData.city) newErrors.city = true;
     if (!formData.location) newErrors.location = true;
@@ -556,11 +560,12 @@ export default function OrganizerDashboard() {
       if (data.success) {
         setFormData({
           title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
-          startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM",
+          startDate: "", endDate: "", startTime: "", endTime: "",
           participantLimit: "", isPaid: false
         });
         setIsMultiDay(false);
         setEditingEventId(null);
+        setShowForm(false);
         loadMyEvents();
         toast.success("Event submitted!", { id: toastId, description: "Your event is pending review by the VibeCheck team." });
       } else {
@@ -611,164 +616,10 @@ export default function OrganizerDashboard() {
         </div>
 
         {activeTab === 'events' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-            {/* Submission Form */}
-            <div className="lg:col-span-4 h-fit">
-              <div className="ringer-card overflow-hidden">
-                <div className="bg-primary/5 border-b border-black/5 p-6 flex justify-between items-center">
-                  <div>
-                    <h2 className="text-[10px] font-black uppercase tracking-widest text-black">
-                      {editingEventId ? "EDIT EVENT" : "NEW EVENT"}
-                    </h2>
-                    <p className="text-[10px] font-bold text-zinc-400 mt-1 uppercase">Awaiting platform guardian approval</p>
-                  </div>
-                  {editingEventId && (
-                    <button type="button" onClick={handleCancelEdit} className="ringer-button bg-zinc-200 text-black text-[9px] px-3 py-1.5">
-                      CANCEL
-                    </button>
-                  )}
-                </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <Input name="title" placeholder="Event Title" value={formData.title} onChange={e => { setFormData({ ...formData, title: e.target.value }); if (errors.title) setErrors({ ...errors, title: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.title && "border-red-500 ring-red-500/20")} />
-                      {errors.title && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Title is required</p>}
-                    </div>
-
-                    <div className="space-y-1">
-                      <Select value={formData.category} onValueChange={v => { setFormData({ ...formData, category: v || "" }); if (errors.category) setErrors({ ...errors, category: false }) }}>
-                        <SelectTrigger className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.category && "border-red-500 ring-red-500/20")}>
-                          <SelectValue placeholder="Category" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white border-black/5 rounded-[20px] shadow-2xl p-2">
-                          {CATEGORIES.map(cat => (
-                            <SelectItem key={cat} value={cat} className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer">{cat}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.category && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Pick a category</p>}
-                    </div>
-
-                    <div className="space-y-1">
-                      <Select value={formData.city} onValueChange={v => { setFormData({ ...formData, city: v || "" }); if (errors.city) setErrors({ ...errors, city: false }) }}>
-                        <SelectTrigger className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.city && "border-red-500 ring-red-500/20")}>
-                          <SelectValue placeholder="Select City" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white border-black/5 rounded-[20px] shadow-2xl p-2">
-                          {supportedCities.map(c => (
-                            <SelectItem key={c.id} value={c.name} className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer">{c.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.city && <p className="text-[9px] text-red-500 font-black uppercase ml-1">City is required</p>}
-                    </div>
-
-                    {/* Single vs Multi Day Switcher */}
-                    <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/5">
-                      <button
-                        type="button"
-                        onClick={() => setIsMultiDay(false)}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${!isMultiDay ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
-                      >
-                        Single Day
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsMultiDay(true)}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${isMultiDay ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
-                      >
-                        Multi Day
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <VibeDatePicker
-                        label={isMultiDay ? "From Date" : "Date"}
-                        value={formData.startDate}
-                        onChange={v => { setFormData({ ...formData, startDate: v }); if (errors.startDate) setErrors({ ...errors, startDate: false }) }}
-                        error={errors.startDate}
-                      />
-                      {isMultiDay && (
-                        <VibeDatePicker
-                          label="To Date"
-                          value={formData.endDate}
-                          onChange={v => { setFormData({ ...formData, endDate: v }); if (errors.endDate) setErrors({ ...errors, endDate: false }) }}
-                          error={errors.endDate}
-                        />
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <VibeTimePicker
-                        label="Begins At"
-                        value={formData.startTime}
-                        onChange={v => setFormData({ ...formData, startTime: v })}
-                      />
-                      <VibeTimePicker
-                        label="Ends At"
-                        value={formData.endTime}
-                        onChange={v => setFormData({ ...formData, endTime: v })}
-                      />
-                    </div>
-
-                    <Input placeholder="Extra Timings Note (Optional)" value={formData.timings} onChange={e => setFormData({ ...formData, timings: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
-
-                    {/* Free vs Paid Switcher */}
-                    <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/5">
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, isPaid: false })}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${!formData.isPaid ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
-                      >
-                        Free Entry
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, isPaid: true })}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${formData.isPaid ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
-                      >
-                        Paid Entry
-                      </button>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Input
-                        type="number"
-                        min="1"
-                        placeholder="Event Capacity Limit (Optional)"
-                        value={formData.participantLimit}
-                        onChange={e => setFormData({ ...formData, participantLimit: e.target.value })}
-                        className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold"
-                      />
-                      <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Leave blank for no limit.</p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Input name="location" placeholder="Location Name (e.g. Rushikonda Beach)" value={formData.location} onChange={e => { setFormData({ ...formData, location: e.target.value }); if (errors.location) setErrors({ ...errors, location: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.location && "border-red-500 ring-red-500/20")} />
-                      {errors.location && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Location name is required</p>}
-                    </div>
-
-                    <div className="space-y-1">
-                      <Input name="google_maps_link" placeholder="Google Maps Link / URL (Optional)" value={formData.google_maps_link} onChange={e => setFormData({ ...formData, google_maps_link: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
-                      <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Copy & paste a Google Maps sharing URL so users can navigate exactly to your location.</p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Textarea name="description" placeholder="Vibe Manifest (Description)..." value={formData.description} onChange={e => { setFormData({ ...formData, description: e.target.value }); if (errors.description) setErrors({ ...errors, description: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary min-h-[140px] rounded-[24px] p-4 text-xs font-bold", errors.description && "border-red-500 ring-red-500/20")} />
-                      {errors.description && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Vibe manifest is empty</p>}
-                    </div>
-                  </div>
-
-                  <button type="submit" disabled={submitting} className="ringer-button w-full bg-black text-white hover:bg-zinc-800 text-[11px]">
-                    {submitting ? "DEPLOYING..." : editingEventId ? "RESUBMIT FOR REVIEW" : "SUBMIT FOR REVIEW"}
-                  </button>
-                </form>
-              </div>
-            </div>
-
+          <div className="space-y-8 animate-in fade-in duration-500">
             {/* My Events */}
-            <div className="lg:col-span-8 space-y-8">
-              <h2 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Deployment Log</h2>
+            <div className="space-y-8">
+              <h2 className="text-4xl vibecheck_font_style leading-none">Deployment Log</h2>
               {myEvents.length === 0 ? (
                 <div className="text-center py-20 text-zinc-300 ringer-card border-dashed">
                   <p className="text-[10px] font-black uppercase tracking-widest">No active vibes detected.</p>
@@ -784,7 +635,7 @@ export default function OrganizerDashboard() {
           </div>
         ) : (
           <div className="ringer-card">
-            <h2 className="text-2xl font-black italic uppercase tracking-tighter mb-6">Your Community CRM</h2>
+            <h2 className="text-2xl vibecheck_font_style mb-6">Your Community CRM</h2>
             {followers.length === 0 ? (
               <div className="p-12 text-center text-zinc-400 font-bold italic text-sm">
                 Nobody is following you yet. Keep hosting great events!
@@ -817,6 +668,219 @@ export default function OrganizerDashboard() {
         )}
 
       </div>
+
+      {/* Floating Action Button (FAB) */}
+      {activeTab === 'events' && (
+        <button
+          onClick={() => {
+            setEditingEventId(null);
+            setFormData({
+              title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
+              startDate: "", endDate: "", startTime: "", endTime: "",
+              participantLimit: "", isPaid: false
+            });
+            setShowForm(true);
+          }}
+          className="fixed bottom-8 right-8 z-40 bg-gradient-to-br from-[#22C55E] to-[#16A34A] text-white h-14 w-14 hover:w-48 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(34,197,94,0.4)] hover:scale-105 transition-all duration-300 ease-in-out border border-white/20 group overflow-hidden"
+          title="Create New Vibe"
+        >
+          <div className="flex items-center justify-center whitespace-nowrap">
+            <span className="text-3xl font-bold transition-transform duration-300 group-hover:rotate-90 shrink-0 select-none leading-none">+</span>
+            <span className="text-[10px] font-black uppercase tracking-widest max-w-0 opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-300 ease-in-out select-none overflow-hidden">
+              Create new Vibe
+            </span>
+          </div>
+        </button>
+      )}
+
+      {/* Side-sheet Form Drawer Overlay */}
+      {showForm && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={handleCancelEdit}
+        >
+          <div 
+            className="w-full max-w-xl h-full bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-black/5"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-primary/5 border-b border-black/5 p-6 flex justify-between items-center shrink-0">
+              <div>
+                <h2 className="vibecheck_font_style text-2xl text-black">
+                  {editingEventId ? "EDIT EVENT" : "NEW EVENT"}
+                </h2>
+                <p className="text-[10px] font-bold text-zinc-400 mt-1 uppercase">Awaiting platform guardian approval</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={handleCancelEdit} 
+                className="ringer-button border border-black/5 hover:bg-black/5 text-black text-[10px]"
+              >
+                CLOSE
+              </button>
+            </div>
+
+            {/* Form Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <form id="organizer-event-form" onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <Input name="title" placeholder="Event Title" value={formData.title} onChange={e => { setFormData({ ...formData, title: e.target.value }); if (errors.title) setErrors({ ...errors, title: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.title && "border-red-500 ring-red-500/20")} />
+                    {errors.title && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Title is required</p>}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Select value={formData.category} onValueChange={v => { setFormData({ ...formData, category: v || "" }); if (errors.category) setErrors({ ...errors, category: false }) }}>
+                        <SelectTrigger className={cn("w-full bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.category && "border-red-500 ring-red-500/20")}>
+                          <SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-black/5 rounded-[20px] shadow-2xl p-2">
+                          {CATEGORIES.map(cat => (
+                            <SelectItem key={cat} value={cat} className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer">{cat}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.category && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Pick a category</p>}
+                    </div>
+
+                    <div className="space-y-1">
+                      <Select value={formData.city} onValueChange={v => { setFormData({ ...formData, city: v || "" }); if (errors.city) setErrors({ ...errors, city: false }) }}>
+                        <SelectTrigger className={cn("w-full bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.city && "border-red-500 ring-red-500/20")}>
+                          <SelectValue placeholder="Select City" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-black/5 rounded-[20px] shadow-2xl p-2">
+                          {supportedCities.map(c => (
+                            <SelectItem key={c.id} value={c.name} className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer">{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.city && <p className="text-[9px] text-red-500 font-black uppercase ml-1">City is required</p>}
+                    </div>
+                  </div>
+
+                  {/* Single vs Multi Day Switcher */}
+                  <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/5">
+                    <button
+                      type="button"
+                      onClick={() => setIsMultiDay(false)}
+                      className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${!isMultiDay ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
+                    >
+                      Single Day
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsMultiDay(true)}
+                      className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${isMultiDay ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
+                    >
+                      Multi Day
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <VibeDatePicker
+                      label={isMultiDay ? "From Date" : "Date"}
+                      value={formData.startDate}
+                      onChange={v => { setFormData({ ...formData, startDate: v }); if (errors.startDate) setErrors({ ...errors, startDate: false }) }}
+                      error={errors.startDate}
+                    />
+                    {isMultiDay && (
+                      <VibeDatePicker
+                        label="To Date"
+                        value={formData.endDate}
+                        onChange={v => { setFormData({ ...formData, endDate: v }); if (errors.endDate) setErrors({ ...errors, endDate: false }) }}
+                        error={errors.endDate}
+                      />
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <VibeTimePicker
+                      label="Begins At"
+                      value={formData.startTime}
+                      onChange={v => { setFormData({ ...formData, startTime: v }); if (errors.startTime) setErrors({ ...errors, startTime: false }) }}
+                      error={errors.startTime}
+                    />
+                    <VibeTimePicker
+                      label="Ends At"
+                      value={formData.endTime}
+                      onChange={v => { setFormData({ ...formData, endTime: v }); if (errors.endTime) setErrors({ ...errors, endTime: false }) }}
+                      error={errors.endTime}
+                    />
+                  </div>
+
+                  <Input placeholder="Extra Timings Note (Optional)" value={formData.timings} onChange={e => setFormData({ ...formData, timings: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
+
+                  {/* Free vs Paid Switcher */}
+                  <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/5">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, isPaid: false })}
+                      className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${!formData.isPaid ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
+                    >
+                      Free Entry
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, isPaid: true })}
+                      className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${formData.isPaid ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
+                    >
+                      Paid Entry
+                    </button>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Input
+                      type="number"
+                      min="1"
+                      placeholder="Event Capacity Limit (Optional)"
+                      value={formData.participantLimit}
+                      onChange={e => setFormData({ ...formData, participantLimit: e.target.value })}
+                      className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold"
+                    />
+                    <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Leave blank for no limit.</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Input name="location" placeholder="Location Name (e.g. Rushikonda Beach)" value={formData.location} onChange={e => { setFormData({ ...formData, location: e.target.value }); if (errors.location) setErrors({ ...errors, location: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.location && "border-red-500 ring-red-500/20")} />
+                    {errors.location && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Location name is required</p>}
+                  </div>
+
+                  <div className="space-y-1">
+                    <Input name="google_maps_link" placeholder="Google Maps Link / URL (Optional)" value={formData.google_maps_link} onChange={e => setFormData({ ...formData, google_maps_link: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
+                    <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Copy & paste a Google Maps sharing URL so users can navigate exactly to your location.</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Textarea name="description" placeholder="Vibe Manifest (Description)..." value={formData.description} onChange={e => { setFormData({ ...formData, description: e.target.value }); if (errors.description) setErrors({ ...errors, description: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary min-h-[140px] rounded-[24px] p-4 text-xs font-bold", errors.description && "border-red-500 ring-red-500/20")} />
+                    {errors.description && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Vibe manifest is empty</p>}
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-black/5 p-6 bg-zinc-50 flex justify-end gap-3 shrink-0">
+              <button 
+                type="button" 
+                onClick={handleCancelEdit} 
+                className="ringer-button border border-black/5 hover:bg-black/5 text-black text-[10px]"
+              >
+                CANCEL
+              </button>
+              <button 
+                type="submit" 
+                form="organizer-event-form" 
+                disabled={submitting} 
+                className="ringer-button bg-gradient-to-br from-[#22C55E] to-[#16A34A] text-white hover:from-[#16A34A] hover:to-[#15803D] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-green-500/20 text-[10px]"
+              >
+                {submitting ? "SUBMITTING..." : editingEventId ? "SUBMIT EDITS" : "SUBMIT FOR REVIEW"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

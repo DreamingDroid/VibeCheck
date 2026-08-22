@@ -107,7 +107,7 @@ export function GlobalHeader() {
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-1.5 sm:gap-2">
               <img src="/logo.png" alt="VibeCheck Logo" className="h-5 w-5 sm:h-6 sm:w-6 rounded-lg shrink-0 object-contain" />
-              <span className="text-lg sm:text-xl font-black tracking-tighter uppercase italic">VIBECHECK</span>
+              <span className="text-lg sm:text-xl vibecheck_font_style">VIBECHECK</span>
             </Link>
 
             <div className="h-4 w-[1px] bg-black/10 mx-1 sm:mx-2" />

@@ -11,9 +11,10 @@ interface VibeTimePickerProps {
   onChange: (value: string) => void;
   label?: string;
   className?: string;
+  error?: boolean;
 }
 
-export function VibeTimePicker({ value, onChange, label, className }: VibeTimePickerProps) {
+export function VibeTimePicker({ value, onChange, label, className, error }: VibeTimePickerProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -25,7 +26,10 @@ export function VibeTimePicker({ value, onChange, label, className }: VibeTimePi
       )}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
-          className="flex h-12 w-full items-center justify-between rounded-xl border border-black/5 bg-zinc-50 px-4 py-2 text-xs font-black uppercase tracking-tight transition-all hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary/20"
+          className={cn(
+            "flex h-12 w-full items-center justify-between rounded-xl border border-black/5 bg-zinc-50 px-4 py-2 text-xs font-black uppercase tracking-tight transition-all hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary/20",
+            error && "border-red-500 ring-2 ring-red-500/20 bg-red-50"
+          )}
         >
           <span className={cn(value ? "text-black" : "text-zinc-400")}>
             {value || "Select Time"}

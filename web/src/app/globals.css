@@ -83,6 +83,10 @@
   .sticker-badge {
     @apply rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest border border-black/10 transition-all;
   }
+
+  .vibecheck_font_style, .vibecheck-font-style {
+    @apply font-black tracking-tighter uppercase italic;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════

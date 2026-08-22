@@ -17,14 +17,29 @@ interface VibeClockProps {
 }
 
 export function VibeClock({ value, onChange, onClose }: VibeClockProps) {
-  // Parse initial value
-  const [timeStr, ampm] = value.split(" ");
-  const [h, m] = timeStr.split(":").map(Number);
-  
+  // Parse initial value safely
+  let parsedHour = 8;
+  let parsedMinute = 0;
+  let parsedPeriod = "PM";
+
+  if (value && value.includes(":") && value.includes(" ")) {
+    const [timeStr, ampm] = value.split(" ");
+    if (timeStr) {
+      const parts = timeStr.split(":");
+      const h = Number(parts[0]);
+      const m = Number(parts[1]);
+      if (!isNaN(h) && !isNaN(m)) {
+        parsedHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        parsedMinute = m;
+        parsedPeriod = ampm || "PM";
+      }
+    }
+  }
+
   const [mode, setMode] = useState<"hours" | "minutes">("hours");
-  const [hour, setHour] = useState(h === 0 ? 12 : h > 12 ? h - 12 : h);
-  const [minute, setMinute] = useState(m);
-  const [period, setPeriod] = useState(ampm);
+  const [hour, setHour] = useState(parsedHour);
+  const [minute, setMinute] = useState(parsedMinute);
+  const [period, setPeriod] = useState(parsedPeriod);
   
   const svgRef = useRef<SVGSVGElement>(null);
 
