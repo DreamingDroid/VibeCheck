@@ -28,6 +28,7 @@ import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verific
 import { followOrganizerHandler, unfollowOrganizerHandler, getUserFollowingHandler, getOrganizerFollowersHandler } from './followers';
 import { sendApplyOtpHandler, verifyApplyOtpHandler, submitApplicationHandler } from './organizer-apply';
 import { initializeDatabaseSchema } from './queries/init';
+import { getNewsArticlesHandler, getLatestNewsArticlesHandler, adminCreateNewsArticleHandler, adminUpdateNewsArticleArticleHandler, adminDeleteNewsArticleHandler } from './news';
 import { config } from './config';
 
 console.log('Loaded VERIFY_TOKEN:', config.WHATSAPP_VERIFY_TOKEN);
@@ -173,6 +174,13 @@ app.delete('/api/admin/events/:id', (req, res) => adminDeleteEventHandler(req, r
 app.get('/api/admin/analytics', (req, res) => adminAnalyticsHandler(req, res, pool));
 app.get('/api/admin/settings', (req, res) => adminGetSettingsHandler(req, res, pool));
 app.post('/api/admin/settings', (req, res) => adminUpdateSettingsHandler(req, res, pool));
+
+// News API
+app.get('/api/news', (req, res) => getNewsArticlesHandler(req, res, pool));
+app.get('/api/news/latest', (req, res) => getLatestNewsArticlesHandler(req, res, pool));
+app.post('/api/admin/news', (req, res) => adminCreateNewsArticleHandler(req, res, pool));
+app.put('/api/admin/news/:id', (req, res) => adminUpdateNewsArticleArticleHandler(req, res, pool));
+app.delete('/api/admin/news/:id', (req, res) => adminDeleteNewsArticleHandler(req, res, pool));
 
 // Admin Management API
 app.get('/api/admin/admins', (req, res) => adminGetAdminsHandler(req, res, pool));

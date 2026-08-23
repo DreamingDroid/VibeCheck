@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, useCallback } from "react"
+import { useSession } from "next-auth/react"
 
 export type ThemeName = "ringer" | "vibrant"
 
@@ -19,8 +20,25 @@ const ThemeContext = createContext<ThemeContextValue>({
 const STORAGE_KEY = "vibecheck-theme"
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession()
   const [theme, setTheme] = useState<ThemeName>("vibrant")
   const [mounted, setMounted] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  // Fetch admin status
+  useEffect(() => {
+    if (session?.user?.email) {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      fetch(`${baseUrl}/api/admin/check?email=${encodeURIComponent(session.user.email)}`)
+        .then(r => r.json())
+        .then(data => {
+          setIsAdmin(data.isAdmin)
+        })
+        .catch(() => setIsAdmin(false))
+    } else {
+      setIsAdmin(false)
+    }
+  }, [session])
 
   // Read from localStorage on mount
   useEffect(() => {
@@ -36,6 +54,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
     setMounted(true)
   }, [])
+
+  // Force non-admins (or unauthenticated visitors) to vibrant theme
+  useEffect(() => {
+    if (status !== "loading") {
+      if (!session || !isAdmin) {
+        if (theme !== "vibrant") {
+          setTheme("vibrant")
+        }
+      }
+    }
+  }, [session, status, isAdmin, theme])
 
   // Sync data-theme attribute on <html> whenever theme changes
   useEffect(() => {

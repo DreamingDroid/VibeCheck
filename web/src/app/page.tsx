@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { ChevronDown, Sparkles, MapPin, Zap, Music, Heart, Star } from "lucide-react"
 import { useTheme } from "@/context/ThemeContext"
+import { useCity } from "@/context/CityContext"
 
 const NEWS_ITEMS = [
   {
@@ -27,18 +28,48 @@ const NEWS_ITEMS = [
   }
 ];
 
+interface NewsArticle {
+  id: string | number;
+  title: string;
+  content: string;
+  category: string;
+}
+
 export default function Home() {
   const { status } = useSession()
   const router = useRouter()
   const [isSigningIn, setIsSigningIn] = useState(false)
-  const [openAccordion, setOpenAccordion] = useState<number | null>(1)
+  const [openAccordion, setOpenAccordion] = useState<string | number | null>(null)
+  const [articles, setArticles] = useState<NewsArticle[]>([])
   const { isVibrant } = useTheme()
+
+  const { currentCity } = useCity()
 
   useEffect(() => {
     if (status === "authenticated") {
       router.push("/dashboard")
     }
   }, [status, router])
+
+  useEffect(() => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    fetch(`${baseUrl}/api/news/latest?city=${encodeURIComponent(currentCity)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+          setArticles(data.data);
+          setOpenAccordion(data.data[0].id);
+        } else {
+          setArticles(NEWS_ITEMS);
+          setOpenAccordion(1);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching news:", err);
+        setArticles(NEWS_ITEMS);
+        setOpenAccordion(1);
+      });
+  }, [currentCity]);
 
   if (status === "loading" || status === "authenticated") {
     return (
@@ -73,7 +104,7 @@ export default function Home() {
           <span>vizag's exclusive network</span>
         </div>
         
-        <h1 className="text-4xl sm:text-6xl md:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] text-black drop-shadow-sm relative">
+        <h1 className="text-5xl sm:text-7xl md:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] text-black drop-shadow-sm relative px-2">
           {isVibrant && (
             <span className="absolute inset-0 blur-3xl opacity-10 bg-gradient-to-r from-purple-400 via-pink-300 to-amber-300 rounded-full -z-10" />
           )}
@@ -81,7 +112,7 @@ export default function Home() {
           <span className={isVibrant ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-amber-500 bg-clip-text text-transparent' : 'text-primary'}>Reimagined.</span>
         </h1>
         
-        <p className="text-lg md:text-xl font-bold text-zinc-500 max-w-2xl leading-relaxed">
+        <p className="text-sm sm:text-base md:text-lg font-helvetica text-zinc-600 max-w-xl leading-relaxed sm:leading-loose tracking-wide px-4 sm:px-0">
           VibeCheck is the ultimate insider's guide to networking, discovery, and culture in Visakhapatnam. Powered by coastal energy and community.
         </p>
         
@@ -89,7 +120,7 @@ export default function Home() {
           <button 
             onClick={handleSignIn} 
             disabled={isSigningIn}
-            className="ringer-button w-full sm:w-auto bg-black text-white hover:bg-zinc-800 hover:scale-[1.02] h-16 px-10 text-sm font-black flex items-center justify-center gap-3 shadow-2xl transition-all"
+            className="ringer-button w-auto bg-gradient-to-br from-[#22C55E] to-[#16A34A] hover:from-[#16A34A] hover:to-[#15803D] text-white hover:scale-[1.02] h-12 sm:h-16 px-8 sm:px-10 text-xs sm:text-sm font-black flex items-center justify-center gap-3 shadow-lg shadow-green-500/20 transition-all"
           >
             {isSigningIn ? (
                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -114,7 +145,7 @@ export default function Home() {
           </div>
 
           <div className="space-y-4">
-            {NEWS_ITEMS.map((item) => {
+            {articles.map((item) => {
               const isOpen = openAccordion === item.id;
               
               return (

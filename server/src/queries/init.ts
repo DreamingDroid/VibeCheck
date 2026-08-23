@@ -138,7 +138,22 @@ export async function initializeDatabaseSchema(pool: Pool) {
       user_email VARCHAR(255) REFERENCES web_users(email) ON DELETE CASCADE,
       organizer_email VARCHAR(255) REFERENCES admins(email) ON DELETE CASCADE,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(user_email, organizer_email)
+      unique(user_email, organizer_email)
+    );
+  `);
+
+  // 11. Create News Articles table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS news_articles (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      title VARCHAR(255) NOT NULL,
+      content TEXT NOT NULL,
+      category VARCHAR(100) DEFAULT 'General',
+      author VARCHAR(255) DEFAULT 'VibeCheck Editorial',
+      image_url TEXT,
+      city VARCHAR(100) DEFAULT 'Vizag',
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
@@ -165,6 +180,8 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS admin_comment TEXT`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS participant_limit INTEGER`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_paid BOOLEAN DEFAULT false`);
+  await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS is_editor BOOLEAN DEFAULT false`);
+  await pool.query(`ALTER TABLE news_articles ADD COLUMN IF NOT EXISTS city VARCHAR(100) DEFAULT 'Vizag'`);
 
   // Seed default cities if empty
   const { rows: cityRows } = await pool.query('SELECT COUNT(*) FROM cities');

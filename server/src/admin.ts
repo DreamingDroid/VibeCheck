@@ -15,16 +15,29 @@ export async function checkAdminHandler(req: Request, res: Response, pool: Pool)
     return res.status(400).json({ success: false, error: 'email required' });
   }
   try {
+    const webUserResult = await pool.query('SELECT is_editor FROM web_users WHERE email = $1', [email]);
+    const isWebUserEditor = webUserResult.rows.length > 0 && webUserResult.rows[0].is_editor === true;
+
     const adminStr = await getAdminByEmail(pool, email as string);
     if (!adminStr) {
-      return res.json({ success: true, isAdmin: false, isOrganizer: false });
+      return res.json({ 
+        success: true, 
+        isAdmin: false, 
+        isOrganizer: false,
+        isEditor: isWebUserEditor 
+      });
     }
     const role = adminStr.role;
     const normalizedRole = typeof role === 'string' ? role.toLowerCase() : '';
+    const isAdmin = normalizedRole === 'superadmin';
+    const isOrganizer = normalizedRole === 'organizer';
+    const isEditor = normalizedRole === 'editor' || normalizedRole === 'superadmin' || isWebUserEditor;
+
     return res.json({
       success: true,
-      isAdmin: normalizedRole !== 'organizer',
-      isOrganizer: normalizedRole === 'organizer',
+      isAdmin,
+      isOrganizer,
+      isEditor,
       role,
       status: adminStr.status,
       rejectionReason: adminStr.rejection_reason

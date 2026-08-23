@@ -1,11 +1,25 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Lora, Courier_Prime } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
+});
+
+const lora = Lora({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+});
+
+const courierPrime = Courier_Prime({
+  subsets: ["latin"],
+  variable: "--font-typewriter",
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -24,7 +38,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme="vibrant"
-      className={`${inter.variable} h-full antialiased font-sans`}
+      className={`${inter.variable} ${lora.variable} ${courierPrime.variable} h-full antialiased font-sans`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <Providers>

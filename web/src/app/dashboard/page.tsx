@@ -9,6 +9,7 @@ import { useCity } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
 import { Calendar, MapPin, Share2, Sparkles, TrendingUp, Zap, Users } from "lucide-react";
+import { toast } from "sonner";
 
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "";
 
@@ -42,6 +43,36 @@ export default function Dashboard() {
   const { isVibrant } = useTheme();
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
   const [following, setFollowing] = useState<string[]>([]);
+
+  const handleJoinWhatsApp = () => {
+    const text = `Hey! I want to join the VibeCheck community and stay updated with the latest events.`;
+    const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleSharePlatform = async () => {
+    const shareData = {
+      title: "VibeCheck",
+      text: "Join VibeCheck - the ultimate insider's guide to networking, discovery and culture in Visakhapatnam!",
+      url: window.location.origin,
+    };
+    
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        toast.success("Platform shared successfully!");
+      } catch (err) {
+        // user cancelled or error
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.origin);
+        toast.success("VibeCheck link copied to clipboard!");
+      } catch (err) {
+        toast.error("Failed to copy link.");
+      }
+    }
+  };
 
   useEffect(() => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -320,8 +351,8 @@ export default function Dashboard() {
            </p>
          </div>
          <div className="flex gap-4">
-            <button className="ringer-button bg-primary text-black">JOIN WHATSAPP</button>
-            <button className="ringer-button border border-white/20 hover:bg-white/10">SHARE PLATFORM</button>
+            <button onClick={handleJoinWhatsApp} className="ringer-button bg-primary text-black">JOIN WHATSAPP</button>
+            <button onClick={handleSharePlatform} className="ringer-button border border-white/20 hover:bg-white/10">SHARE PLATFORM</button>
          </div>
       </section>
 
