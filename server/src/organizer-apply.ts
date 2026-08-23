@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 import crypto from 'crypto';
 import { Resend } from 'resend';
 import { config } from './config';
-import { sendWhatsAppMessage } from './whatsapp';
+import { sendWhatsAppMessage, sendWhatsAppTemplateOTP } from './whatsapp';
 
 const resend = new Resend(config.RESEND_API_KEY);
 
@@ -50,8 +50,8 @@ export async function sendApplyOtpHandler(req: Request, res: Response) {
       console.log(`[Verification] [Dev Mode] Phone Code for ${formattedPhone}: ${code}`);
       
       if (config.WHATSAPP_PHONE_NUMBER_ID) {
-        sendWhatsAppMessage(config.WHATSAPP_PHONE_NUMBER_ID, formattedPhone, message)
-          .catch(err => console.error('[Verification] Error sending WhatsApp message in background:', err));
+        sendWhatsAppTemplateOTP(config.WHATSAPP_PHONE_NUMBER_ID, formattedPhone, code)
+          .catch(err => console.error('[Verification] Error sending WhatsApp template OTP in background:', err));
       }
     }
     

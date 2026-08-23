@@ -163,7 +163,7 @@ export async function sendWhatsAppMessage(phoneNumberId: string, to: string, tex
 
   try {
     const response = await fetch(
-      `https://graph.facebook.com/v17.0/${phoneNumberId}/messages`,
+      `https://graph.facebook.com/v25.0/${phoneNumberId}/messages`,
       {
         method: 'POST',
         headers: {
@@ -183,7 +183,7 @@ export async function sendWhatsAppMessage(phoneNumberId: string, to: string, tex
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      console.error('[WhatsApp] Send failed:', await response.text());
+      console.error('[WhatsApp] Send failed with status:', response.status);
     } else {
       console.log(`[WhatsApp] Sent to ${to}`);
     }
@@ -196,6 +196,99 @@ export async function sendWhatsAppMessage(phoneNumberId: string, to: string, tex
     }
   }
 }
+
+// ─── Send a WhatsApp Template OTP ───────────────────────────────────────────
+export async function sendWhatsAppTemplateOTP(phoneNumberId: string, to: string, code: string) {
+  console.log('[sendWhatsAppTemplateOTP] Start. to:', to, 'code:', code);
+  const WHATSAPP_ACCESS_TOKEN = config.WHATSAPP_ACCESS_TOKEN;
+
+  if (!WHATSAPP_ACCESS_TOKEN) {
+    console.log(`[Dev Mode] WhatsApp Template OTP → ${to} [Template: ${config.WHATSAPP_OTP_TEMPLATE_NAME}, Code: ${code}]`);
+    return;
+  }
+
+  const components: any[] = [
+    {
+      type: 'body',
+      parameters: [
+        {
+          type: 'text',
+          text: code,
+        },
+        {
+          type: 'text',
+          text: 'VibeCheck Space',
+        },
+      ],
+    },
+  ];
+
+  if (config.WHATSAPP_OTP_TEMPLATE_HAS_BUTTON) {
+    components.push({
+      type: 'button',
+      sub_type: 'url',
+      index: '0',
+      parameters: [
+        {
+          type: 'text',
+          text: code,
+        },
+      ],
+    });
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    console.log('[sendWhatsAppTemplateOTP] Request timed out. Aborting fetch signal.');
+    controller.abort();
+  }, 5000);
+
+  try {
+    const payload = {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'template',
+      template: {
+        name: config.WHATSAPP_OTP_TEMPLATE_NAME,
+        language: {
+          code: config.WHATSAPP_OTP_TEMPLATE_LANGUAGE,
+        },
+        components,
+      },
+    };
+
+    console.log('[sendWhatsAppTemplateOTP] Fetching Meta API URL...');
+    const response = await fetch(
+      `https://graph.facebook.com/v25.0/${phoneNumberId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      }
+    );
+
+    console.log('[sendWhatsAppTemplateOTP] Fetch response status:', response.status);
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.error('[WhatsApp OTP] Send failed with status:', response.status);
+    } else {
+      console.log(`[WhatsApp OTP] Template message sent to ${to}`);
+    }
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error('[WhatsApp OTP] Send request timed out after 5 seconds');
+    } else {
+      console.error('[WhatsApp OTP] Network error:', error);
+    }
+  }
+}
+
 
 // ─── Send interactive event cards with RSVP buttons ───────────────────────────
 export async function sendInteractiveEventCards(
@@ -254,7 +347,7 @@ export async function sendInteractiveEventCards(
 
   try {
     const response = await fetch(
-      `https://graph.facebook.com/v17.0/${phoneNumberId}/messages`,
+      `https://graph.facebook.com/v25.0/${phoneNumberId}/messages`,
       {
         method: 'POST',
         headers: {
@@ -266,8 +359,7 @@ export async function sendInteractiveEventCards(
     );
 
     if (!response.ok) {
-      const errText = await response.text();
-      console.error('[WhatsApp] Interactive cards send failed:', errText);
+      console.error('[WhatsApp] Interactive cards send failed with status:', response.status);
     } else {
       console.log(`[WhatsApp] Interactive event cards sent to ${to}`);
     }

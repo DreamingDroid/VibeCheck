@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
-import { sendWhatsAppMessage } from './whatsapp';
+import { sendWhatsAppMessage, sendWhatsAppTemplateOTP } from './whatsapp';
 import { linkUserPhoneNumber } from './queries/users';
 import { config } from './config';
 
@@ -33,7 +33,7 @@ export async function sendVerificationCodeHandler(req: Request, res: Response, p
 
   try {
     if (WHATSAPP_PHONE_NUMBER_ID) {
-      await sendWhatsAppMessage(WHATSAPP_PHONE_NUMBER_ID, formattedPhone, message);
+      await sendWhatsAppTemplateOTP(WHATSAPP_PHONE_NUMBER_ID, formattedPhone, code);
       console.log(`[Verification] Sent code to ${formattedPhone}`);
     } else {
       console.log(`[Verification] [Dev Mode] Code for ${formattedPhone}: ${code}`);
