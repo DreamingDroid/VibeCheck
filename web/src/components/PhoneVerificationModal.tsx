@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,7 +90,14 @@ export function PhoneVerificationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-2xl border-black/5 text-black rounded-[40px] shadow-2xl p-8">
+      <DialogContent showCloseButton={false} className="top-6 sm:top-12 translate-y-0 sm:max-w-md bg-white/95 backdrop-blur-2xl border-black/5 text-black rounded-[40px] shadow-2xl p-8 fixed">
+        <button
+          onClick={onClose}
+          className="absolute top-6 right-6 p-2 rounded-full hover:bg-black/5 transition-all text-zinc-400 hover:text-black z-10"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </button>
         <DialogHeader className="space-y-3">
           <DialogTitle className="text-3xl font-black italic tracking-tighter uppercase leading-none">
             {step === "phone" ? "Verify Phone" : "Enter Code"}
@@ -136,7 +143,7 @@ export function PhoneVerificationModal({
           )}
         </div>
 
-        <DialogFooter className="flex flex-col sm:flex-row gap-3 border-t-0 p-0">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
           <Button
             variant="ghost"
             onClick={onClose}
@@ -161,7 +168,7 @@ export function PhoneVerificationModal({
               {loading ? "VERIFYING..." : "VERIFY & RSVP"}
             </Button>
           )}
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

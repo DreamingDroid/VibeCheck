@@ -182,7 +182,21 @@ export default function EventDetailsPage() {
   const isHousefull = event.status === 'housefull' || (event.participant_limit && (event.rsvp_count || 0) >= event.participant_limit);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-8 animate-in fade-in duration-700">
+    <>
+      {session?.user?.email && (
+        <PhoneVerificationModal
+          isOpen={showPhoneModal}
+          onClose={() => setShowPhoneModal(false)}
+          onVerified={() => {
+            setUserHasPhone(true);
+            setShowPhoneModal(false);
+            handleRSVP();
+          }}
+          email={session.user.email}
+        />
+      )}
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-8 animate-in fade-in duration-700">
       <Link href="/dashboard" className="group flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
         <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
         Back to Explore
@@ -328,21 +342,10 @@ export default function EventDetailsPage() {
                  </button>
               </div>
            </div>
-        </div>
+         </div>
       </div>
 
-      {session?.user?.email && (
-        <PhoneVerificationModal
-          isOpen={showPhoneModal}
-          onClose={() => setShowPhoneModal(false)}
-          onVerified={() => {
-            setUserHasPhone(true);
-            setShowPhoneModal(false);
-            handleRSVP();
-          }}
-          email={session.user.email}
-        />
-      )}
     </div>
+    </>
   );
 }
