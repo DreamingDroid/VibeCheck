@@ -23,6 +23,23 @@ export async function sendVerificationCodeHandler(req: Request, res: Response, p
     formattedPhone = '91' + formattedPhone;
   }
 
+  // Check if the phone number is already registered to another email
+  try {
+    const existingUser = await pool.query(
+      'SELECT email FROM web_users WHERE phone_number = $1',
+      [formattedPhone]
+    );
+    if (existingUser.rows.length > 0 && existingUser.rows[0].email !== email) {
+      return res.status(400).json({
+        success: false,
+        error: 'This phone number is already registered with another profile. Please provide a different number.'
+      });
+    }
+  } catch (dbErr) {
+    console.error('Error checking existing phone registration:', dbErr);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+
   // Generate 6-digit code
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiry = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
@@ -56,6 +73,23 @@ export async function verifyPhoneNumberHandler(req: Request, res: Response, pool
   let formattedPhone = phoneNumber.replace(/\D/g, '');
   if (formattedPhone.length === 10) {
     formattedPhone = '91' + formattedPhone;
+  }
+
+  // Double check if the phone number is already registered to another email
+  try {
+    const existingUser = await pool.query(
+      'SELECT email FROM web_users WHERE phone_number = $1',
+      [formattedPhone]
+    );
+    if (existingUser.rows.length > 0 && existingUser.rows[0].email !== email) {
+      return res.status(400).json({
+        success: false,
+        error: 'This phone number is already registered with another profile. Please provide a different number.'
+      });
+    }
+  } catch (dbErr) {
+    console.error('Error checking existing phone registration on verify:', dbErr);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 
   const cachedValue = verificationCache.get(formattedPhone);

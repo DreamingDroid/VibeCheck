@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
+import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCity } from "@/context/CityContext";
@@ -43,8 +44,18 @@ export default function Dashboard() {
   const { isVibrant } = useTheme();
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
   const [following, setFollowing] = useState<string[]>([]);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [userHasPhone, setUserHasPhone] = useState(false);
 
   const handleJoinWhatsApp = () => {
+    if (!session?.user?.email) {
+      signIn("google");
+      return;
+    }
+    if (!userHasPhone) {
+      setShowPhoneModal(true);
+      return;
+    }
     const text = `Hey! I want to join the VibeCheck community and stay updated with the latest events.`;
     const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
@@ -133,6 +144,20 @@ export default function Dashboard() {
   useEffect(() => {
     if (session?.user?.email) {
       fetchFollowing();
+      
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      fetch(`${baseUrl}/api/user?email=${encodeURIComponent(session.user.email)}`)
+        .then(r => r.json())
+        .then(res => {
+          if (res.success && res.data?.phone_number) {
+            setUserHasPhone(true);
+          } else {
+            setUserHasPhone(false);
+          }
+        })
+        .catch(err => console.error("Failed to check user phone verification:", err));
+    } else {
+      setUserHasPhone(false);
     }
   }, [session]);
 
@@ -355,6 +380,21 @@ export default function Dashboard() {
             <button onClick={handleSharePlatform} className="ringer-button border border-white/20 hover:bg-white/10">SHARE PLATFORM</button>
          </div>
       </section>
+
+      {session?.user?.email && (
+        <PhoneVerificationModal
+          isOpen={showPhoneModal}
+          onClose={() => setShowPhoneModal(false)}
+          onVerified={() => {
+            setUserHasPhone(true);
+            setShowPhoneModal(false);
+            const text = `Hey! I want to join the VibeCheck community and stay updated with the latest events.`;
+            const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+          }}
+          email={session.user.email}
+        />
+      )}
 
     </main>
   );
