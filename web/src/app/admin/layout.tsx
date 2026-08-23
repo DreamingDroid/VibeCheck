@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, FileText, MapPin, ArrowLeft, Users } from "lucide-react";
+import { LayoutDashboard, FileText, MapPin, ArrowLeft, Users, Shield } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
@@ -70,6 +70,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: "Pending Organizers", href: "/admin/organizers", icon: <Users className="h-4 w-4" />, badge: pendingOrganizersCount },
     { label: "Manage Events", href: "/admin/events", icon: <FileText className="h-4 w-4" />, badge: pendingEventsCount },
     { label: "Manage Cities", href: "/admin/cities", icon: <MapPin className="h-4 w-4" /> },
+    { label: "Manage Admins", href: "/admin/admins", icon: <Shield className="h-4 w-4" /> },
   ];
 
   return (

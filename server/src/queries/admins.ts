@@ -60,3 +60,35 @@ export async function updateOrganizerStatus(pool: Pool, id: string, status: stri
   );
   return rows[0] || null;
 }
+
+export async function getAdmins(pool: Pool) {
+  const { rows } = await pool.query(
+    `SELECT id, email, role, status, created_at
+     FROM admins
+     WHERE role::text IN ('SuperAdmin', 'Editor')
+     ORDER BY created_at DESC`
+  );
+  return rows;
+}
+
+export async function addAdmin(pool: Pool, email: string, role: string) {
+  const { rows } = await pool.query(
+    `INSERT INTO admins (email, role, status)
+     VALUES ($1, $2, 'approved')
+     ON CONFLICT (email)
+     DO UPDATE SET role = EXCLUDED.role, status = 'approved'
+     RETURNING *`,
+    [email, role]
+  );
+  return rows[0];
+}
+
+export async function removeAdmin(pool: Pool, id: string) {
+  const { rowCount } = await pool.query(
+    `DELETE FROM admins
+     WHERE id = $1`,
+    [id]
+  );
+  return rowCount > 0;
+}
+

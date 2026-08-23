@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
-import { getAdminByEmail, addOrganizer, getOrganizers, getPendingOrganizers, updateOrganizerStatus } from './queries/admins';
+import { getAdminByEmail, addOrganizer, getOrganizers, getPendingOrganizers, updateOrganizerStatus, getAdmins, addAdmin, removeAdmin } from './queries/admins';
 import { Resend } from 'resend';
 import { config } from './config';
 
@@ -300,6 +300,49 @@ export async function adminDeleteCityHandler(req: Request, res: Response, pool: 
     res.json({ success: true, message: 'City deleted successfully.' });
   } catch (error) {
     console.error('Delete city error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+// --- ADMIN MANAGEMENT ---
+
+export async function adminGetAdminsHandler(req: Request, res: Response, pool: Pool) {
+  try {
+    const rows = await getAdmins(pool);
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('Get admins error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function adminAddAdminHandler(req: Request, res: Response, pool: Pool) {
+  const { email, role } = req.body;
+  if (!email || !role) {
+    return res.status(400).json({ success: false, error: 'Email and role are required' });
+  }
+  if (role !== 'SuperAdmin' && role !== 'Editor') {
+    return res.status(400).json({ success: false, error: 'Invalid role. Must be SuperAdmin or Editor' });
+  }
+  try {
+    const admin = await addAdmin(pool, email, role);
+    res.json({ success: true, data: admin, message: 'Admin added successfully.' });
+  } catch (error: any) {
+    console.error('Add admin error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function adminRemoveAdminHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  try {
+    const success = await removeAdmin(pool, id as string);
+    if (!success) {
+      return res.status(404).json({ success: false, error: 'Admin not found' });
+    }
+    res.json({ success: true, message: 'Admin removed successfully.' });
+  } catch (error) {
+    console.error('Remove admin error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

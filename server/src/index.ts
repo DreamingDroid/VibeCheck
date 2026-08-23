@@ -22,7 +22,7 @@ import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHan
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
 import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler, organizerGetEventAnalyticsHandler, organizerToggleHousefullHandler } from './organizer';
 import { getCitiesHandler } from './cities';
-import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingOrganizersHandler, adminApproveOrganizerHandler, adminRejectOrganizerHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminGetEventsByStatusHandler, adminAddCityHandler, adminDeleteCityHandler } from './admin';
+import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingOrganizersHandler, adminApproveOrganizerHandler, adminRejectOrganizerHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminGetEventsByStatusHandler, adminAddCityHandler, adminDeleteCityHandler, adminGetAdminsHandler, adminAddAdminHandler, adminRemoveAdminHandler } from './admin';
 import { startPushAlertCron, runMatchmakerJob } from './cron';
 import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verification';
 import { followOrganizerHandler, unfollowOrganizerHandler, getUserFollowingHandler, getOrganizerFollowersHandler } from './followers';
@@ -173,6 +173,11 @@ app.delete('/api/admin/events/:id', (req, res) => adminDeleteEventHandler(req, r
 app.get('/api/admin/analytics', (req, res) => adminAnalyticsHandler(req, res, pool));
 app.get('/api/admin/settings', (req, res) => adminGetSettingsHandler(req, res, pool));
 app.post('/api/admin/settings', (req, res) => adminUpdateSettingsHandler(req, res, pool));
+
+// Admin Management API
+app.get('/api/admin/admins', (req, res) => adminGetAdminsHandler(req, res, pool));
+app.post('/api/admin/admins', (req, res) => adminAddAdminHandler(req, res, pool));
+app.delete('/api/admin/admins/:id', (req, res) => adminRemoveAdminHandler(req, res, pool));
 
 app.get('/api/admin/organizers', (req, res) => adminGetOrganizersHandler(req, res, pool));
 app.post('/api/admin/organizers', (req, res) => adminAddOrganizerHandler(req, res, pool));
