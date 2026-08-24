@@ -23,7 +23,7 @@ const courierPrime = Courier_Prime({
 });
 
 export const metadata: Metadata = {
-  title: "Vizag Vibes",
+  title: "VibeCheck Space",
   description: "Discover local events and connect with the Vizag community.",
 };
 
@@ -47,7 +47,7 @@ export default function RootLayout({
             {children}
           </div>
           <footer className="w-full text-center py-8 border-t border-black/5 text-zinc-400 text-xs mt-auto font-medium">
-             © {new Date().getFullYear()} VIBECHECK. All rights reserved.
+            © {new Date().getFullYear()} VIBECHECK. All rights reserved.
           </footer>
         </Providers>
       </body>
