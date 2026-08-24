@@ -14,6 +14,7 @@ import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
+import OrganizerInsightsDashboard from "@/components/OrganizerInsightsDashboard";
 const CATEGORIES = ["Sports", "Arts", "Education", "Spiritual", "Music", "Food", "Wellness", "Indie", "Techno", "General"];
 
 const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
@@ -387,7 +388,7 @@ export default function OrganizerDashboard() {
   const [loading, setLoading] = useState(true);
   const [isOrganizer, setIsOrganizer] = useState(false);
   const [myEvents, setMyEvents] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'events' | 'crm'>('events');
+  const [activeTab, setActiveTab] = useState<'events' | 'crm' | 'insights'>('events');
   const [showForm, setShowForm] = useState(false);
   const [supportedCities, setSupportedCities] = useState<{ id: number; name: string }[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
@@ -802,9 +803,15 @@ export default function OrganizerDashboard() {
           >
             Community CRM ({contacts.length})
           </button>
+          <button
+            className={`text-xs font-black uppercase tracking-widest pb-2 border-b-2 ${activeTab === 'insights' ? 'border-primary text-black' : 'border-transparent text-zinc-400 hover:text-black'}`}
+            onClick={() => setActiveTab('insights')}
+          >
+            Insights & Analytics
+          </button>
         </div>
 
-        {activeTab === 'events' ? (
+        {activeTab === 'events' && (
           <div className="space-y-8 animate-in fade-in duration-500">
             {/* My Events */}
             <div className="space-y-8">
@@ -822,7 +829,9 @@ export default function OrganizerDashboard() {
               )}
             </div>
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'crm' && (
           <div className="ringer-card p-6 sm:p-10">
             <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-6">Your Community CRM</h2>
             
@@ -1034,6 +1043,10 @@ export default function OrganizerDashboard() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'insights' && (
+          <OrganizerInsightsDashboard organizerEmail={session?.user?.email || ""} />
         )}
 
       </div>

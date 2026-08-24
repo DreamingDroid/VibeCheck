@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { sendWhatsAppMessage } from './whatsapp';
 import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull } from './queries/events';
-import { getSystemSetting } from './queries/analytics';
+import { getSystemSetting, getOrganizerDashboardAnalytics } from './queries/analytics';
 import { config } from './config';
 import { getChatModel } from './rag';
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
@@ -307,6 +307,22 @@ export async function organizerCrmBroadcastHandler(req: Request, res: Response, 
     res.json({ success: true, message: `Successfully broadcasted to ${sentCount} contacts.` });
   } catch (error) {
     console.error('Error sending CRM broadcast:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function organizerGetDashboardAnalyticsHandler(req: Request, res: Response, pool: Pool) {
+  const email = req.query.email as string;
+
+  if (!email) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+
+  try {
+    const data = await getOrganizerDashboardAnalytics(pool, email);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error fetching organizer dashboard analytics:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
