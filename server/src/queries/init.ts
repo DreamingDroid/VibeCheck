@@ -142,6 +142,20 @@ export async function initializeDatabaseSchema(pool: Pool) {
     );
   `);
 
+  // 10b. Create Organizer CRM Notes table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS organizer_crm_notes (
+      id SERIAL PRIMARY KEY,
+      organizer_email VARCHAR(255) REFERENCES admins(email) ON DELETE CASCADE,
+      contact_email VARCHAR(255) NOT NULL,
+      notes TEXT DEFAULT '',
+      tags VARCHAR(100)[] DEFAULT '{}'::VARCHAR(100)[],
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(organizer_email, contact_email)
+    );
+  `);
+
   // 11. Create News Articles table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS news_articles (
@@ -182,6 +196,20 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_paid BOOLEAN DEFAULT false`);
   await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS is_editor BOOLEAN DEFAULT false`);
   await pool.query(`ALTER TABLE news_articles ADD COLUMN IF NOT EXISTS city VARCHAR(100) DEFAULT 'Vizag'`);
+
+  // Migration safeguard for organizer_crm_notes table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS organizer_crm_notes (
+      id SERIAL PRIMARY KEY,
+      organizer_email VARCHAR(255) REFERENCES admins(email) ON DELETE CASCADE,
+      contact_email VARCHAR(255) NOT NULL,
+      notes TEXT DEFAULT '',
+      tags VARCHAR(100)[] DEFAULT '{}'::VARCHAR(100)[],
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(organizer_email, contact_email)
+    );
+  `).catch(() => {});
 
   // Seed default cities if empty
   const { rows: cityRows } = await pool.query('SELECT COUNT(*) FROM cities');

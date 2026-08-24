@@ -389,8 +389,24 @@ export default function OrganizerDashboard() {
   const [myEvents, setMyEvents] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'events' | 'crm'>('events');
   const [showForm, setShowForm] = useState(false);
-  const [followers, setFollowers] = useState<any[]>([]);
   const [supportedCities, setSupportedCities] = useState<{ id: number; name: string }[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [crmLoading, setCrmLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [segmentFilter, setSegmentFilter] = useState<'all' | 'followers' | 'rsvp'>("all");
+  const [tagFilter, setTagFilter] = useState("all");
+  const [eventFilter, setEventFilter] = useState("all");
+  const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
+  
+  const [editingContact, setEditingContact] = useState<any | null>(null);
+  const [editedNotes, setEditedNotes] = useState("");
+  const [editedTags, setEditedTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+
+  const [crmBroadcastOpen, setCrmBroadcastOpen] = useState(false);
+  const [crmBroadcastMsg, setCrmBroadcastMsg] = useState("");
+  const [crmBroadcasting, setCrmBroadcasting] = useState(false);
+  const [crmPaymentStatus, setCrmPaymentStatus] = useState<"idle" | "processing" | "success">("idle");
 
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [isMultiDay, setIsMultiDay] = useState(false);
@@ -432,7 +448,7 @@ export default function OrganizerDashboard() {
         }
         setIsOrganizer(true);
         loadMyEvents();
-        loadFollowers(session.user?.email ?? '');
+        loadContacts(session.user?.email ?? '');
       })
       .catch(err => {
         console.error("Check role error", err);
@@ -451,13 +467,186 @@ export default function OrganizerDashboard() {
       });
   };
 
-  const loadFollowers = (email: string) => {
+  const loadContacts = (email: string) => {
+    setCrmLoading(true);
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-    fetch(`${baseUrl}/api/organizer/followers?email=${encodeURIComponent(email)}`)
+    fetch(`${baseUrl}/api/organizer/crm/contacts?email=${encodeURIComponent(email)}`)
       .then(r => r.json())
       .then(data => {
-        if (data.success) setFollowers(data.data);
+        if (data.success) setContacts(data.data);
+      })
+      .catch(err => console.error("Failed to load CRM contacts", err))
+      .finally(() => setCrmLoading(false));
+  };
+
+  const getTagsArray = (tagsVal: any): string[] => {
+    if (!tagsVal) return [];
+    if (Array.isArray(tagsVal)) return tagsVal;
+    if (typeof tagsVal === 'string') {
+      if (tagsVal.startsWith('{') && tagsVal.endsWith('}')) {
+        return tagsVal.slice(1, -1).split(',').map(s => s.trim().replace(/^"|"$/g, '')).filter(Boolean);
+      }
+      return tagsVal.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    return [];
+  };
+
+  const allUniqueTags = Array.from(
+    new Set(
+      contacts
+        .flatMap(c => getTagsArray(c.tags))
+        .filter(t => typeof t === 'string' && t.trim() !== '')
+    )
+  );
+
+  const filteredContacts = contacts.filter(c => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const nameMatch = (c.name || '').toLowerCase().includes(q);
+      const emailMatch = (c.email || '').toLowerCase().includes(q);
+      const phoneMatch = (c.phone_number || '').toLowerCase().includes(q);
+      const notesMatch = (c.notes || '').toLowerCase().includes(q);
+      const tagsMatch = getTagsArray(c.tags).some(t => t.toLowerCase().includes(q));
+      if (!nameMatch && !emailMatch && !phoneMatch && !notesMatch && !tagsMatch) {
+        return false;
+      }
+    }
+    if (segmentFilter === 'followers' && !c.is_follower) return false;
+    if (segmentFilter === 'rsvp' && !c.is_attendee) return false;
+    if (tagFilter && tagFilter !== 'all') {
+      if (!getTagsArray(c.tags).includes(tagFilter)) return false;
+    }
+    if (eventFilter && eventFilter !== 'all') {
+      const eventsStr = (c.rsvped_events || '').toLowerCase();
+      if (!eventsStr.includes(eventFilter.toLowerCase())) return false;
+    }
+    return true;
+  });
+
+  const isAllFilteredSelected = filteredContacts.length > 0 && filteredContacts.every(c => selectedEmails.includes(c.email));
+
+  const toggleSelectEmail = (email: string) => {
+    if (selectedEmails.includes(email)) {
+      setSelectedEmails(selectedEmails.filter(e => e !== email));
+    } else {
+      setSelectedEmails([...selectedEmails, email]);
+    }
+  };
+
+  const toggleSelectAllFiltered = () => {
+    if (isAllFilteredSelected) {
+      setSelectedEmails(selectedEmails.filter(e => !filteredContacts.map(c => c.email).includes(e)));
+    } else {
+      const newEmails = [...selectedEmails];
+      filteredContacts.forEach(c => {
+        if (!newEmails.includes(c.email)) {
+          newEmails.push(c.email);
+        }
       });
+      setSelectedEmails(newEmails);
+    }
+  };
+
+  const handleExportCsv = () => {
+    if (filteredContacts.length === 0) {
+      toast.error("No contacts to export");
+      return;
+    }
+    const headers = ["Name", "Email", "Phone", "City", "Follower", "Attendee", "RSVPs Count", "RSVP'd Events", "Notes", "Tags"];
+    const rows = filteredContacts.map(c => [
+      c.name || "Anonymous",
+      c.email,
+      c.phone_number || "",
+      c.city || "",
+      c.is_follower ? "Yes" : "No",
+      c.is_attendee ? "Yes" : "No",
+      c.rsvp_count,
+      c.rsvped_events || "",
+      c.notes || "",
+      getTagsArray(c.tags).join(", ")
+    ]);
+
+    const csvString = [
+      headers.join(","),
+      ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+    
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `vibecheck_crm_contacts_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("CSV exported successfully!");
+  };
+
+  const handleSaveNotes = async () => {
+    if (!editingContact) return;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    try {
+      const res = await fetch(`${baseUrl}/api/organizer/crm/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizer_email: session?.user?.email,
+          contact_email: editingContact.email,
+          notes: editedNotes,
+          tags: editedTags
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Contact details updated successfully!");
+        setEditingContact(null);
+        loadContacts(session?.user?.email ?? '');
+      } else {
+        toast.error(data.error || "Failed to update contact");
+      }
+    } catch (err) {
+      toast.error("An error occurred");
+    }
+  };
+
+  const openCrmBroadcast = () => {
+    if (selectedEmails.length === 0) return;
+    setCrmBroadcastOpen(true);
+  };
+
+  const handleCrmPayAndSend = () => {
+    if (!crmBroadcastMsg.trim()) { toast.error("Message cannot be empty."); return; }
+    setCrmPaymentStatus("processing");
+    setTimeout(() => {
+      setCrmPaymentStatus("success");
+      setCrmBroadcasting(true);
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      fetch(`${baseUrl}/api/organizer/crm/broadcast`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizer_email: session?.user?.email,
+          contact_emails: selectedEmails,
+          message: crmBroadcastMsg
+        })
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) {
+            toast.success(d.message);
+            setCrmBroadcastOpen(false);
+            setSelectedEmails([]);
+            setCrmBroadcastMsg("");
+          } else {
+            toast.error("Broadcast failed. Please try again.");
+          }
+        })
+        .finally(() => {
+          setCrmBroadcasting(false);
+          setCrmPaymentStatus("idle");
+        });
+    }, 2000);
   };
 
   const handleEditInit = (ev: any) => {
@@ -611,7 +800,7 @@ export default function OrganizerDashboard() {
             className={`text-xs font-black uppercase tracking-widest pb-2 border-b-2 ${activeTab === 'crm' ? 'border-primary text-black' : 'border-transparent text-zinc-400 hover:text-black'}`}
             onClick={() => setActiveTab('crm')}
           >
-            Community CRM ({followers.length})
+            Community CRM ({contacts.length})
           </button>
         </div>
 
@@ -634,32 +823,212 @@ export default function OrganizerDashboard() {
             </div>
           </div>
         ) : (
-          <div className="ringer-card">
-            <h2 className="text-2xl vibecheck_font_style mb-6">Your Community CRM</h2>
-            {followers.length === 0 ? (
+          <div className="ringer-card p-6 sm:p-10">
+            <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-6">Your Community CRM</h2>
+            
+            {/* Metrics Strip */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div className="bg-zinc-50 p-6 rounded-[24px] border border-black/5 hover:border-black/10 transition-colors shadow-sm">
+                <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-2">Total Contacts</p>
+                <p className="text-3xl font-black italic text-black">{contacts.length}</p>
+                <p className="text-[9px] text-zinc-400 mt-1 font-semibold">Followers & attendees</p>
+              </div>
+              <div className="bg-zinc-50 p-6 rounded-[24px] border border-black/5 hover:border-black/10 transition-colors shadow-sm">
+                <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-2">Active Followers</p>
+                <p className="text-3xl font-black italic text-primary">{contacts.filter(c => c.is_follower).length}</p>
+                <p className="text-[9px] text-zinc-400 mt-1 font-semibold">Direct audience</p>
+              </div>
+              <div className="bg-zinc-50 p-6 rounded-[24px] border border-black/5 hover:border-black/10 transition-colors shadow-sm">
+                <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-2">Repeat Attendees</p>
+                <p className="text-3xl font-black italic text-[#EAB308]">{contacts.filter(c => c.rsvp_count >= 2).length}</p>
+                <p className="text-[9px] text-zinc-400 mt-1 font-semibold">RSVP'd 2+ times</p>
+              </div>
+              <div className="bg-zinc-50 p-6 rounded-[24px] border border-black/5 hover:border-black/10 transition-colors shadow-sm">
+                <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-2">WhatsApp Reach</p>
+                <p className="text-3xl font-black italic text-[#22C55E]">{contacts.filter(c => c.phone_number).length}</p>
+                <p className="text-[9px] text-zinc-400 mt-1 font-semibold">With active phone numbers</p>
+              </div>
+            </div>
+
+            {/* Search, Filter & Actions Bar */}
+            <div className="flex flex-col xl:flex-row gap-4 mb-6 justify-between items-stretch xl:items-center">
+              <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                <Input
+                  placeholder="Search name, email, phone, notes, tags..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold flex-1"
+                />
+                <Select value={segmentFilter} onValueChange={(v: any) => setSegmentFilter(v)}>
+                  <SelectTrigger className="w-full sm:w-[180px] bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold text-black">
+                    <SelectValue>
+                      {segmentFilter === 'all' ? 'All Segments' : segmentFilter === 'followers' ? 'Followers Only' : 'Attendees Only'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-black/5 rounded-[20px] shadow-2xl p-2 z-50">
+                    <SelectItem value="all" className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer text-black">All Segments</SelectItem>
+                    <SelectItem value="followers" className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer text-black">Followers Only</SelectItem>
+                    <SelectItem value="rsvp" className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer text-black">Attendees Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Select value={tagFilter} onValueChange={(val) => setTagFilter(val || "all")}>
+                  <SelectTrigger className="w-full sm:w-[150px] bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold text-black">
+                    <SelectValue>
+                      {tagFilter === 'all' ? 'All Tags' : tagFilter}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-black/5 rounded-[20px] shadow-2xl p-2 z-50">
+                    <SelectItem value="all" className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer text-black">All Tags</SelectItem>
+                    {allUniqueTags.map(tag => (
+                      <SelectItem key={tag} value={tag} className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer text-black">{tag}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={eventFilter} onValueChange={(val) => setEventFilter(val || "all")}>
+                  <SelectTrigger className="w-full sm:w-[180px] bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold text-black">
+                    <SelectValue>
+                      {eventFilter === 'all' ? 'All Events' : eventFilter}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-black/5 rounded-[20px] shadow-2xl p-2 z-50">
+                    <SelectItem value="all" className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer text-black">All Events</SelectItem>
+                    {myEvents.map(e => (
+                      <SelectItem key={e.id} value={e.title} className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer text-black">{e.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleExportCsv}
+                    className="ringer-button border border-black/10 hover:bg-zinc-100 text-[10px] flex items-center gap-2 whitespace-nowrap"
+                    title="Export CSV"
+                  >
+                    📋 EXPORT CSV
+                  </button>
+                  <button
+                    onClick={openCrmBroadcast}
+                    disabled={selectedEmails.length === 0}
+                    className="ringer-button bg-primary text-black disabled:opacity-40 text-[10px] flex items-center gap-2 whitespace-nowrap"
+                  >
+                    📢 BROADCAST ({selectedEmails.length})
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {crmLoading ? (
+              <p className="p-12 text-zinc-400 text-xs font-black uppercase tracking-[0.2em] text-center animate-pulse">Synchronizing CRM contacts...</p>
+            ) : filteredContacts.length === 0 ? (
               <div className="p-12 text-center text-zinc-400 font-bold italic text-sm">
-                Nobody is following you yet. Keep hosting great events!
+                No contacts found matching your filters.
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
                   <thead className="text-[10px] font-black uppercase tracking-widest text-zinc-400 border-b border-black/5">
                     <tr>
-                      <th className="px-4 py-3">Name</th>
-                      <th className="px-4 py-3">Email</th>
-                      <th className="px-4 py-3">City</th>
-                      <th className="px-4 py-3">Follow Date</th>
+                      <th className="px-4 py-3 w-[40px]">
+                        <input
+                          type="checkbox"
+                          checked={isAllFilteredSelected}
+                          onChange={toggleSelectAllFiltered}
+                          className="rounded border-zinc-300 text-black focus:ring-black cursor-pointer h-4 w-4"
+                        />
+                      </th>
+                      <th className="px-4 py-3">Contact</th>
+                      <th className="px-4 py-3">Segment</th>
+                      <th className="px-4 py-3">Phone / City</th>
+                      <th className="px-4 py-3">Stats</th>
+                      <th className="px-4 py-3">Tags & Notes</th>
+                      <th className="px-4 py-3 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {followers.map((f, i) => (
-                      <tr key={i} className="border-b border-black/5 last:border-0 hover:bg-zinc-50 transition-colors">
-                        <td className="px-4 py-4 font-bold text-black">{f.name || 'Anonymous User'}</td>
-                        <td className="px-4 py-4 text-zinc-600 font-medium">{f.email}</td>
-                        <td className="px-4 py-4 text-zinc-600 font-medium">{f.city || 'Unknown'}</td>
-                        <td className="px-4 py-4 text-zinc-400 font-bold">{new Date(f.follow_date).toLocaleDateString()}</td>
-                      </tr>
-                    ))}
+                    {filteredContacts.map((c, i) => {
+                      const initial = (c.name || c.email || '?').charAt(0).toUpperCase();
+                      const tags = getTagsArray(c.tags);
+                      
+                      let badge = null;
+                      if (c.is_follower && c.is_attendee) {
+                        badge = <span className="sticker-badge bg-black text-[#C1FF00] border-black text-[9px] font-bold whitespace-nowrap">Follower & Attendee</span>;
+                      } else if (c.is_follower) {
+                        badge = <span className="sticker-badge bg-[#C1FF00]/15 text-black border-[#C1FF00]/30 text-[9px] font-bold whitespace-nowrap">Follower</span>;
+                      } else {
+                        badge = <span className="sticker-badge bg-zinc-100 text-zinc-800 border-zinc-200 text-[9px] font-bold whitespace-nowrap">Attendee</span>;
+                      }
+
+                      return (
+                        <tr key={i} className="border-b border-black/5 last:border-0 hover:bg-zinc-50 transition-colors">
+                          <td className="px-4 py-4">
+                            <input
+                              type="checkbox"
+                              checked={selectedEmails.includes(c.email)}
+                              onChange={() => toggleSelectEmail(c.email)}
+                              className="rounded border-zinc-300 text-black focus:ring-black cursor-pointer h-4 w-4"
+                            />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#C1FF00]/25 to-zinc-200/25 flex items-center justify-center font-black italic text-xs border border-black/5 text-zinc-800">
+                                {initial}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-bold text-black text-sm">{c.name || 'Anonymous User'}</span>
+                                <span className="text-zinc-400 text-[10px] font-medium">{c.email}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">{badge}</td>
+                          <td className="px-4 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-zinc-800 font-bold text-xs">{c.phone_number || <span className="text-zinc-300 italic font-medium">No Phone</span>}</span>
+                              <span className="text-zinc-400 text-[10px] font-black uppercase tracking-wider">{c.city || 'Unknown'}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-black font-black text-sm">{c.rsvp_count} <span className="text-[10px] text-zinc-400 font-normal lowercase">rsvps</span></span>
+                              {c.last_rsvp_date && (
+                                <span className="text-zinc-400 text-[9px] font-bold">Last: {new Date(c.last_rsvp_date).toLocaleDateString()}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 max-w-[200px]">
+                            <div className="flex flex-col gap-1">
+                              {tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {tags.map(t => (
+                                    <span key={t} className="px-1.5 py-0.5 rounded-md bg-zinc-100 text-zinc-600 border border-zinc-200 text-[8px] font-extrabold uppercase tracking-wide">{t}</span>
+                                  ))}
+                                </div>
+                              )}
+                              {c.notes ? (
+                                <span className="text-zinc-600 text-xs truncate font-medium block" title={c.notes}>{c.notes}</span>
+                              ) : (
+                                <span className="text-zinc-300 text-xs italic block">No notes</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <button
+                              onClick={() => {
+                                setEditingContact(c);
+                                setEditedNotes(c.notes || '');
+                                setEditedTags(tags);
+                              }}
+                              className="ringer-button border border-black/5 hover:bg-zinc-100 p-1.5 px-3 text-[9px]"
+                            >
+                              ✏️ NOTES
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -877,6 +1246,139 @@ export default function OrganizerDashboard() {
                 {submitting ? "SUBMITTING..." : editingEventId ? "SUBMIT EDITS" : "SUBMIT FOR REVIEW"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Notes Modal */}
+      {editingContact && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setEditingContact(null)}>
+          <div className="bg-white rounded-[40px] p-10 max-w-lg w-full shadow-2xl border border-black/5 animate-in zoom-in-95 duration-200 text-black" onClick={e => e.stopPropagation()}>
+            <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-2">Edit Contact Details</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-6">CRM context for {editingContact.name || editingContact.email}</p>
+
+            <div className="space-y-6">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2">Tags</label>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {editedTags.map(tag => (
+                    <span key={tag} className="sticker-badge bg-[#C1FF00]/10 text-black border-[#C1FF00]/20 flex items-center gap-2 text-[10px]">
+                      {tag}
+                      <button
+                        onClick={() => setEditedTags(editedTags.filter(t => t !== tag))}
+                        className="text-zinc-500 hover:text-black font-black font-sans"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  {editedTags.length === 0 && (
+                    <span className="text-zinc-400 text-xs italic font-medium">No tags added yet.</span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Add custom tag (e.g. VIP, Volunteer)"
+                    value={tagInput}
+                    onChange={e => setTagInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (tagInput.trim() && !editedTags.includes(tagInput.trim())) {
+                          setEditedTags([...editedTags, tagInput.trim()]);
+                          setTagInput("");
+                        }
+                      }
+                    }}
+                    className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold flex-1 text-black"
+                  />
+                  <Button
+                    onClick={() => {
+                      if (tagInput.trim() && !editedTags.includes(tagInput.trim())) {
+                        setEditedTags([...editedTags, tagInput.trim()]);
+                        setTagInput("");
+                      }
+                    }}
+                    className="bg-black hover:bg-zinc-800 text-white rounded-xl text-xs font-bold"
+                  >
+                    ADD
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2">Internal Notes</label>
+                <Textarea
+                  placeholder="Keep track of user details, preferences, special requests, history..."
+                  value={editedNotes}
+                  onChange={e => setEditedNotes(e.target.value)}
+                  className="bg-zinc-50 border-black/5 text-black min-h-[120px] rounded-[20px] p-4 text-xs font-bold focus:ring-primary"
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4 border-t border-black/5">
+                <button className="ringer-button flex-1 border border-black/5 hover:bg-black/5 text-black" onClick={() => setEditingContact(null)}>CANCEL</button>
+                <button
+                  className="ringer-button flex-1 bg-black text-white hover:bg-zinc-800"
+                  onClick={handleSaveNotes}
+                >
+                  SAVE CHANGES
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CRM Selected Broadcast Modal */}
+      {crmBroadcastOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setCrmBroadcastOpen(false)}>
+          <div className="bg-white rounded-[40px] p-10 max-w-md w-full shadow-2xl border border-black/5 animate-in zoom-in-95 duration-200 text-black" onClick={e => e.stopPropagation()}>
+            <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-2">Selective Outreach</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-8">Send custom WhatsApp update to selected contacts</p>
+
+            <div className="bg-zinc-50 border border-black/5 p-6 rounded-[24px] mb-8">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Recipients Selected</span>
+                <span className="font-black text-black">{selectedEmails.length}</span>
+              </div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">WhatsApp Reachable</span>
+                <span className="font-black text-[#22C55E]">{contacts.filter(c => selectedEmails.includes(c.email) && c.phone_number).length} of {selectedEmails.length}</span>
+              </div>
+              <div className="flex justify-between items-center pt-4 border-t border-black/5">
+                <span className="text-[11px] font-black uppercase tracking-widest text-black">Total Investment (₹2/msg)</span>
+                <span className="font-black text-primary text-xl">₹{contacts.filter(c => selectedEmails.includes(c.email) && c.phone_number).length * 2}</span>
+              </div>
+            </div>
+
+            <Textarea
+              placeholder="Write your custom message here..."
+              className="bg-zinc-50 border-black/5 text-black mb-8 min-h-[120px] rounded-[20px] p-4 text-xs font-bold focus:ring-primary"
+              value={crmBroadcastMsg}
+              onChange={e => setCrmBroadcastMsg(e.target.value)}
+            />
+
+            {crmPaymentStatus === "processing" ? (
+              <div className="ringer-button w-full bg-[#EAB308]/20 text-black text-center animate-pulse flex justify-center items-center gap-2">
+                💳 Processing...
+              </div>
+            ) : crmBroadcasting ? (
+              <div className="ringer-button w-full bg-primary text-black text-center animate-pulse flex justify-center items-center gap-2">
+                📲 Sending...
+              </div>
+            ) : (
+              <div className="flex gap-4">
+                <button className="ringer-button flex-1 border border-black/5 hover:bg-black/5 text-black" onClick={() => setCrmBroadcastOpen(false)}>CANCEL</button>
+                <button
+                  className="ringer-button flex-1 bg-black text-white hover:bg-zinc-800 disabled:opacity-30"
+                  onClick={handleCrmPayAndSend}
+                  disabled={selectedEmails.length === 0 || !crmBroadcastMsg.trim()}
+                >
+                  PAY & SEND
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

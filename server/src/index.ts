@@ -20,7 +20,7 @@ import { handleEventQuery, saveUserPreferences } from './rag';
 import { verifyWebhook, handleIncomingMessage } from './whatsapp';
 import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHandler } from './events';
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
-import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler, organizerGetEventAnalyticsHandler, organizerToggleHousefullHandler } from './organizer';
+import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler, organizerGetEventAnalyticsHandler, organizerToggleHousefullHandler, organizerGetCrmContactsHandler, organizerUpsertCrmNotesHandler, organizerCrmBroadcastHandler } from './organizer';
 import { getCitiesHandler } from './cities';
 import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingOrganizersHandler, adminApproveOrganizerHandler, adminRejectOrganizerHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminGetEventsByStatusHandler, adminAddCityHandler, adminDeleteCityHandler, adminGetAdminsHandler, adminAddAdminHandler, adminRemoveAdminHandler } from './admin';
 import { startPushAlertCron, runMatchmakerJob } from './cron';
@@ -213,6 +213,9 @@ app.post('/api/organizer/events/:id/broadcast', (req, res) => broadcastMessageHa
 app.get('/api/organizer/events/:id/promo', (req, res) => organizerGeneratePromoHandler(req, res, pool));
 app.get('/api/organizer/events/:id/analytics', (req, res) => organizerGetEventAnalyticsHandler(req, res, pool));
 app.get('/api/organizer/followers', (req, res) => getOrganizerFollowersHandler(req, res, pool));
+app.get('/api/organizer/crm/contacts', (req, res) => organizerGetCrmContactsHandler(req, res, pool));
+app.post('/api/organizer/crm/notes', (req, res) => organizerUpsertCrmNotesHandler(req, res, pool));
+app.post('/api/organizer/crm/broadcast', (req, res) => organizerCrmBroadcastHandler(req, res, pool));
 
 // Followers API
 app.post('/api/followers', (req, res) => followOrganizerHandler(req, res, pool));

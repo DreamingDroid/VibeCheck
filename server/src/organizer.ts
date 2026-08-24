@@ -6,6 +6,7 @@ import { getSystemSetting } from './queries/analytics';
 import { config } from './config';
 import { getChatModel } from './rag';
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
+import { getOrganizerCrmContacts, upsertOrganizerCrmNotes, getPhoneNumbersForEmails } from './queries/crm';
 
 export async function organizerCreateEventHandler(req: Request, res: Response, pool: Pool) {
   const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email } = req.body;
@@ -249,6 +250,63 @@ export async function organizerToggleHousefullHandler(req: Request, res: Respons
     res.json({ success: true, status: result.status, message: `Event status updated to ${result.status}.` });
   } catch (error) {
     console.error('Error toggling housefull:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function organizerGetCrmContactsHandler(req: Request, res: Response, pool: Pool) {
+  const { email } = req.query;
+  if (!email) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+  try {
+    const contacts = await getOrganizerCrmContacts(pool, email as string);
+    res.json({ success: true, data: contacts });
+  } catch (error) {
+    console.error('Error fetching CRM contacts:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function organizerUpsertCrmNotesHandler(req: Request, res: Response, pool: Pool) {
+  const { organizer_email, contact_email, notes, tags } = req.body;
+
+  if (!organizer_email || !contact_email) {
+    return res.status(400).json({ success: false, error: 'Missing required parameters' });
+  }
+
+  try {
+    await upsertOrganizerCrmNotes(pool, organizer_email, contact_email, notes || '', tags || []);
+    res.json({ success: true, message: 'CRM contact notes updated successfully.' });
+  } catch (error) {
+    console.error('Error updating CRM contact notes:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function organizerCrmBroadcastHandler(req: Request, res: Response, pool: Pool) {
+  const { organizer_email, contact_emails, message } = req.body;
+
+  if (!organizer_email || !contact_emails || !Array.isArray(contact_emails) || !message) {
+    return res.status(400).json({ success: false, error: 'Missing parameters' });
+  }
+
+  try {
+    const phoneNumbers = await getPhoneNumbersForEmails(pool, contact_emails);
+
+    const phoneNumberId = config.WHATSAPP_PHONE_NUMBER_ID;
+    let sentCount = 0;
+
+    for (const phone of phoneNumbers) {
+      if (phone) {
+        const finalMsg = `${message}\n\n- Sent by Organizer`;
+        await sendWhatsAppMessage(phoneNumberId, phone, finalMsg);
+        sentCount++;
+      }
+    }
+
+    res.json({ success: true, message: `Successfully broadcasted to ${sentCount} contacts.` });
+  } catch (error) {
+    console.error('Error sending CRM broadcast:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
