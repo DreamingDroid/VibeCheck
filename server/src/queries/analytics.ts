@@ -23,6 +23,11 @@ export async function initSystemSettings(pool: Pool) {
     VALUES ('auto_scroll_enabled', 'true'::jsonb)
     ON CONFLICT (key) DO NOTHING;
   `);
+  await pool.query(`
+    INSERT INTO system_settings (key, value)
+    VALUES ('local_currents_theme', '"default"'::jsonb)
+    ON CONFLICT (key) DO NOTHING;
+  `);
 }
 
 export async function getAnalyticsOverview(pool: Pool) {

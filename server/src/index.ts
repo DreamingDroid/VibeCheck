@@ -173,10 +173,21 @@ app.post('/api/user', (req, res) => saveWebUserHandler(req, res, pool));
 // Public settings route for homepage styling controls
 app.get('/api/settings', async (req, res) => {
   try {
-    const { rows } = await pool.query("SELECT key, value FROM system_settings WHERE key = 'auto_scroll_enabled'");
-    const val = rows[0]?.value;
-    const enabled = val === undefined || val === 'true' || val === true;
-    res.json({ success: true, autoScrollEnabled: enabled });
+    const { rows } = await pool.query("SELECT key, value FROM system_settings WHERE key IN ('auto_scroll_enabled', 'local_currents_theme')");
+    let autoScrollEnabled = true;
+    let localCurrentsTheme = 'default';
+
+    for (const row of rows) {
+      if (row.key === 'auto_scroll_enabled') {
+        const val = row.value;
+        autoScrollEnabled = val === undefined || val === 'true' || val === true;
+      }
+      if (row.key === 'local_currents_theme') {
+        // value is stored as JSON string '"news-paper"' or '"default"'
+        localCurrentsTheme = row.value === 'news-paper' || row.value === '"news-paper"' ? 'news-paper' : 'default';
+      }
+    }
+    res.json({ success: true, autoScrollEnabled, localCurrentsTheme });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Internal server error' });
   }

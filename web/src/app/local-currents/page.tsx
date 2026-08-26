@@ -81,6 +81,9 @@ export default function LocalCurrentsPage() {
   // Reader View State
   const [activeArticle, setActiveArticle] = useState<Article | null>(null);
 
+  // Theme State
+  const [pageTheme, setPageTheme] = useState("default");
+
   // Editor Modal State
   const [showEditorModal, setShowEditorModal] = useState(false);
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
@@ -164,7 +167,6 @@ export default function LocalCurrentsPage() {
     }
   }, [session, status]);
 
-  // Fetch news articles
   const fetchArticles = () => {
     if (!currentCity) return;
     setLoading(true);
@@ -179,6 +181,22 @@ export default function LocalCurrentsPage() {
       .catch((err) => console.error("Error fetching articles:", err))
       .finally(() => setLoading(false));
   };
+
+  const fetchSettings = () => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    fetch(`${baseUrl}/api/settings`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.localCurrentsTheme) {
+          setPageTheme(data.localCurrentsTheme);
+        }
+      })
+      .catch((err) => console.error("Error fetching settings:", err));
+  };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
     if (currentCity) {
@@ -388,32 +406,82 @@ export default function LocalCurrentsPage() {
   return (
     <div className="min-h-screen bg-background pb-24 text-black font-helvetica select-none">
       {/* Editorial Header */}
-      <header className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 md:pt-16 border-b border-black/5 pb-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-1">
-              THE VIBECHECK ARCHIVES
-            </p>
-            <h1 className="text-4xl sm:text-6xl font-black italic tracking-tighter uppercase leading-[0.85] mb-3">
-              LOCAL CURRENTS
-            </h1>
-            <p className="text-zinc-500 text-xs sm:text-sm font-normal max-w-xl">
-              The ultimate pulse on Vizag&apos;s culture, music, tech, and coastal stories.
-            </p>
-          </div>
+      {pageTheme === 'news-paper' ? (
+        <header className="sticky top-0 z-[100] bg-white max-w-7xl mx-auto px-4 sm:px-6 pt-4 pb-2 border-b-[6px] border-black border-x border-x-black/5 shadow-md">
+          <div className="border-t-[6px] border-black py-4 mb-2 relative flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden">
+            <div className="hidden md:flex flex-col items-center justify-center border-r-[4px] border-black pr-6">
+              <span className="text-xl font-black uppercase tracking-tight text-primary">Est.</span>
+              <span className="text-3xl font-serif font-black tracking-tighter">2026</span>
+            </div>
+            
+            <div className="flex-1 text-center w-full relative z-10">
+              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-primary mb-1">
+                COMMUNITY DISPATCHES
+              </p>
+              <h1 className="text-[clamp(3rem,8vw,6rem)] font-serif font-black tracking-tighter uppercase leading-[0.85] mb-1 text-black">
+                VIBECHECK SPACE
+              </h1>
+              <p className="text-black text-sm font-serif italic border-t border-black pt-2 inline-block px-12 mt-2">
+                Your space for the ultimate pulse on Vizag&apos;s culture, music, tech, and coastal stories.
+              </p>
+            </div>
 
-          {/* Quick Actions */}
-          {(isEditor || isAdmin) && (
-            <button
-              onClick={handleOpenCreateModal}
-              className="ringer-button bg-black text-white px-6 py-3 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-zinc-800 self-start md:self-end"
-            >
-              <Plus className="h-4 w-4 text-primary animate-pulse" />
-              Write Story
-            </button>
-          )}
-        </div>
-      </header>
+            <div className="hidden md:flex flex-col items-center justify-center border-l-[4px] border-black pl-6">
+              <span className="text-[10px] font-black uppercase tracking-tight text-primary">ACTIVE SPACES</span>
+              <span className="text-3xl font-serif font-black tracking-tighter">#{filteredArticles.length}</span>
+            </div>
+
+            {/* Quick Actions */}
+            {(isEditor || isAdmin) && (
+              <div className="absolute top-0 right-0 md:top-2 md:right-2 z-20">
+                <button
+                  onClick={handleOpenCreateModal}
+                  className="bg-black text-white px-4 py-2 text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5 hover:bg-primary hover:text-black transition-colors"
+                >
+                  <Plus className="h-3 w-3" />
+                  SHARE YOUR VIBE
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-center items-center text-[10px] font-bold uppercase tracking-widest border-t-[4px] border-black pt-2 gap-4 text-black">
+            <span className="hover:text-primary cursor-pointer transition-colors">CULTURE</span>
+            <span>|</span>
+            <span className="hover:text-primary cursor-pointer transition-colors">MUSIC</span>
+            <span>|</span>
+            <span className="hover:text-primary cursor-pointer transition-colors">TECH</span>
+            <span>|</span>
+            <span className="hover:text-primary cursor-pointer transition-colors">COASTAL</span>
+          </div>
+        </header>
+      ) : (
+        <header className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 md:pt-16 border-b border-black/5 pb-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-1">
+                THE VIBECHECK ARCHIVES
+              </p>
+              <h1 className="text-4xl sm:text-6xl font-black italic tracking-tighter uppercase leading-[0.85] mb-3">
+                LOCAL CURRENTS
+              </h1>
+              <p className="text-zinc-500 text-xs sm:text-sm font-normal max-w-xl">
+                The ultimate pulse on Vizag&apos;s culture, music, tech, and coastal stories.
+              </p>
+            </div>
+
+            {/* Quick Actions */}
+            {(isEditor || isAdmin) && (
+              <button
+                onClick={handleOpenCreateModal}
+                className="ringer-button bg-black text-white px-6 py-3 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-zinc-800 self-start md:self-end"
+              >
+                <Plus className="h-4 w-4 text-primary animate-pulse" />
+                Write Story
+              </button>
+            )}
+          </div>
+        </header>
+      )}
 
       {/* Guest Sign-In CTA */}
       {status === "unauthenticated" && (
@@ -514,187 +582,268 @@ export default function LocalCurrentsPage() {
           </div>
         ) : (
           <div className="space-y-12">
-            {/* Hero Featured Article Block */}
-            {featuredArticle && (
-              <div 
-                onClick={() => setActiveArticle(featuredArticle)}
-                className="group cursor-pointer bg-white rounded-[32px] border border-black/5 overflow-hidden shadow-sm hover:shadow-2xl hover:border-primary/20 transition-all duration-500 grid grid-cols-1 lg:grid-cols-12 gap-0 relative"
-              >
-                {/* Banner panel - Category Gradient */}
-                <div className={`lg:col-span-4 h-64 sm:h-96 lg:min-h-[350px] bg-gradient-to-br ${getCategoryStyle(featuredArticle.category).bg} overflow-hidden relative flex items-center justify-center`}>
-                  {featuredArticle.image_url ? (
-                    <img src={optimizeCloudinaryUrl(featuredArticle.image_url, 'f_auto,q_auto,w_1200')} alt={featuredArticle.title} className="absolute inset-0 w-full h-full object-cover" />
-                  ) : (
-                    <>
-                      <div className="absolute inset-0 bg-[size:24px_24px]" style={{ backgroundImage: getCategoryStyle(featuredArticle.category).grid }} />
-                      <div className={`absolute -bottom-6 -right-6 text-[80px] font-black uppercase ${getCategoryStyle(featuredArticle.category).text} select-none pointer-events-none tracking-tighter italic`}>
-                        {featuredArticle.category}
-                      </div>
-                    </>
-                  )}
-                  {/* Category Sticker overlay */}
-                  <div className="absolute top-6 left-6 flex gap-2">
-                    <span className="sticker-badge bg-black text-white">
-                      FEATURED • {featuredArticle.category.toUpperCase()}
-                    </span>
-                    {featuredArticle.city && (
-                      <span className="sticker-badge bg-primary text-white font-bold">
-                        {featuredArticle.city.toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Content Panel */}
-                <div className="lg:col-span-8 p-8 sm:p-12 flex flex-col justify-between space-y-8 bg-white relative">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4 text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" /> 
-                        {new Date(featuredArticle.created_at).toLocaleDateString("en-US", {
-                          month: "short", day: "numeric", year: "numeric"
-                        })}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> {calculateReadTime(featuredArticle.content)}
-                      </span>
-                    </div>
-
-                    <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black italic tracking-tighter uppercase leading-[1.0] group-hover:text-primary transition-colors">
-                      {featuredArticle.title}
-                    </h2>
-
-                    <p className="text-zinc-600 text-sm font-normal leading-relaxed line-clamp-4">
-                      {featuredArticle.content}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-6 border-t border-black/5">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center border border-black/5 font-black text-xs">
-                        {featuredArticle.author.substring(0, 2).toUpperCase()}
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
-                        {featuredArticle.author}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {(isEditor || isAdmin) && (
-                        <div className="flex items-center gap-1.5 mr-2">
-                          <button
-                            onClick={(e) => handleOpenEditModal(e, featuredArticle)}
-                            className="h-8 w-8 rounded-full flex items-center justify-center border border-black/5 text-zinc-400 hover:text-black hover:bg-zinc-50 transition-all bg-white"
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            onClick={(e) => handleDeleteArticle(e, featuredArticle.id, featuredArticle.title)}
-                            className="h-8 w-8 rounded-full flex items-center justify-center border border-transparent text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-all bg-white"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      )}
-
-                      <span className="text-[10px] font-black uppercase tracking-widest text-black flex items-center gap-1.5 group-hover:translate-x-1.5 transition-transform duration-300">
-                        Read Story <ArrowRight className="h-3 w-3" />
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Grid Layout for Regular Articles */}
-            {regularArticles.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {regularArticles.map((article) => (
-                  <div
-                    key={article.id}
-                    onClick={() => setActiveArticle(article)}
-                    className="group cursor-pointer bg-white rounded-[28px] border border-black/5 overflow-hidden shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-300 flex flex-col justify-between h-[360px]"
+            {pageTheme === 'news-paper' ? (
+              <div className="border border-black bg-white">
+                {/* Hero Featured Article Block for Newspaper */}
+                {featuredArticle && (
+                  <div 
+                    onClick={() => setActiveArticle(featuredArticle)}
+                    className="group cursor-pointer grid grid-cols-1 md:grid-cols-12 border-b-[2px] border-black"
                   >
-                    {/* Header Banner - Compact Category Gradient */}
-                    <div className={`h-40 bg-gradient-to-br ${getCategoryStyle(article.category).bg} overflow-hidden relative shrink-0 flex items-center justify-center`}>
-                      {article.image_url ? (
-                        <img src={optimizeCloudinaryUrl(article.image_url, 'f_auto,q_auto,w_800')} alt={article.title} className="absolute inset-0 w-full h-full object-cover" />
+                    {/* Image spans 8 columns */}
+                    {featuredArticle.image_url && (
+                      <div className="md:col-span-8 border-b md:border-b-0 md:border-r border-black relative min-h-[50vh] md:min-h-[500px]">
+                        <img src={optimizeCloudinaryUrl(featuredArticle.image_url, 'f_auto,q_auto,w_1200')} alt={featuredArticle.title} className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
+                      </div>
+                    )}
+                    {/* Content spans 4 columns (or 12 if no image) */}
+                    <div className={`${featuredArticle.image_url ? 'md:col-span-4' : 'md:col-span-12'} p-6 md:p-8 flex flex-col relative overflow-hidden`}>
+                      <span className="text-primary text-[10px] font-black uppercase tracking-widest mb-4 z-10">
+                        {featuredArticle.category} • {featuredArticle.city || "VIZAG"}
+                      </span>
+                      <h2 className="text-[clamp(2.5rem,4vw,3.5rem)] font-serif font-black tracking-tighter uppercase leading-[0.9] mb-2 group-hover:text-primary transition-colors z-10">
+                        {featuredArticle.title}
+                      </h2>
+                      <span className="text-xs font-serif italic mb-6 block text-zinc-600 z-10">
+                        By {featuredArticle.author}
+                      </span>
+                      <div className="text-left md:text-justify text-sm font-serif leading-relaxed line-clamp-6 mb-6 z-10">
+                        <span className="float-left text-6xl font-black font-serif mr-3 leading-[0.8]">{featuredArticle.content.replace(/<[^>]+>/g, '').charAt(0)}</span>
+                        {featuredArticle.content.replace(/<[^>]+>/g, '').substring(1)}
+                      </div>
+                      <div className="mt-auto pt-6 border-t border-black flex justify-between items-center text-[10px] font-black uppercase tracking-widest z-10">
+                        <span>{new Date(featuredArticle.created_at).toLocaleDateString()}</span>
+                        <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                          Read <ArrowRight className="h-3 w-3" />
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Regular Articles Grid for Newspaper */}
+                {regularArticles.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
+                    {regularArticles.map((article, idx) => (
+                      <div
+                        key={article.id}
+                        onClick={() => setActiveArticle(article)}
+                        className={`group cursor-pointer flex flex-row md:flex-col items-center md:items-start p-4 md:p-6 border-b border-black ${idx % 4 !== 3 ? 'lg:border-r' : ''} ${idx % 3 !== 2 ? 'md:border-r lg:border-r-0' : ''}`}
+                      >
+                        {article.image_url && (
+                          <div className="w-24 h-24 md:w-full md:h-48 shrink-0 relative border border-black mb-0 md:mb-4 mr-4 md:mr-0 overflow-hidden">
+                            <img src={optimizeCloudinaryUrl(article.image_url, 'f_auto,q_auto,w_800')} alt={article.title} className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+                          </div>
+                        )}
+                        <div className="flex-1 flex flex-col justify-between w-full h-full">
+                          <div>
+                            <span className="text-primary text-[9px] font-black uppercase tracking-widest mb-1 block">
+                              {article.category}
+                            </span>
+                            <h3 className="text-lg md:text-xl font-serif font-black uppercase tracking-tighter leading-[1.0] group-hover:text-primary transition-colors line-clamp-3 md:line-clamp-4 mb-2">
+                              {article.title}
+                            </h3>
+                            <span className="text-[10px] font-serif italic block text-zinc-600 md:mb-2">
+                              By {article.author}
+                            </span>
+                            <p className="hidden md:block text-left md:text-justify text-xs font-serif leading-relaxed line-clamp-3">
+                              {article.content.replace(/<[^>]+>/g, '')}
+                            </p>
+                          </div>
+                          <div className="hidden md:flex mt-4 pt-3 border-t border-black/10 justify-between items-center text-[9px] font-black uppercase tracking-widest">
+                            <span>{new Date(article.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Hero Featured Article Block */}
+                {featuredArticle && (
+                  <div 
+                    onClick={() => setActiveArticle(featuredArticle)}
+                    className="group cursor-pointer bg-white rounded-[32px] border border-black/5 overflow-hidden shadow-sm hover:shadow-2xl hover:border-primary/20 transition-all duration-500 grid grid-cols-1 lg:grid-cols-12 gap-0 relative"
+                  >
+                    {/* Banner panel - Category Gradient */}
+                    <div className={`lg:col-span-4 h-64 sm:h-96 lg:min-h-[350px] bg-gradient-to-br ${getCategoryStyle(featuredArticle.category).bg} overflow-hidden relative flex items-center justify-center`}>
+                      {featuredArticle.image_url ? (
+                        <img src={optimizeCloudinaryUrl(featuredArticle.image_url, 'f_auto,q_auto,w_1200')} alt={featuredArticle.title} className="absolute inset-0 w-full h-full object-cover" />
                       ) : (
                         <>
-                          <div className="absolute inset-0 bg-[size:16px_16px]" style={{ backgroundImage: getCategoryStyle(article.category).grid }} />
-                          <div className={`absolute -bottom-4 -right-4 text-[40px] font-black uppercase ${getCategoryStyle(article.category).text} select-none pointer-events-none tracking-tighter italic`}>
-                            {article.category}
+                          <div className="absolute inset-0 bg-[size:24px_24px]" style={{ backgroundImage: getCategoryStyle(featuredArticle.category).grid }} />
+                          <div className={`absolute -bottom-6 -right-6 text-[80px] font-black uppercase ${getCategoryStyle(featuredArticle.category).text} select-none pointer-events-none tracking-tighter italic`}>
+                            {featuredArticle.category}
                           </div>
                         </>
                       )}
-                      {/* Category and City tags */}
-                      <div className="absolute top-3 left-3 flex gap-1.5 z-10">
-                        <span className="sticker-badge bg-black text-white py-0.5 px-2 text-[8px]">
-                          {article.category.toUpperCase()}
+                      {/* Category Sticker overlay */}
+                      <div className="absolute top-6 left-6 flex gap-2">
+                        <span className="sticker-badge bg-black text-white">
+                          FEATURED • {featuredArticle.category.toUpperCase()}
                         </span>
-                        {article.city && (
-                          <span className="sticker-badge bg-primary text-white py-0.5 px-2 text-[8px] font-bold">
-                            {article.city.toUpperCase()}
+                        {featuredArticle.city && (
+                          <span className="sticker-badge bg-primary text-white font-bold">
+                            {featuredArticle.city.toUpperCase()}
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* Card Content body */}
-                    <div className="p-5 flex-1 flex flex-col justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-3 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                    {/* Content Panel */}
+                    <div className="lg:col-span-8 p-8 sm:p-12 flex flex-col justify-between space-y-8 bg-white relative">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-4 text-[10px] font-black text-zinc-400 uppercase tracking-widest">
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" /> 
-                            {new Date(article.created_at).toLocaleDateString()}
+                            {new Date(featuredArticle.created_at).toLocaleDateString("en-US", {
+                              month: "short", day: "numeric", year: "numeric"
+                            })}
                           </span>
                           <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" /> {calculateReadTime(article.content)}
+                            <Clock className="h-3 w-3" /> {calculateReadTime(featuredArticle.content)}
                           </span>
                         </div>
 
-                        <h3 className="text-base font-black uppercase italic tracking-tighter leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                          {article.title}
-                        </h3>
+                        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black italic tracking-tighter uppercase leading-[1.0] group-hover:text-primary transition-colors">
+                          {featuredArticle.title}
+                        </h2>
 
-                        <p className="text-zinc-600 text-xs font-normal leading-relaxed line-clamp-2">
-                          {article.content}
+                        <p className="text-zinc-600 text-sm font-normal leading-relaxed line-clamp-4">
+                          {featuredArticle.content.replace(/<[^>]+>/g, '')}
                         </p>
                       </div>
 
-                      {/* Footer Actions */}
-                      <div className="flex items-center justify-between pt-3 border-t border-black/5 mt-3 shrink-0">
-                        <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 truncate max-w-[120px]">
-                          By {article.author}
-                        </span>
+                      <div className="flex items-center justify-between pt-6 border-t border-black/5">
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center border border-black/5 font-black text-xs">
+                            {featuredArticle.author.substring(0, 2).toUpperCase()}
+                          </div>
+                          <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                            {featuredArticle.author}
+                          </span>
+                        </div>
 
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2">
                           {(isEditor || isAdmin) && (
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1.5 mr-2">
                               <button
-                                onClick={(e) => handleOpenEditModal(e, article)}
-                                className="h-7 w-7 rounded-full flex items-center justify-center border border-black/5 text-zinc-400 hover:text-black hover:bg-zinc-50 transition-all bg-white"
+                                onClick={(e) => handleOpenEditModal(e, featuredArticle)}
+                                className="h-8 w-8 rounded-full flex items-center justify-center border border-black/5 text-zinc-400 hover:text-black hover:bg-zinc-50 transition-all bg-white"
                               >
-                                <Edit2 className="h-3 w-3" />
+                                <Edit2 className="h-3.5 w-3.5" />
                               </button>
                               <button
-                                onClick={(e) => handleDeleteArticle(e, article.id, article.title)}
-                                className="h-7 w-7 rounded-full flex items-center justify-center border border-transparent text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-all bg-white"
+                                onClick={(e) => handleDeleteArticle(e, featuredArticle.id, featuredArticle.title)}
+                                className="h-8 w-8 rounded-full flex items-center justify-center border border-transparent text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-all bg-white"
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           )}
 
-                          <span className="text-[9px] font-black uppercase tracking-widest text-black flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                            Read <ArrowRight className="h-2.5 w-2.5" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-black flex items-center gap-1.5 group-hover:translate-x-1.5 transition-transform duration-300">
+                            Read Story <ArrowRight className="h-3 w-3" />
                           </span>
                         </div>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                )}
+
+                {/* Grid Layout for Regular Articles */}
+                {regularArticles.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {regularArticles.map((article) => (
+                      <div
+                        key={article.id}
+                        onClick={() => setActiveArticle(article)}
+                        className="group cursor-pointer bg-white rounded-[28px] border border-black/5 overflow-hidden shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-300 flex flex-col justify-between h-[360px]"
+                      >
+                        {/* Header Banner - Compact Category Gradient */}
+                        <div className={`h-40 bg-gradient-to-br ${getCategoryStyle(article.category).bg} overflow-hidden relative shrink-0 flex items-center justify-center`}>
+                          {article.image_url ? (
+                            <img src={optimizeCloudinaryUrl(article.image_url, 'f_auto,q_auto,w_800')} alt={article.title} className="absolute inset-0 w-full h-full object-cover" />
+                          ) : (
+                            <>
+                              <div className="absolute inset-0 bg-[size:16px_16px]" style={{ backgroundImage: getCategoryStyle(article.category).grid }} />
+                              <div className={`absolute -bottom-4 -right-4 text-[40px] font-black uppercase ${getCategoryStyle(article.category).text} select-none pointer-events-none tracking-tighter italic`}>
+                                {article.category}
+                              </div>
+                            </>
+                          )}
+                          {/* Category and City tags */}
+                          <div className="absolute top-3 left-3 flex gap-1.5 z-10">
+                            <span className="sticker-badge bg-black text-white py-0.5 px-2 text-[8px]">
+                              {article.category.toUpperCase()}
+                            </span>
+                            {article.city && (
+                              <span className="sticker-badge bg-primary text-white py-0.5 px-2 text-[8px] font-bold">
+                                {article.city.toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Card Content body */}
+                        <div className="p-5 flex-1 flex flex-col justify-between">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-3 text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" /> 
+                                {new Date(article.created_at).toLocaleDateString()}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" /> {calculateReadTime(article.content)}
+                              </span>
+                            </div>
+
+                            <h3 className="text-base font-black uppercase italic tracking-tighter leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                              {article.title}
+                            </h3>
+
+                            <p className="text-zinc-600 text-xs font-normal leading-relaxed line-clamp-2">
+                              {article.content.replace(/<[^>]+>/g, '')}
+                            </p>
+                          </div>
+
+                          {/* Footer Actions */}
+                          <div className="flex items-center justify-between pt-3 border-t border-black/5 mt-3 shrink-0">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 truncate max-w-[120px]">
+                              By {article.author}
+                            </span>
+
+                            <div className="flex items-center gap-1.5">
+                              {(isEditor || isAdmin) && (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={(e) => handleOpenEditModal(e, article)}
+                                    className="h-7 w-7 rounded-full flex items-center justify-center border border-black/5 text-zinc-400 hover:text-black hover:bg-zinc-50 transition-all bg-white"
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => handleDeleteArticle(e, article.id, article.title)}
+                                    className="h-7 w-7 rounded-full flex items-center justify-center border border-transparent text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-all bg-white"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              )}
+
+                              <span className="text-[9px] font-black uppercase tracking-widest text-black flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                Read <ArrowRight className="h-2.5 w-2.5" />
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

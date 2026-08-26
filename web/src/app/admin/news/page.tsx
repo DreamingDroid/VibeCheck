@@ -66,6 +66,10 @@ export default function AdminNewsPage() {
   const [selectedImageBase64, setSelectedImageBase64] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Theme State
+  const [themeSetting, setThemeSetting] = useState("default");
+  const [savingTheme, setSavingTheme] = useState(false);
+
   useEffect(() => {
     if (currentCity) {
       setCity(currentCity);
@@ -84,8 +88,21 @@ export default function AdminNewsPage() {
       .finally(() => setLoading(false));
   };
 
+  const fetchSettings = () => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    fetch(`${baseUrl}/api/settings`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.localCurrentsTheme) {
+          setThemeSetting(data.localCurrentsTheme);
+        }
+      })
+      .catch((err) => console.error("Fetch settings error:", err));
+  };
+
   useEffect(() => {
     fetchArticles();
+    fetchSettings();
   }, []);
 
   const handleEditClick = (article: Article) => {
@@ -112,6 +129,31 @@ export default function AdminNewsPage() {
     setImageUrl("");
     setImagePublicId("");
     setSelectedImageBase64("");
+  };
+
+  const handleSaveTheme = async (newTheme: string) => {
+    const email = session?.user?.email;
+    if (!email) return;
+    setSavingTheme(true);
+    setThemeSetting(newTheme);
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/admin/settings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "local_currents_theme", value: newTheme }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Theme updated to ${newTheme}`);
+      } else {
+        toast.error("Failed to update theme");
+      }
+    } catch (err) {
+      toast.error("Network error saving theme");
+    } finally {
+      setSavingTheme(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -240,6 +282,42 @@ export default function AdminNewsPage() {
       </div>
 
       <div className="space-y-12">
+        {/* Theme Configuration */}
+        <Card className="ringer-card bg-zinc-50 border-black/5">
+          <CardHeader>
+            <CardTitle className="text-black text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Page Theme Configuration
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button 
+                onClick={() => handleSaveTheme('default')}
+                disabled={savingTheme}
+                className={`flex-1 py-4 px-6 rounded-2xl border text-sm font-bold uppercase tracking-wider transition-all ${
+                  themeSetting === 'default' 
+                  ? 'bg-black text-white border-black shadow-lg scale-[1.02]' 
+                  : 'bg-white text-zinc-500 border-black/10 hover:border-black/30'
+                }`}
+              >
+                VibeCheck Default
+              </button>
+              <button 
+                onClick={() => handleSaveTheme('news-paper')}
+                disabled={savingTheme}
+                className={`flex-1 py-4 px-6 rounded-2xl border text-sm font-bold uppercase tracking-wider transition-all ${
+                  themeSetting === 'news-paper' 
+                  ? 'bg-black text-white border-black shadow-lg scale-[1.02]' 
+                  : 'bg-white text-zinc-500 border-black/10 hover:border-black/30'
+                }`}
+              >
+                Classic News-Paper
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Editor Form - Full Width CMS Layout */}
         <Card className="ringer-card bg-primary/5 border-primary/20">
           <CardHeader>

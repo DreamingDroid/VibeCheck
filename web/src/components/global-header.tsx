@@ -105,7 +105,7 @@ export function GlobalHeader() {
   ];
 
   return (
-    <div className="sticky top-0 z-50">
+    <div className="sticky top-0 z-[110]">
       <header className="w-full bg-white/80 backdrop-blur-md border-b border-black/5 text-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between py-3">
           {/* Logo & City */}
@@ -156,23 +156,8 @@ export function GlobalHeader() {
             </div>
           </div>
 
-          {/* Theme Toggle - Only visible to Admins */}
-          {isAdmin && (
-            <button
-              onClick={toggleTheme}
-              title={`Switch to ${isVibrant ? 'Ringer' : 'Vibrant'} theme`}
-              className={`hidden sm:flex items-center justify-center h-8 w-8 rounded-full border transition-all duration-300 shrink-0 ${
-                isVibrant
-                  ? 'bg-gradient-to-br from-purple-100 to-pink-100 border-purple-200 text-purple-600 hover:shadow-md hover:scale-110'
-                  : 'bg-zinc-50 border-black/10 text-zinc-500 hover:text-black hover:bg-zinc-100'
-              }`}
-            >
-              {isVibrant ? <Sparkles className="h-3.5 w-3.5" /> : <SunMoon className="h-3.5 w-3.5" />}
-            </button>
-          )}
-
           {/* Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-sm mx-8">
+          <div className="hidden md:flex flex-1 max-w-sm mx-2 lg:mx-4">
             <div className="relative w-full group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Search className="h-4 w-4 text-zinc-400 group-focus-within:text-primary transition-colors" />
@@ -271,12 +256,12 @@ export function GlobalHeader() {
 
                   <div className="hidden sm:flex flex-col items-end mr-1">
                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 leading-none mb-1">Authenticated</span>
-                    <span className="text-xs font-bold text-black leading-none">{session.user?.name}</span>
+                    <span className="text-xs font-bold text-black leading-none truncate max-w-[80px] lg:max-w-[120px]">{session.user?.name}</span>
                   </div>
                   <button 
                     onClick={handleSignOut} 
                     disabled={isSigningOut}
-                    className="ringer-button bg-black text-white text-[10px] sm:text-[11px] hover:bg-zinc-800 h-9 sm:h-10 px-4 sm:px-6 shrink-0"
+                    className="ringer-button bg-black text-white text-[10px] sm:text-[11px] hover:bg-zinc-800 h-9 sm:h-10 px-3 sm:px-4 shrink-0"
                   >
                     {isSigningOut ? "..." : "DISCONNECT"}
                   </button>
@@ -398,31 +383,6 @@ export function GlobalHeader() {
                 </button>
               )}
             </nav>
-
-            {/* Mobile Actions / Theme Toggle */}
-            {isAdmin && (
-              <div className="flex items-center justify-between pt-4 border-t border-black/5">
-                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Theme Preference</span>
-                <button
-                  onClick={() => { toggleTheme(); setIsMobileMenuOpen(false); }}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-xs font-bold transition-all ${
-                    isVibrant
-                      ? 'bg-gradient-to-br from-purple-100 to-pink-100 border-purple-200 text-purple-600'
-                      : 'bg-zinc-50 border-black/10 text-zinc-600'
-                  }`}
-                >
-                  {isVibrant ? (
-                    <>
-                      <Sparkles className="h-3.5 w-3.5" /> Vibrant Theme
-                    </>
-                  ) : (
-                    <>
-                      <SunMoon className="h-3.5 w-3.5" /> Ringer Theme
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
           </div>
         </>
       )}
