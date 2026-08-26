@@ -36,7 +36,17 @@ console.log('Loaded VERIFY_TOKEN:', config.WHATSAPP_VERIFY_TOKEN);
 const app = express();
 const port = config.PORT;
 
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+    if (!origin || config.ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 // Global Request Logger to trace ghost webhooks

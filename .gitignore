@@ -46,3 +46,6 @@ vibecheck-admin-stacks/logs/
 *.seed
 *.dump
 next-env.d.ts
+
+### Documentation / Security
+docs/security_guidelines.md
