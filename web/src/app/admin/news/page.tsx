@@ -197,7 +197,7 @@ export default function AdminNewsPage() {
       {/* Page Header */}
       <div className="border-b border-black/5 pb-12">
         <h1 className="text-3xl sm:text-5xl font-black italic tracking-tighter uppercase leading-[0.9]">
-          NewsRoom Control
+          Local Currents Control
         </h1>
         <p className="text-zinc-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">
           Publish, edit and curation of VibeCheck Editorial stories

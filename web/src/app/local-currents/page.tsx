@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { 
   Search, SlidersHorizontal, BookOpen, Clock, Calendar, User, 
   ArrowRight, X, Sparkles, Plus, Edit2, Trash2, ArrowLeft, Heart, Share2 
@@ -67,7 +68,7 @@ const formatParagraphWithDropCap = (text: string) => {
   );
 };
 
-export default function NewsRoomPage() {
+export default function LocalCurrentsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { isVibrant } = useTheme();
@@ -77,6 +78,10 @@ export default function NewsRoomPage() {
   const [isEditor, setIsEditor] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingRole, setCheckingRole] = useState(true);
+
+  // Preferences State
+  const [userCategories, setUserCategories] = useState<string[]>([]);
+  const [loadingPrefs, setLoadingPrefs] = useState(false);
 
   // Articles & Filters State
   const [articles, setArticles] = useState<Article[]>([]);
@@ -100,10 +105,22 @@ export default function NewsRoomPage() {
   const [savingArticle, setSavingArticle] = useState(false);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      signIn("google", { callbackUrl: window.location.href });
+    if (session?.user?.email) {
+      setLoadingPrefs(true);
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      fetch(`${baseUrl}/api/user?email=${encodeURIComponent(session.user.email)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success && data.data && Array.isArray(data.data.categories)) {
+            setUserCategories(data.data.categories);
+          }
+        })
+        .catch((err) => console.error("Pref load error:", err))
+        .finally(() => setLoadingPrefs(false));
+    } else {
+      setUserCategories([]);
     }
-  }, [status]);
+  }, [session?.user?.email]);
 
   // Handle shared article ID from URL query parameters
   useEffect(() => {
@@ -174,10 +191,10 @@ export default function NewsRoomPage() {
   };
 
   useEffect(() => {
-    if (status === "authenticated" && currentCity) {
+    if (currentCity) {
       fetchArticles();
     }
-  }, [status, currentCity]);
+  }, [currentCity]);
 
   if (status === "loading" || checkingRole) {
     return (
@@ -188,10 +205,6 @@ export default function NewsRoomPage() {
         </div>
       </main>
     );
-  }
-
-  if (status === "unauthenticated") {
-    return null;
   }
 
   // Handle article write/edit
@@ -320,7 +333,9 @@ export default function NewsRoomPage() {
         article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         article.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
         article.author.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = selectedCategory === "All" || article.category === selectedCategory;
+      const matchesCategory = selectedCategory === "All"
+        ? (userCategories.length > 0 ? userCategories.includes(article.category) : true)
+        : article.category === selectedCategory;
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
@@ -356,7 +371,7 @@ export default function NewsRoomPage() {
               THE VIBECHECK ARCHIVES
             </p>
             <h1 className="text-4xl sm:text-6xl font-black italic tracking-tighter uppercase leading-[0.85] mb-3">
-              NEWSROOM
+              LOCAL CURRENTS
             </h1>
             <p className="text-zinc-500 text-xs sm:text-sm font-normal max-w-xl">
               The ultimate pulse on Vizag&apos;s culture, music, tech, and coastal stories.
@@ -375,6 +390,43 @@ export default function NewsRoomPage() {
           )}
         </div>
       </header>
+
+      {/* Guest Sign-In CTA */}
+      {status === "unauthenticated" && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 animate-in fade-in duration-300">
+          <div className="bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 border border-black/5 rounded-[28px] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+            <div className="space-y-2 text-center md:text-left max-w-2xl">
+              <h3 className="text-lg sm:text-xl font-black italic uppercase tracking-tight flex items-center justify-center md:justify-start gap-2 text-black">
+                <Sparkles className="h-5 w-5 text-primary animate-pulse" /> Customize your Vibe
+              </h3>
+              <p className="text-zinc-600 text-xs sm:text-sm font-semibold leading-relaxed">
+                Sign in to synchronize your local currents feed and get customized event updates. Personalizing your preferences filters your feed to match the topics you care about most.
+              </p>
+            </div>
+            <button 
+              onClick={() => signIn("google")}
+              className="ringer-button bg-black hover:bg-zinc-800 text-white font-black text-xs px-6 py-4 uppercase shrink-0 transition-transform active:scale-95 shadow-md border-none"
+            >
+              Sign in to VibeCheck
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Personalized Feed Notification */}
+      {status === "authenticated" && userCategories.length > 0 && selectedCategory === "All" && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 animate-in fade-in duration-300">
+          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex items-center justify-between text-xs font-bold text-zinc-700">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4.5 w-4.5 text-primary" />
+              <span>Personalized feed active based on your preferences: <span className="text-black uppercase">{userCategories.join(", ")}</span></span>
+            </div>
+            <Link href="/preferences" className="text-primary hover:underline font-black uppercase tracking-wider text-[10px]">
+              Edit Preferences
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Interactive Filter Toolbar */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
@@ -643,7 +695,7 @@ export default function NewsRoomPage() {
 
                 <button
                   onClick={() => {
-                    const shareUrl = `${window.location.origin}/newsroom?id=${activeArticle.id}`;
+                    const shareUrl = `${window.location.origin}/local-currents?id=${activeArticle.id}`;
                     if (navigator.share) {
                       navigator.share({
                         title: activeArticle.title,

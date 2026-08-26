@@ -2,31 +2,13 @@
 
 import { useSession, signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { useState, useEffect } from "react"
-import { ChevronDown, Sparkles, MapPin, Zap, Music, Heart, Star } from "lucide-react"
+import { Sparkles, MapPin, Zap, Music, Heart, Star } from "lucide-react"
 import { useTheme } from "@/context/ThemeContext"
 import { useCity } from "@/context/CityContext"
 
-const NEWS_ITEMS = [
-  {
-    id: 1,
-    title: "Rushikonda Beach Festival Announced",
-    content: "Get ready for a three-day musical extravaganza featuring national bands and local talent right on the golden sands of Rushikonda.",
-    category: "Events"
-  },
-  {
-    id: 2,
-    title: "New Tech Hub Opens in Madhurawada",
-    content: "A state-of-the-art collaborative space just opened its doors, aiming to foster Vizag's rapidly growing design and tech community.",
-    category: "Tech"
-  },
-  {
-    id: 3,
-    title: "Street Food Carnival at RK Beach",
-    content: "Experience the best of coastal flavors at this weekend's massive culinary block party along the iconic Beach Road.",
-    category: "Culture"
-  }
-];
+
 
 interface NewsArticle {
   id: string | number;
@@ -39,7 +21,6 @@ export default function Home() {
   const { status } = useSession()
   const router = useRouter()
   const [isSigningIn, setIsSigningIn] = useState(false)
-  const [openAccordion, setOpenAccordion] = useState<string | number | null>(null)
   const [articles, setArticles] = useState<NewsArticle[]>([])
   const { isVibrant } = useTheme()
 
@@ -56,18 +37,15 @@ export default function Home() {
     fetch(`${baseUrl}/api/news/latest?city=${encodeURIComponent(currentCity)}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        if (data.success && Array.isArray(data.data)) {
           setArticles(data.data);
-          setOpenAccordion(data.data[0].id);
         } else {
-          setArticles(NEWS_ITEMS);
-          setOpenAccordion(1);
+          setArticles([]);
         }
       })
       .catch((err) => {
         console.error("Error fetching news:", err);
-        setArticles(NEWS_ITEMS);
-        setOpenAccordion(1);
+        setArticles([]);
       });
   }, [currentCity]);
 
@@ -128,13 +106,13 @@ export default function Home() {
               <>JOIN THE VIBE <Sparkles className="h-4 w-4" /></>
             )}
           </button>
-          <a href="#happenings" className="text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors py-4 px-6">
+          <Link href="/local-currents" className="text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors py-4 px-6">
             Read the Latest
-          </a>
+          </Link>
         </div>
       </section>
 
-      {/* Happenings Accordion */}
+      {/* Local Currents Section */}
       <section id="happenings" className="max-w-3xl mx-auto pt-12">
         <div className="border-t border-black/5 pt-12 space-y-8">
           <div className="text-center space-y-2">
@@ -144,42 +122,27 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="space-y-4">
-            {articles.map((item) => {
-              const isOpen = openAccordion === item.id;
-              
-              return (
-                <div 
-                  key={item.id} 
-                  className={`ringer-card overflow-hidden transition-all duration-300 border-2 ${isOpen ? 'border-primary ring-4 ring-primary/10' : 'border-black/5 hover:border-black/20 text-cursor-pointer'}`}
+          <div className="flex flex-wrap justify-center gap-3">
+            {articles.length > 0 ? (
+              articles.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/local-currents?id=${item.id}`}
+                  className="sticker-badge bg-white hover:bg-zinc-50 border border-black/5 hover:border-primary/20 text-black px-4 py-3 text-xs sm:text-sm font-black flex items-center gap-2.5 transition-all shadow-sm hover:scale-[1.03] hover:shadow-md cursor-pointer select-none"
                 >
-                  <button 
-                    onClick={() => setOpenAccordion(isOpen ? null : item.id)}
-                    className="w-full text-left px-8 py-6 flex items-center justify-between bg-white"
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="sticker-badge bg-black text-white shrink-0">
-                        {item.category}
-                      </span>
-                      <span className="text-lg md:text-xl font-black tracking-tight leading-tight uppercase pr-4">
-                        {item.title}
-                      </span>
-                    </div>
-                    <ChevronDown className={`h-5 w-5 text-black shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  
-                  <div 
-                    className={`grid transition-all duration-300 ease-in-out bg-zinc-50 ${isOpen ? 'grid-rows-[1fr] border-t border-black/5' : 'grid-rows-[0fr]'}`}
-                  >
-                    <div className="overflow-hidden">
-                      <p className="px-8 py-6 text-zinc-600 font-bold leading-relaxed text-sm md:text-base">
-                        {item.content}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+                  <span className="bg-black text-white px-2 py-0.5 rounded text-[8px] sm:text-[9px] uppercase font-black shrink-0">
+                    {item.category}
+                  </span>
+                  <span className="truncate max-w-[200px] sm:max-w-[400px]">
+                    {item.title}
+                  </span>
+                </Link>
+              ))
+            ) : (
+              <div className="text-center py-6 text-zinc-400 text-xs font-bold italic">
+                No local currents reported for {currentCity} today. Check back later!
+              </div>
+            )}
           </div>
         </div>
       </section>

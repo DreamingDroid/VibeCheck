@@ -187,14 +187,18 @@ export function GlobalHeader() {
 
           {/* User Actions */}
           <div className="flex items-center gap-3">
+            {/* Local Currents always visible on Desktop */}
+            <div className="hidden lg:flex items-center gap-2 mr-1">
+              <Link href="/local-currents">
+                <button className="ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-4">
+                  LOCAL CURRENTS
+                </button>
+              </Link>
+            </div>
+
             {session ? (
               <>
                 <div className="hidden lg:flex items-center gap-2 mr-2">
-                  <Link href="/newsroom">
-                    <button className="ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-4">
-                      NEWSROOM
-                    </button>
-                  </Link>
                   <Link href="/preferences">
                     <button className="ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-4">
                       PREFERENCES
@@ -346,14 +350,15 @@ export function GlobalHeader() {
 
             {/* Navigation links */}
             <nav className="flex flex-col gap-3">
+              {/* Local Currents always visible on Mobile */}
+              <Link href="/local-currents" onClick={() => setIsMobileMenuOpen(false)}>
+                <div className="w-full text-left px-5 py-4 rounded-2xl bg-zinc-50 hover:bg-black hover:text-white transition-all text-xs font-black uppercase tracking-widest">
+                  LOCAL CURRENTS
+                </div>
+              </Link>
+
               {session ? (
                 <>
-                  <Link href="/newsroom" onClick={() => setIsMobileMenuOpen(false)}>
-                    <div className="w-full text-left px-5 py-4 rounded-2xl bg-zinc-50 hover:bg-black hover:text-white transition-all text-xs font-black uppercase tracking-widest">
-                      NEWSROOM
-                    </div>
-                  </Link>
-
                   <Link href="/preferences" onClick={() => setIsMobileMenuOpen(false)}>
                     <div className="w-full text-left px-5 py-4 rounded-2xl bg-zinc-50 hover:bg-black hover:text-white transition-all text-xs font-black uppercase tracking-widest">
                       PREFERENCES
