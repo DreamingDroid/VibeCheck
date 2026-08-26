@@ -6,6 +6,7 @@ import { initSystemSettings, getSystemSetting } from './queries/analytics';
 import { getRecentEvents } from './queries/events';
 import { getUsersWithPreferences } from './queries/users';
 import { config } from './config';
+import { deleteImage } from './cloudinary';
 
 const WHATSAPP_PHONE_NUMBER_ID = config.WHATSAPP_PHONE_NUMBER_ID;
 
@@ -115,5 +116,54 @@ export function startPushAlertCron(pool: Pool) {
     console.log(result);
   });
 
+  // Expired event image cleanup at 2:00 AM UTC
+  cron.schedule('0 2 * * *', async () => {
+    console.log('[Cron] Running daily expired event image cleanup job...');
+    const result = await runExpiredEventCleanupJob(pool);
+    console.log(result);
+  });
+
   console.log('[Cron] Daily push alert job scheduled for 9:00 AM IST.');
+  console.log('[Cron] Daily expired event cleanup job scheduled for 2:00 AM UTC.');
+}
+
+export async function runExpiredEventCleanupJob(pool: Pool): Promise<string> {
+  const log: string[] = [];
+  try {
+    const { rows } = await pool.query(`
+      SELECT id, image_public_id 
+      FROM events 
+      WHERE (end_time < NOW() OR (end_time IS NULL AND date_time < NOW()))
+      AND image_public_id IS NOT NULL
+    `);
+
+    if (rows.length === 0) {
+      log.push('[Cron Cleanup] No expired events with images found.');
+      return log.join('\n');
+    }
+
+    log.push(`[Cron Cleanup] Found ${rows.length} expired event(s) with images.`);
+
+    let cleanedCount = 0;
+    for (const event of rows) {
+      try {
+        const deleted = await deleteImage(event.image_public_id);
+        if (deleted) {
+          await pool.query(
+            'UPDATE events SET image_url = NULL, image_public_id = NULL WHERE id = $1',
+            [event.id]
+          );
+          cleanedCount++;
+        }
+      } catch (err: any) {
+        log.push(`[Cron Cleanup] Error deleting image for event ${event.id}: ${err.message}`);
+      }
+    }
+    
+    log.push(`[Cron Cleanup] Successfully cleaned up ${cleanedCount} image(s).`);
+  } catch (error: any) {
+    log.push(`[Cron Cleanup] Error during cleanup job: ${error.message}`);
+    console.error('[Cron Cleanup] Error during cleanup job:', error);
+  }
+  return log.join('\n');
 }

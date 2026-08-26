@@ -11,6 +11,10 @@ import { Trash2, Edit2, Plus, Newspaper, Sparkles, User, Tag, Image, FileText } 
 import { toast } from "sonner";
 import { vibeConfirm } from "@/components/vibe-confirm";
 import { useCity } from "@/context/CityContext";
+import dynamic from "next/dynamic";
+import "react-quill/dist/quill.snow.css";
+
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 type Article = {
   id: string;
@@ -19,6 +23,7 @@ type Article = {
   category: string;
   author: string;
   image_url?: string | null;
+  image_public_id?: string | null;
   city?: string;
   created_at: string;
 };
@@ -57,6 +62,8 @@ export default function AdminNewsPage() {
   const [city, setCity] = useState("Vizag");
   const [author, setAuthor] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [imagePublicId, setImagePublicId] = useState("");
+  const [selectedImageBase64, setSelectedImageBase64] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -89,6 +96,8 @@ export default function AdminNewsPage() {
     setCity(article.city || currentCity || "Vizag");
     setAuthor(article.author);
     setImageUrl(article.image_url || "");
+    setImagePublicId(article.image_public_id || "");
+    setSelectedImageBase64("");
     // Scroll form into view on mobile
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -101,11 +110,13 @@ export default function AdminNewsPage() {
     setCity(currentCity || "Vizag");
     setAuthor("");
     setImageUrl("");
+    setImagePublicId("");
+    setSelectedImageBase64("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) {
+    if (!title.trim() || !content || content.replace(/<[^>]+>/g, '').trim() === '') {
       toast.error("Title and Content are required.");
       return;
     }
@@ -119,6 +130,29 @@ export default function AdminNewsPage() {
     setSaving(true);
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      
+      let finalImageUrl = imageUrl;
+      let finalImagePublicId = imagePublicId;
+
+      if (selectedImageBase64) {
+        toast.loading("Uploading image...", { id: "upload" });
+        const uploadRes = await fetch(`${baseUrl}/api/admin/upload`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, image: selectedImageBase64 }),
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.success && uploadData.data) {
+          finalImageUrl = uploadData.data.url;
+          finalImagePublicId = uploadData.data.publicId;
+          toast.success("Image uploaded", { id: "upload" });
+        } else {
+          toast.error(uploadData.error || "Image upload failed", { id: "upload" });
+          setSaving(false);
+          return;
+        }
+      }
+
       const isEditing = !!editingArticleId;
       const url = isEditing
         ? `${baseUrl}/api/admin/news/${editingArticleId}`
@@ -130,7 +164,8 @@ export default function AdminNewsPage() {
         content: content.trim(),
         category,
         author: author.trim() || "VibeCheck Editorial",
-        image_url: null,
+        image_url: finalImageUrl || null,
+        image_public_id: finalImagePublicId || null,
         city,
         email,
       };
@@ -270,7 +305,46 @@ export default function AdminNewsPage() {
                   </div>
                 </div>
 
-                {/* Image state preserved in payload as null, input omitted */}
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1"><Image className="h-3 w-3"/> Article Image</Label>
+                  <div className="flex flex-col gap-3">
+                    <Input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 5 * 1024 * 1024) {
+                            toast.error("Image size must be less than 5MB");
+                            e.target.value = "";
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onloadend = () => setSelectedImageBase64(reader.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="bg-white border-black/5 rounded-xl h-10 text-xs font-bold pt-2 cursor-pointer"
+                    />
+                    {(selectedImageBase64 || imageUrl) && (
+                      <div className="relative h-32 w-full rounded-xl overflow-hidden border border-black/10">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={selectedImageBase64 || imageUrl} alt="Preview" className="object-cover w-full h-full" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedImageBase64("");
+                            setImageUrl("");
+                            setImagePublicId("");
+                          }}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow hover:bg-red-600 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 <div className="flex gap-3 pt-2">
                   <button
@@ -296,12 +370,12 @@ export default function AdminNewsPage() {
               {/* Right Column: Full-Height Content Body Textarea */}
               <div className="lg:col-span-7 flex flex-col h-full min-h-[400px]">
                 <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 mb-2">Content Body</Label>
-                <Textarea
+                <ReactQuill 
+                  theme="snow"
                   value={content}
-                  onChange={(e) => setContent(e.target.value)}
+                  onChange={setContent}
                   placeholder="Write the full editorial piece here..."
-                  required
-                  className="bg-white border-black/5 rounded-2xl p-4 text-sm font-semibold leading-relaxed placeholder:text-zinc-400 focus:ring-primary focus:border-primary flex-1 min-h-[350px] lg:h-full resize-y lg:resize-none"
+                  className="bg-white rounded-2xl flex-1 min-h-[350px]"
                 />
               </div>
             </form>

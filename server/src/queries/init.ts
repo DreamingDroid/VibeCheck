@@ -98,6 +98,8 @@ export async function initializeDatabaseSchema(pool: Pool) {
       admin_comment TEXT,
       participant_limit INTEGER,
       is_paid BOOLEAN DEFAULT false,
+      image_url VARCHAR(1000),
+      image_public_id VARCHAR(255),
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
@@ -165,6 +167,7 @@ export async function initializeDatabaseSchema(pool: Pool) {
       category VARCHAR(100) DEFAULT 'General',
       author VARCHAR(255) DEFAULT 'VibeCheck Editorial',
       image_url TEXT,
+      image_public_id VARCHAR(255),
       city VARCHAR(100) DEFAULT 'Vizag',
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -196,6 +199,10 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_paid BOOLEAN DEFAULT false`);
   await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS is_editor BOOLEAN DEFAULT false`);
   await pool.query(`ALTER TABLE news_articles ADD COLUMN IF NOT EXISTS city VARCHAR(100) DEFAULT 'Vizag'`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url VARCHAR(1000)`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS image_public_id VARCHAR(255)`);
+  await pool.query(`ALTER TABLE news_articles ADD COLUMN IF NOT EXISTS image_public_id VARCHAR(255)`);
+
 
   // Migration safeguard for organizer_crm_notes table
   await pool.query(`

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
+import { deleteImage } from './cloudinary';
 
 async function checkIsEditor(pool: Pool, email: string): Promise<boolean> {
   if (!email) return false;
@@ -60,7 +61,7 @@ export async function getLatestNewsArticlesHandler(req: Request, res: Response, 
 }
 
 export async function adminCreateNewsArticleHandler(req: Request, res: Response, pool: Pool) {
-  const { title, content, category, author, image_url, email, city } = req.body;
+  const { title, content, category, author, image_url, image_public_id, email, city } = req.body;
   if (!title || !content) {
     return res.status(400).json({ success: false, error: 'title and content are required' });
   }
@@ -75,10 +76,10 @@ export async function adminCreateNewsArticleHandler(req: Request, res: Response,
     }
 
     const result = await pool.query(
-      `INSERT INTO news_articles (title, content, category, author, image_url, city) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
+      `INSERT INTO news_articles (title, content, category, author, image_url, image_public_id, city) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) 
        RETURNING *`,
-      [title, content, category || 'General', author || 'VibeCheck Editorial', image_url, city || 'Vizag']
+      [title, content, category || 'General', author || 'VibeCheck Editorial', image_url || null, image_public_id || null, city || 'Vizag']
     );
 
     res.json({ success: true, data: result.rows[0], message: 'Article created successfully.' });
@@ -89,7 +90,7 @@ export async function adminCreateNewsArticleHandler(req: Request, res: Response,
 
 export async function adminUpdateNewsArticleArticleHandler(req: Request, res: Response, pool: Pool) {
   const { id } = req.params;
-  const { title, content, category, author, image_url, email, city } = req.body;
+  const { title, content, category, author, image_url, image_public_id, email, city } = req.body;
 
   if (!email) {
     return res.status(400).json({ success: false, error: 'email is required to verify permissions' });
@@ -103,10 +104,10 @@ export async function adminUpdateNewsArticleArticleHandler(req: Request, res: Re
 
     const result = await pool.query(
       `UPDATE news_articles 
-       SET title = $1, content = $2, category = $3, author = $4, image_url = $5, city = $6, updated_at = NOW() 
-       WHERE id = $7 
+       SET title = $1, content = $2, category = $3, author = $4, image_url = $5, image_public_id = $6, city = $7, updated_at = NOW() 
+       WHERE id = $8 
        RETURNING *`,
-      [title, content, category || 'General', author || 'VibeCheck Editorial', image_url, city || 'Vizag', id]
+      [title, content, category || 'General', author || 'VibeCheck Editorial', image_url || null, image_public_id || null, city || 'Vizag', id]
     );
 
     if (result.rows.length === 0) {
@@ -138,6 +139,11 @@ export async function adminDeleteNewsArticleHandler(req: Request, res: Response,
     const result = await pool.query('DELETE FROM news_articles WHERE id = $1 RETURNING *', [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Article not found.' });
+    }
+
+    const deletedArticle = result.rows[0];
+    if (deletedArticle.image_public_id) {
+      await deleteImage(deletedArticle.image_public_id);
     }
 
     res.json({ success: true, message: 'Article deleted successfully.' });

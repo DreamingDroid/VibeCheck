@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit3, Trash2, Calendar, MapPin, ExternalLink, Phone, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Edit3, Trash2, Calendar, MapPin, ExternalLink, Phone, FileText, ChevronDown, ChevronUp, Image as ImageIcon } from "lucide-react";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
 import { toast } from "sonner";
@@ -43,6 +44,11 @@ function AdminEventsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tabParam = searchParams.get("tab");
+  const { data: session } = useSession();
+
+  const [imageUrl, setImageUrl] = useState("");
+  const [imagePublicId, setImagePublicId] = useState("");
+  const [selectedImageBase64, setSelectedImageBase64] = useState("");
 
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
@@ -123,6 +129,9 @@ function AdminEventsPageContent() {
       participantLimit: ev.participant_limit ? String(ev.participant_limit) : "",
       isPaid: ev.is_paid || false
     });
+    setImageUrl((ev as any).image_url || "");
+    setImagePublicId((ev as any).image_public_id || "");
+    setSelectedImageBase64("");
     setEditingId(ev.id);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -219,6 +228,41 @@ function AdminEventsPageContent() {
     const method = editingId ? "PUT" : "POST";
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
     const url = editingId ? `${baseUrl}/api/admin/events/${editingId}` : `${baseUrl}/api/admin/events`;
+    
+    let finalImageUrl = imageUrl;
+    let finalImagePublicId = imagePublicId;
+
+    if (selectedImageBase64) {
+      const email = session?.user?.email;
+      if (!email) {
+        toast.error("You must be logged in to upload an image.");
+        setSaving(false);
+        return;
+      }
+      toast.loading("Uploading image...", { id: "upload" });
+      try {
+        const uploadRes = await fetch(`${baseUrl}/api/admin/upload`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, image: selectedImageBase64 }),
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.success && uploadData.data) {
+          finalImageUrl = uploadData.data.url;
+          finalImagePublicId = uploadData.data.publicId;
+          toast.success("Image uploaded", { id: "upload" });
+        } else {
+          toast.error(uploadData.error || "Image upload failed", { id: "upload" });
+          setSaving(false);
+          return;
+        }
+      } catch (err) {
+        toast.error("Failed to upload image", { id: "upload" });
+        setSaving(false);
+        return;
+      }
+    }
+
     const combine = (date: string, timeStr: string) => {
       const [time, ampm] = timeStr.split(" ");
       let [hours, mins] = time.split(":").map(Number);
@@ -239,12 +283,17 @@ function AdminEventsPageContent() {
         ...form, 
         participant_limit: form.participantLimit ? parseInt(form.participantLimit, 10) : null,
         is_paid: form.isPaid,
+        image_url: finalImageUrl || null,
+        image_public_id: finalImagePublicId || null,
         date_time: start_iso,
         end_time: end_iso
       }),
     });
     setSaving(false);
     setForm(emptyForm);
+    setImageUrl("");
+    setImagePublicId("");
+    setSelectedImageBase64("");
     setEditingId(null);
     setShowForm(false);
     fetchEvents();
@@ -262,7 +311,7 @@ function AdminEventsPageContent() {
           <p className="text-zinc-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Inventory Management of Experiences</p>
         </div>
         <button
-          onClick={() => { setForm(emptyForm); setEditingId(null); setShowForm(v => !v); }}
+          onClick={() => { setForm(emptyForm); setImageUrl(""); setImagePublicId(""); setSelectedImageBase64(""); setEditingId(null); setShowForm(v => !v); }}
           className={`ringer-button px-8 py-4 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl ${
             showForm ? 'bg-zinc-100 text-zinc-400' : 'bg-black text-white hover:bg-zinc-800'
           }`}
@@ -405,6 +454,47 @@ function AdminEventsPageContent() {
                 <Input type="number" min="1" value={form.participantLimit}
                   onChange={e => setForm(f => ({ ...f, participantLimit: e.target.value }))}
                   placeholder="e.g. 50 (leave blank for unlimited)" className="bg-white border-black/5 h-12 rounded-xl text-xs font-bold" />
+              </div>
+
+              <div className="md:col-span-2 space-y-2">
+                <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1"><ImageIcon className="h-3 w-3"/> Event Image</Label>
+                <div className="flex flex-col gap-3">
+                  <Input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 5 * 1024 * 1024) {
+                          toast.error("Image size must be less than 5MB");
+                          e.target.value = "";
+                          return;
+                        }
+                        const reader = new FileReader();
+                        reader.onloadend = () => setSelectedImageBase64(reader.result as string);
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="bg-white border-black/5 rounded-xl h-10 text-xs font-bold pt-2 cursor-pointer"
+                  />
+                  {(selectedImageBase64 || imageUrl) && (
+                    <div className="relative h-32 w-full md:w-1/2 rounded-xl overflow-hidden border border-black/10">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={selectedImageBase64 || imageUrl} alt="Preview" className="object-cover w-full h-full" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedImageBase64("");
+                          setImageUrl("");
+                          setImagePublicId("");
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow hover:bg-red-600 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="md:col-span-2 flex justify-end pt-4">

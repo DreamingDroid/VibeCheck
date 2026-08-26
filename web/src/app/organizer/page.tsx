@@ -6,12 +6,14 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
+import { Trash2, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import OrganizerInsightsDashboard from "@/components/OrganizerInsightsDashboard";
@@ -417,6 +419,9 @@ export default function OrganizerDashboard() {
     startDate: "", endDate: "", startTime: "", endTime: "",
     participantLimit: "", isPaid: false
   });
+  const [imageUrl, setImageUrl] = useState("");
+  const [imagePublicId, setImagePublicId] = useState("");
+  const [selectedImageBase64, setSelectedImageBase64] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -672,6 +677,9 @@ export default function OrganizerDashboard() {
       participantLimit: ev.participant_limit ? String(ev.participant_limit) : "",
       isPaid: ev.is_paid || false
     });
+    setImageUrl(ev.image_url || "");
+    setImagePublicId(ev.image_public_id || "");
+    setSelectedImageBase64("");
     setEditingEventId(ev.id);
     setShowForm(true);
   };
@@ -683,6 +691,9 @@ export default function OrganizerDashboard() {
       startDate: "", endDate: "", startTime: "", endTime: "",
       participantLimit: "", isPaid: false
     });
+    setImageUrl("");
+    setImagePublicId("");
+    setSelectedImageBase64("");
     setShowForm(false);
   };
 
@@ -729,6 +740,28 @@ export default function OrganizerDashboard() {
     const toastId = toast.loading("Submitting your event...");
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+      let finalImageUrl = imageUrl;
+      let finalImagePublicId = imagePublicId;
+
+      if (selectedImageBase64) {
+        toast.loading("Uploading image...", { id: toastId });
+        const uploadRes = await fetch(`${baseUrl}/api/admin/upload`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: session?.user?.email, image: selectedImageBase64 }),
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.success && uploadData.data) {
+          finalImageUrl = uploadData.data.url;
+          finalImagePublicId = uploadData.data.publicId;
+        } else {
+          toast.error(uploadData.error || "Image upload failed", { id: toastId });
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const url = editingEventId
         ? `${baseUrl}/api/organizer/events/${editingEventId}`
         : `${baseUrl}/api/organizer/events`;
@@ -741,6 +774,8 @@ export default function OrganizerDashboard() {
           ...formData,
           participant_limit: formData.participantLimit ? parseInt(formData.participantLimit, 10) : null,
           is_paid: formData.isPaid,
+          image_url: finalImageUrl || null,
+          image_public_id: finalImagePublicId || null,
           date_time: start_iso,
           end_time: end_iso,
           organizer_email: session?.user?.email
@@ -753,6 +788,9 @@ export default function OrganizerDashboard() {
           startDate: "", endDate: "", startTime: "", endTime: "",
           participantLimit: "", isPaid: false
         });
+        setImageUrl("");
+        setImagePublicId("");
+        setSelectedImageBase64("");
         setIsMultiDay(false);
         setEditingEventId(null);
         setShowForm(false);
@@ -1061,6 +1099,9 @@ export default function OrganizerDashboard() {
               startDate: "", endDate: "", startTime: "", endTime: "",
               participantLimit: "", isPaid: false
             });
+            setImageUrl("");
+            setImagePublicId("");
+            setSelectedImageBase64("");
             setShowForm(true);
           }}
           className="fixed bottom-8 right-8 z-40 bg-gradient-to-br from-[#22C55E] to-[#16A34A] text-white h-14 w-14 hover:w-48 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(34,197,94,0.4)] hover:scale-105 transition-all duration-300 ease-in-out border border-white/20 group overflow-hidden"
@@ -1226,6 +1267,47 @@ export default function OrganizerDashboard() {
                   <div className="space-y-1">
                     <Input name="location" placeholder="Location Name (e.g. Rushikonda Beach)" value={formData.location} onChange={e => { setFormData({ ...formData, location: e.target.value }); if (errors.location) setErrors({ ...errors, location: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.location && "border-red-500 ring-red-500/20")} />
                     {errors.location && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Location name is required</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1"><ImageIcon className="h-3 w-3"/> Event Cover Image</Label>
+                    <div className="flex flex-col gap-3">
+                      <Input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 5 * 1024 * 1024) {
+                              toast.error("Image size must be less than 5MB");
+                              e.target.value = "";
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onloadend = () => setSelectedImageBase64(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="bg-white border-black/5 rounded-xl h-10 text-xs font-bold pt-2 cursor-pointer"
+                      />
+                      {(selectedImageBase64 || imageUrl) && (
+                        <div className="relative h-32 w-full md:w-1/2 rounded-xl overflow-hidden border border-black/10">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={selectedImageBase64 || imageUrl} alt="Preview" className="object-cover w-full h-full" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedImageBase64("");
+                              setImageUrl("");
+                              setImagePublicId("");
+                            }}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow hover:bg-red-600 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-1">

@@ -33,5 +33,10 @@ export const config = {
   CHAT_MODEL: process.env.CHAT_MODEL || 'llama3.1',
   EMBED_MODEL: process.env.EMBED_MODEL || 'mxbai-embed-large',
   OLLAMA_BASE_URL: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
-  RESEND_API_KEY: process.env.RESEND_API_KEY || 're_dummy_key_123'
+  RESEND_API_KEY: process.env.RESEND_API_KEY || 're_dummy_key_123',
+
+  // Cloudinary Settings
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || ''
 };

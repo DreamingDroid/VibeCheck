@@ -7,6 +7,7 @@ import { config } from './config';
 const resend = new Resend(config.RESEND_API_KEY);
 import { getAllEvents, createEvent, updateEvent, deleteEvent, getPendingEvents, updateEventStatus, getEventsByStatus, getAdminEventRSVPs, addCity, deleteCity } from './queries/events';
 import { initSystemSettings, getSystemSetting, getAnalyticsOverview, getEventsByCategoryStats, getPreferredCategoriesStats, toggleCronSetting } from './queries/analytics';
+import { deleteImage } from './cloudinary';
 
 // Check if an email belongs to an admin
 export async function checkAdminHandler(req: Request, res: Response, pool: Pool) {
@@ -87,7 +88,10 @@ export async function adminUpdateEventHandler(req: Request, res: Response, pool:
 export async function adminDeleteEventHandler(req: Request, res: Response, pool: Pool) {
   const { id } = req.params;
   try {
-    await deleteEvent(pool, id as string);
+    const deletedEvent = await deleteEvent(pool, id as string);
+    if (deletedEvent && deletedEvent.image_public_id) {
+      await deleteImage(deletedEvent.image_public_id);
+    }
     res.json({ success: true, message: 'Event deleted.' });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Internal server error' });

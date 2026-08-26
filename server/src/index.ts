@@ -29,6 +29,7 @@ import { followOrganizerHandler, unfollowOrganizerHandler, getUserFollowingHandl
 import { sendApplyOtpHandler, verifyApplyOtpHandler, submitApplicationHandler } from './organizer-apply';
 import { initializeDatabaseSchema } from './queries/init';
 import { getNewsArticlesHandler, getLatestNewsArticlesHandler, adminCreateNewsArticleHandler, adminUpdateNewsArticleArticleHandler, adminDeleteNewsArticleHandler } from './news';
+import { uploadImageHandler } from './upload';
 import { config } from './config';
 
 console.log('Loaded VERIFY_TOKEN:', config.WHATSAPP_VERIFY_TOKEN);
@@ -47,7 +48,7 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Global Request Logger to trace ghost webhooks
 app.use((req, res, next) => {
@@ -203,6 +204,9 @@ app.get('/api/news/latest', (req, res) => getLatestNewsArticlesHandler(req, res,
 app.post('/api/admin/news', (req, res) => adminCreateNewsArticleHandler(req, res, pool));
 app.put('/api/admin/news/:id', (req, res) => adminUpdateNewsArticleArticleHandler(req, res, pool));
 app.delete('/api/admin/news/:id', (req, res) => adminDeleteNewsArticleHandler(req, res, pool));
+
+// Image Upload API
+app.post('/api/admin/upload', (req, res) => uploadImageHandler(req, res, pool));
 
 // Admin Management API
 app.get('/api/admin/admins', (req, res) => adminGetAdminsHandler(req, res, pool));

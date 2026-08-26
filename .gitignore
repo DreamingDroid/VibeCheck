@@ -49,3 +49,5 @@ next-env.d.ts
 
 ### Documentation / Security
 docs/security_guidelines.md
+docs/cloudinary_implementation_plan.md
+

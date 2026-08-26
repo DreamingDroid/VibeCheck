@@ -15,6 +15,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useTheme } from "@/context/ThemeContext";
 import { useCity } from "@/context/CityContext";
+import { optimizeCloudinaryUrl } from "@/lib/utils";
+import dynamic from "next/dynamic";
+import "react-quill/dist/quill.snow.css";
+
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 type Article = {
   id: string;
@@ -30,43 +35,26 @@ type Article = {
 const CATEGORY_FILTERS = ["All", "General", "Events", "Tech", "Culture", "Music", "Lifestyle"];
 const NEWS_CATEGORIES = ["General", "Events", "Tech", "Culture", "Music", "Lifestyle"];
 
-const getCategoryGradient = (category: string) => {
+const getCategoryStyle = (category: string) => {
   const cat = (category || "").toLowerCase();
   switch (cat) {
     case "events":
-      return "from-rose-500 to-orange-600";
+      return { bg: "from-rose-500 to-orange-600", text: "text-white/10", grid: "linear-gradient(to right, #ffffff15 1px, transparent 1px), linear-gradient(to bottom, #ffffff15 1px, transparent 1px)" };
     case "tech":
-      return "from-indigo-600 to-purple-600";
+      return { bg: "from-indigo-600 to-purple-600", text: "text-white/10", grid: "linear-gradient(to right, #ffffff15 1px, transparent 1px), linear-gradient(to bottom, #ffffff15 1px, transparent 1px)" };
     case "culture":
-      return "from-emerald-500 to-teal-700";
+      return { bg: "from-emerald-500 to-teal-700", text: "text-white/10", grid: "linear-gradient(to right, #ffffff15 1px, transparent 1px), linear-gradient(to bottom, #ffffff15 1px, transparent 1px)" };
     case "music":
-      return "from-fuchsia-600 to-pink-600";
+      return { bg: "from-fuchsia-600 to-pink-600", text: "text-white/10", grid: "linear-gradient(to right, #ffffff15 1px, transparent 1px), linear-gradient(to bottom, #ffffff15 1px, transparent 1px)" };
     case "lifestyle":
-      return "from-amber-400 to-rose-500";
+      return { bg: "from-amber-400 to-rose-500", text: "text-white/10", grid: "linear-gradient(to right, #ffffff15 1px, transparent 1px), linear-gradient(to bottom, #ffffff15 1px, transparent 1px)" };
     default:
-      return "from-zinc-800 to-zinc-950";
+      // Generic light background as requested
+      return { bg: "from-zinc-100 to-zinc-200", text: "text-black/5", grid: "linear-gradient(to right, #00000008 1px, transparent 1px), linear-gradient(to bottom, #00000008 1px, transparent 1px)" };
   }
 };
 
-const formatParagraphWithDropCap = (text: string) => {
-  if (!text) return "";
-  const match = text.match(/[a-zA-Z]/);
-  if (!match || match.index === undefined) {
-    return text;
-  }
-  const index = match.index;
-  const before = text.slice(0, index);
-  const letter = text[index];
-  const after = text.slice(index + 1);
-  
-  return (
-    <>
-      {before}
-      <span className="font-black text-lg sm:text-xl text-black inline-block">{letter}</span>
-      {after}
-    </>
-  );
-};
+
 
 export default function LocalCurrentsPage() {
   const { data: session, status } = useSession();
@@ -101,6 +89,8 @@ export default function LocalCurrentsPage() {
   const [formCity, setFormCity] = useState("Vizag");
   const [formAuthor, setFormAuthor] = useState("");
   const [formImageUrl, setFormImageUrl] = useState("");
+  const [formImagePublicId, setFormImagePublicId] = useState("");
+  const [selectedImageBase64, setSelectedImageBase64] = useState("");
   const [formContent, setFormContent] = useState("");
   const [savingArticle, setSavingArticle] = useState(false);
 
@@ -215,6 +205,8 @@ export default function LocalCurrentsPage() {
     setFormCity(currentCity || "Vizag");
     setFormAuthor(session?.user?.name || "VibeCheck Editorial");
     setFormImageUrl("");
+    setFormImagePublicId("");
+    setSelectedImageBase64("");
     setFormContent("");
     setShowEditorModal(true);
   };
@@ -227,6 +219,8 @@ export default function LocalCurrentsPage() {
     setFormCity(article.city || currentCity || "Vizag");
     setFormAuthor(article.author);
     setFormImageUrl(article.image_url || "");
+    setFormImagePublicId((article as any).image_public_id || "");
+    setSelectedImageBase64("");
     setFormContent(article.content);
     setShowEditorModal(true);
   };
@@ -237,7 +231,7 @@ export default function LocalCurrentsPage() {
 
   const handleSaveArticle = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formTitle.trim() || !formContent.trim()) {
+    if (!formTitle.trim() || !formContent || formContent.replace(/<[^>]+>/g, '').trim() === '') {
       toast.error("Please fill in the title and content.");
       return;
     }
@@ -248,6 +242,35 @@ export default function LocalCurrentsPage() {
     setSavingArticle(true);
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+      let finalImageUrl = formImageUrl;
+      let finalImagePublicId = formImagePublicId;
+
+      if (selectedImageBase64) {
+        toast.loading("Uploading image...", { id: "upload" });
+        try {
+          const uploadRes = await fetch(`${baseUrl}/api/admin/upload`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, image: selectedImageBase64 }),
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadData.success && uploadData.data) {
+            finalImageUrl = uploadData.data.url;
+            finalImagePublicId = uploadData.data.publicId;
+            toast.success("Image uploaded", { id: "upload" });
+          } else {
+            toast.error(uploadData.error || "Image upload failed", { id: "upload" });
+            setSavingArticle(false);
+            return;
+          }
+        } catch (err) {
+          toast.error("Failed to upload image", { id: "upload" });
+          setSavingArticle(false);
+          return;
+        }
+      }
+
       const isEditing = !!editingArticleId;
       const url = isEditing
         ? `${baseUrl}/api/admin/news/${editingArticleId}`
@@ -259,7 +282,8 @@ export default function LocalCurrentsPage() {
         content: formContent.trim(),
         category: formCategory,
         author: formAuthor.trim() || "VibeCheck Editorial",
-        image_url: null,
+        image_url: finalImageUrl || null,
+        image_public_id: finalImagePublicId || null,
         city: formCity,
         email,
       };
@@ -497,11 +521,17 @@ export default function LocalCurrentsPage() {
                 className="group cursor-pointer bg-white rounded-[32px] border border-black/5 overflow-hidden shadow-sm hover:shadow-2xl hover:border-primary/20 transition-all duration-500 grid grid-cols-1 lg:grid-cols-12 gap-0 relative"
               >
                 {/* Banner panel - Category Gradient */}
-                <div className={`lg:col-span-4 h-64 sm:h-96 lg:min-h-[350px] bg-gradient-to-br ${getCategoryGradient(featuredArticle.category)} overflow-hidden relative flex items-center justify-center`}>
-                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px]" />
-                  <div className="absolute -bottom-8 -right-8 text-[120px] font-black uppercase text-white/5 select-none pointer-events-none tracking-tighter italic">
-                    {featuredArticle.category}
-                  </div>
+                <div className={`lg:col-span-4 h-64 sm:h-96 lg:min-h-[350px] bg-gradient-to-br ${getCategoryStyle(featuredArticle.category).bg} overflow-hidden relative flex items-center justify-center`}>
+                  {featuredArticle.image_url ? (
+                    <img src={optimizeCloudinaryUrl(featuredArticle.image_url, 'f_auto,q_auto,w_1200')} alt={featuredArticle.title} className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 bg-[size:24px_24px]" style={{ backgroundImage: getCategoryStyle(featuredArticle.category).grid }} />
+                      <div className={`absolute -bottom-6 -right-6 text-[80px] font-black uppercase ${getCategoryStyle(featuredArticle.category).text} select-none pointer-events-none tracking-tighter italic`}>
+                        {featuredArticle.category}
+                      </div>
+                    </>
+                  )}
                   {/* Category Sticker overlay */}
                   <div className="absolute top-6 left-6 flex gap-2">
                     <span className="sticker-badge bg-black text-white">
@@ -534,7 +564,7 @@ export default function LocalCurrentsPage() {
                       {featuredArticle.title}
                     </h2>
 
-                    <p className="text-zinc-600 text-sm font-semibold leading-relaxed line-clamp-4">
+                    <p className="text-zinc-600 text-sm font-normal leading-relaxed line-clamp-4">
                       {featuredArticle.content}
                     </p>
                   </div>
@@ -586,11 +616,17 @@ export default function LocalCurrentsPage() {
                     className="group cursor-pointer bg-white rounded-[28px] border border-black/5 overflow-hidden shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-300 flex flex-col justify-between h-[360px]"
                   >
                     {/* Header Banner - Compact Category Gradient */}
-                    <div className={`h-20 bg-gradient-to-br ${getCategoryGradient(article.category)} overflow-hidden relative shrink-0 flex items-center justify-center`}>
-                      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:16px_16px]" />
-                      <div className="absolute -bottom-4 -right-4 text-[40px] font-black uppercase text-white/5 select-none pointer-events-none tracking-tighter italic">
-                        {article.category}
-                      </div>
+                    <div className={`h-40 bg-gradient-to-br ${getCategoryStyle(article.category).bg} overflow-hidden relative shrink-0 flex items-center justify-center`}>
+                      {article.image_url ? (
+                        <img src={optimizeCloudinaryUrl(article.image_url, 'f_auto,q_auto,w_800')} alt={article.title} className="absolute inset-0 w-full h-full object-cover" />
+                      ) : (
+                        <>
+                          <div className="absolute inset-0 bg-[size:16px_16px]" style={{ backgroundImage: getCategoryStyle(article.category).grid }} />
+                          <div className={`absolute -bottom-4 -right-4 text-[40px] font-black uppercase ${getCategoryStyle(article.category).text} select-none pointer-events-none tracking-tighter italic`}>
+                            {article.category}
+                          </div>
+                        </>
+                      )}
                       {/* Category and City tags */}
                       <div className="absolute top-3 left-3 flex gap-1.5 z-10">
                         <span className="sticker-badge bg-black text-white py-0.5 px-2 text-[8px]">
@@ -621,7 +657,7 @@ export default function LocalCurrentsPage() {
                           {article.title}
                         </h3>
 
-                        <p className="text-zinc-500 text-xs font-semibold leading-relaxed line-clamp-2">
+                        <p className="text-zinc-600 text-xs font-normal leading-relaxed line-clamp-2">
                           {article.content}
                         </p>
                       </div>
@@ -722,11 +758,17 @@ export default function LocalCurrentsPage() {
             </div>
 
             {/* Banner Cover - Category Gradient */}
-            <div className={`h-48 sm:h-64 w-full relative bg-gradient-to-br ${getCategoryGradient(activeArticle.category)} flex items-center justify-center overflow-hidden`}>
-              <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px]" />
-              <div className="absolute -bottom-6 -right-6 text-[80px] font-black uppercase text-white/5 select-none pointer-events-none tracking-tighter italic">
-                {activeArticle.category}
-              </div>
+            <div className={`h-48 sm:h-64 w-full relative shrink-0 bg-gradient-to-br ${getCategoryStyle(activeArticle.category).bg} flex items-center justify-center overflow-hidden`}>
+              {activeArticle.image_url ? (
+                <img src={optimizeCloudinaryUrl(activeArticle.image_url, 'f_auto,q_auto,w_1200')} alt={activeArticle.title} className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <>
+                  <div className="absolute inset-0 bg-[size:24px_24px]" style={{ backgroundImage: getCategoryStyle(activeArticle.category).grid }} />
+                  <div className={`absolute -bottom-6 -right-6 text-[80px] font-black uppercase ${getCategoryStyle(activeArticle.category).text} select-none pointer-events-none tracking-tighter italic`}>
+                    {activeArticle.category}
+                  </div>
+                </>
+              )}
               <div className="absolute bottom-6 left-6 flex gap-2">
                 <span className="sticker-badge bg-black text-white py-0.5 px-2 text-[8px]">
                   {activeArticle.category.toUpperCase()}
@@ -762,16 +804,20 @@ export default function LocalCurrentsPage() {
                 </span>
               </div>
 
-              {/* Full Content (premium Helvetica, high line height, clean zinc colors) */}
-              <div className="text-zinc-800 text-sm sm:text-base font-normal leading-relaxed font-helvetica pt-2 space-y-4">
-                {activeArticle.content.split("\n").map((para, i) => {
-                  if (!para.trim()) return <div key={i} className="h-4" />;
-                  return (
-                    <p key={i} className="leading-relaxed">
-                      {formatParagraphWithDropCap(para)}
-                    </p>
-                  );
-                })}
+              {/* Full Content */}
+              <div className="text-zinc-800 text-sm sm:text-base font-normal leading-relaxed font-helvetica pt-2 space-y-4 quill-content">
+                {activeArticle.content.trim().startsWith('<') ? (
+                  <div dangerouslySetInnerHTML={{ __html: activeArticle.content }} />
+                ) : (
+                  activeArticle.content.split("\n").map((para, i) => {
+                    if (!para.trim()) return <div key={i} className="h-4" />;
+                    return (
+                      <p key={i} className="leading-relaxed">
+                        {para}
+                      </p>
+                    );
+                  })
+                )}
               </div>
 
               {/* Footer Vibe Check logo signature */}
@@ -859,7 +905,46 @@ export default function LocalCurrentsPage() {
                   </div>
                 </div>
 
-                {/* Image state preserved in payload as null, input omitted */}
+                <div className="space-y-2 mt-4">
+                  <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1">Editorial Image</Label>
+                  <div className="flex flex-col gap-3">
+                    <Input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 5 * 1024 * 1024) {
+                            toast.error("Image size must be less than 5MB");
+                            e.target.value = "";
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onloadend = () => setSelectedImageBase64(reader.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="bg-zinc-50 border-black/5 rounded-xl h-10 text-xs font-bold pt-2 cursor-pointer"
+                    />
+                    {(selectedImageBase64 || formImageUrl) && (
+                      <div className="relative h-40 w-full rounded-xl overflow-hidden border border-black/10">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={selectedImageBase64 || formImageUrl} alt="Preview" className="object-cover w-full h-full" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedImageBase64("");
+                            setFormImageUrl("");
+                            setFormImagePublicId("");
+                          }}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow hover:bg-red-600 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Submit Buttons */}
                 <div className="flex gap-3 pt-4 border-t border-black/5">
@@ -884,12 +969,12 @@ export default function LocalCurrentsPage() {
               {/* Right Column: Full-Height Content Body Textarea */}
               <div className="lg:col-span-7 flex flex-col h-full min-h-[400px]">
                 <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 mb-2">Content Body</Label>
-                <Textarea
+                <ReactQuill 
+                  theme="snow"
                   value={formContent}
-                  onChange={(e) => setFormContent(e.target.value)}
+                  onChange={setFormContent}
                   placeholder="Draft the editorial narrative here..."
-                  required
-                  className="bg-zinc-50 border-black/5 rounded-2xl p-4 text-sm font-semibold leading-relaxed focus:bg-white flex-1 min-h-[350px] lg:h-full resize-y lg:resize-none"
+                  className="bg-white rounded-2xl flex-1 min-h-[350px]"
                 />
               </div>
             </form>
