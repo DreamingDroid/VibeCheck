@@ -159,6 +159,18 @@ app.get('/api/events/:id/rsvp/check', (req, res) => checkRsvpHandler(req, res, p
 app.get('/api/user', (req, res) => getWebUserHandler(req, res, pool));
 app.post('/api/user', (req, res) => saveWebUserHandler(req, res, pool));
 
+// Public settings route for homepage styling controls
+app.get('/api/settings', async (req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT key, value FROM system_settings WHERE key = 'auto_scroll_enabled'");
+    const val = rows[0]?.value;
+    const enabled = val === undefined || val === 'true' || val === true;
+    res.json({ success: true, autoScrollEnabled: enabled });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 // Organizer Application & Verification API
 app.post('/api/apply/send-otp', sendApplyOtpHandler);
 app.post('/api/apply/verify-otp', verifyApplyOtpHandler);

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, FileText, MapPin, ArrowLeft, Users, Shield, Newspaper } from "lucide-react";
+import { LayoutDashboard, FileText, MapPin, ArrowLeft, Users, Shield, Newspaper, Sliders } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
@@ -72,6 +72,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: "Manage Cities", href: "/admin/cities", icon: <MapPin className="h-4 w-4" /> },
     { label: "Manage News", href: "/admin/news", icon: <Newspaper className="h-4 w-4" /> },
     { label: "Manage Admins", href: "/admin/admins", icon: <Shield className="h-4 w-4" /> },
+    { label: "Command Control", href: "/admin/command-control", icon: <Sliders className="h-4 w-4" /> },
   ];
 
   return (

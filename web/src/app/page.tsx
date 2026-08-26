@@ -3,51 +3,88 @@
 import { useSession, signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Sparkles, MapPin, Zap, Music, Heart, Star, Calendar, BookOpen, Compass, ArrowUpRight } from "lucide-react"
 import { useTheme } from "@/context/ThemeContext"
 import { useCity } from "@/context/CityContext"
 
 
 
+const calculateReadTime = (content: string) => {
+  if (!content) return "1 min read";
+  const words = content.trim().split(/\s+/).length;
+  const minutes = Math.max(1, Math.ceil(words / 200));
+  return `${minutes} min read`;
+};
+
 const getCategoryStyles = (category: string) => {
   const cat = (category || "").toLowerCase();
   switch (cat) {
     case "events":
       return {
-        bg: "hover:bg-rose-50/50 hover:border-rose-200 hover:text-rose-700",
-        badge: "bg-rose-500 text-white",
-        dot: "bg-rose-500",
+        bg: "bg-white border-zinc-200/80 hover:bg-zinc-50/20 hover:border-pink-300 hover:shadow-lg hover:shadow-pink-500/5",
+        iconContainer: "bg-white text-pink-500 border-zinc-200/80 group-hover:bg-pink-50/60 group-hover:border-pink-200",
+        textColor: "text-pink-500",
+        mutedTextColor: "text-zinc-400",
+        titleColor: "text-zinc-900",
+        hoverTitleColor: "group-hover:text-black",
+        dot: "bg-pink-500",
+        arrowColor: "text-zinc-300 group-hover:text-pink-500",
       };
     case "tech":
       return {
-        bg: "hover:bg-indigo-50/50 hover:border-indigo-200 hover:text-indigo-700",
-        badge: "bg-indigo-500 text-white",
-        dot: "bg-indigo-500",
+        bg: "bg-white border-zinc-200/80 hover:bg-zinc-50/20 hover:border-purple-300 hover:shadow-lg hover:shadow-purple-500/5",
+        iconContainer: "bg-white text-purple-600 border-zinc-200/80 group-hover:bg-purple-50/60 group-hover:border-purple-200",
+        textColor: "text-purple-600",
+        mutedTextColor: "text-zinc-400",
+        titleColor: "text-zinc-900",
+        hoverTitleColor: "group-hover:text-black",
+        dot: "bg-purple-600",
+        arrowColor: "text-zinc-300 group-hover:text-purple-600",
       };
     case "culture":
       return {
-        bg: "hover:bg-emerald-50/50 hover:border-emerald-200 hover:text-emerald-700",
-        badge: "bg-emerald-500 text-white",
-        dot: "bg-emerald-500",
+        bg: "bg-white border-zinc-200/80 hover:bg-zinc-50/20 hover:border-pink-300 hover:shadow-lg hover:shadow-pink-500/5",
+        iconContainer: "bg-white text-pink-500 border-zinc-200/80 group-hover:bg-pink-50/60 group-hover:border-pink-200",
+        textColor: "text-pink-500",
+        mutedTextColor: "text-zinc-400",
+        titleColor: "text-zinc-900",
+        hoverTitleColor: "group-hover:text-black",
+        dot: "bg-pink-500",
+        arrowColor: "text-zinc-300 group-hover:text-pink-500",
       };
     case "music":
       return {
-        bg: "hover:bg-fuchsia-50/50 hover:border-fuchsia-200 hover:text-fuchsia-700",
-        badge: "bg-fuchsia-500 text-white",
-        dot: "bg-fuchsia-500",
+        bg: "bg-white border-zinc-200/80 hover:bg-zinc-50/20 hover:border-purple-300 hover:shadow-lg hover:shadow-purple-500/5",
+        iconContainer: "bg-white text-purple-600 border-zinc-200/80 group-hover:bg-purple-50/60 group-hover:border-purple-200",
+        textColor: "text-purple-600",
+        mutedTextColor: "text-zinc-400",
+        titleColor: "text-zinc-900",
+        hoverTitleColor: "group-hover:text-black",
+        dot: "bg-purple-600",
+        arrowColor: "text-zinc-300 group-hover:text-purple-600",
       };
     case "lifestyle":
       return {
-        bg: "hover:bg-amber-50/50 hover:border-amber-200 hover:text-amber-700",
-        badge: "bg-amber-500 text-white",
+        bg: "bg-white border-zinc-200/80 hover:bg-zinc-50/20 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-500/5",
+        iconContainer: "bg-white text-amber-500 border-zinc-200/80 group-hover:bg-amber-50/60 group-hover:border-amber-200",
+        textColor: "text-amber-500",
+        mutedTextColor: "text-zinc-400",
+        titleColor: "text-zinc-900",
+        hoverTitleColor: "group-hover:text-black",
         dot: "bg-amber-500",
+        arrowColor: "text-zinc-300 group-hover:text-amber-500",
       };
     default:
       return {
-        bg: "hover:bg-zinc-100 hover:border-zinc-300 hover:text-zinc-900",
-        badge: "bg-zinc-800 text-white",
-        dot: "bg-zinc-500",
+        bg: "bg-white border-zinc-200/80 hover:bg-zinc-50/20 hover:border-purple-300 hover:shadow-lg hover:shadow-purple-500/5",
+        iconContainer: "bg-white text-purple-600 border-zinc-200/80 group-hover:bg-purple-50/60 group-hover:border-purple-200",
+        textColor: "text-purple-600",
+        mutedTextColor: "text-zinc-400",
+        titleColor: "text-zinc-900",
+        hoverTitleColor: "group-hover:text-black",
+        dot: "bg-purple-600",
+        arrowColor: "text-zinc-300 group-hover:text-purple-600",
       };
   }
 };
@@ -75,13 +112,84 @@ interface NewsArticle {
   title: string;
   content: string;
   category: string;
+  created_at?: string;
 }
+
+const ScrollingTitle = ({ 
+  title, 
+  enabled, 
+  titleColor, 
+  hoverTitleColor 
+}: { 
+  title: string; 
+  enabled: boolean; 
+  titleColor: string; 
+  hoverTitleColor: string;
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [shouldScroll, setShouldScroll] = useState(false);
+  const [scrollWidth, setScrollWidth] = useState(0);
+
+  useEffect(() => {
+    if (containerRef.current && textRef.current) {
+      const containerWidth = containerRef.current.offsetWidth;
+      const textWidth = textRef.current.scrollWidth;
+      if (textWidth > containerWidth) {
+        setShouldScroll(true);
+        setScrollWidth(textWidth - containerWidth);
+      } else {
+        setShouldScroll(false);
+      }
+    }
+  }, [title, enabled]);
+
+  if (!enabled || !shouldScroll) {
+    return (
+      <div ref={containerRef} className="w-full overflow-hidden min-w-0">
+        <span ref={textRef} className={`block text-sm font-black italic uppercase tracking-tight leading-tight truncate transition-colors mt-1 ${titleColor} ${hoverTitleColor}`}>
+          {title}
+        </span>
+      </div>
+    );
+  }
+
+  // Safe animation identifier using a sanitized hash of the title string
+  const cleanId = title.replace(/[^a-zA-Z0-9]/g, "");
+
+  return (
+    <div ref={containerRef} className="w-full overflow-hidden relative min-w-0">
+      <span ref={textRef} className="invisible absolute whitespace-nowrap text-sm font-black italic uppercase tracking-tight mt-1">{title}</span>
+      <div 
+        className="whitespace-nowrap"
+        style={{
+          display: "inline-block",
+          animation: `marquee-${cleanId} 8s linear infinite`,
+        }}
+      >
+        <span className={`text-sm font-black italic uppercase tracking-tight leading-tight transition-colors mt-1 ${titleColor} ${hoverTitleColor}`}>
+          {title}
+        </span>
+      </div>
+      <style>{`
+        @keyframes marquee-${cleanId} {
+          0% { transform: translate3d(0, 0, 0); }
+          15% { transform: translate3d(0, 0, 0); }
+          80% { transform: translate3d(-${scrollWidth}px, 0, 0); }
+          85% { transform: translate3d(-${scrollWidth}px, 0, 0); }
+          100% { transform: translate3d(0, 0, 0); }
+        }
+      `}</style>
+    </div>
+  );
+};
 
 export default function Home() {
   const { status } = useSession()
   const router = useRouter()
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [articles, setArticles] = useState<NewsArticle[]>([])
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true)
   const { isVibrant } = useTheme()
 
   const { currentCity } = useCity()
@@ -91,6 +199,20 @@ export default function Home() {
       router.push("/dashboard")
     }
   }, [status, router])
+
+  useEffect(() => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    fetch(`${baseUrl}/api/settings`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setAutoScrollEnabled(data.autoScrollEnabled);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching settings:", err);
+      });
+  }, []);
 
   useEffect(() => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -177,9 +299,11 @@ export default function Home() {
         <div className="border-t border-black/5 pt-12 space-y-10">
           <div className="text-center space-y-2">
             <h2 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none">Local Currents</h2>
-            <p className="text-[10px] font-black tracking-[0.2em] uppercase text-zinc-400 flex items-center justify-center gap-2">
-               <MapPin className="h-3.5 w-3.5 text-primary" /> Live from the coast
-            </p>
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <p className="text-[10px] font-black tracking-[0.2em] uppercase text-zinc-400 flex items-center justify-center gap-2">
+                 <MapPin className="h-3.5 w-3.5 text-primary" /> Live from the coast
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 justify-items-center px-4">
@@ -190,23 +314,32 @@ export default function Home() {
                   <Link
                     key={item.id}
                     href={`/local-currents?id=${item.id}`}
-                    className={`group relative flex items-center justify-between gap-4 px-6 py-5 bg-white border border-black/5 rounded-[24px] transition-all duration-300 shadow-sm hover:shadow-md hover:scale-[1.02] cursor-pointer select-none w-full max-w-md ${styles.bg}`}
+                    className={`group relative flex items-center justify-between gap-4 px-6 py-5 border rounded-[24px] transition-all duration-300 shadow-sm hover:scale-[1.02] cursor-pointer select-none w-full max-w-sm md:w-[380px] shrink-0 ${styles.bg}`}
                   >
-                    <div className="flex items-center gap-4 overflow-hidden">
-                      <div className="p-3 rounded-2xl bg-zinc-50 group-hover:bg-white transition-colors flex items-center justify-center shrink-0 border border-black/5 text-zinc-500 group-hover:text-inherit">
+                    <div className="flex items-center gap-4 overflow-hidden min-w-0">
+                      <div className={`p-3 rounded-2xl transition-colors flex items-center justify-center shrink-0 border ${styles.iconContainer}`}>
                         {getCategoryIcon(item.category)}
                       </div>
-                      <div className="flex flex-col text-left overflow-hidden">
-                        <span className="text-[9px] font-black uppercase tracking-[0.15em] text-zinc-400 group-hover:text-inherit transition-colors flex items-center gap-1.5">
-                          <span className={`h-1.5 w-1.5 rounded-full ${styles.dot}`} />
-                          {item.category}
-                        </span>
-                        <span className="text-sm font-black uppercase tracking-tight text-black leading-tight truncate group-hover:text-inherit transition-colors mt-1">
-                          {item.title}
-                        </span>
+                      <div className="flex flex-col text-left overflow-hidden min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[9px] font-black uppercase tracking-[0.15em] flex items-center gap-1.5 shrink-0 ${styles.textColor}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${styles.dot}`} />
+                            {item.category}
+                          </span>
+                          <span className={`text-[9px] font-black uppercase tracking-[0.15em] truncate ${styles.mutedTextColor}`}>
+                            • {calculateReadTime(item.content)}
+                            {item.created_at && ` • ${new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()}`}
+                          </span>
+                        </div>
+                        <ScrollingTitle 
+                          title={item.title} 
+                          enabled={autoScrollEnabled} 
+                          titleColor={styles.titleColor} 
+                          hoverTitleColor={styles.hoverTitleColor} 
+                        />
                       </div>
                     </div>
-                    <ArrowUpRight className="h-5 w-5 text-zinc-300 group-hover:text-inherit shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    <ArrowUpRight className={`h-5 w-5 group-hover:scale-110 shrink-0 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 ${styles.arrowColor}`} />
                   </Link>
                 );
               })

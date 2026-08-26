@@ -18,6 +18,11 @@ export async function initSystemSettings(pool: Pool) {
     VALUES ('cron_enabled', 'false'::jsonb)
     ON CONFLICT (key) DO NOTHING;
   `);
+  await pool.query(`
+    INSERT INTO system_settings (key, value)
+    VALUES ('auto_scroll_enabled', 'true'::jsonb)
+    ON CONFLICT (key) DO NOTHING;
+  `);
 }
 
 export async function getAnalyticsOverview(pool: Pool) {
