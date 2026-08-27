@@ -96,6 +96,10 @@ module.exports = {
           "25%": { transform: "translate(4px, -6px) rotate(5deg)" },
           "50%": { transform: "translate(-2px, -10px) rotate(-3deg)" },
           "75%": { transform: "translate(6px, -4px) rotate(4deg)" },
+        },
+        "marquee": {
+          "0%": { transform: "translateX(0%)" },
+          "100%": { transform: "translateX(-100%)" },
         }
       },
       animation: {
@@ -106,6 +110,7 @@ module.exports = {
         "float-gentle": "float-gentle 5s ease-in-out infinite",
         "float-slow": "float-slow 7s ease-in-out infinite",
         "float-drift": "float-drift 9s ease-in-out infinite",
+        "marquee": "marquee 35s linear infinite",
       },
     },
   },

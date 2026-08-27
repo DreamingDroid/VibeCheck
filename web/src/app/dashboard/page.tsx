@@ -9,8 +9,11 @@ import { Button } from "@/components/ui/button";
 import { useCity } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
-import { Calendar, MapPin, Share2, Sparkles, TrendingUp, Zap, Users } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/style.css";
+import { isSameDay, startOfDay, isBefore } from "date-fns";
 
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "";
 
@@ -46,6 +49,23 @@ export default function Dashboard() {
   const [following, setFollowing] = useState<string[]>([]);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [userHasPhone, setUserHasPhone] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [forceCalendarOpen, setForceCalendarOpen] = useState(false);
+  const [dashboardNews, setDashboardNews] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (currentCity) {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      fetch(`${baseUrl}/api/news?city=${encodeURIComponent(currentCity)}`)
+        .then(r => r.json())
+        .then(res => {
+          if (res.success && res.data) {
+            setDashboardNews(res.data.slice(0, 4));
+          }
+        })
+        .catch(err => console.error("Could not fetch news", err));
+    }
+  }, [currentCity]);
 
   const handleJoinWhatsApp = () => {
     if (!session?.user?.email) {
@@ -190,14 +210,173 @@ export default function Dashboard() {
     ? events.filter(ev => ev.category.toLowerCase() === selectedCategory.toLowerCase())
     : events;
 
-  const featuredEvent = filteredEvents[0];
-  const otherEvents = filteredEvents.slice(1);
+  let displayEvents = filteredEvents;
+  if (selectedDate) {
+    displayEvents = events.filter(ev => isSameDay(new Date(ev.date_time), selectedDate));
+  }
+
+  const isCategoryEmpty = filteredEvents.length === 0;
+  const showCalendarView = (isCategoryEmpty || forceCalendarOpen) && !selectedDate;
+  
+  const featuredEvent = displayEvents[0];
+  const otherEvents = displayEvents.slice(1);
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12 space-y-12">
+    <main className="w-full pb-12 space-y-12">
+      {/* Local Currents RSS Ticker at the top */}
+      {dashboardNews.length > 0 && (
+        <div className="w-full bg-black text-white py-4 border-b-4 border-primary overflow-hidden relative shadow-lg">
+          <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-black to-transparent z-10" />
+          <div className="absolute right-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-l from-black to-transparent z-10" />
+          <div className="flex animate-marquee gap-8 md:gap-16 items-center whitespace-nowrap px-4">
+             {[...dashboardNews, ...dashboardNews, ...dashboardNews].map((news, idx) => (
+                <Link key={`${news.id}-${idx}`} href={`/local-currents?id=${news.id}`} className="flex items-center gap-2 group hover:text-primary transition-colors">
+                  <span className="sticker-badge bg-primary text-black text-[10px] font-black uppercase py-0.5 px-2 border-none">
+                    {news.category}
+                  </span>
+                  <span className="font-black italic tracking-widest uppercase text-xs md:text-sm group-hover:underline">
+                    {news.title}
+                  </span>
+                  <Sparkles className="h-4 w-4 text-primary ml-2 hidden md:block" />
+                </Link>
+             ))}
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
       
+      {/* Calendar Toggle Button when feed is visible */}
+      {!showCalendarView && !selectedDate && !isCategoryEmpty && (
+        <div className="flex justify-end w-full">
+           <button 
+             onClick={() => setForceCalendarOpen(true)}
+             className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-full font-black uppercase text-sm hover:bg-primary hover:text-black transition-colors shadow-md hover:shadow-lg"
+           >
+             <CalendarIcon className="h-4 w-4" />
+             View Calendar
+           </button>
+        </div>
+      )}
+
+      {/* Calendar Empty State / Calendar View */}
+      {showCalendarView && (
+        <section className="flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-500 w-full mt-8">
+          <div className="text-center space-y-4 mb-4 relative w-full flex flex-col items-center">
+            {!isCategoryEmpty && (
+              <div className="w-full flex justify-end mb-4">
+                <button 
+                  onClick={() => setForceCalendarOpen(false)}
+                  className="text-xs font-black uppercase bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-full transition-colors flex items-center gap-2"
+                >
+                  Close Calendar
+                </button>
+              </div>
+            )}
+            <p className="text-xs md:text-sm font-bold tracking-[0.3em] uppercase text-primary">COMMUNITY CALENDAR</p>
+            <h2 className="text-4xl md:text-7xl font-black italic tracking-tighter uppercase leading-[0.85]">
+              {isCategoryEmpty ? "No Upcoming Vibes" : "Plan Your Vibes"}
+            </h2>
+            <p className="text-zinc-500 font-bold text-sm md:text-base max-w-xl mx-auto">
+              {isCategoryEmpty 
+                ? "You've cleared the feed! Check out the interactive calendar to see all past and future events this month, or switch categories."
+                : "Select a date to see exactly what's happening."}
+            </p>
+          </div>
+          
+          <div className={`w-full p-4 md:p-8 rounded-[32px] md:rounded-[48px] border-4 border-black/5 shadow-2xl overflow-hidden relative bg-white ${isVibrant ? 'vibe-hover-lift' : ''}`}>
+            {isVibrant && (
+              <>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+              </>
+            )}
+            
+            <div className="relative z-10 w-full [&_table]:block [&_table]:w-full [&_thead]:block [&_tbody]:block [&_tr]:grid [&_tr]:grid-cols-7 [&_tr]:gap-2 md:[&_tr]:gap-4 [&_tr]:mb-2 md:[&_tr]:mb-4 [&_th]:block [&_td]:block [&_th]:text-center [&_th]:text-zinc-400 [&_th]:font-black [&_th]:uppercase [&_th]:tracking-[0.2em] [&_th]:text-[10px] md:[&_th]:text-xs [&_th]:pb-4">
+              <DayPicker
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                showOutsideDays
+                className="w-full bg-transparent p-0 m-0 font-helvetica"
+                classNames={{
+                  months: "w-full flex flex-col",
+                  month: "w-full",
+                  caption: "flex justify-between items-center mb-8 px-2 md:px-6",
+                  caption_label: "text-3xl md:text-5xl font-black italic uppercase tracking-tighter flex-1 text-center md:text-left",
+                  nav: "flex items-center gap-3",
+                  button_previous: "h-12 w-12 md:h-14 md:w-14 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px]",
+                  button_next: "h-12 w-12 md:h-14 md:w-14 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px]",
+                  day: "w-full aspect-square md:aspect-auto md:h-36 rounded-2xl md:rounded-[32px] flex flex-col items-center md:items-start justify-center md:justify-start p-2 md:p-5 font-black text-xl md:text-4xl border-2 border-black/5 hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all bg-white relative group overflow-hidden cursor-pointer",
+                  day_selected: "ring-0 bg-primary/20 border-primary shadow-[4px_4px_0px_0px_rgba(var(--primary),1)]",
+                  day_today: "bg-zinc-50 border-black/20",
+                  day_outside: "text-zinc-300 opacity-50 bg-zinc-50/50 hover:border-black/5 hover:shadow-none hover:translate-y-0",
+                  day_disabled: "text-zinc-300 opacity-50",
+                  day_hidden: "invisible",
+                }}
+                components={{
+                  DayButton: (props) => {
+                    const { day, modifiers } = props;
+                    const dateEvents = events.filter(e => isSameDay(new Date(e.date_time), day.date));
+                    const isPastDate = isBefore(startOfDay(day.date), startOfDay(new Date()));
+                    
+                    return (
+                      <button {...props} className={props.className} disabled={modifiers.outside}>
+                        <span className={`block transition-colors ${isPastDate ? "opacity-40" : "group-hover:text-primary"} ${modifiers.outside ? "text-zinc-300" : ""}`}>
+                          {day.date.getDate()}
+                        </span>
+                        
+                        {dateEvents.length > 0 && !modifiers.outside && (
+                          <div className="absolute bottom-2 md:bottom-4 left-2 right-2 md:left-4 md:right-4 flex flex-col gap-1.5 z-10">
+                            <div className="flex gap-1 md:gap-1.5 flex-wrap w-full">
+                              {dateEvents.slice(0, 3).map((ev, i) => (
+                                <div 
+                                  key={i} 
+                                  className={`h-2 w-2 md:h-2.5 md:w-auto md:flex-1 rounded-full ${isPastDate ? 'bg-zinc-400' : 'bg-black group-hover:bg-primary'} shadow-sm transition-colors`} 
+                                  title={ev.title} 
+                                />
+                              ))}
+                            </div>
+                            {dateEvents.length > 3 && (
+                              <span className="text-[9px] md:text-[10px] hidden md:block font-black text-black group-hover:text-primary uppercase tracking-widest text-left mt-1 transition-colors">
+                                +{dateEvents.length - 3} MORE
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  },
+                  Chevron: (props) => {
+                    if (props.orientation === 'left') return <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />;
+                    if (props.orientation === 'right') return <ArrowRight className="h-5 w-5 md:h-6 md:w-6" />;
+                    return <></>;
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Back to Calendar Button if date is selected */}
+      {selectedDate && (
+        <div className="flex justify-start">
+          <button 
+            onClick={() => {
+              setSelectedDate(undefined);
+              setForceCalendarOpen(true);
+            }}
+            className="flex items-center gap-2 text-xs font-black uppercase tracking-widest bg-zinc-100 hover:bg-zinc-200 text-black px-4 py-2 rounded-full transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back to Calendar
+          </button>
+        </div>
+      )}
+
       {/* Editorial Hero Section */}
-      {featuredEvent && (
+      {!showCalendarView && featuredEvent && (
         <section className="relative group cursor-pointer overflow-hidden ringer-card h-auto md:h-[500px] flex flex-col md:flex-row shadow-2xl rounded-[24px] md:rounded-[40px]">
            <div className={`w-full md:w-1/2 ${getCategoryColor(featuredEvent.category)} p-6 sm:p-8 flex flex-col justify-between gap-8 md:gap-0 min-h-[320px] md:min-h-0 relative overflow-hidden`}>
               {isVibrant && <CategoryDecorations category={featuredEvent.category} showAccent={false} />}
@@ -262,7 +441,8 @@ export default function Dashboard() {
       )}
 
       {/* Bento Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-8 auto-rows-min">
+      {!showCalendarView && otherEvents.length > 0 && (
+        <section className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-8 auto-rows-min">
         {otherEvents.map((ev, i) => {
           const isLarge = i % 5 === 0;
           return (
@@ -315,7 +495,7 @@ export default function Dashboard() {
                  <div className="pt-6 border-t border-black/5 flex items-center justify-between">
                     <div className="flex flex-col">
                       <div className="flex items-center gap-1.5 text-xs font-black uppercase text-black">
-                        <Calendar className="h-3.5 w-3.5" />
+                        <CalendarIcon className="h-3.5 w-3.5" />
                         {new Date(ev.date_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </div>
                       <a
@@ -352,6 +532,7 @@ export default function Dashboard() {
           );
         })}
       </section>
+      )}
 
       {/* Discovery Sidebar Style Section */}
       <section className={`p-6 sm:p-12 rounded-[24px] sm:rounded-[40px] flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 relative overflow-hidden ${
@@ -396,6 +577,7 @@ export default function Dashboard() {
         />
       )}
 
+      </div>
     </main>
   );
 }

@@ -67,7 +67,8 @@ export function CityProvider({ children }: { children: ReactNode }) {
     setIsLoadingEvents(true);
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      const url = new URL(`${baseUrl}/api/events`);
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3500';
+      const url = new URL(`${baseUrl}/api/events`, origin);
       if (city) url.searchParams.append("city", city);
       const res = await fetch(url.toString());
       const data = await res.json();
