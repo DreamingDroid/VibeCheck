@@ -462,7 +462,8 @@ export default function Dashboard() {
               `}
             >
               {isVibrant && <CategoryDecorations category={ev.category} showAccent={false} />}
-              <div className="p-5 sm:p-8 flex flex-col h-full space-y-6 relative z-10">
+              <Link href={`/event/${ev.id}`} className="absolute inset-0 z-10" aria-label={`View details for ${ev.title}`} />
+              <div className="p-5 sm:p-8 flex flex-col h-full space-y-6 relative z-10 pointer-events-none">
                  <div className="flex justify-between items-start">
                    <div className="flex flex-wrap gap-2">
                      <div className={`sticker-badge ${getCategoryColor(ev.category)} text-black border-none font-black`}>
@@ -480,11 +481,11 @@ export default function Dashboard() {
                    <div className="flex items-center gap-2">
                      <button 
                        onClick={(e) => toggleFollow(e, ev.organizer_email)}
-                       className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${following.includes(ev.organizer_email) ? 'bg-zinc-200 border-transparent text-black' : 'border-zinc-200 text-zinc-400 hover:text-black hover:border-black'}`}
+                       className={`pointer-events-auto relative z-20 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${following.includes(ev.organizer_email) ? 'bg-zinc-200 border-transparent text-black' : 'border-zinc-200 text-zinc-400 hover:text-black hover:border-black'}`}
                      >
                        {following.includes(ev.organizer_email) ? '✓ Following' : 'Follow'}
                      </button>
-                     <button className="text-zinc-300 hover:text-black transition-colors">
+                     <button className="pointer-events-auto relative z-20 text-zinc-300 hover:text-black transition-colors">
                        <Share2 className="h-4 w-4" />
                      </button>
                    </div>
@@ -510,7 +511,7 @@ export default function Dashboard() {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-wide hover:text-black hover:underline cursor-pointer"
+                        className="pointer-events-auto relative z-20 flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-wide hover:text-black hover:underline cursor-pointer"
                       >
                         <MapPin className="h-2.5 w-2.5" />
                         {ev.location}
@@ -521,18 +522,16 @@ export default function Dashboard() {
                       </div>
                     </div>
                     
-                    <Link href={`/event/${ev.id}`}>
-                      <button 
-                        className={`h-10 w-10 flex items-center justify-center rounded-full hover:scale-110 transition-all ${
-                          isVibrant 
-                            ? 'text-white shadow-lg' 
-                            : 'bg-black text-white hover:bg-primary'
-                        }`}
-                        style={isVibrant ? { backgroundColor: getCategoryAccentColor(ev.category) } : {}}
-                      >
-                        <Sparkles className="h-4 w-4" />
-                      </button>
-                    </Link>
+                    <div 
+                      className={`h-10 w-10 flex items-center justify-center rounded-full transition-all group-hover:scale-110 ${
+                        isVibrant 
+                          ? 'text-white shadow-lg' 
+                          : 'bg-black text-white group-hover:bg-primary'
+                      }`}
+                      style={isVibrant ? { backgroundColor: getCategoryAccentColor(ev.category) } : {}}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </div>
                  </div>
               </div>
             </div>

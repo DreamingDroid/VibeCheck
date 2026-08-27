@@ -110,7 +110,7 @@ module.exports = {
         "float-gentle": "float-gentle 5s ease-in-out infinite",
         "float-slow": "float-slow 7s ease-in-out infinite",
         "float-drift": "float-drift 9s ease-in-out infinite",
-        "marquee": "marquee 35s linear infinite",
+        "marquee": "marquee 8s linear infinite",
       },
     },
   },
