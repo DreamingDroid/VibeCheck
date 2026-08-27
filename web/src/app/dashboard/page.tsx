@@ -313,7 +313,6 @@ export default function Dashboard() {
                   nav: "absolute top-0 left-0 right-0 h-14 grid grid-cols-2 items-center pointer-events-none z-20",
                   button_previous: "col-start-1 justify-self-start h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
                   button_next: "col-start-2 justify-self-end h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
-                  nav_button_disabled: "hidden",
                   day: "w-full aspect-square md:aspect-auto md:h-36 rounded-lg md:rounded-[32px] flex flex-col items-center md:items-start justify-center md:justify-start p-1 sm:p-2 md:p-5 font-black text-sm sm:text-base md:text-4xl border-2 border-black/5 hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all bg-white relative group overflow-hidden cursor-pointer",
                   day_selected: "ring-0 bg-primary/20 border-primary shadow-[4px_4px_0px_0px_rgba(var(--primary),1)]",
                   day_today: "bg-zinc-50 border-black/20",
