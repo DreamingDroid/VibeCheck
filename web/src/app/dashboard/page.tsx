@@ -297,7 +297,7 @@ export default function Dashboard() {
               </>
             )}
             
-            <div className="relative z-10 w-full [&_table]:block [&_table]:mt-8 md:[&_table]:mt-12 [&_table]:w-full [&_thead]:block [&_tbody]:block [&_tr]:grid [&_tr]:grid-cols-7 [&_tr]:gap-2 md:[&_tr]:gap-4 [&_tr]:mb-2 md:[&_tr]:mb-4 [&_th]:block [&_td]:block [&_th]:text-center [&_th]:text-zinc-400 [&_th]:font-black [&_th]:uppercase [&_th]:tracking-[0.2em] [&_th]:text-[10px] md:[&_th]:text-xs [&_th]:pb-4">
+            <div className="relative z-10 w-full [&_table]:block [&_table]:mt-8 md:[&_table]:mt-12 [&_table]:w-full [&_thead]:block [&_tbody]:block [&_tr]:grid [&_tr]:grid-cols-7 [&_tr]:gap-1 sm:[&_tr]:gap-2 md:[&_tr]:gap-4 [&_tr]:mb-1 sm:[&_tr]:mb-2 md:[&_tr]:mb-4 [&_th]:block [&_td]:block [&_th]:text-center [&_th]:text-zinc-400 [&_th]:font-black [&_th]:uppercase [&_th]:tracking-[0.2em] [&_th]:text-[10px] md:[&_th]:text-xs [&_th]:pb-2 sm:[&_th]:pb-4">
               <DayPicker
                 mode="single"
                 selected={selectedDate}
@@ -309,13 +309,13 @@ export default function Dashboard() {
                 classNames={{
                   months: "w-full flex flex-col",
                   month: "w-full",
-                  caption: "relative flex justify-center items-center h-14 mb-12 md:mb-16 w-full",
-                  caption_label: "text-3xl md:text-5xl font-black italic uppercase tracking-tighter text-center w-full flex justify-center items-center",
+                  caption: "relative flex justify-center items-center h-14 mb-8 sm:mb-12 md:mb-16 w-full",
+                  caption_label: "text-xl sm:text-3xl md:text-5xl font-black italic uppercase tracking-tighter text-center w-full flex justify-center items-center",
                   nav: "absolute top-0 left-0 right-0 h-14 grid grid-cols-2 items-center pointer-events-none z-20",
-                  button_previous: "col-start-1 justify-self-start h-12 w-12 md:h-14 md:w-14 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
-                  button_next: "col-start-2 justify-self-end h-12 w-12 md:h-14 md:w-14 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
+                  button_previous: "col-start-1 justify-self-start h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
+                  button_next: "col-start-2 justify-self-end h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
                   nav_button_disabled: "hidden",
-                  day: "w-full aspect-square md:aspect-auto md:h-36 rounded-2xl md:rounded-[32px] flex flex-col items-center md:items-start justify-center md:justify-start p-2 md:p-5 font-black text-xl md:text-4xl border-2 border-black/5 hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all bg-white relative group overflow-hidden cursor-pointer",
+                  day: "w-full aspect-square md:aspect-auto md:h-36 rounded-lg md:rounded-[32px] flex flex-col items-center md:items-start justify-center md:justify-start p-1 sm:p-2 md:p-5 font-black text-sm sm:text-base md:text-4xl border-2 border-black/5 hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all bg-white relative group overflow-hidden cursor-pointer",
                   day_selected: "ring-0 bg-primary/20 border-primary shadow-[4px_4px_0px_0px_rgba(var(--primary),1)]",
                   day_today: "bg-zinc-50 border-black/20",
                   day_outside: "text-zinc-300 opacity-50 bg-zinc-50/50 hover:border-black/5 hover:shadow-none hover:translate-y-0",
@@ -335,12 +335,12 @@ export default function Dashboard() {
                         </span>
                         
                         {dateEvents.length > 0 && !modifiers.outside && (
-                          <div className="absolute bottom-2 md:bottom-4 left-2 right-2 md:left-4 md:right-4 flex flex-col gap-1.5 z-10">
-                            <div className="flex gap-1 md:gap-1.5 flex-wrap w-full">
+                          <div className="absolute bottom-1 md:bottom-4 left-1 right-1 md:left-4 md:right-4 flex flex-col gap-1 md:gap-1.5 z-10">
+                            <div className="flex gap-0.5 sm:gap-1 md:gap-1.5 flex-wrap w-full justify-center md:justify-start">
                               {dateEvents.slice(0, 3).map((ev, i) => (
                                 <div 
                                   key={i} 
-                                  className={`h-2 w-2 md:h-2.5 md:w-auto md:flex-1 rounded-full ${isPastDate ? 'bg-zinc-400' : 'bg-black group-hover:bg-primary'} shadow-sm transition-colors`} 
+                                  className={`h-1 w-1 sm:h-1.5 sm:w-1.5 md:h-2.5 md:w-auto md:flex-1 rounded-full ${isPastDate ? 'bg-zinc-400' : 'bg-black group-hover:bg-primary'} shadow-sm transition-colors`} 
                                   title={ev.title} 
                                 />
                               ))}
