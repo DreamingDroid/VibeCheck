@@ -266,18 +266,17 @@ export default function Dashboard() {
 
       {/* Calendar Empty State / Calendar View */}
       {showCalendarView && (
-        <section className="flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-500 w-full mt-8">
-          <div className="text-center space-y-4 mb-4 relative w-full flex flex-col items-center">
-            {!isCategoryEmpty && (
-              <div className="w-full flex justify-end mb-4">
-                <button 
-                  onClick={() => setForceCalendarOpen(false)}
-                  className="text-xs font-black uppercase bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-full transition-colors flex items-center gap-2"
-                >
-                  Close Calendar
-                </button>
-              </div>
-            )}
+        <section className="flex flex-col items-center justify-center space-y-6 md:space-y-8 animate-in fade-in duration-500 w-full mt-4 md:mt-8 relative">
+          {!isCategoryEmpty && (
+            <button 
+              onClick={() => setForceCalendarOpen(false)}
+              className="self-start flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-black transition-colors bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 md:px-4 md:py-2 rounded-full md:absolute md:top-0 md:left-0 z-10 md:-mt-2"
+            >
+              <ChevronLeft className="h-3 w-3 md:h-4 md:w-4" />
+              Back to Feed
+            </button>
+          )}
+          <div className="text-center space-y-3 md:space-y-4 relative w-full flex flex-col items-center">
             <p className="text-xs md:text-sm font-bold tracking-[0.3em] uppercase text-primary">COMMUNITY CALENDAR</p>
             <h2 className="text-4xl md:text-7xl font-black italic tracking-tighter uppercase leading-[0.85]">
               {isCategoryEmpty ? "No Upcoming Vibes" : "Plan Your Vibes"}
@@ -289,7 +288,7 @@ export default function Dashboard() {
             </p>
           </div>
           
-          <div className={`w-full p-4 md:p-8 rounded-[32px] md:rounded-[48px] border-4 border-black/5 shadow-2xl overflow-hidden relative bg-white ${isVibrant ? 'vibe-hover-lift' : ''}`}>
+          <div className={`w-full p-4 md:p-8 rounded-[32px] md:rounded-[48px] border-4 border-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] overflow-hidden relative bg-gradient-to-br from-white via-zinc-50 to-zinc-100/80 ${isVibrant ? 'vibe-hover-lift' : ''}`}>
             {isVibrant && (
               <>
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
