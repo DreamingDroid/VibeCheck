@@ -32,6 +32,8 @@ import { getNewsArticlesHandler, getLatestNewsArticlesHandler, adminCreateNewsAr
 import { uploadImageHandler } from './upload';
 import { config } from './config';
 
+import rateLimit from 'express-rate-limit';
+
 console.log('Loaded VERIFY_TOKEN:', config.WHATSAPP_VERIFY_TOKEN);
 
 const app = express();
@@ -60,6 +62,48 @@ app.use((req, res, next) => {
       console.log(`Body:`, bodyStr.substring(0, 500));
     }
   }
+  next();
+});
+
+// Rate Limiting for API routes
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Limit each IP to 300 requests per 15 mins
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests, please try again later.' }
+});
+
+// Apply rate limiter to all /api routes
+app.use('/api', apiLimiter);
+
+// Bearer Token Authentication Middleware for /api routes (Smart Proxy Protection)
+app.use('/api', (req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
+  // If no backend token is set in server config, skip check (useful during development if token unset)
+  if (!config.PRIVATE_BACKEND_TOKEN) {
+    return next();
+  }
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized: Missing or malformed Authorization header'
+    });
+  }
+
+  const token = authHeader.split(' ')[1];
+  if (token !== config.PRIVATE_BACKEND_TOKEN) {
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized: Invalid backend access token'
+    });
+  }
+
   next();
 });
 
