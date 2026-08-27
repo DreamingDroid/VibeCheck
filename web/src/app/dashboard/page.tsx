@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useCity } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
-import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ArrowRight } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ArrowRight, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
@@ -246,17 +246,22 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
       
-      {/* Calendar Toggle Button when feed is visible */}
+      {/* Calendar Toggle Button (FAB) when feed is visible */}
       {!showCalendarView && !selectedDate && !isCategoryEmpty && (
-        <div className="flex justify-end w-full">
-           <button 
-             onClick={() => setForceCalendarOpen(true)}
-             className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-full font-black uppercase text-sm hover:bg-primary hover:text-black transition-colors shadow-md hover:shadow-lg"
-           >
-             <CalendarIcon className="h-4 w-4" />
-             View Calendar
-           </button>
-        </div>
+        <button
+          onClick={() => setForceCalendarOpen(true)}
+          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-black text-white h-14 w-14 hover:w-48 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:bg-primary hover:text-black hover:scale-105 transition-all duration-300 ease-in-out border border-white/20 group overflow-hidden"
+          title="View Calendar"
+        >
+          <div className="flex items-center justify-center whitespace-nowrap">
+            <span className="shrink-0 select-none leading-none flex items-center justify-center">
+              <CalendarIcon className="h-6 w-6" />
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-widest max-w-0 opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-300 ease-in-out select-none overflow-hidden mt-0.5">
+              View Calendar
+            </span>
+          </div>
+        </button>
       )}
 
       {/* Calendar Empty State / Calendar View */}
@@ -292,21 +297,24 @@ export default function Dashboard() {
               </>
             )}
             
-            <div className="relative z-10 w-full [&_table]:block [&_table]:w-full [&_thead]:block [&_tbody]:block [&_tr]:grid [&_tr]:grid-cols-7 [&_tr]:gap-2 md:[&_tr]:gap-4 [&_tr]:mb-2 md:[&_tr]:mb-4 [&_th]:block [&_td]:block [&_th]:text-center [&_th]:text-zinc-400 [&_th]:font-black [&_th]:uppercase [&_th]:tracking-[0.2em] [&_th]:text-[10px] md:[&_th]:text-xs [&_th]:pb-4">
+            <div className="relative z-10 w-full [&_table]:block [&_table]:mt-8 md:[&_table]:mt-12 [&_table]:w-full [&_thead]:block [&_tbody]:block [&_tr]:grid [&_tr]:grid-cols-7 [&_tr]:gap-2 md:[&_tr]:gap-4 [&_tr]:mb-2 md:[&_tr]:mb-4 [&_th]:block [&_td]:block [&_th]:text-center [&_th]:text-zinc-400 [&_th]:font-black [&_th]:uppercase [&_th]:tracking-[0.2em] [&_th]:text-[10px] md:[&_th]:text-xs [&_th]:pb-4">
               <DayPicker
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 showOutsideDays
+                fromMonth={new Date()}
+                toMonth={new Date(new Date().getFullYear(), 11)}
                 className="w-full bg-transparent p-0 m-0 font-helvetica"
                 classNames={{
                   months: "w-full flex flex-col",
                   month: "w-full",
-                  caption: "flex justify-between items-center mb-8 px-2 md:px-6",
-                  caption_label: "text-3xl md:text-5xl font-black italic uppercase tracking-tighter flex-1 text-center md:text-left",
-                  nav: "flex items-center gap-3",
-                  button_previous: "h-12 w-12 md:h-14 md:w-14 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px]",
-                  button_next: "h-12 w-12 md:h-14 md:w-14 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px]",
+                  caption: "relative flex justify-center items-center h-14 mb-12 md:mb-16 w-full",
+                  caption_label: "text-3xl md:text-5xl font-black italic uppercase tracking-tighter text-center w-full flex justify-center items-center",
+                  nav: "absolute top-0 left-0 right-0 h-14 grid grid-cols-2 items-center pointer-events-none z-20",
+                  button_previous: "col-start-1 justify-self-start h-12 w-12 md:h-14 md:w-14 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
+                  button_next: "col-start-2 justify-self-end h-12 w-12 md:h-14 md:w-14 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
+                  nav_button_disabled: "hidden",
                   day: "w-full aspect-square md:aspect-auto md:h-36 rounded-2xl md:rounded-[32px] flex flex-col items-center md:items-start justify-center md:justify-start p-2 md:p-5 font-black text-xl md:text-4xl border-2 border-black/5 hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all bg-white relative group overflow-hidden cursor-pointer",
                   day_selected: "ring-0 bg-primary/20 border-primary shadow-[4px_4px_0px_0px_rgba(var(--primary),1)]",
                   day_today: "bg-zinc-50 border-black/20",
@@ -348,7 +356,7 @@ export default function Dashboard() {
                     );
                   },
                   Chevron: (props) => {
-                    if (props.orientation === 'left') return <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />;
+                    if (props.orientation === 'left') return <ArrowLeft className="h-5 w-5 md:h-6 md:w-6" />;
                     if (props.orientation === 'right') return <ArrowRight className="h-5 w-5 md:h-6 md:w-6" />;
                     return <></>;
                   }
