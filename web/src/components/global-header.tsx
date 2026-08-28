@@ -68,7 +68,7 @@ export function GlobalHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { 
     currentCity, setCity, supportedCities, isLoading,
-    selectedCategory, setSelectedCategory, activeCategories
+    selectedCategory, setSelectedCategory, activeCategories, events
   } = useCity()
   const [showCityMenu, setShowCityMenu] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -329,35 +329,7 @@ export function GlobalHeader() {
 
             {session ? (
               <>
-                <div className="hidden lg:flex items-center gap-2 mr-2">
-                  <Link href="/preferences">
-                    <button className="ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-4">
-                      PREFERENCES
-                    </button>
-                  </Link>
-                  {isOrganizer && organizerStatus === 'approved' ? (
-                    <Link href="/organizer">
-                      <button className="ringer-button bg-primary text-black hover:bg-black hover:text-white text-[10px] py-2 px-4 border-none transition-colors">
-                        ORGANIZER HUB
-                      </button>
-                    </Link>
-                  ) : (
-                    !(organizerStatus === 'pending_approval' || organizerStatus === 'rejected') && (
-                      <Link href="/organizer/apply">
-                        <button className="ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-4">
-                          BECOME AN ORGANIZER
-                        </button>
-                      </Link>
-                    )
-                  )}
-                  {isAdmin && (
-                    <Link href="/admin">
-                      <button className="ringer-button bg-black text-white hover:bg-zinc-800 text-[10px] py-2 px-4 border-none transition-colors">
-                        ADMIN
-                      </button>
-                    </Link>
-                  )}
-                </div>
+
 
                 <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                   {/* Notification Center Bell */}
@@ -508,17 +480,6 @@ export function GlobalHeader() {
                     )}
                   </div>
 
-                  <div className="hidden sm:flex flex-col items-end mr-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 leading-none mb-1">Authenticated</span>
-                    <span className="text-xs font-bold text-black leading-none truncate max-w-[80px] lg:max-w-[120px]">{session.user?.name}</span>
-                  </div>
-                  <button 
-                    onClick={handleSignOut} 
-                    disabled={isSigningOut}
-                    className="ringer-button bg-black text-white text-[10px] sm:text-[11px] hover:bg-zinc-800 h-9 sm:h-10 px-3 sm:px-4 shrink-0"
-                  >
-                    {isSigningOut ? "..." : "DISCONNECT"}
-                  </button>
                 </div>
               </>
             ) : (
@@ -532,10 +493,9 @@ export function GlobalHeader() {
               )
             )}
 
-            {/* Hamburger Button for Mobile */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 hover:bg-black/5 rounded-full transition-all text-zinc-600 hover:text-black shrink-0"
+              className="p-2 hover:bg-black/5 rounded-full transition-all text-zinc-600 hover:text-black shrink-0"
               aria-label="Toggle Menu"
             >
               {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -544,7 +504,7 @@ export function GlobalHeader() {
         </div>
 
         {/* Category Pills Bar */}
-        {pathname === "/dashboard" && (
+        {pathname === "/dashboard" && events.length > 0 && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 h-12 flex items-center border-t border-black/5 overflow-x-auto no-scrollbar gap-2 py-1">
              {categories.map((cat, i) => {
                const isActive = selectedCategory === cat.name;
@@ -573,8 +533,8 @@ export function GlobalHeader() {
       {/* Mobile Menu Drawer */}
       {isMobileMenuOpen && (
         <>
-          <div className={`fixed inset-0 ${pathname === "/dashboard" ? "top-[125px]" : "top-[77px]"} z-40 bg-black/40 backdrop-blur-sm lg:hidden`} onClick={() => setIsMobileMenuOpen(false)} />
-          <div className={`fixed ${pathname === "/dashboard" ? "top-[125px]" : "top-[77px]"} left-0 right-0 z-50 bg-white border-b border-black/5 shadow-2xl p-6 flex flex-col gap-6 animate-in slide-in-from-top duration-300 lg:hidden overflow-y-auto ${pathname === "/dashboard" ? "max-h-[calc(100vh-125px)]" : "max-h-[calc(100vh-77px)]"} no-scrollbar`}>
+          <div className={`fixed inset-0 ${pathname === "/dashboard" && events.length > 0 ? "top-[125px]" : "top-[77px]"} z-40 bg-black/40 backdrop-blur-sm`} onClick={() => setIsMobileMenuOpen(false)} />
+          <div className={`fixed ${pathname === "/dashboard" && events.length > 0 ? "top-[125px]" : "top-[77px]"} left-0 right-0 z-50 bg-white border-b border-black/5 shadow-2xl p-6 flex flex-col gap-6 animate-in slide-in-from-top duration-300 overflow-y-auto ${pathname === "/dashboard" && events.length > 0 ? "max-h-[calc(100vh-125px)]" : "max-h-[calc(100vh-77px)]"} no-scrollbar`}>
             {/* Search Bar in Mobile Menu */}
             <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -627,6 +587,23 @@ export function GlobalHeader() {
                       </div>
                     </Link>
                   )}
+
+                  <div className="w-full h-[1px] bg-black/5 my-2"></div>
+
+                  <div className="flex items-center justify-between bg-zinc-100 p-4 rounded-2xl mt-2">
+                    <div className="flex flex-col min-w-0 pr-3">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Signed in as</p>
+                      <p className="text-xs font-bold text-black mt-0.5 truncate">{session.user?.name}</p>
+                    </div>
+                    
+                    <button
+                      onClick={() => { handleSignOut(); setIsMobileMenuOpen(false); }}
+                      disabled={isSigningOut}
+                      className="shrink-0 px-4 py-2.5 rounded-xl bg-black text-white hover:bg-zinc-800 transition-all text-[10px] font-black uppercase tracking-widest"
+                    >
+                      {isSigningOut ? "..." : "DISCONNECT"}
+                    </button>
+                  </div>
                 </>
               ) : (
                 <button
