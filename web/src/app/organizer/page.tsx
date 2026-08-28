@@ -187,7 +187,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
           {(status === 'approved' || status === 'housefull') && (
             <>
               <button onClick={(e) => { e.stopPropagation(); setInAppBroadcastOpen(true); }} className="ringer-button bg-rose-600 text-white hover:bg-rose-700 text-[10px] flex items-center gap-1.5 font-black shadow-xs">
-                <Radio className="h-3 w-3 animate-pulse" /> IN-APP BROADCAST
+                <Radio className="h-3 w-3 animate-pulse" /> BROADCAST
               </button>
               <button onClick={openPromoKit} className="ringer-button bg-black text-white hover:bg-zinc-800 text-[10px] flex items-center gap-2">
                 ✨ AI PROMO KIT

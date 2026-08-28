@@ -221,8 +221,8 @@ export default function AdminBroadcastsPage() {
     }
 
     const confirmed = await vibeConfirm({
-      title: "Send In-App Broadcast?",
-      message: `This will dispatch an in-app notification to ${recipientCount ?? "matching"} users under the "${BROADCAST_TYPE_CONFIGS[messageType].label}" category.`,
+      title: "Send Broadcast?",
+      message: `This will dispatch a broadcast to ${recipientCount ?? "matching"} users under the "${BROADCAST_TYPE_CONFIGS[messageType].label}" category.`,
       confirmLabel: "Yes, Send Broadcast",
       cancelLabel: "Cancel",
     });
@@ -294,7 +294,7 @@ export default function AdminBroadcastsPage() {
               </span>
               <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                IN-APP BROADCASTS
+                BROADCASTS
               </span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-black italic tracking-tighter uppercase leading-tight">
@@ -635,7 +635,7 @@ export default function AdminBroadcastsPage() {
                       </>
                     ) : (
                       <>
-                        <Send className="h-4 w-4" /> Send In-App Broadcast (Reach: ~{recipientCount ?? 0})
+                        <Send className="h-4 w-4" /> Send Broadcast (Reach: ~{recipientCount ?? 0})
                       </>
                     )}
                   </Button>
