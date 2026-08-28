@@ -286,7 +286,7 @@ export function GlobalHeader() {
   return (
     <div className="sticky top-0 z-[110]">
       <header className="w-full bg-white/80 backdrop-blur-md border-b border-black/5 text-black">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between py-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-[72px] flex items-center justify-between py-3">
           {/* Logo & City */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-1.5 sm:gap-2">
@@ -564,8 +564,8 @@ export function GlobalHeader() {
       {/* Mobile Menu Drawer */}
       {isMobileMenuOpen && (
         <>
-          <div className={`fixed inset-0 ${pathname === "/dashboard" && events.length > 0 ? "top-[125px]" : "top-[77px]"} z-40 bg-black/40 backdrop-blur-sm`} onClick={() => setIsMobileMenuOpen(false)} />
-          <div className={`fixed ${pathname === "/dashboard" && events.length > 0 ? "top-[125px]" : "top-[77px]"} left-0 right-0 z-50 bg-white border-b border-black/5 shadow-2xl p-6 flex flex-col gap-6 animate-in slide-in-from-top duration-300 overflow-y-auto ${pathname === "/dashboard" && events.length > 0 ? "max-h-[calc(100vh-125px)]" : "max-h-[calc(100vh-77px)]"} no-scrollbar`}>
+          <div className={`fixed inset-0 ${pathname === "/dashboard" && events.length > 0 ? "top-[121px]" : "top-[73px]"} z-40 bg-black/40 backdrop-blur-sm`} onClick={() => setIsMobileMenuOpen(false)} />
+          <div className={`fixed ${pathname === "/dashboard" && events.length > 0 ? "top-[121px]" : "top-[73px]"} left-0 right-0 z-50 bg-white border-b border-black/5 shadow-2xl p-6 flex flex-col gap-6 animate-in slide-in-from-top duration-300 overflow-y-auto ${pathname === "/dashboard" && events.length > 0 ? "max-h-[calc(100vh-121px)]" : "max-h-[calc(100vh-73px)]"} no-scrollbar`}>
             {/* Search Bar in Mobile Menu */}
             <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
