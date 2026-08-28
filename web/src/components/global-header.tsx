@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useSession, signOut, signIn } from "next-auth/react"
 import { usePathname } from "next/navigation"
@@ -83,6 +83,39 @@ export function GlobalHeader() {
   const [unreadCount, setUnreadCount] = useState<number>(0)
   const [notificationFilter, setNotificationFilter] = useState<"all" | "unread" | "alerts">("all")
   const [loadingNotifications, setLoadingNotifications] = useState<boolean>(false)
+
+  const notificationsRef = useRef<HTMLDivElement>(null)
+  const cityMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setShowNotifications(false)
+      }
+      if (cityMenuRef.current && !cityMenuRef.current.contains(event.target as Node)) {
+        setShowCityMenu(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = "hidden"
+      document.documentElement.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+      document.documentElement.style.overflow = ""
+    }
+    return () => {
+      document.body.style.overflow = ""
+      document.documentElement.style.overflow = ""
+    }
+  }, [isMobileMenuOpen])
 
   const fetchUnreadCount = () => {
     if (!session?.user?.email) return;
@@ -263,7 +296,7 @@ export function GlobalHeader() {
 
             <div className="h-4 w-[1px] bg-black/10 mx-1 sm:mx-2" />
 
-            <div className="relative">
+            <div className="relative" ref={cityMenuRef}>
               <button 
                 onClick={() => setShowCityMenu(!showCityMenu)}
                 disabled={isLoading}
@@ -276,7 +309,6 @@ export function GlobalHeader() {
 
               {showCityMenu && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowCityMenu(false)} />
                   <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-black/5 rounded-[20px] shadow-2xl z-20 overflow-hidden p-2 animate-in fade-in zoom-in-95 duration-200">
                     <div className="grid gap-1">
                       {supportedCities.map((cityObj) => (
@@ -333,7 +365,7 @@ export function GlobalHeader() {
 
                 <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                   {/* Notification Center Bell */}
-                  <div className="relative mr-1">
+                  <div className="relative mr-1" ref={notificationsRef}>
                     <button 
                       onClick={() => setShowNotifications(!showNotifications)}
                       className="relative p-2 hover:bg-black/5 rounded-full transition-all text-zinc-600 hover:text-black flex items-center justify-center shrink-0"
@@ -349,7 +381,6 @@ export function GlobalHeader() {
 
                     {showNotifications && (
                       <>
-                        <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
                         <div className="absolute right-0 top-full mt-2 w-84 sm:w-96 bg-white border border-black/10 rounded-[28px] shadow-2xl z-50 p-4 animate-in fade-in zoom-in-95 duration-200 text-black max-h-[80vh] flex flex-col">
                           {/* Header */}
                           <div className="flex items-center justify-between border-b border-black/5 pb-3 mb-3">
