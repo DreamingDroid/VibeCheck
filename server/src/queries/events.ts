@@ -97,7 +97,12 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
 export async function getEventById(pool: Pool, id: string) {
     const { rows } = await pool.query(
       `SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, status, participant_limit, is_paid, contact_info, image_url, image_public_id,
-              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count
+              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
+              (SELECT brand_name FROM admins WHERE email = events.organizer_email) as organizer_name,
+              (SELECT image_url FROM admins WHERE email = events.organizer_email) as organizer_image,
+              (SELECT description FROM admins WHERE email = events.organizer_email) as organizer_description,
+              (SELECT rating FROM admins WHERE email = events.organizer_email) as organizer_rating,
+              (SELECT COUNT(*)::int FROM organizer_followers WHERE organizer_email = events.organizer_email) as organizer_followers_count
        FROM events WHERE id = $1 AND (status = 'approved' OR status = 'housefull' OR status IS NULL)`,
       [id]
     );

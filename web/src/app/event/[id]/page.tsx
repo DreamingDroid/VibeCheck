@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
 import { useTheme } from "@/context/ThemeContext";
-import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle, Users } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle, Users, Star } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function EventDetailsPage() {
   const params = useParams();
@@ -20,6 +21,7 @@ export default function EventDetailsPage() {
   const [rsvped, setRsvped] = useState(false);
   const [device, setDevice] = useState<'desktop' | 'ios' | 'android'>('desktop');
   const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [showOrganizerModal, setShowOrganizerModal] = useState(false);
   const [userHasPhone, setUserHasPhone] = useState(false);
   const { isVibrant } = useTheme();
 
@@ -226,6 +228,15 @@ export default function EventDetailsPage() {
             <h1 className="text-4xl sm:text-6xl font-black tracking-tighter text-black leading-[0.9] uppercase italic">
               {event.title}
             </h1>
+            <div className="flex items-center gap-2 pt-2">
+              <span className="text-sm font-bold text-zinc-500">Organized by:</span>
+              <button 
+                onClick={() => setShowOrganizerModal(true)}
+                className="text-sm font-black text-black underline underline-offset-4 decoration-black/20 hover:text-primary hover:decoration-primary active:text-primary active:decoration-primary transition-colors cursor-pointer"
+              >
+                {event.organizer_name || "VibeCheck Organizer"}
+              </button>
+            </div>
           </div>
           
           <div className="prose prose-zinc max-w-none text-zinc-500 text-lg font-bold leading-relaxed">
@@ -344,6 +355,50 @@ export default function EventDetailsPage() {
            </div>
          </div>
       </div>
+
+      <Dialog open={showOrganizerModal} onOpenChange={setShowOrganizerModal}>
+        <DialogContent className="sm:max-w-md rounded-[32px] p-8 border-none shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black italic uppercase tracking-tight text-center">Organizer Details</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center space-y-6 pt-4">
+            {event.organizer_image ? (
+              <img 
+                src={event.organizer_image} 
+                alt={event.organizer_name} 
+                className="w-24 h-24 rounded-full object-cover border-4 border-zinc-100"
+              />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-zinc-100 flex items-center justify-center border-4 border-white shadow-sm">
+                <Users className="h-10 w-10 text-zinc-400" />
+              </div>
+            )}
+            
+            <div className="text-center space-y-2">
+              <h3 className="text-2xl font-black">{event.organizer_name || "VibeCheck Organizer"}</h3>
+              
+              <div className="flex items-center justify-center gap-4 text-sm font-bold text-zinc-500">
+                {event.organizer_rating && (
+                  <div className="flex items-center gap-1">
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <span>{event.organizer_rating} Rating</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1">
+                  <Users className="h-4 w-4" />
+                  <span>{event.organizer_followers_count || 0} Followers</span>
+                </div>
+              </div>
+            </div>
+            
+            {event.organizer_description && (
+              <p className="text-center text-sm font-medium text-zinc-500 leading-relaxed max-w-xs">
+                {event.organizer_description}
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
     </>

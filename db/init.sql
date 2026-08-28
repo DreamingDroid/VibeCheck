@@ -83,6 +83,8 @@ CREATE TABLE IF NOT EXISTS admins (
     email_verified BOOLEAN DEFAULT false,
     phone_verified BOOLEAN DEFAULT false,
     rejection_reason TEXT,
+    image_url TEXT,
+    rating NUMERIC(3,1) DEFAULT 4.5,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
