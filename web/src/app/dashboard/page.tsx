@@ -222,7 +222,7 @@ export default function Dashboard() {
   const otherEvents = displayEvents.slice(1);
 
   return (
-    <main className="w-full pb-12 space-y-12">
+    <main className={`w-full ${showCalendarView ? 'pb-6 space-y-4' : 'pb-12 space-y-12'}`}>
       {/* Local Currents RSS Ticker at the top */}
       {dashboardNews.length > 0 && (
         <div className="w-full bg-black text-white py-4 border-b-4 border-primary overflow-hidden relative shadow-lg">
@@ -244,7 +244,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12">
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 ${showCalendarView ? 'space-y-4' : 'space-y-12'}`}>
       
       {/* Calendar Toggle Button (FAB) when feed is visible */}
       {!showCalendarView && !selectedDate && !isCategoryEmpty && (
@@ -266,7 +266,7 @@ export default function Dashboard() {
 
       {/* Calendar Empty State / Calendar View */}
       {showCalendarView && (
-        <section className="flex flex-col items-center justify-center space-y-6 md:space-y-8 animate-in fade-in duration-500 w-full mt-4 md:mt-8 relative">
+        <section className="flex flex-col items-center justify-center space-y-4 md:space-y-5 animate-in fade-in duration-500 w-full mt-2 md:mt-4 relative max-w-5xl mx-auto">
           {!isCategoryEmpty && (
             <button 
               onClick={() => setForceCalendarOpen(false)}
@@ -276,19 +276,19 @@ export default function Dashboard() {
               Back to Feed
             </button>
           )}
-          <div className="text-center space-y-3 md:space-y-4 relative w-full flex flex-col items-center">
-            <p className="text-xs md:text-sm font-bold tracking-[0.3em] uppercase text-primary">COMMUNITY CALENDAR</p>
-            <h2 className="text-4xl md:text-7xl font-black italic tracking-tighter uppercase leading-[0.85]">
+          <div className="text-center space-y-1.5 md:space-y-2 relative w-full flex flex-col items-center">
+            <p className="text-[10px] md:text-xs font-bold tracking-[0.25em] uppercase text-primary">COMMUNITY CALENDAR</p>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black italic tracking-tighter uppercase leading-none">
               {isCategoryEmpty ? "No Upcoming Vibes" : "Plan Your Vibes"}
             </h2>
-            <p className="text-zinc-500 font-bold text-sm md:text-base max-w-xl mx-auto">
+            <p className="text-zinc-500 font-medium text-xs sm:text-sm max-w-lg mx-auto">
               {isCategoryEmpty 
-                ? "You've cleared the feed! Check out the interactive calendar to see all past and future events this month, or switch categories."
-                : "Select a date to see exactly what's happening."}
+                ? "Explore past and upcoming events this month."
+                : "Select a date to see what's happening."}
             </p>
           </div>
           
-          <div className={`w-full p-4 md:p-8 rounded-[32px] md:rounded-[48px] border-4 border-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] overflow-hidden relative bg-gradient-to-br from-white via-zinc-50 to-zinc-100/80 ${isVibrant ? 'vibe-hover-lift' : ''}`}>
+          <div className={`w-full p-3 sm:p-5 md:p-6 rounded-[24px] md:rounded-[36px] border-2 md:border-4 border-white shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] overflow-hidden relative bg-gradient-to-br from-white via-zinc-50 to-zinc-100/80 ${isVibrant ? 'vibe-hover-lift' : ''}`}>
             {isVibrant && (
               <>
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
@@ -296,7 +296,7 @@ export default function Dashboard() {
               </>
             )}
             
-            <div className="relative z-10 w-full [&_table]:block [&_table]:mt-8 md:[&_table]:mt-12 [&_table]:w-full [&_thead]:block [&_tbody]:block [&_tr]:grid [&_tr]:grid-cols-7 [&_tr]:gap-1 sm:[&_tr]:gap-2 md:[&_tr]:gap-4 [&_tr]:mb-1 sm:[&_tr]:mb-2 md:[&_tr]:mb-4 [&_th]:block [&_td]:block [&_th]:text-center [&_th]:text-zinc-400 [&_th]:font-black [&_th]:uppercase [&_th]:tracking-[0.2em] [&_th]:text-[10px] md:[&_th]:text-xs [&_th]:pb-2 sm:[&_th]:pb-4">
+            <div className="relative z-10 w-full [&_table]:block [&_table]:mt-2 md:[&_table]:mt-4 [&_table]:w-full [&_thead]:block [&_tbody]:block [&_tr]:grid [&_tr]:grid-cols-7 [&_tr]:gap-1 sm:[&_tr]:gap-1.5 md:[&_tr]:gap-2.5 [&_tr]:mb-1 sm:[&_tr]:mb-1.5 md:[&_tr]:mb-2 [&_th]:block [&_td]:block [&_th]:text-center [&_th]:text-zinc-400 [&_th]:font-black [&_th]:uppercase [&_th]:tracking-[0.15em] [&_th]:text-[9px] md:[&_th]:text-[11px] [&_th]:pb-1 sm:[&_th]:pb-2">
               <DayPicker
                 mode="single"
                 selected={selectedDate}
@@ -308,14 +308,13 @@ export default function Dashboard() {
                 classNames={{
                   months: "w-full flex flex-col",
                   month: "w-full",
-                  caption: "relative flex justify-center items-center h-14 mb-8 sm:mb-12 md:mb-16 w-full",
-                  caption_label: "text-xl sm:text-3xl md:text-5xl font-black italic uppercase tracking-tighter text-center w-full flex justify-center items-center",
-                  nav: "absolute top-0 left-0 right-0 h-14 grid grid-cols-2 items-center pointer-events-none z-20",
-                  button_previous: "col-start-1 justify-self-start h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
-                  button_next: "col-start-2 justify-self-end h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
-                  nav_button_disabled: "hidden",
-                  day: "w-full aspect-square md:aspect-auto md:h-36 rounded-lg md:rounded-[32px] flex flex-col items-center md:items-start justify-center md:justify-start p-1 sm:p-2 md:p-5 font-black text-sm sm:text-base md:text-4xl border-2 border-black/5 hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all bg-white relative group overflow-hidden cursor-pointer",
-                  day_selected: "ring-0 bg-primary/20 border-primary shadow-[4px_4px_0px_0px_rgba(var(--primary),1)]",
+                  caption: "relative flex justify-center items-center h-9 sm:h-10 mb-2 sm:mb-3 md:mb-4 w-full",
+                  caption_label: "text-lg sm:text-2xl md:text-3xl font-black italic uppercase tracking-tighter text-center w-full flex justify-center items-center",
+                  nav: "absolute top-0 left-0 right-0 h-9 sm:h-10 grid grid-cols-2 items-center pointer-events-none z-20",
+                  button_previous: "col-start-1 justify-self-start h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
+                  button_next: "col-start-2 justify-self-end h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
+                  day: "w-full aspect-square md:aspect-auto md:h-16 lg:h-[70px] rounded-lg md:rounded-2xl flex flex-col items-center md:items-start justify-between p-1 sm:p-1.5 md:p-2.5 font-black text-xs sm:text-sm md:text-xl border-2 border-black/5 hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all bg-white relative group overflow-hidden cursor-pointer",
+                  day_selected: "ring-0 bg-primary/20 border-primary shadow-[3px_3px_0px_0px_rgba(var(--primary),1)]",
                   day_today: "bg-zinc-50 border-black/20",
                   day_outside: "text-zinc-300 opacity-50 bg-zinc-50/50 hover:border-black/5 hover:shadow-none hover:translate-y-0",
                   day_disabled: "text-zinc-300 opacity-50",
@@ -329,23 +328,23 @@ export default function Dashboard() {
                     
                     return (
                       <button {...props} className={props.className} disabled={modifiers.outside}>
-                        <span className={`block transition-colors ${isPastDate ? "opacity-40" : "group-hover:text-primary"} ${modifiers.outside ? "text-zinc-300" : ""}`}>
+                        <span className={`block leading-none transition-colors ${isPastDate ? "opacity-40" : "group-hover:text-primary"} ${modifiers.outside ? "text-zinc-300" : ""}`}>
                           {day.date.getDate()}
                         </span>
                         
                         {dateEvents.length > 0 && !modifiers.outside && (
-                          <div className="absolute bottom-1 md:bottom-4 left-1 right-1 md:left-4 md:right-4 flex flex-col gap-1 md:gap-1.5 z-10">
+                          <div className="absolute bottom-1 md:bottom-1.5 left-1 right-1 md:left-2 md:right-2 flex flex-col gap-0.5 z-10">
                             <div className="flex gap-0.5 sm:gap-1 md:gap-1.5 flex-wrap w-full justify-center md:justify-start">
                               {dateEvents.slice(0, 3).map((ev, i) => (
                                 <div 
                                   key={i} 
-                                  className={`h-1 w-1 sm:h-1.5 sm:w-1.5 md:h-2.5 md:w-auto md:flex-1 rounded-full ${isPastDate ? 'bg-zinc-400' : 'bg-black group-hover:bg-primary'} shadow-sm transition-colors`} 
+                                  className={`h-1 w-1 sm:h-1.5 sm:w-1.5 md:h-1.5 md:w-auto md:flex-1 rounded-full ${isPastDate ? 'bg-zinc-400' : 'bg-black group-hover:bg-primary'} shadow-sm transition-colors`} 
                                   title={ev.title} 
                                 />
                               ))}
                             </div>
                             {dateEvents.length > 3 && (
-                              <span className="text-[9px] md:text-[10px] hidden md:block font-black text-black group-hover:text-primary uppercase tracking-widest text-left mt-1 transition-colors">
+                              <span className="text-[8px] md:text-[9px] hidden md:block font-black text-black group-hover:text-primary uppercase tracking-widest text-left leading-none transition-colors">
                                 +{dateEvents.length - 3} MORE
                               </span>
                             )}
@@ -355,8 +354,8 @@ export default function Dashboard() {
                     );
                   },
                   Chevron: (props) => {
-                    if (props.orientation === 'left') return <ArrowLeft className="h-5 w-5 md:h-6 md:w-6" />;
-                    if (props.orientation === 'right') return <ArrowRight className="h-5 w-5 md:h-6 md:w-6" />;
+                    if (props.orientation === 'left') return <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />;
+                    if (props.orientation === 'right') return <ArrowRight className="h-4 w-4 md:h-5 md:w-5" />;
                     return <></>;
                   }
                 }}
