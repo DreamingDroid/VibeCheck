@@ -536,7 +536,7 @@ export function GlobalHeader() {
 
         {/* Category Pills Bar */}
         {pathname === "/dashboard" && events.length > 0 && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-12 flex items-center border-t border-black/5 overflow-x-auto no-scrollbar gap-2 py-1">
+          <div className="max-w-7xl mx-auto h-12 flex items-center border-t border-black/5 overflow-x-auto no-scrollbar gap-2 py-1 snap-x snap-mandatory px-4 sm:px-6 scroll-pl-4 sm:scroll-pl-6 after:content-[''] after:w-px after:shrink-0">
              {categories.map((cat, i) => {
                const isActive = selectedCategory === cat.name;
                const vibrantActiveClass = isVibrant && isActive
@@ -544,9 +544,9 @@ export function GlobalHeader() {
                  : '';
                return (
                  <button 
-                   key={i}
+                   key={cat.name}
                    onClick={() => setSelectedCategory(cat.name)}
-                   className={`sticker-badge flex items-center gap-1.5 whitespace-nowrap h-8 px-4 transition-all ${
+                   className={`sticker-badge flex items-center gap-1.5 whitespace-nowrap h-8 px-4 transition-all snap-start ${
                      isActive 
                        ? (isVibrant ? vibrantActiveClass : 'bg-black text-white border-transparent')
                        : 'bg-white hover:bg-zinc-100 text-zinc-600 hover:text-black border-black/10'

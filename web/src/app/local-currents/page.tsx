@@ -18,6 +18,7 @@ import { useCity } from "@/context/CityContext";
 import { optimizeCloudinaryUrl } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
@@ -96,6 +97,18 @@ export default function LocalCurrentsPage() {
   const [selectedImageBase64, setSelectedImageBase64] = useState("");
   const [formContent, setFormContent] = useState("");
   const [savingArticle, setSavingArticle] = useState(false);
+
+  const { isPulling, pullDistance, isRefreshing } = usePullToRefresh(async () => {
+    if (!currentCity) return;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    try {
+      const res = await fetch(`${baseUrl}/api/news?city=${encodeURIComponent(currentCity)}`);
+      const data = await res.json();
+      if (data.success) {
+        setArticles(data.data);
+      }
+    } catch (err) {}
+  });
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -405,6 +418,19 @@ export default function LocalCurrentsPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24 text-black font-helvetica select-none">
+      {/* Pull to refresh indicator */}
+      <div 
+        className="w-full flex items-center justify-center overflow-hidden transition-all duration-200 bg-zinc-50"
+        style={{ height: isRefreshing || isPulling ? `${pullDistance}px` : '0px' }}
+      >
+        <div className={`flex flex-col items-center justify-center transition-opacity duration-200 ${isPulling || isRefreshing ? 'opacity-100' : 'opacity-0'}`}>
+          <div className={`w-6 h-6 border-2 border-primary border-t-transparent rounded-full ${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: isRefreshing ? 'none' : `rotate(${pullDistance * 3}deg)` }} />
+          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mt-2">
+            {isRefreshing ? 'Refreshing Stories...' : 'Pull to refresh'}
+          </span>
+        </div>
+      </div>
+
       {/* Editorial Header */}
       {pageTheme === 'news-paper' ? (
         <header className="sticky top-0 z-[100] bg-white max-w-7xl mx-auto px-4 sm:px-6 pt-4 pb-2 border-b-[6px] border-black border-x border-x-black/5 shadow-md">
@@ -536,12 +562,12 @@ export default function LocalCurrentsPage() {
           </div>
 
           {/* Category Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar snap-x snap-mandatory">
             {CATEGORY_FILTERS.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap border
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap border snap-start shrink-0
                   ${selectedCategory === cat
                     ? "bg-black border-black text-white shadow-md scale-[1.03]"
                     : "bg-white border-black/5 text-zinc-400 hover:border-black/20 hover:text-black"

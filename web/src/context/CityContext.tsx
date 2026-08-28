@@ -34,6 +34,7 @@ interface CityContextType {
   selectedCategory: string;
   setSelectedCategory: (category: string) => void;
   activeCategories: string[];
+  refreshEvents: () => Promise<void>;
 }
 
 const CityContext = createContext<CityContextType | undefined>(undefined);
@@ -138,6 +139,7 @@ export function CityProvider({ children }: { children: ReactNode }) {
         selectedCategory,
         setSelectedCategory,
         activeCategories,
+        refreshEvents: () => fetchEvents(currentCity),
       }}
     >
       {children}
