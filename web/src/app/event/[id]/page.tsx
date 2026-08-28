@@ -198,7 +198,7 @@ export default function EventDetailsPage() {
         />
       )}
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-8 animate-in fade-in duration-700">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-12 space-y-6 sm:space-y-8 animate-in fade-in duration-700">
       <Link href="/dashboard" className="group flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
         <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
         Back to Explore
@@ -207,7 +207,7 @@ export default function EventDetailsPage() {
       <div className={`ringer-card p-0 overflow-hidden shadow-2xl flex flex-col md:flex-row relative ${isVibrant ? getCategoryCardClass(event.category) : ''}`}>
         {isVibrant && <CategoryDecorations category={event.category} />}
         {/* Left Side: Editorial Content */}
-        <div className="flex-1 p-8 sm:p-12 space-y-10 relative z-10">
+        <div className="flex-1 p-6 sm:p-12 space-y-8 sm:space-y-10 relative z-10">
           <div className="space-y-4">
             <div className="flex items-center gap-3 flex-wrap">
               <div 
@@ -272,7 +272,7 @@ export default function EventDetailsPage() {
         </div>
 
         {/* Right Side: Meta Info Box */}
-        <div className="w-full md:w-80 bg-zinc-50 border-t md:border-t-0 md:border-l border-black/5 p-8 sm:p-12 space-y-12">
+        <div className="w-full md:w-80 bg-zinc-50 border-t md:border-t-0 md:border-l border-black/5 p-6 sm:p-12 space-y-8 sm:space-y-12">
            <div className="space-y-6">
               <div className="space-y-1">
                  <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Date & Time</div>
@@ -327,7 +327,7 @@ export default function EventDetailsPage() {
               )}
            </div>
 
-           <div className="pt-8 border-t border-black/5 flex flex-col gap-4">
+           <div className="pt-6 sm:pt-8 border-t border-black/5 flex flex-col gap-4">
               <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Share This Vibe</div>
               <div className="flex gap-2">
                  <button 
@@ -359,9 +359,9 @@ export default function EventDetailsPage() {
       <Dialog open={showOrganizerModal} onOpenChange={setShowOrganizerModal}>
         <DialogContent className="sm:max-w-md rounded-[32px] p-8 border-none shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-black italic uppercase tracking-tight text-center">Organizer Details</DialogTitle>
+            <DialogTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-center">Organizer Details</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col items-center space-y-6 pt-4">
+          <div className="flex flex-col items-center space-y-6 pt-2">
             {event.organizer_image ? (
               <img 
                 src={event.organizer_image} 
@@ -374,27 +374,30 @@ export default function EventDetailsPage() {
               </div>
             )}
             
-            <div className="text-center space-y-2">
-              <h3 className="text-2xl font-black">{event.organizer_name || "VibeCheck Organizer"}</h3>
+            <div className="text-center space-y-3 w-full">
+              <h3 className="text-3xl font-black tracking-tight">{event.organizer_name || "VibeCheck Organizer"}</h3>
               
-              <div className="flex items-center justify-center gap-4 text-sm font-bold text-zinc-500">
+              <div className="flex items-center justify-center gap-3 text-xs font-bold text-zinc-600">
                 {event.organizer_rating && (
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <div className="flex items-center gap-1.5 bg-yellow-100/50 text-yellow-700 px-3 py-1 rounded-full border border-yellow-200/50">
+                    <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
                     <span>{event.organizer_rating} Rating</span>
                   </div>
                 )}
-                <div className="flex items-center gap-1">
-                  <Users className="h-4 w-4" />
+                <div className="flex items-center gap-1.5 bg-zinc-100 px-3 py-1 rounded-full border border-black/5">
+                  <Users className="h-3.5 w-3.5" />
                   <span>{event.organizer_followers_count || 0} Followers</span>
                 </div>
               </div>
             </div>
             
             {event.organizer_description && (
-              <p className="text-center text-sm font-medium text-zinc-500 leading-relaxed max-w-xs">
-                {event.organizer_description}
-              </p>
+              <div className="w-full bg-zinc-50 border border-black/5 rounded-[20px] p-5">
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-2">About Organizer</div>
+                <p className="text-sm font-medium text-zinc-600 leading-relaxed text-left">
+                  {event.organizer_description}
+                </p>
+              </div>
             )}
           </div>
         </DialogContent>

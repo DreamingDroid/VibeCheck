@@ -47,7 +47,7 @@ export default function RootLayout({
             {children}
           </div>
           <footer className="w-full text-center py-8 border-t border-black/5 text-zinc-400 text-xs mt-auto font-medium">
-            © {new Date().getFullYear()} VIBECHECK. All rights reserved.
+            © {new Date().getFullYear()} BayBuzz Labs. All rights reserved.
           </footer>
         </Providers>
       </body>

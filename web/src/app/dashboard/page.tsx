@@ -383,23 +383,23 @@ export default function Dashboard() {
 
       {/* Editorial Hero Section */}
       {!showCalendarView && featuredEvent && (
-        <section className="relative group cursor-pointer overflow-hidden ringer-card h-auto md:h-[500px] flex flex-col md:flex-row shadow-2xl rounded-[24px] md:rounded-[40px]">
-           <div className={`w-full md:w-1/2 ${getCategoryColor(featuredEvent.category)} p-6 sm:p-8 flex flex-col justify-between gap-8 md:gap-0 min-h-[320px] md:min-h-0 relative overflow-hidden`}>
+        <section className="relative group cursor-pointer overflow-hidden ringer-card h-auto flex flex-col md:flex-row shadow-2xl rounded-[24px] md:rounded-[40px]">
+           <div className="w-full md:w-1/2 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white p-6 sm:p-10 flex flex-col justify-center gap-6 md:gap-10 relative overflow-hidden">
               {isVibrant && <CategoryDecorations category={featuredEvent.category} showAccent={false} />}
-              <div className="sticker-badge bg-black text-white w-fit px-4 border-none flex items-center gap-2 relative z-10">
-                <TrendingUp className="h-3 w-3" />
+              <div className="sticker-badge bg-black text-white w-fit px-4 border-none flex items-center gap-2 relative z-10 shadow-lg">
+                <TrendingUp className="h-3 w-3 text-pink-400" />
                 Featured Vibe
               </div>
               <div className="space-y-4 relative z-10">
-                <h2 className="text-4xl sm:text-5xl font-black tracking-tighter leading-none uppercase italic break-words hyphens-auto">
+                <h2 className="text-4xl sm:text-5xl font-black tracking-tighter leading-none uppercase italic break-words hyphens-auto text-white drop-shadow-md">
                   {featuredEvent.title}
                 </h2>
-                <p className="font-bold text-black/60 line-clamp-2 max-w-md">
+                <p className="font-bold text-white/90 line-clamp-2 max-w-md drop-shadow-sm">
                   {featuredEvent.description}
                 </p>
                 <div className="flex gap-4 pt-4">
                     <Link href={`/event/${featuredEvent.id}`}>
-                      <button className="ringer-button bg-black text-white px-8 py-3 text-sm">
+                      <button className="ringer-button bg-white text-black hover:bg-zinc-100 px-8 py-3 text-sm shadow-xl">
                         SECURE YOUR SPOT
                       </button>
                     </Link>
@@ -407,7 +407,7 @@ export default function Dashboard() {
               </div>
            </div>
            <div className="w-full md:w-1/2 bg-white p-5 sm:p-8 flex flex-col justify-center gap-6">
-              <div className="space-y-2 border-l-4 border-black pl-6">
+              <div className="space-y-2 border-l-4 border-black pl-4 sm:pl-6">
                 <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Where & When</div>
                 <a
                   href={featuredEvent.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${featuredEvent.location}, ${featuredEvent.city || ''}`)}`}
