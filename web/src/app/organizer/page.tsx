@@ -13,10 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
-import { Trash2, Image as ImageIcon } from "lucide-react";
+import { Trash2, Image as ImageIcon, Radio } from "lucide-react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import OrganizerInsightsDashboard from "@/components/OrganizerInsightsDashboard";
+import { OrganizerEventBroadcastModal } from "@/components/OrganizerEventBroadcastModal";
 const CATEGORIES = ["Sports", "Arts", "Education", "Spiritual", "Music", "Food", "Wellness", "Indie", "Techno", "General"];
 
 const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
@@ -32,6 +33,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [inAppBroadcastOpen, setInAppBroadcastOpen] = useState(false);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [broadcastStats, setBroadcastStats] = useState<{ eligibleCount: number, costPerMessage: number, totalCost: number } | null>(null);
   const [broadcastMessage, setBroadcastMessage] = useState("");
@@ -184,6 +186,9 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
           )}
           {(status === 'approved' || status === 'housefull') && (
             <>
+              <button onClick={(e) => { e.stopPropagation(); setInAppBroadcastOpen(true); }} className="ringer-button bg-rose-600 text-white hover:bg-rose-700 text-[10px] flex items-center gap-1.5 font-black shadow-xs">
+                <Radio className="h-3 w-3 animate-pulse" /> IN-APP BROADCAST
+              </button>
               <button onClick={openPromoKit} className="ringer-button bg-black text-white hover:bg-zinc-800 text-[10px] flex items-center gap-2">
                 ✨ AI PROMO KIT
               </button>
@@ -380,6 +385,15 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
           </div>
         </div>
       )}
+
+      {/* Event-Level In-App Broadcast Modal */}
+      <OrganizerEventBroadcastModal
+        isOpen={inAppBroadcastOpen}
+        onClose={() => setInAppBroadcastOpen(false)}
+        eventId={eventId}
+        eventTitle={title}
+        organizerEmail={organizerEmail}
+      />
     </div>
   );
 }

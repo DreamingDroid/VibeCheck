@@ -218,6 +218,69 @@ export async function initializeDatabaseSchema(pool: Pool) {
     );
   `).catch(() => {});
 
+  // 12. Create Broadcasts table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS broadcasts (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      title VARCHAR(255) NOT NULL,
+      message TEXT NOT NULL,
+      type VARCHAR(50) NOT NULL,
+      scope VARCHAR(50) NOT NULL,
+      target_city VARCHAR(100),
+      target_event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+      target_category VARCHAR(100),
+      sender_email VARCHAR(255) NOT NULL,
+      sender_role VARCHAR(50) DEFAULT 'admin',
+      recipient_count INTEGER DEFAULT 0,
+      metadata JSONB DEFAULT '{}'::jsonb,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `).catch((err) => {
+    console.error('Failed to create broadcasts table:', err.message);
+  });
+
+  // 13. Create User In-App Notifications table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_notifications (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      broadcast_id UUID REFERENCES broadcasts(id) ON DELETE CASCADE,
+      user_email VARCHAR(255) NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      message TEXT NOT NULL,
+      type VARCHAR(50) NOT NULL,
+      is_read BOOLEAN DEFAULT false,
+      link TEXT,
+      metadata JSONB DEFAULT '{}'::jsonb,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `).catch((err) => {
+    console.error('Failed to create user_notifications table:', err.message);
+  });
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_user_notifications_email_created ON user_notifications (user_email, created_at DESC);
+  `).catch(() => {});
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_user_notifications_unread ON user_notifications (user_email, is_read);
+  `).catch(() => {});
+
+  // 14. Create FCM Tokens table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS fcm_tokens (
+      id SERIAL PRIMARY KEY,
+      user_email VARCHAR(255) NOT NULL,
+      token TEXT UNIQUE NOT NULL,
+      device_info TEXT,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `).catch((err) => {
+    console.error('Failed to create fcm_tokens table:', err.message);
+  });
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_fcm_tokens_email ON fcm_tokens (user_email);
+  `).catch(() => {});
+
   // Seed default cities if empty
   const { rows: cityRows } = await pool.query('SELECT COUNT(*) FROM cities');
   if (parseInt(cityRows[0].count) === 0) {

@@ -30,6 +30,21 @@ import { sendApplyOtpHandler, verifyApplyOtpHandler, submitApplicationHandler } 
 import { initializeDatabaseSchema } from './queries/init';
 import { getNewsArticlesHandler, getLatestNewsArticlesHandler, adminCreateNewsArticleHandler, adminUpdateNewsArticleArticleHandler, adminDeleteNewsArticleHandler } from './news';
 import { uploadImageHandler } from './upload';
+import {
+  getAudienceEstimateHandler,
+  adminSendBroadcastHandler,
+  organizerSendEventBroadcastHandler,
+  getAdminBroadcastsHandler,
+  getOrganizerBroadcastsHandler,
+  getUserNotificationsHandler,
+  getUserUnreadCountHandler,
+  markNotificationReadHandler,
+  markAllNotificationsReadHandler,
+  registerFcmTokenHandler,
+  subscribeEventFcmHandler,
+  unregisterFcmTokenHandler
+} from './broadcasts';
+import { initializeFirebaseAdmin } from './firebaseAdmin';
 import { config } from './config';
 
 import rateLimit from 'express-rate-limit';
@@ -304,6 +319,24 @@ app.post('/api/followers', (req, res) => followOrganizerHandler(req, res, pool))
 app.delete('/api/followers', (req, res) => unfollowOrganizerHandler(req, res, pool));
 app.get('/api/followers/user/:email', (req, res) => getUserFollowingHandler(req, res, pool));
 
+// Broadcasts & In-App Notifications API
+app.get('/api/admin/broadcasts/recipients-count', (req, res) => getAudienceEstimateHandler(req, res, pool));
+app.post('/api/admin/broadcasts', (req, res) => adminSendBroadcastHandler(req, res, pool));
+app.get('/api/admin/broadcasts', (req, res) => getAdminBroadcastsHandler(req, res, pool));
+app.post('/api/organizer/events/:id/in-app-broadcast', (req, res) => organizerSendEventBroadcastHandler(req, res, pool));
+app.get('/api/organizer/broadcasts', (req, res) => getOrganizerBroadcastsHandler(req, res, pool));
+
+// User In-App Notifications API
+app.get('/api/notifications', (req, res) => getUserNotificationsHandler(req, res, pool));
+app.get('/api/notifications/unread-count', (req, res) => getUserUnreadCountHandler(req, res, pool));
+app.post('/api/notifications/mark-read', (req, res) => markNotificationReadHandler(req, res, pool));
+app.post('/api/notifications/mark-all-read', (req, res) => markAllNotificationsReadHandler(req, res, pool));
+
+// Firebase Cloud Messaging (FCM) API
+app.post('/api/notifications/fcm/register', (req, res) => registerFcmTokenHandler(req, res, pool));
+app.post('/api/notifications/fcm/subscribe-event', (req, res) => subscribeEventFcmHandler(req, res, pool));
+app.post('/api/notifications/fcm/unregister', (req, res) => unregisterFcmTokenHandler(req, res, pool));
+
 // Verification API
 app.post('/api/verify/send-code', (req, res) => sendVerificationCodeHandler(req, res, pool));
 app.post('/api/verify/confirm-code', (req, res) => verifyPhoneNumberHandler(req, res, pool));
@@ -323,6 +356,7 @@ app.post('/admin/trigger-cron', async (req, res) => {
 app.listen(port, async () => {
   console.log(`[server]: VibeCheck API is running at http://localhost:${port}`);
   await initializeDatabase();
+  initializeFirebaseAdmin();
   startPushAlertCron(pool);
 });
 
