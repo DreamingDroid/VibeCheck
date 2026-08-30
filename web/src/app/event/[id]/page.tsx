@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
 import { useTheme } from "@/context/ThemeContext";
-import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle, Users, Star } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle, Users, Star, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSwipeToClose } from "@/hooks/useSwipeToClose";
