@@ -160,7 +160,7 @@ export default function PreferencesPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <Label htmlFor="city" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Preferred Territory</Label>
-                <Select value={city || undefined} onValueChange={(val) => { setCity(val); setSaved(false); }}>
+                <Select value={city || undefined} onValueChange={(val) => { setCity(val ?? ""); setSaved(false); }}>
                   <SelectTrigger className="bg-zinc-50 border-black/5 h-12 rounded-xl text-sm font-bold uppercase focus:ring-primary w-full">
                     <SelectValue placeholder="SELECT CITY" />
                   </SelectTrigger>
@@ -183,7 +183,7 @@ export default function PreferencesPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="profession" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Profession</Label>
-                  <Select value={profession || undefined} onValueChange={(val) => { setProfession(val === "Skip" ? "" : val); setSaved(false); }}>
+                  <Select value={profession || undefined} onValueChange={(val) => { setProfession(val === "Skip" ? "" : (val ?? "")); setSaved(false); }}>
                     <SelectTrigger className="bg-zinc-50 border-black/5 h-12 rounded-xl text-sm font-bold uppercase focus:ring-primary w-full">
                       <SelectValue placeholder="SELECT PROFESSION" />
                     </SelectTrigger>
@@ -201,7 +201,7 @@ export default function PreferencesPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="ageGroup" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Age Group</Label>
-                  <Select value={ageGroup || undefined} onValueChange={(val) => { setAgeGroup(val === "Skip" ? "" : val); setSaved(false); }}>
+                  <Select value={ageGroup || undefined} onValueChange={(val) => { setAgeGroup(val === "Skip" ? "" : (val ?? "")); setSaved(false); }}>
                     <SelectTrigger className="bg-zinc-50 border-black/5 h-12 rounded-xl text-sm font-bold uppercase focus:ring-primary w-full">
                       <SelectValue placeholder="SELECT AGE GROUP" />
                     </SelectTrigger>
