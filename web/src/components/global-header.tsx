@@ -179,11 +179,9 @@ export function GlobalHeader() {
 
       fetchUnreadCount();
 
-      // If Firebase is configured, disable background interval polling completely to conserve battery!
-      if (!isFirebaseConfigured()) {
-        const interval = setInterval(fetchUnreadCount, 30000);
-        return () => clearInterval(interval);
-      }
+      // Poll for unread notifications every 10 seconds to ensure the badge updates automatically
+      const interval = setInterval(fetchUnreadCount, 10000);
+      return () => clearInterval(interval);
     }
   }, [session]);
 

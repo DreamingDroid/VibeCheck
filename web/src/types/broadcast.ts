@@ -103,7 +103,7 @@ export const BROADCAST_TYPE_CONFIGS: Record<BroadcastType, BroadcastTypeConfig> 
   event_cancellation: {
     label: 'Cancellation of Event',
     description: 'Event cancellation, refund processing info, and official notice',
-    icon: '❌',
+    icon: '🚫',
     badgeBg: 'bg-rose-500/15 text-rose-700 border-rose-300 font-black',
     badgeText: 'text-rose-700',
     borderColor: 'border-rose-500/30',
