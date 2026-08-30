@@ -611,7 +611,7 @@ export function GlobalHeader() {
                   <button 
                     onClick={handleSignOut} 
                     disabled={isSigningOut}
-                    className="ringer-button bg-black text-white text-[10px] sm:text-[11px] hover:bg-zinc-800 h-9 sm:h-10 px-3 sm:px-4 shrink-0"
+                    className="hidden lg:block ringer-button bg-black text-white text-[10px] sm:text-[11px] hover:bg-zinc-800 h-9 sm:h-10 px-3 sm:px-4 shrink-0"
                   >
                     {isSigningOut ? "..." : "DISCONNECT"}
                   </button>
@@ -630,7 +630,7 @@ export function GlobalHeader() {
 
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 hover:bg-black/5 rounded-full transition-all text-zinc-600 hover:text-black shrink-0"
+              className="lg:hidden p-2 hover:bg-black/5 rounded-full transition-all text-zinc-600 hover:text-black shrink-0"
               aria-label="Toggle Menu"
             >
               {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}

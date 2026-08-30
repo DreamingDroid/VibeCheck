@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, CheckCircle2, Heart, MapPin, Phone, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCity } from "@/context/CityContext";
 
 const ALL_CATEGORIES = [
   "Sports", "Arts", "Education", "Spiritual",
@@ -19,6 +20,7 @@ const ALL_CATEGORIES = [
 export default function PreferencesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { supportedCities } = useCity();
 
   const [selected, setSelected] = useState<string[]>([]);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -158,13 +160,16 @@ export default function PreferencesPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <Label htmlFor="city" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Preferred Territory</Label>
-                <Input
-                  id="city"
-                  placeholder="CITY OR NEIGHBORHOOD"
-                  value={city}
-                  onChange={(e) => { setCity(e.target.value); setSaved(false); }}
-                  className="bg-zinc-50 border-black/5 h-12 rounded-xl text-sm font-bold uppercase focus:ring-primary"
-                />
+                <Select value={city || undefined} onValueChange={(val) => { setCity(val); setSaved(false); }}>
+                  <SelectTrigger className="bg-zinc-50 border-black/5 h-12 rounded-xl text-sm font-bold uppercase focus:ring-primary w-full">
+                    <SelectValue placeholder="SELECT CITY" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {supportedCities.map(c => (
+                      <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </CardContent>
             </Card>
 

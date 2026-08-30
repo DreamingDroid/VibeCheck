@@ -39,6 +39,8 @@ export async function initializeDatabaseSchema(pool: Pool) {
       categories JSONB DEFAULT '[]'::jsonb,
       phone_number VARCHAR(255) UNIQUE,
       city VARCHAR(100),
+      profession VARCHAR(100),
+      age_group VARCHAR(50),
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
@@ -191,6 +193,8 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_email TEXT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_history JSONB DEFAULT '[]'::jsonb`);
   await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
+  await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS profession VARCHAR(100)`);
+  await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS age_group VARCHAR(50)`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
   await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS phone_number TEXT`);
   await pool.query(`ALTER TABLE event_rsvps ALTER COLUMN user_email DROP NOT NULL`);

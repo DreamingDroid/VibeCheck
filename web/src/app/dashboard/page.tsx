@@ -79,7 +79,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (session?.user?.email) {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      fetch(`${baseUrl}/api/preferences?email=${encodeURIComponent(session.user.email)}`)
+      fetch(`${baseUrl}/api/user?email=${encodeURIComponent(session.user.email)}`)
         .then(r => r.json())
         .then(res => {
           if (res.success && res.data && res.data.phone_number) {
