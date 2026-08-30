@@ -67,6 +67,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { label: "Overview", href: "/admin", icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: "Broadcasts", href: "/admin/notifications", icon: <Bell className="h-4 w-4" /> },
     { label: "Pending Organizers", href: "/admin/organizers", icon: <Users className="h-4 w-4" />, badge: pendingOrganizersCount },
     { label: "Manage Events", href: "/admin/events", icon: <FileText className="h-4 w-4" />, badge: pendingEventsCount },
     { label: "Manage Cities", href: "/admin/cities", icon: <MapPin className="h-4 w-4" /> },

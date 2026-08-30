@@ -5,8 +5,16 @@
   "scripts": {
     "dev": "APP_ENV=local next dev -p 3500",
     "dev:dev": "APP_ENV=development next dev -p 3500",
+    "dev:uat": "APP_ENV=uat next dev -p 3500",
+    "dev:prd": "APP_ENV=production next dev -p 3500",
     "build": "APP_ENV=production next build",
+    "build:dev": "APP_ENV=development next build",
+    "build:uat": "APP_ENV=uat next build",
+    "build:prd": "APP_ENV=production next build",
     "start": "APP_ENV=production next start",
+    "start:dev": "APP_ENV=development next start",
+    "start:uat": "APP_ENV=uat next start",
+    "start:prd": "APP_ENV=production next start",
     "lint": "eslint"
   },
   "dependencies": {

@@ -30,6 +30,7 @@ import { sendApplyOtpHandler, verifyApplyOtpHandler, submitApplicationHandler } 
 import { initializeDatabaseSchema } from './queries/init';
 import { getNewsArticlesHandler, getLatestNewsArticlesHandler, adminCreateNewsArticleHandler, adminUpdateNewsArticleArticleHandler, adminDeleteNewsArticleHandler } from './news';
 import { uploadImageHandler } from './upload';
+import { getPublicNotificationsHandler, adminGetNotificationsHandler, adminCreateNotificationHandler, adminDeleteNotificationHandler } from './notifications';
 import { config } from './config';
 
 import rateLimit from 'express-rate-limit';
@@ -259,6 +260,12 @@ app.get('/api/news/latest', (req, res) => getLatestNewsArticlesHandler(req, res,
 app.post('/api/admin/news', (req, res) => adminCreateNewsArticleHandler(req, res, pool));
 app.put('/api/admin/news/:id', (req, res) => adminUpdateNewsArticleArticleHandler(req, res, pool));
 app.delete('/api/admin/news/:id', (req, res) => adminDeleteNewsArticleHandler(req, res, pool));
+
+// Notifications & Broadcasts API
+app.get('/api/notifications', (req, res) => getPublicNotificationsHandler(req, res, pool));
+app.get('/api/admin/notifications', (req, res) => adminGetNotificationsHandler(req, res, pool));
+app.post('/api/admin/notifications', (req, res) => adminCreateNotificationHandler(req, res, pool));
+app.delete('/api/admin/notifications/:id', (req, res) => adminDeleteNotificationHandler(req, res, pool));
 
 // Image Upload API
 app.post('/api/admin/upload', (req, res) => uploadImageHandler(req, res, pool));

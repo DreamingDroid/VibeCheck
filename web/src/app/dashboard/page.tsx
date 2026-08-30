@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession, signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
 import { Badge } from "@/components/ui/badge";
@@ -9,11 +10,11 @@ import { Button } from "@/components/ui/button";
 import { useCity } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
-import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ArrowRight, ArrowLeft } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
-import { isSameDay, startOfDay, isBefore } from "date-fns";
+import { isSameDay, startOfDay, isBefore, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, format, isToday } from "date-fns";
 
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "";
 
@@ -43,6 +44,7 @@ type VibeEvent = {
 
 export default function Dashboard() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
   const { currentCity, events, isLoadingEvents: loading, selectedCategory } = useCity();
   const { isVibrant } = useTheme();
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
@@ -51,7 +53,29 @@ export default function Dashboard() {
   const [userHasPhone, setUserHasPhone] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [forceCalendarOpen, setForceCalendarOpen] = useState(false);
+  const [calendarViewMode, setCalendarViewMode] = useState<'month' | 'week'>('month');
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [dashboardNews, setDashboardNews] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (searchParams?.get('view') === 'calendar') {
+      setForceCalendarOpen(true);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (session?.user?.email) {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      fetch(`${baseUrl}/api/preferences?email=${encodeURIComponent(session.user.email)}`)
+        .then(r => r.json())
+        .then(res => {
+          if (res.success && res.data && res.data.phone_number) {
+            setUserHasPhone(true);
+          }
+        })
+        .catch(err => console.error("Could not fetch user preferences", err));
+    }
+  }, [session]);
 
   useEffect(() => {
     if (currentCity) {
@@ -76,7 +100,7 @@ export default function Dashboard() {
       setShowPhoneModal(true);
       return;
     }
-    const text = `Hey! I want to join the VibeCheck community and stay updated with the latest events.`;
+    const text = `VibeCheck`;
     const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
@@ -266,7 +290,7 @@ export default function Dashboard() {
 
       {/* Calendar Empty State / Calendar View */}
       {showCalendarView && (
-        <section className="flex flex-col items-center justify-center space-y-4 md:space-y-5 animate-in fade-in duration-500 w-full mt-2 md:mt-4 relative max-w-5xl mx-auto">
+        <section className="flex flex-col items-center justify-center space-y-4 md:space-y-5 animate-in fade-in duration-500 w-full mt-2 md:mt-4 relative max-w-6xl mx-auto">
           {!isCategoryEmpty && (
             <button 
               onClick={() => setForceCalendarOpen(false)}
@@ -276,7 +300,7 @@ export default function Dashboard() {
               Back to Feed
             </button>
           )}
-          <div className="text-center space-y-1.5 md:space-y-2 relative w-full flex flex-col items-center">
+          <div className="text-center space-y-2 relative w-full flex flex-col items-center">
             <p className="text-[10px] md:text-xs font-bold tracking-[0.25em] uppercase text-primary">COMMUNITY CALENDAR</p>
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black italic tracking-tighter uppercase leading-none">
               {isCategoryEmpty ? "No Upcoming Vibes" : "Plan Your Vibes"}
@@ -284,8 +308,32 @@ export default function Dashboard() {
             <p className="text-zinc-500 font-medium text-xs sm:text-sm max-w-lg mx-auto">
               {isCategoryEmpty 
                 ? "Explore past and upcoming events this month."
-                : "Select a date to see what's happening."}
+                : "Select a date or browse the weekly schedule to see what's happening."}
             </p>
+
+            {/* View Mode Toggle: Month vs Week */}
+            <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-full border border-black/5 shadow-inner mt-2">
+              <button
+                onClick={() => setCalendarViewMode('month')}
+                className={`px-4 py-1.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-wider transition-all ${
+                  calendarViewMode === 'month' 
+                    ? 'bg-black text-white shadow-sm' 
+                    : 'text-zinc-500 hover:text-black'
+                }`}
+              >
+                Month View
+              </button>
+              <button
+                onClick={() => setCalendarViewMode('week')}
+                className={`px-4 py-1.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-wider transition-all ${
+                  calendarViewMode === 'week' 
+                    ? 'bg-black text-white shadow-sm' 
+                    : 'text-zinc-500 hover:text-black'
+                }`}
+              >
+                Week View
+              </button>
+            </div>
           </div>
           
           <div className={`w-full p-3 sm:p-5 md:p-6 rounded-[24px] md:rounded-[36px] border-2 md:border-4 border-white shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] overflow-hidden relative bg-gradient-to-br from-white via-zinc-50 to-zinc-100/80 ${isVibrant ? 'vibe-hover-lift' : ''}`}>
@@ -296,71 +344,189 @@ export default function Dashboard() {
               </>
             )}
             
-            <div className="relative z-10 w-full [&_table]:block [&_table]:mt-2 md:[&_table]:mt-4 [&_table]:w-full [&_thead]:block [&_tbody]:block [&_tr]:grid [&_tr]:grid-cols-7 [&_tr]:gap-1 sm:[&_tr]:gap-1.5 md:[&_tr]:gap-2.5 [&_tr]:mb-1 sm:[&_tr]:mb-1.5 md:[&_tr]:mb-2 [&_th]:block [&_td]:block [&_th]:text-center [&_th]:text-zinc-400 [&_th]:font-black [&_th]:uppercase [&_th]:tracking-[0.15em] [&_th]:text-[9px] md:[&_th]:text-[11px] [&_th]:pb-1 sm:[&_th]:pb-2">
-              <DayPicker
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                showOutsideDays
-                fromMonth={new Date()}
-                toMonth={new Date(new Date().getFullYear(), 11)}
-                className="w-full bg-transparent p-0 m-0 font-helvetica"
-                classNames={{
-                  months: "w-full flex flex-col",
-                  month: "w-full",
-                  caption: "relative flex justify-center items-center h-9 sm:h-10 mb-2 sm:mb-3 md:mb-4 w-full",
-                  caption_label: "text-lg sm:text-2xl md:text-3xl font-black italic uppercase tracking-tighter text-center w-full flex justify-center items-center",
-                  nav: "absolute top-0 left-0 right-0 h-9 sm:h-10 grid grid-cols-2 items-center pointer-events-none z-20",
-                  button_previous: "col-start-1 justify-self-start h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
-                  button_next: "col-start-2 justify-self-end h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
-                  day: "w-full aspect-square md:aspect-auto md:h-16 lg:h-[70px] rounded-lg md:rounded-2xl flex flex-col items-center md:items-start justify-between p-1 sm:p-1.5 md:p-2.5 font-black text-xs sm:text-sm md:text-xl border-2 border-black/5 hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all bg-white relative group overflow-hidden cursor-pointer",
-                  day_selected: "ring-0 bg-primary/20 border-primary shadow-[3px_3px_0px_0px_rgba(var(--primary),1)]",
-                  day_today: "bg-zinc-50 border-black/20",
-                  day_outside: "text-zinc-300 opacity-50 bg-zinc-50/50 hover:border-black/5 hover:shadow-none hover:translate-y-0",
-                  day_disabled: "text-zinc-300 opacity-50",
-                  day_hidden: "invisible",
-                }}
-                components={{
-                  DayButton: (props) => {
-                    const { day, modifiers } = props;
-                    const dateEvents = events.filter(e => isSameDay(new Date(e.date_time), day.date));
-                    const isPastDate = isBefore(startOfDay(day.date), startOfDay(new Date()));
-                    
-                    return (
-                      <button {...props} className={props.className} disabled={modifiers.outside}>
-                        <span className={`block leading-none transition-colors ${isPastDate ? "opacity-40" : "group-hover:text-primary"} ${modifiers.outside ? "text-zinc-300" : ""}`}>
-                          {day.date.getDate()}
-                        </span>
-                        
-                        {dateEvents.length > 0 && !modifiers.outside && (
-                          <div className="absolute bottom-1 md:bottom-1.5 left-1 right-1 md:left-2 md:right-2 flex flex-col gap-0.5 z-10">
-                            <div className="flex gap-0.5 sm:gap-1 md:gap-1.5 flex-wrap w-full justify-center md:justify-start">
-                              {dateEvents.slice(0, 3).map((ev, i) => (
-                                <div 
-                                  key={i} 
-                                  className={`h-1 w-1 sm:h-1.5 sm:w-1.5 md:h-1.5 md:w-auto md:flex-1 rounded-full ${isPastDate ? 'bg-zinc-400' : 'bg-black group-hover:bg-primary'} shadow-sm transition-colors`} 
-                                  title={ev.title} 
-                                />
-                              ))}
+            {calendarViewMode === 'month' ? (
+              <div className="relative z-10 w-full [&_table]:block [&_table]:mt-2 md:[&_table]:mt-4 [&_table]:w-full [&_thead]:block [&_tbody]:block [&_tr]:grid [&_tr]:grid-cols-7 [&_tr]:gap-1 sm:[&_tr]:gap-1.5 md:[&_tr]:gap-2.5 [&_tr]:mb-1 sm:[&_tr]:mb-1.5 md:[&_tr]:mb-2 [&_th]:block [&_td]:block [&_th]:text-center [&_th]:text-zinc-400 [&_th]:font-black [&_th]:uppercase [&_th]:tracking-[0.15em] [&_th]:text-[9px] md:[&_th]:text-[11px] [&_th]:pb-1 sm:[&_th]:pb-2">
+                <DayPicker
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  showOutsideDays
+                  fromMonth={new Date()}
+                  toMonth={new Date(new Date().getFullYear(), 11)}
+                  className="w-full bg-transparent p-0 m-0 font-helvetica"
+                  classNames={{
+                    months: "w-full flex flex-col",
+                    month: "w-full",
+                    caption: "relative flex justify-center items-center h-9 sm:h-10 mb-2 sm:mb-3 md:mb-4 w-full",
+                    caption_label: "text-lg sm:text-2xl md:text-3xl font-black italic uppercase tracking-tighter text-center w-full flex justify-center items-center",
+                    nav: "absolute top-0 left-0 right-0 h-9 sm:h-10 grid grid-cols-2 items-center pointer-events-none z-20",
+                    button_previous: "col-start-1 justify-self-start h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
+                    button_next: "col-start-2 justify-self-end h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
+                    day: "w-full aspect-square md:aspect-auto md:h-16 lg:h-[70px] rounded-lg md:rounded-2xl flex flex-col items-center md:items-start justify-between p-1 sm:p-1.5 md:p-2.5 font-black text-xs sm:text-sm md:text-xl border-2 border-black/5 hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all bg-white relative group overflow-hidden cursor-pointer",
+                    day_selected: "ring-0 bg-primary/20 border-primary shadow-[3px_3px_0px_0px_rgba(var(--primary),1)]",
+                    day_today: "bg-zinc-50 border-black/20",
+                    day_outside: "text-zinc-300 opacity-50 bg-zinc-50/50 hover:border-black/5 hover:shadow-none hover:translate-y-0",
+                    day_disabled: "text-zinc-300 opacity-50",
+                    day_hidden: "invisible",
+                  }}
+                  components={{
+                    DayButton: (props) => {
+                      const { day, modifiers } = props;
+                      const dateEvents = events.filter(e => isSameDay(new Date(e.date_time), day.date));
+                      const isPastDate = isBefore(startOfDay(day.date), startOfDay(new Date()));
+                      
+                      return (
+                        <button {...props} className={props.className} disabled={modifiers.outside}>
+                          <span className={`block leading-none transition-colors ${isPastDate ? "opacity-40" : "group-hover:text-primary"} ${modifiers.outside ? "text-zinc-300" : ""}`}>
+                            {day.date.getDate()}
+                          </span>
+                          
+                          {dateEvents.length > 0 && !modifiers.outside && (
+                            <div className="absolute bottom-1 md:bottom-1.5 left-1 right-1 md:left-2 md:right-2 flex flex-col gap-0.5 z-10">
+                              <div className="flex gap-0.5 sm:gap-1 md:gap-1.5 flex-wrap w-full justify-center md:justify-start">
+                                {dateEvents.slice(0, 3).map((ev, i) => (
+                                  <div 
+                                    key={i} 
+                                    className={`h-1 w-1 sm:h-1.5 sm:w-1.5 md:h-1.5 md:w-auto md:flex-1 rounded-full ${isPastDate ? 'bg-zinc-400' : 'bg-black group-hover:bg-primary'} shadow-sm transition-colors`} 
+                                    title={ev.title} 
+                                  />
+                                ))}
+                              </div>
+                              {dateEvents.length > 3 && (
+                                <span className="text-[8px] md:text-[9px] hidden md:block font-black text-black group-hover:text-primary uppercase tracking-widest text-left leading-none transition-colors">
+                                  +{dateEvents.length - 3} MORE
+                                </span>
+                              )}
                             </div>
-                            {dateEvents.length > 3 && (
-                              <span className="text-[8px] md:text-[9px] hidden md:block font-black text-black group-hover:text-primary uppercase tracking-widest text-left leading-none transition-colors">
-                                +{dateEvents.length - 3} MORE
-                              </span>
-                            )}
+                          )}
+                        </button>
+                      );
+                    },
+                    Chevron: (props) => {
+                      if (props.orientation === 'left') return <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />;
+                      if (props.orientation === 'right') return <ArrowRight className="h-4 w-4 md:h-5 md:w-5" />;
+                      return <></>;
+                    }
+                  }}
+                />
+              </div>
+            ) : (
+              /* Week View */
+              <div className="relative z-10 w-full space-y-4">
+                {/* Week View Header / Navigation */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-3 border-b border-black/5">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentWeekStart(prev => subWeeks(prev, 1))}
+                      className="h-8 w-8 sm:h-9 sm:w-9 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[1px] hover:translate-x-[1px]"
+                      title="Previous Week"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="text-sm sm:text-base md:text-lg font-black uppercase tracking-tight italic">
+                      {format(currentWeekStart, "MMM d")} – {format(endOfWeek(currentWeekStart, { weekStartsOn: 1 }), "MMM d, yyyy")}
+                    </span>
+                    <button
+                      onClick={() => setCurrentWeekStart(prev => addWeeks(prev, 1))}
+                      className="h-8 w-8 sm:h-9 sm:w-9 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[1px] hover:translate-x-[1px]"
+                      title="Next Week"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const today = new Date();
+                      setCurrentWeekStart(startOfWeek(today, { weekStartsOn: 1 }));
+                      setSelectedDate(today);
+                    }}
+                    className="ringer-button bg-zinc-100 hover:bg-zinc-200 text-black text-[10px] py-1 px-3 border border-black/10"
+                  >
+                    TODAY
+                  </button>
+                </div>
+
+                {/* 7 Day Columns Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+                  {Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i)).map((dayDate, idx) => {
+                    const dayEvents = events.filter(e => isSameDay(new Date(e.date_time), dayDate));
+                    const isTodayDate = isToday(dayDate);
+                    const isDaySelected = selectedDate && isSameDay(selectedDate, dayDate);
+
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => setSelectedDate(dayDate)}
+                        className={`p-3 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between min-h-[180px] sm:min-h-[220px] ${
+                          isDaySelected
+                            ? 'bg-primary/10 border-primary shadow-[3px_3px_0px_0px_rgba(var(--primary),1)]'
+                            : isTodayDate
+                              ? 'bg-zinc-50 border-black/30 hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                              : 'bg-white border-black/5 hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                        }`}
+                      >
+                        {/* Day Column Header */}
+                        <div className="flex items-center justify-between pb-2 border-b border-black/5">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                              {format(dayDate, "EEE")}
+                            </span>
+                            <span className={`text-xl sm:text-2xl font-black leading-none italic ${isTodayDate ? 'text-primary' : 'text-black'}`}>
+                              {format(dayDate, "d")}
+                            </span>
                           </div>
-                        )}
-                      </button>
+                          {isTodayDate && (
+                            <span className="sticker-badge bg-black text-white text-[8px] font-black uppercase py-0.5 px-1.5 border-none">
+                              TODAY
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Events list for this day */}
+                        <div className="space-y-1.5 py-2 flex-1">
+                          {dayEvents.length > 0 ? (
+                            dayEvents.map((ev, evIdx) => (
+                              <div
+                                key={evIdx}
+                                className="bg-zinc-50 hover:bg-zinc-100 p-2 rounded-xl border border-black/5 space-y-1 transition-colors group"
+                              >
+                                <div className="flex items-center justify-between gap-1">
+                                  <span
+                                    className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full text-black"
+                                    style={{ backgroundColor: getCategoryAccentColor(ev.category) || '#19A74E' }}
+                                  >
+                                    {ev.category}
+                                  </span>
+                                  <div className="flex items-center gap-0.5 text-[9px] font-bold text-zinc-400">
+                                    <Clock className="h-2.5 w-2.5" />
+                                    <span>{new Date(ev.date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                  </div>
+                                </div>
+                                <p className="text-[11px] font-black text-black group-hover:text-primary transition-colors line-clamp-1 leading-tight">
+                                  {ev.title}
+                                </p>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="h-full flex items-center justify-center py-4 text-center">
+                              <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">
+                                Quiet Day
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Event count footer */}
+                        <div className="pt-2 border-t border-black/5 flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-zinc-400">
+                          <span>{dayEvents.length} {dayEvents.length === 1 ? 'Vibe' : 'Vibes'}</span>
+                          <span className="group-hover:text-black">View →</span>
+                        </div>
+                      </div>
                     );
-                  },
-                  Chevron: (props) => {
-                    if (props.orientation === 'left') return <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />;
-                    if (props.orientation === 'right') return <ArrowRight className="h-4 w-4 md:h-5 md:w-5" />;
-                    return <></>;
-                  }
-                }}
-              />
-            </div>
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -539,33 +705,35 @@ export default function Dashboard() {
       </section>
       )}
 
-      {/* Discovery Sidebar Style Section */}
-      <section className={`p-6 sm:p-12 rounded-[24px] sm:rounded-[40px] flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 relative overflow-hidden ${
-        isVibrant 
-          ? 'bg-gradient-to-br from-zinc-900 via-purple-950 to-zinc-900 text-white' 
-          : 'bg-black text-white'
-      }`}>
-         {isVibrant && (
-           <>
-             <div className="vibe-float-icon animate-float-gentle" style={{ top: '10%', left: '5%', opacity: 0.06, color: '#A855F7' }}><Sparkles className="h-8 w-8" /></div>
-             <div className="vibe-float-icon animate-float-slow" style={{ top: '20%', right: '15%', opacity: 0.05, color: '#EC4899' }}><Zap className="h-6 w-6" /></div>
-             <div className="vibe-float-icon animate-float-drift" style={{ bottom: '15%', left: '20%', opacity: 0.05, color: '#06B6D4' }}><Sparkles className="h-5 w-5" /></div>
-           </>
-         )}
-         <div className="space-y-4 max-w-xl text-center md:text-left relative z-10">
-           <h2 className="text-3xl sm:text-4xl font-black italic tracking-tighter uppercase leading-none text-white">
-             Don't miss a single beat.
-           </h2>
-           <p className="font-bold text-zinc-400 text-sm">
-             VibeCheck keeps you in the loop with the best curated events in {currentCity}. 
-             Join our community over 5,000+ vibe-seekers.
-           </p>
-         </div>
-         <div className="flex gap-4">
-            <button onClick={handleJoinWhatsApp} className="ringer-button bg-primary text-black">JOIN WHATSAPP</button>
-            <button onClick={handleSharePlatform} className="ringer-button border border-white/20 hover:bg-white/10">SHARE PLATFORM</button>
-         </div>
-      </section>
+      {/* Discovery Sidebar Style Section - Hidden if user already verified phone */}
+      {!userHasPhone && (
+        <section className={`p-6 sm:p-12 rounded-[24px] sm:rounded-[40px] flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 relative overflow-hidden ${
+          isVibrant 
+            ? 'bg-gradient-to-br from-zinc-900 via-purple-950 to-zinc-900 text-white' 
+            : 'bg-black text-white'
+        }`}>
+           {isVibrant && (
+             <>
+               <div className="vibe-float-icon animate-float-gentle" style={{ top: '10%', left: '5%', opacity: 0.06, color: '#A855F7' }}><Sparkles className="h-8 w-8" /></div>
+               <div className="vibe-float-icon animate-float-slow" style={{ top: '20%', right: '15%', opacity: 0.05, color: '#EC4899' }}><Zap className="h-6 w-6" /></div>
+               <div className="vibe-float-icon animate-float-drift" style={{ bottom: '15%', left: '20%', opacity: 0.05, color: '#06B6D4' }}><Sparkles className="h-5 w-5" /></div>
+             </>
+           )}
+           <div className="space-y-4 max-w-xl text-center md:text-left relative z-10">
+             <h2 className="text-3xl sm:text-4xl font-black italic tracking-tighter uppercase leading-none text-white">
+               Don't miss a single beat.
+             </h2>
+             <p className="font-bold text-zinc-400 text-sm">
+               VibeCheck keeps you in the loop with the best curated events in {currentCity}. 
+               Join our community over 5,000+ vibe-seekers.
+             </p>
+           </div>
+           <div className="flex gap-4">
+              <button onClick={handleJoinWhatsApp} className="ringer-button bg-primary text-black">PING VIBECHECK</button>
+              <button onClick={handleSharePlatform} className="ringer-button border border-white/20 hover:bg-white/10">SHARE PLATFORM</button>
+           </div>
+        </section>
+      )}
 
       {session?.user?.email && (
         <PhoneVerificationModal
@@ -574,7 +742,7 @@ export default function Dashboard() {
           onVerified={() => {
             setUserHasPhone(true);
             setShowPhoneModal(false);
-            const text = `Hey! I want to join the VibeCheck community and stay updated with the latest events.`;
+            const text = `VibeCheck`;
             const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
             window.open(url, '_blank');
           }}

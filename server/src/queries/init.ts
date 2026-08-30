@@ -218,6 +218,22 @@ export async function initializeDatabaseSchema(pool: Pool) {
     );
   `).catch(() => {});
 
+  // Migration safeguard for admin_notifications table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS admin_notifications (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      type VARCHAR(50) NOT NULL DEFAULT 'global',
+      target_city VARCHAR(100),
+      target_event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+      title VARCHAR(255) NOT NULL,
+      message TEXT NOT NULL,
+      action_text VARCHAR(100),
+      action_href TEXT,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      expires_at TIMESTAMP WITH TIME ZONE
+    );
+  `).catch(() => {});
+
   // Seed default cities if empty
   const { rows: cityRows } = await pool.query('SELECT COUNT(*) FROM cities');
   if (parseInt(cityRows[0].count) === 0) {

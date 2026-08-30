@@ -347,3 +347,24 @@ export async function toggleEventHousefull(pool: Pool, id: string, organizerEmai
     );
     return { success: true, status: newStatus };
 }
+
+export async function getEventsInNext7Days(pool: Pool, city?: string) {
+    let queryText = `
+      SELECT id, title, description, location, city, date_time, category, status, participant_limit, is_paid,
+             (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count
+      FROM events
+      WHERE (status = 'approved' OR status = 'housefull' OR status IS NULL)
+        AND date_time >= NOW() - INTERVAL '6 hours'
+        AND date_time <= NOW() + INTERVAL '7 days'
+    `;
+    const params: any[] = [];
+    if (city) {
+      queryText += ` AND city ILIKE $1`;
+      params.push(`%${city}%`);
+    }
+    queryText += ` ORDER BY date_time ASC LIMIT 10;`;
+
+    const { rows } = await pool.query(queryText, params);
+    return rows;
+}
+

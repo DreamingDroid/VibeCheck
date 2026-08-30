@@ -8,8 +8,13 @@
   "main": "dist/index.js",
   "scripts": {
     "start": "APP_ENV=production node dist/index.js",
+    "start:dev": "APP_ENV=development node dist/index.js",
+    "start:uat": "APP_ENV=uat node dist/index.js",
+    "start:prd": "APP_ENV=production node dist/index.js",
     "dev": "APP_ENV=local nodemon src/index.ts",
     "dev:dev": "APP_ENV=development nodemon src/index.ts",
+    "dev:uat": "APP_ENV=uat nodemon src/index.ts",
+    "dev:prd": "APP_ENV=production nodemon src/index.ts",
     "build": "tsc",
     "seed": "APP_ENV=local ts-node src/seed.ts",
     "seed:dev": "APP_ENV=development ts-node src/seed.ts",

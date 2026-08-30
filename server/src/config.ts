@@ -2,7 +2,18 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // MUST LOAD DOTENV BEFORE EXPORTING CONFIGS
-const appEnv = process.env.APP_ENV || 'local';
+const rawEnv = (process.env.APP_ENV || 'local').toLowerCase().trim();
+const envMap: Record<string, string> = {
+  dev: 'development',
+  development: 'development',
+  uat: 'uat',
+  staging: 'uat',
+  prd: 'production',
+  prod: 'production',
+  production: 'production',
+  local: 'local'
+};
+const appEnv = envMap[rawEnv] || rawEnv;
 const envFile = `.env.${appEnv}`;
 console.log(`[Config] Loading environment: ${appEnv} (${envFile})`);
 const result = dotenv.config({ path: path.join(__dirname, '..', envFile) });
@@ -12,8 +23,10 @@ if (result.error) {
 }
 
 export const config = {
+  APP_ENV: appEnv,
   PORT: process.env.PORT || 4000,
   DATABASE_URL: process.env.DATABASE_URL || 'postgresql://lead_arch:password123@localhost:5433/vibecheck_db',
+  WEB_APP_URL: process.env.WEB_APP_URL || 'https://vibecheck.space',
   ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
     : [],

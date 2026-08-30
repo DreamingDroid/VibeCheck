@@ -2,8 +2,23 @@ const fs = require('fs');
 const path = require('path');
 
 // Dynamically load environment variables from the correct .env.<env> file
-const appEnv = process.env.APP_ENV || 'local';
-const envPath = path.resolve(process.cwd(), `.env.${appEnv}`);
+const rawEnv = (process.env.APP_ENV || 'local').toLowerCase().trim();
+const envMap = {
+  dev: 'development',
+  development: 'development',
+  uat: 'uat',
+  staging: 'uat',
+  prd: 'production',
+  prod: 'production',
+  production: 'production',
+  local: 'local'
+};
+const appEnv = envMap[rawEnv] || rawEnv;
+let envPath = path.resolve(process.cwd(), `.env.${appEnv}`);
+if (!fs.existsSync(envPath) && fs.existsSync(path.resolve(process.cwd(), '.env.local'))) {
+  envPath = path.resolve(process.cwd(), '.env.local');
+}
+
 if (fs.existsSync(envPath)) {
   console.log(`[NextConfig] Loading environment variables from: ${envPath}`);
   const envConfig = fs.readFileSync(envPath, 'utf8');

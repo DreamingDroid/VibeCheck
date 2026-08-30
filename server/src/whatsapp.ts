@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { handleEventQuery, extractAndSavePreferences } from './rag';
-import { insertEventRSVP, getEventById } from './queries/events';
+import { insertEventRSVP, getEventById, getEventsInNext7Days } from './queries/events';
 import { getUserByPhone, createUser, updateUserChatHistory } from './queries/users';
 import { config } from './config';
 
@@ -61,7 +61,7 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
       console.log(`[Interactive RSVP] ${from} booked event ${eventId}`);
       await sendWhatsAppMessage(
         phoneNumberId, from,
-        `✅ *You're all set!* Your spot has been reserved. We'll see you there! 🎉\n\nReply anytime to discover more events.`
+        `✅ *You're all set!* Your spot has been reserved. We'll see you there! 🎉\n\nReply *VibeCheck* anytime to discover more events.`
       );
     } catch (err) {
       console.error('[Interactive RSVP] DB error:', err);
@@ -79,70 +79,70 @@ export async function handleIncomingMessage(req: Request, res: Response, pool: P
   res.sendStatus(200);
 
   try {
-    // Fetch user record and their chat history
-    let chatHistory: any[] = [];
-    const user = await getUserByPhone(pool, from);
+    const cleanPhone = from.replace(/\D/g, '');
+    const tenDigitPhone = cleanPhone.slice(-10);
 
-    let isNewUser = false;
-    let userName = entry?.contacts?.[0]?.profile?.name ?? 'Friend';
+    // 1. Verify if user has registered on the Website
+    const webUserResult = await pool.query(
+      `SELECT email, name, city, phone_number FROM web_users 
+       WHERE phone_number IS NOT NULL AND (
+         phone_number = $1 OR 
+         phone_number = $2 OR 
+         phone_number = $3 OR 
+         phone_number LIKE '%' || $4
+       ) LIMIT 1`,
+      [from, cleanPhone, `+${cleanPhone}`, tenDigitPhone]
+    );
 
-    if (!user) {
-      isNewUser = true;
-      await createUser(pool, from, userName);
-      console.log(`[Onboarding] Silently created new user: ${userName} (${from})`);
-    } else {
-      userName = user.name || userName;
-      if (Array.isArray(user.chat_history)) {
-        chatHistory = user.chat_history;
+    const registeredUser = webUserResult.rows[0];
+
+    // If user is NOT registered on the website
+    if (!registeredUser) {
+      console.log(`[WhatsApp] Unregistered number pinged: ${from}`);
+      const strangerReply = `I don't talk to strangers! 🕶️\n\nPlease register on VibeCheck Space first to get started:\n${config.WEB_APP_URL}`;
+      await sendWhatsAppMessage(phoneNumberId, from, strangerReply);
+      return;
+    }
+
+    const userName = registeredUser.name || entry?.contacts?.[0]?.profile?.name || 'Friend';
+    const userCity = registeredUser.city || undefined;
+    const isVibeCheckPing = msgBody.toLowerCase().includes('vibecheck');
+
+    // 2. If user pings 'VibeCheck', send list of active events in the next 7 days
+    if (isVibeCheckPing) {
+      const activeEvents = await getEventsInNext7Days(pool, userCity);
+      const calendarUrl = `${config.WEB_APP_URL}/dashboard?view=calendar`;
+
+      if (!activeEvents || activeEvents.length === 0) {
+        const noEventsMsg = `Hey ${userName}! 👋\n\nThere are no upcoming events scheduled in the next 7 days for ${userCity || 'your city'} right now.\n\n🗓️ Check our full VibeCalendar for future updates:\n${calendarUrl}`;
+        await sendWhatsAppMessage(phoneNumberId, from, noEventsMsg);
+        return;
       }
+
+      let eventsMsg = `⚡ *ACTIVE EVENTS (NEXT 7 DAYS)* ⚡\n\n`;
+      activeEvents.forEach((ev: any, idx: number) => {
+        const dateFormatted = new Date(ev.date_time).toLocaleDateString('en-IN', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        eventsMsg += `*${idx + 1}. ${ev.title}*\n📅 ${dateFormatted}\n📍 ${ev.location || 'Vizag'}\n🏷️ ${ev.category}\n\n`;
+      });
+
+      eventsMsg += `🗓️ *Explore the complete VibeCalendar:*\n${calendarUrl}\n\n_Tap an event card below to RSVP directly!_`;
+
+      await sendWhatsAppMessage(phoneNumberId, from, eventsMsg);
+
+      // Send interactive RSVP cards for top events
+      await sendInteractiveEventCards(phoneNumberId, from, activeEvents.slice(0, 3));
+      return;
     }
 
-    // ── NORMAL FLOW: AI Personalization Engine ──
-    // (Running asynchronously to avoid injecting extra LLM latency before responding)
-    extractAndSavePreferences(pool, from, msgBody).catch(e => console.error(e));
-
-    // Grab specific city constraint if the user synced it via Web Portal
-    let syncedCity: string | undefined = undefined;
-    if (user && typeof user.preferences === 'object') {
-      syncedCity = user.preferences.city;
-    }
-
-    // ── NORMAL FLOW: RAG query ─────────────────────────────────────────────
-    // Send standard query along with the conversational context slice to RAG
-    const ragResult = await handleEventQuery(pool, { 
-      query: msgBody, 
-      userId: from,
-      city: syncedCity,
-      history: chatHistory
-    });
-    
-    let finalAnswer = ragResult.answer;
-    
-    // Append the tip for first-time users
-    if (isNewUser) {
-      finalAnswer += `\n\n💡 *Tip from Vizag Vibes:* To receive reliable event alerts tied directly to your city and interests, link this number directly on our portal: https://vizagvibes.com/preferences`;
-    }
-
-    // Capture current turns into active memory and truncate
-    chatHistory.push({ role: 'user', content: msgBody });
-    chatHistory.push({ role: 'assistant', content: finalAnswer });
-    
-    // Sliding memory window: Keep only the most recent 6 interactions (3 turns)
-    if (chatHistory.length > 6) {
-      chatHistory = chatHistory.slice(chatHistory.length - 6);
-    }
-
-    // Save immediate memory to persistence base asynchronously
-    updateUserChatHistory(pool, from, chatHistory)
-      .catch(e => console.error('[Memory] Error saving immediate context:', e));
-
-    // Send text answer first
-    await sendWhatsAppMessage(phoneNumberId, from, finalAnswer);
-
-    // Send interactive event cards if events were returned
-    if (ragResult.events && ragResult.events.length > 0) {
-      await sendInteractiveEventCards(phoneNumberId, from, ragResult.events.slice(0, 3));
-    }
+    // 3. For any other message from registered user, guide them to ping 'VibeCheck' or view calendar
+    const promptReply = `Hey ${userName}! 👋\n\nSend *VibeCheck* to get the list of active events happening in the next 7 days.\n\n🗓️ Or browse the interactive VibeCalendar:\n${config.WEB_APP_URL}/dashboard?view=calendar`;
+    await sendWhatsAppMessage(phoneNumberId, from, promptReply);
 
   } catch (error) {
     console.error('[WhatsApp] Error handling message:', error);
