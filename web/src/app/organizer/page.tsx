@@ -130,8 +130,9 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'approved': return <span className="sticker-badge bg-primary/10 text-primary border-primary/20">Approved</span>;
-      case 'housefull': return <span className="sticker-badge bg-red-500/10 text-red-600 border-red-500/20">Housefull</span>;
+      case 'approved': return <span className="sticker-badge bg-primary/10 text-primary border-primary/20">Tickets Live</span>;
+      case 'filling_fast': return <span className="sticker-badge bg-orange-500/10 text-orange-600 border-orange-500/20 flex items-center gap-1"><Sparkles className="h-3 w-3 animate-pulse" /> Filling Fast</span>;
+      case 'housefull': return <span className="sticker-badge bg-red-500/10 text-red-600 border-red-500/20">Sold Out</span>;
       case 'rejected': return <span className="sticker-badge bg-destructive/10 text-destructive border-destructive/20">Rejected</span>;
       case 'needs_changes': return <span className="sticker-badge bg-orange-500/10 text-orange-600 border-orange-500/20">Needs Changes</span>;
       default: return <span className="sticker-badge bg-amber-500/10 text-amber-600 border-amber-500/20">Pending</span>;
@@ -157,34 +158,54 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
           )}
         </div>
         <div className="flex flex-col md:flex-row gap-2 items-center shrink-0">
-          {(status === 'approved' || status === 'housefull') && (
-            <button
-              onClick={async (e) => {
-                e.stopPropagation();
-                try {
-                  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-                  const res = await fetch(`${baseUrl}/api/organizer/events/${eventId}/toggle-housefull`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ organizer_email: organizerEmail })
-                  });
-                  const d = await res.json();
-                  if (d.success) {
-                    toast.success(d.message);
-                    if (onStatusUpdated) onStatusUpdated();
-                  } else {
-                    toast.error(d.error || "Failed to toggle status");
+          {(status === 'approved' || status === 'filling_fast' || status === 'housefull') && (
+            <div className="min-w-[140px]" onClick={e => e.stopPropagation()}>
+              <Select
+                value={status}
+                onValueChange={async (newStatus) => {
+                  try {
+                    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+                    const res = await fetch(`${baseUrl}/api/organizer/events/${eventId}/status`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ organizer_email: organizerEmail, status: newStatus })
+                    });
+                    const d = await res.json();
+                    if (d.success) {
+                      toast.success(d.message);
+                      if (onStatusUpdated) onStatusUpdated();
+                      
+                      // Prompt for broadcast if status was changed to something exciting
+                      if (newStatus === 'filling_fast' || newStatus === 'housefull') {
+                        toast("Update attendees?", {
+                          description: `Notify your RSVPs that the event is ${newStatus === 'filling_fast' ? 'Filling Fast' : 'Sold Out'}`,
+                          action: {
+                            label: "Broadcast",
+                            onClick: () => setInAppBroadcastOpen(true)
+                          },
+                          duration: 8000
+                        });
+                      }
+                    } else {
+                      toast.error(d.error || "Failed to update status");
+                    }
+                  } catch (err) {
+                    toast.error("An error occurred");
                   }
-                } catch (err) {
-                  toast.error("An error occurred");
-                }
-              }}
-              className="ringer-button border border-red-500 text-red-500 hover:bg-red-50 text-[10px]"
-            >
-              {status === 'housefull' ? 'REOPEN EVENT' : 'MARK HOUSEFULL'}
-            </button>
+                }}
+              >
+                <SelectTrigger className="h-8 text-[10px] font-black uppercase tracking-widest border-black/10 bg-white">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="approved" className="text-[10px] font-bold uppercase tracking-widest text-primary">Tickets Live</SelectItem>
+                  <SelectItem value="filling_fast" className="text-[10px] font-bold uppercase tracking-widest text-orange-600">Filling Fast</SelectItem>
+                  <SelectItem value="housefull" className="text-[10px] font-bold uppercase tracking-widest text-red-600">Sold Out</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           )}
-          {(status === 'approved' || status === 'housefull') && (
+          {(status === 'approved' || status === 'filling_fast' || status === 'housefull') && (
             <>
               <button onClick={(e) => { e.stopPropagation(); setInAppBroadcastOpen(true); }} className="ringer-button bg-rose-600 text-white hover:bg-rose-700 text-[10px] flex items-center gap-1.5 font-black shadow-xs">
                 <Radio className="h-3 w-3 animate-pulse" /> BROADCAST
@@ -202,7 +223,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
               ✏️ EDIT & RESUBMIT
             </button>
           )}
-          {(status === 'approved' || status === 'housefull' || !status) && (
+          {(status === 'approved' || status === 'filling_fast' || status === 'housefull' || !status) && (
             <button onClick={(e) => { e.stopPropagation(); loadRsvps(); }} className="ringer-button border border-black/5 hover:bg-black/5 text-black text-[10px]">
               {open ? "HIDE GUESTLIST" : "VIEW GUESTLIST"}
             </button>

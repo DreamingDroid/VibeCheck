@@ -470,7 +470,7 @@ export function GlobalHeader() {
 
                     {showNotifications && (
                       <>
-                        <div className="absolute right-0 top-full mt-2 w-84 sm:w-96 bg-white border border-black/10 rounded-[28px] shadow-2xl z-50 p-4 animate-in fade-in zoom-in-95 duration-200 text-black max-h-[80vh] flex flex-col">
+                        <div className="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 top-[72px] sm:top-full mt-2 sm:w-96 bg-white border border-black/10 rounded-[28px] shadow-2xl z-50 p-4 animate-in fade-in zoom-in-95 duration-200 text-black max-h-[calc(100vh-90px)] sm:max-h-[80vh] flex flex-col">
                           {/* Header */}
                           <div className="flex items-center justify-between border-b border-black/5 pb-3 mb-3">
                             <div className="flex items-center gap-2">
@@ -806,37 +806,7 @@ export function GlobalHeader() {
               }`}
             >
               <div className="flex items-center gap-3">
-                <div 
-                  className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-md ${
-                    selectedNotification.type === 'pending'
-                      ? 'bg-amber-500 text-white shadow-amber-500/20'
-                      : selectedNotification.type === 'rejected'
-                        ? 'bg-red-600 text-white shadow-red-500/20'
-                        : selectedNotification.type === 'approved'
-                          ? 'bg-emerald-600 text-white shadow-emerald-500/20'
-                          : selectedNotification.type === 'emergency_alert'
-                            ? 'bg-red-600 text-white shadow-red-500/20'
-                            : selectedNotification.type === 'event_reminder'
-                              ? 'bg-amber-500 text-black shadow-amber-500/20'
-                              : selectedNotification.type === 'agenda_shift'
-                                ? 'bg-orange-500 text-white shadow-orange-500/20'
-                                : selectedNotification.type === 'event_rescheduled'
-                                  ? 'bg-emerald-600 text-white shadow-emerald-500/20'
-                                  : selectedNotification.type === 'event_cancellation'
-                                    ? 'bg-rose-600 text-white shadow-rose-500/20'
-                                    : 'bg-blue-600 text-white shadow-blue-500/20'
-                  }`}
-                >
-                  {selectedNotification.type === 'pending' && <Clock className="h-6 w-6" />}
-                  {selectedNotification.type === 'rejected' && <AlertCircle className="h-6 w-6" />}
-                  {selectedNotification.type === 'approved' && <CheckCircle2 className="h-6 w-6" />}
-                  {selectedNotification.type === 'emergency_alert' && <AlertCircle className="h-6 w-6" />}
-                  {selectedNotification.type === 'event_reminder' && <Clock className="h-6 w-6" />}
-                  {selectedNotification.type === 'agenda_shift' && <Clock className="h-6 w-6" />}
-                  {selectedNotification.type === 'event_rescheduled' && <Calendar className="h-6 w-6" />}
-                  {selectedNotification.type === 'event_cancellation' && <X className="h-6 w-6" />}
-                  {selectedNotification.type === 'general_update' && <Sparkles className="h-6 w-6" />}
-                </div>
+
                 <div>
                   <div className="flex items-center gap-2">
                     <span 
@@ -871,13 +841,6 @@ export function GlobalHeader() {
                   </h3>
                 </div>
               </div>
-
-              <button 
-                onClick={() => setSelectedNotification(null)}
-                className="p-1.5 rounded-full hover:bg-black/10 text-zinc-500 hover:text-black transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
             </div>
 
             {/* Modal Body */}
@@ -906,36 +869,6 @@ export function GlobalHeader() {
                 >
                   DISMISS
                 </button>
-
-                {selectedNotification.link && (
-                  <Link 
-                    href={selectedNotification.link}
-                    onClick={() => setSelectedNotification(null)}
-                    className="w-full sm:w-auto"
-                  >
-                    <button
-                      className={`w-full ringer-button text-xs py-2.5 px-6 font-black uppercase shadow-lg transition-all ${
-                        selectedNotification.type === 'rejected'
-                          ? 'bg-red-600 hover:bg-red-700 text-white'
-                          : selectedNotification.type === 'approved'
-                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                            : selectedNotification.type === 'emergency_alert'
-                              ? 'bg-red-600 hover:bg-red-700 text-white'
-                              : selectedNotification.type === 'event_reminder'
-                                ? 'bg-amber-500 hover:bg-amber-600 text-black'
-                                : selectedNotification.type === 'agenda_shift'
-                                  ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                                  : selectedNotification.type === 'event_rescheduled'
-                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                    : selectedNotification.type === 'event_cancellation'
-                                      ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                                      : 'bg-primary text-black hover:bg-black hover:text-white'
-                      }`}
-                    >
-                      {selectedNotification.actionText || "VIEW DETAILS"}
-                    </button>
-                  </Link>
-                )}
               </div>
             </div>
           </div>

@@ -70,6 +70,7 @@ export function OrganizerEventBroadcastModal({
   const [messageType, setMessageType] = useState<BroadcastType>("general_update");
   const [title, setTitle] = useState(ORGANIZER_TEMPLATES.general_update.title);
   const [message, setMessage] = useState(ORGANIZER_TEMPLATES.general_update.body);
+  const [targetAudience, setTargetAudience] = useState<"rsvps" | "attendees" | "both">("both");
   const [recipientCount, setRecipientCount] = useState<number | null>(null);
   const [loadingReach, setLoadingReach] = useState(false);
   const [sending, setSending] = useState(false);
@@ -119,6 +120,7 @@ export function OrganizerEventBroadcastModal({
           type: messageType,
           metadata: {
             event_title: eventTitle,
+            target_audience: targetAudience,
           },
         }),
       });
@@ -168,7 +170,7 @@ export function OrganizerEventBroadcastModal({
                   {eventTitle}
                 </span>
               </div>
-              <h3 className="text-xl sm:text-2xl font-black italic tracking-tighter uppercase leading-tight">
+              <h3 className="text-xl sm:text-2xl text-white font-black italic tracking-tighter uppercase leading-tight">
                 Send Event Broadcast
               </h3>
             </div>
@@ -184,16 +186,35 @@ export function OrganizerEventBroadcastModal({
 
         {/* Content */}
         <div className="p-6 sm:p-8 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
-          {/* Audience Counter Banner */}
-          <div className="p-4 bg-zinc-50 rounded-2xl border border-black/5 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-zinc-500" />
-              <span className="text-xs font-bold text-zinc-700">Target Audience:</span>
-              <span className="text-xs font-black text-black">Event RSVPs & Attendees</span>
+          {/* Audience Selector & Counter */}
+          <div className="p-4 bg-zinc-50 rounded-2xl border border-black/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-zinc-500" />
+                <span className="text-xs font-bold text-zinc-700">Target Audience:</span>
+              </div>
+              <div className="flex bg-white rounded-xl border border-black/10 p-1 w-fit">
+                {(['rsvps', 'attendees', 'both'] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTargetAudience(t)}
+                    className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg transition-colors ${
+                      targetAudience === t
+                        ? 'bg-black text-white'
+                        : 'text-zinc-500 hover:text-black hover:bg-zinc-100'
+                    }`}
+                  >
+                    {t === 'rsvps' ? 'RSVPs' : t === 'attendees' ? 'Attendees' : 'Both'}
+                  </button>
+                ))}
+              </div>
             </div>
-            <Badge className="bg-black text-white text-[10px] font-black">
-              {loadingReach ? "Calculating..." : `${recipientCount ?? 0} Attendees`}
-            </Badge>
+            <div className="flex items-center">
+              <Badge className="bg-black text-white text-[10px] font-black shrink-0 px-3 py-1">
+                {loadingReach ? "Calculating..." : `${recipientCount ?? 0} Recipients`}
+              </Badge>
+            </div>
           </div>
 
           {/* Step 1: Message Type */}
@@ -318,7 +339,7 @@ export function OrganizerEventBroadcastModal({
                 </>
               ) : (
                 <>
-                  <Send className="h-3.5 w-3.5" /> Send to {recipientCount ?? 0} Attendees
+                  <Send className="h-3.5 w-3.5" /> Send to {recipientCount ?? 0} Recipients
                 </>
               )}
             </Button>

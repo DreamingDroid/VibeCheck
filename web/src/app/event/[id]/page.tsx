@@ -185,6 +185,7 @@ export default function EventDetailsPage() {
   if (!event) return null;
 
   const isHousefull = event.status === 'housefull' || (event.participant_limit && (event.rsvp_count || 0) >= event.participant_limit);
+  const isFillingFast = event.status === 'filling_fast';
 
   return (
     <>
@@ -224,7 +225,10 @@ export default function EventDetailsPage() {
                 {event.is_paid ? "Paid Event" : "Free Entry"}
               </div>
               {event.status === 'housefull' && (
-                <div className="sticker-badge bg-red-500 border-none text-white font-black animate-pulse">Housefull</div>
+                <div className="sticker-badge bg-red-500 border-none text-white font-black animate-pulse">Sold Out</div>
+              )}
+              {event.status === 'filling_fast' && (
+                <div className="sticker-badge bg-orange-500 border-none text-white font-black animate-pulse flex items-center gap-1"><Sparkles className="h-4 w-4" /> Filling Fast</div>
               )}
             </div>
             

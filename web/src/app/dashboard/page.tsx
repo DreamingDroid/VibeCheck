@@ -620,7 +620,10 @@ export default function Dashboard() {
                   {featuredEvent.is_paid ? "Paid Entry" : "Free Entry"}
                 </div>
                 {featuredEvent.status === 'housefull' && (
-                  <div className="sticker-badge bg-red-500 border-none text-white font-black animate-pulse">Housefull</div>
+                  <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] animate-pulse">Sold Out</div>
+                )}
+                {featuredEvent.status === 'filling_fast' && (
+                  <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] animate-pulse flex items-center gap-1"><Sparkles className="h-3 w-3" /> Filling Fast</div>
                 )}
                 <div className="sticker-badge bg-primary/10 border-none text-primary flex items-center gap-1.5 font-black">
                   <Users className="h-3 w-3" />
@@ -666,7 +669,12 @@ export default function Dashboard() {
                      </div>
                      {ev.status === 'housefull' && (
                        <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] animate-pulse">
-                         Housefull
+                         Sold Out
+                       </div>
+                     )}
+                     {ev.status === 'filling_fast' && (
+                       <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] animate-pulse flex items-center gap-1">
+                         <Sparkles className="h-3 w-3" /> Filling Fast
                        </div>
                      )}
                    </div>

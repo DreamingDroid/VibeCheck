@@ -31,7 +31,7 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
         1 - (embedding <=> $1::vector) AS similarity,
         CASE WHEN city ILIKE $2 THEN 0 ELSE 1 END AS city_rank
       FROM events
-      WHERE (status = 'approved' OR status = 'housefull' OR status IS NULL)
+      WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)
       ORDER BY city_rank ASC, embedding <=> $1::vector ASC
       LIMIT 8;
       `,
@@ -53,7 +53,7 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
         is_paid,
         1 - (embedding <=> $1::vector) AS similarity
       FROM events
-      WHERE (status = 'approved' OR status = 'housefull' OR status IS NULL)
+      WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)
       ORDER BY embedding <=> $1::vector
       LIMIT 8;
       `,
@@ -68,7 +68,7 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
       SELECT id, title, description, location, city, date_time, category, organizer_email, google_maps_link, status, participant_limit, is_paid, image_url, image_public_id,
              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count
       FROM events
-      WHERE (status = 'approved' OR status = 'housefull' OR status IS NULL)
+      WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)
     `;
     const queryParams: any[] = [];
     let paramIndex = 1;
@@ -103,7 +103,7 @@ export async function getEventById(pool: Pool, id: string) {
               (SELECT description FROM admins WHERE email = events.organizer_email) as organizer_description,
               (SELECT rating FROM admins WHERE email = events.organizer_email) as organizer_rating,
               (SELECT COUNT(*)::int FROM organizer_followers WHERE organizer_email = events.organizer_email) as organizer_followers_count
-       FROM events WHERE id = $1 AND (status = 'approved' OR status = 'housefull' OR status IS NULL)`,
+       FROM events WHERE id = $1 AND (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)`,
       [id]
     );
     return rows[0] || null;
@@ -353,7 +353,7 @@ export async function getEventsInNext7Days(pool: Pool, city?: string) {
       SELECT id, title, description, location, city, date_time, category, status, participant_limit, is_paid,
              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count
       FROM events
-      WHERE (status = 'approved' OR status = 'housefull' OR status IS NULL)
+      WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)
         AND date_time >= NOW() - INTERVAL '6 hours'
         AND date_time <= NOW() + INTERVAL '7 days'
     `;
@@ -368,3 +368,22 @@ export async function getEventsInNext7Days(pool: Pool, city?: string) {
     return rows;
 }
 
+export async function updateEventStatusByOrganizer(pool: Pool, id: string, organizerEmail: string, newStatus: string) {
+    const { rows } = await pool.query(
+      `SELECT status FROM events WHERE id = $1 AND organizer_email = $2`,
+      [id, organizerEmail]
+    );
+    if (rows.length === 0) return null;
+    const currentStatus = rows[0].status;
+    
+    // Only allow changes if event is already in an approved-like state
+    if (!['approved', 'housefull', 'filling_fast'].includes(currentStatus)) {
+        return { success: false, error: 'Event is not in a live status state.' };
+    }
+    
+    await pool.query(
+      `UPDATE events SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+      [newStatus, id]
+    );
+    return { success: true, status: newStatus };
+}

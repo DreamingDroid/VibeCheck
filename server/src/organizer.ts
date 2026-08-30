@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { sendWhatsAppMessage } from './whatsapp';
-import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull } from './queries/events';
+import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull, updateEventStatusByOrganizer } from './queries/events';
 import { getSystemSetting, getOrganizerDashboardAnalytics } from './queries/analytics';
 import { config } from './config';
 import { getChatModel } from './rag';
@@ -250,6 +250,27 @@ export async function organizerToggleHousefullHandler(req: Request, res: Respons
     res.json({ success: true, status: result.status, message: `Event status updated to ${result.status}.` });
   } catch (error) {
     console.error('Error toggling housefull:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function organizerUpdateStatusHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  const { organizer_email, status } = req.body;
+
+  if (!organizer_email || !status) return res.status(400).json({ success: false, error: 'Missing parameters' });
+
+  try {
+    const result = await updateEventStatusByOrganizer(pool, id as string, organizer_email, status);
+    if (!result) {
+      return res.status(404).json({ success: false, error: 'Event not found or unauthorized' });
+    }
+    if (result.success === false) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+    res.json({ success: true, status: result.status, message: `Event status updated to ${result.status}.` });
+  } catch (error) {
+    console.error('Error updating status:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
