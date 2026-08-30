@@ -11,6 +11,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle, Users, Star } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useSwipeToClose } from "@/hooks/useSwipeToClose";
 
 export default function EventDetailsPage() {
   const params = useParams();
@@ -24,6 +25,8 @@ export default function EventDetailsPage() {
   const [showOrganizerModal, setShowOrganizerModal] = useState(false);
   const [userHasPhone, setUserHasPhone] = useState(false);
   const { isVibrant } = useTheme();
+
+  const swipeRef = useSwipeToClose(() => setShowOrganizerModal(false));
 
   useEffect(() => {
     if (status === "loading") return;
@@ -247,7 +250,7 @@ export default function EventDetailsPage() {
             <button 
               onClick={handleRSVP}
               disabled={rsvped || isHousefull}
-              className={`ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all rounded-[20px] ${
+              className={`ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] ${
                 isHousefull
                 ? 'bg-red-500 text-white cursor-not-allowed hover:bg-red-600'
                 : rsvped 
@@ -263,7 +266,7 @@ export default function EventDetailsPage() {
             
             <button 
               onClick={handleDownloadICS}
-              className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 border-2 border-black/5 hover:bg-black/5 rounded-[20px]"
+              className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 border-2 border-black/5 hover:bg-black/5 active:scale-95 transition-transform rounded-[20px]"
             >
               <CalendarPlus className="h-5 w-5" />
               ADD TO CALENDAR
@@ -357,7 +360,8 @@ export default function EventDetailsPage() {
       </div>
 
       <Dialog open={showOrganizerModal} onOpenChange={setShowOrganizerModal}>
-        <DialogContent className="sm:max-w-md rounded-[32px] p-8 border-none shadow-2xl">
+        <DialogContent ref={swipeRef} className="sm:max-w-md rounded-[32px] p-8 border-none shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mb-4 md:hidden" />
           <DialogHeader>
             <DialogTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-center">Organizer Details</DialogTitle>
           </DialogHeader>

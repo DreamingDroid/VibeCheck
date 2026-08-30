@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import { isSameDay, startOfDay, isBefore, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, format, isToday } from "date-fns";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "";
 
@@ -45,7 +46,7 @@ type VibeEvent = {
 export default function Dashboard() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
-  const { currentCity, events, isLoadingEvents: loading, selectedCategory } = useCity();
+  const { currentCity, events, isLoadingEvents: loading, selectedCategory, refreshEvents } = useCity();
   const { isVibrant } = useTheme();
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
   const [following, setFollowing] = useState<string[]>([]);
@@ -56,6 +57,18 @@ export default function Dashboard() {
   const [calendarViewMode, setCalendarViewMode] = useState<'month' | 'week'>('month');
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [dashboardNews, setDashboardNews] = useState<any[]>([]);
+
+  const { isPulling, pullDistance, isRefreshing } = usePullToRefresh(async () => {
+    await refreshEvents();
+    if (currentCity) {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      try {
+        const res = await fetch(`${baseUrl}/api/news?city=${encodeURIComponent(currentCity)}`);
+        const json = await res.json();
+        if (json.success && json.data) setDashboardNews(json.data.slice(0, 4));
+      } catch (err) {}
+    }
+  });
 
   useEffect(() => {
     if (searchParams?.get('view') === 'calendar') {
@@ -246,7 +259,21 @@ export default function Dashboard() {
   const otherEvents = displayEvents.slice(1);
 
   return (
-    <main className={`w-full ${showCalendarView ? 'pb-6 space-y-4' : 'pb-12 space-y-12'}`}>
+    <main className={`w-full ${showCalendarView ? 'pb-6' : 'pb-12'}`}>
+      {/* Pull to refresh indicator */}
+      <div 
+        className="w-full flex items-center justify-center overflow-hidden transition-all duration-200 bg-zinc-50"
+        style={{ height: isRefreshing || isPulling ? `${pullDistance}px` : '0px' }}
+      >
+        <div className={`flex flex-col items-center justify-center transition-opacity duration-200 ${isPulling || isRefreshing ? 'opacity-100' : 'opacity-0'}`}>
+          <div className={`w-6 h-6 border-2 border-primary border-t-transparent rounded-full ${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: isRefreshing ? 'none' : `rotate(${pullDistance * 3}deg)` }} />
+          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mt-2">
+            {isRefreshing ? 'Refreshing Vibes...' : 'Pull to refresh'}
+          </span>
+        </div>
+      </div>
+
+      <div className={showCalendarView ? 'space-y-4' : 'space-y-12'}>
       {/* Local Currents RSS Ticker at the top */}
       {dashboardNews.length > 0 && (
         <div className="w-full bg-black text-white py-4 border-b-4 border-primary overflow-hidden relative shadow-lg">
@@ -274,7 +301,7 @@ export default function Dashboard() {
       {!showCalendarView && !selectedDate && !isCategoryEmpty && (
         <button
           onClick={() => setForceCalendarOpen(true)}
-          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-black text-white h-14 w-14 hover:w-48 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:bg-primary hover:text-black hover:scale-105 transition-all duration-300 ease-in-out border border-white/20 group overflow-hidden"
+          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-black text-white h-14 w-14 hover:w-48 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:bg-primary hover:text-black hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out border border-white/20 group overflow-hidden"
           title="View Calendar"
         >
           <div className="flex items-center justify-center whitespace-nowrap">
@@ -539,7 +566,7 @@ export default function Dashboard() {
               setSelectedDate(undefined);
               setForceCalendarOpen(true);
             }}
-            className="flex items-center gap-2 text-xs font-black uppercase tracking-widest bg-zinc-100 hover:bg-zinc-200 text-black px-4 py-2 rounded-full transition-colors"
+            className="flex items-center gap-2 text-xs font-black uppercase tracking-widest bg-zinc-100 hover:bg-zinc-200 active:scale-95 text-black px-4 py-2 rounded-full transition-all"
           >
             <ChevronLeft className="h-4 w-4" />
             Back to Calendar
@@ -621,7 +648,7 @@ export default function Dashboard() {
             <div 
               key={ev.id} 
               className={`
-                ringer-card p-0 group flex flex-col relative overflow-hidden
+                ringer-card p-0 group flex flex-col relative overflow-hidden active:scale-[0.98] transition-transform
                 ${isLarge ? 'md:col-span-6 lg:col-span-8' : 'md:col-span-3 lg:col-span-4'}
                 ${isVibrant ? `${getCategoryCardClass(ev.category)} vibe-hover-lift` : ''}
               `}
@@ -729,11 +756,14 @@ export default function Dashboard() {
              </p>
            </div>
            <div className="flex gap-4">
-              <button onClick={handleJoinWhatsApp} className="ringer-button bg-primary text-black">PING VIBECHECK</button>
-              <button onClick={handleSharePlatform} className="ringer-button border border-white/20 hover:bg-white/10">SHARE PLATFORM</button>
+              <button onClick={handleJoinWhatsApp} className="ringer-button bg-primary text-black active:scale-95 transition-transform">PING VIBECHECK</button>
+              <button onClick={handleSharePlatform} className="ringer-button border border-white/20 hover:bg-white/10 active:scale-95 transition-transform">SHARE PLATFORM</button>
            </div>
         </section>
       )}
+
+      {/* End of space-y wrapper */}
+      </div>
 
       {session?.user?.email && (
         <PhoneVerificationModal

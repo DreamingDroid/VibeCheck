@@ -155,3 +155,38 @@ CREATE TABLE IF NOT EXISTS organizer_followers (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_email, organizer_email)
 );
+
+-- 9. Broadcasts
+CREATE TABLE IF NOT EXISTS broadcasts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    type VARCHAR(50) NOT NULL,                   -- general_update | event_reminder | emergency_alert | agenda_shift | event_rescheduled | event_cancellation
+    scope VARCHAR(50) NOT NULL,                  -- global | city | event | category
+    target_city VARCHAR(100),
+    target_event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+    target_category VARCHAR(100),
+    sender_email VARCHAR(255) NOT NULL,
+    sender_role VARCHAR(50) DEFAULT 'admin',     -- admin | organizer
+    recipient_count INTEGER DEFAULT 0,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 10. User In-App Notifications
+CREATE TABLE IF NOT EXISTS user_notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    broadcast_id UUID REFERENCES broadcasts(id) ON DELETE CASCADE,
+    user_email VARCHAR(255) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    is_read BOOLEAN DEFAULT false,
+    link TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_notifications_email_created ON user_notifications (user_email, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_notifications_unread ON user_notifications (user_email, is_read);
+

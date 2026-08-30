@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useSwipeToClose } from "@/hooks/useSwipeToClose";
 
 interface PhoneVerificationModalProps {
   isOpen: boolean;
@@ -32,6 +33,8 @@ export function PhoneVerificationModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [lastFailedPhone, setLastFailedPhone] = useState("");
+
+  const swipeRef = useSwipeToClose(onClose);
 
   const handleSendCode = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
@@ -94,7 +97,8 @@ export function PhoneVerificationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent showCloseButton={false} className="top-6 sm:top-12 translate-y-0 sm:max-w-md bg-white/95 backdrop-blur-2xl border-black/5 text-black rounded-[40px] shadow-2xl p-8 fixed">
+      <DialogContent ref={swipeRef} showCloseButton={false} className="top-6 sm:top-12 translate-y-0 sm:max-w-md bg-white/95 backdrop-blur-2xl border-black/5 text-black rounded-[40px] shadow-2xl p-8 fixed max-h-[90vh] overflow-y-auto">
+        <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mb-4 md:hidden" />
         <button
           onClick={onClose}
           className="absolute top-6 right-6 p-2 rounded-full hover:bg-black/5 transition-all text-zinc-400 hover:text-black z-10"
