@@ -2,41 +2,49 @@ import { Pool } from 'pg';
 
 export async function getWebUserByEmail(pool: Pool, email: string) {
   const { rows } = await pool.query(
-    `SELECT email, name, categories, phone_number, city FROM web_users WHERE email = $1`,
+    `SELECT email, name, categories, phone_number, city, profession, age_group FROM web_users WHERE email = $1`,
     [email]
   );
   return rows[0] || null;
 }
 
-export async function upsertWebUser(pool: Pool, email: string, name: string | null, categories: any[], phone_number: string | null, city: string | null) {
+export async function upsertWebUser(pool: Pool, email: string, name: string | null, categories: any[], phone_number: string | null, city: string | null, profession: string | null, age_group: string | null) {
   await pool.query(
-    `INSERT INTO web_users (email, name, categories, phone_number, city)
-     VALUES ($1, $2, $3::jsonb, $4, $5)
+    `INSERT INTO web_users (email, name, categories, phone_number, city, profession, age_group)
+     VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7)
      ON CONFLICT (email) DO UPDATE
      SET name       = EXCLUDED.name,
          categories = EXCLUDED.categories,
          phone_number = COALESCE(EXCLUDED.phone_number, web_users.phone_number),
          city       = EXCLUDED.city,
+         profession = EXCLUDED.profession,
+         age_group  = EXCLUDED.age_group,
          updated_at = CURRENT_TIMESTAMP`,
-    [email, name, JSON.stringify(categories), phone_number, city]
+    [email, name, JSON.stringify(categories), phone_number, city, profession, age_group]
   );
 }
 
-export async function upsertUserPreferencesFromWeb(pool: Pool, phone_number: string, name: string | null, categories: any[], city: string | null) {
+export async function upsertUserPreferencesFromWeb(pool: Pool, phone_number: string, name: string | null, categories: any[], city: string | null, profession: string | null, age_group: string | null) {
   await pool.query(
     `INSERT INTO users (phone_number, name, preferences)
-     VALUES ($1, $2, jsonb_build_object('categories', $3::jsonb, 'city', $4::text))
+     VALUES ($1, $2, jsonb_build_object('categories', $3::jsonb, 'city', $4::text, 'profession', $5::text, 'age_group', $6::text))
      ON CONFLICT (phone_number) DO UPDATE
      SET name = EXCLUDED.name,
          preferences = jsonb_set(
            jsonb_set(
-             COALESCE(users.preferences, '{}'::jsonb),
-             '{categories}', $3::jsonb
+             jsonb_set(
+               jsonb_set(
+                 COALESCE(users.preferences, '{}'::jsonb),
+                 '{categories}', $3::jsonb
+               ),
+               '{city}', to_jsonb($4::text)
+             ),
+             '{profession}', to_jsonb($5::text)
            ),
-           '{city}', to_jsonb($4::text)
+           '{age_group}', to_jsonb($6::text)
          ),
          updated_at = CURRENT_TIMESTAMP`,
-    [phone_number, name, JSON.stringify(categories), city]
+    [phone_number, name, JSON.stringify(categories), city, profession, age_group]
   );
 }
 

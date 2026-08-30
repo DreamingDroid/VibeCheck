@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS web_users (
     categories JSONB DEFAULT '[]'::jsonb,       -- toggled interest categories
     phone_number VARCHAR(255) UNIQUE,            -- optional: links to users table for WhatsApp
     city VARCHAR(100),                           -- user's city for geo-filtering
+    profession VARCHAR(100),
+    age_group VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
