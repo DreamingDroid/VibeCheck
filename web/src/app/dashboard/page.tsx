@@ -14,7 +14,7 @@ import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Us
 import { toast } from "sonner";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
-import { isSameDay, startOfDay, isBefore, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, format, isToday } from "date-fns";
+import { isSameDay, startOfDay, isBefore, isAfter, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, format, isToday } from "date-fns";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "";
@@ -57,6 +57,12 @@ function DashboardContent() {
   const [calendarViewMode, setCalendarViewMode] = useState<'month' | 'week'>('month');
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [dashboardNews, setDashboardNews] = useState<any[]>([]);
+
+  const todayDate = new Date();
+  const minWeekStart = startOfWeek(todayDate, { weekStartsOn: 1 });
+  const maxWeekStart = startOfWeek(new Date(todayDate.getFullYear(), 11, 31), { weekStartsOn: 1 });
+  const canGoPrevWeek = isAfter(startOfDay(currentWeekStart), startOfDay(minWeekStart));
+  const canGoNextWeek = isBefore(startOfDay(currentWeekStart), startOfDay(maxWeekStart));
 
   const { isPulling, pullDistance, isRefreshing } = usePullToRefresh(async () => {
     await refreshEvents();
@@ -440,38 +446,58 @@ function DashboardContent() {
             ) : (
               /* Week View */
               <div className="relative z-10 w-full space-y-4">
-                {/* Week View Header / Navigation */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-3 border-b border-black/5">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setCurrentWeekStart(prev => subWeeks(prev, 1))}
-                      className="h-8 w-8 sm:h-9 sm:w-9 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[1px] hover:translate-x-[1px]"
-                      title="Previous Week"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <span className="text-sm sm:text-base md:text-lg font-black uppercase tracking-tight italic">
-                      {format(currentWeekStart, "MMM d")} – {format(endOfWeek(currentWeekStart, { weekStartsOn: 1 }), "MMM d, yyyy")}
-                    </span>
-                    <button
-                      onClick={() => setCurrentWeekStart(prev => addWeeks(prev, 1))}
-                      className="h-8 w-8 sm:h-9 sm:w-9 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[1px] hover:translate-x-[1px]"
-                      title="Next Week"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const today = new Date();
-                      setCurrentWeekStart(startOfWeek(today, { weekStartsOn: 1 }));
-                      setSelectedDate(today);
-                    }}
-                    className="ringer-button bg-zinc-100 hover:bg-zinc-200 text-black text-[10px] py-1 px-3 border border-black/10"
-                  >
-                    TODAY
-                  </button>
-                </div>
+                    {/* Week View Header / Navigation */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-3 border-b border-black/5">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            if (canGoPrevWeek) {
+                              setCurrentWeekStart(prev => subWeeks(prev, 1));
+                            }
+                          }}
+                          disabled={!canGoPrevWeek}
+                          className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full border-2 border-black flex items-center justify-center transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
+                            !canGoPrevWeek
+                              ? "opacity-30 cursor-not-allowed pointer-events-none shadow-none"
+                              : "hover:bg-black hover:text-white hover:shadow-none hover:translate-y-[1px] hover:translate-x-[1px]"
+                          }`}
+                          title="Previous Week"
+                          aria-disabled={!canGoPrevWeek}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        <span className="text-sm sm:text-base md:text-lg font-black uppercase tracking-tight italic">
+                          {format(currentWeekStart, "MMM d")} – {format(endOfWeek(currentWeekStart, { weekStartsOn: 1 }), "MMM d, yyyy")}
+                        </span>
+                        <button
+                          onClick={() => {
+                            if (canGoNextWeek) {
+                              setCurrentWeekStart(prev => addWeeks(prev, 1));
+                            }
+                          }}
+                          disabled={!canGoNextWeek}
+                          className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full border-2 border-black flex items-center justify-center transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
+                            !canGoNextWeek
+                              ? "opacity-30 cursor-not-allowed pointer-events-none shadow-none"
+                              : "hover:bg-black hover:text-white hover:shadow-none hover:translate-y-[1px] hover:translate-x-[1px]"
+                          }`}
+                          title="Next Week"
+                          aria-disabled={!canGoNextWeek}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const today = new Date();
+                          setCurrentWeekStart(startOfWeek(today, { weekStartsOn: 1 }));
+                          setSelectedDate(today);
+                        }}
+                        className="ringer-button bg-zinc-100 hover:bg-zinc-200 text-black text-[10px] py-1 px-3 border border-black/10"
+                      >
+                        TODAY
+                      </button>
+                    </div>
 
                 {/* 7 Day Columns Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
