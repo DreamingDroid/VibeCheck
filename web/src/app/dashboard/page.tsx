@@ -338,11 +338,11 @@ function DashboardContent() {
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black italic tracking-tighter uppercase leading-none">
               {isCategoryEmpty ? "No Upcoming Vibes" : "Plan Your Vibes"}
             </h2>
-            <p className="text-zinc-500 font-medium text-xs sm:text-sm max-w-lg mx-auto">
-              {isCategoryEmpty 
-                ? "Explore past and upcoming events this month."
-                : "Select a date or browse the weekly schedule to see what's happening."}
-            </p>
+            {!isCategoryEmpty && (
+              <p className="text-zinc-500 font-medium text-xs sm:text-sm max-w-lg mx-auto">
+                Select a date or browse the weekly schedule to see what's happening.
+              </p>
+            )}
 
             {/* View Mode Toggle: Month vs Week */}
             <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-full border border-black/5 shadow-inner mt-2">
