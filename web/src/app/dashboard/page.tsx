@@ -319,15 +319,15 @@ function DashboardContent() {
       {/* Local Currents RSS Feed Banner at the top */}
       {dashboardNews.length > 0 && activeNews && (
         <div 
-          className="w-full bg-black text-white py-3.5 md:py-4 border-b-4 border-primary overflow-hidden relative shadow-lg select-none"
+          className="w-full bg-white/70 backdrop-blur-md border-b border-primary/20 bg-gradient-to-r from-emerald-500/5 via-primary/10 to-teal-500/5 text-zinc-900 py-3 md:py-3.5 overflow-hidden relative shadow-[0_4px_20px_rgba(0,0,0,0.03)] select-none transition-colors"
           onMouseEnter={() => setIsTickerHovered(true)}
           onMouseLeave={() => setIsTickerHovered(false)}
         >
-          <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
-          <div className="absolute right-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-center min-h-[28px] overflow-hidden">
+          <div className="absolute left-0 top-0 bottom-0 w-3 md:w-8 bg-gradient-to-r from-background/90 via-background/40 to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-3 md:w-8 bg-gradient-to-l from-background/90 via-background/40 to-transparent z-10 pointer-events-none" />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-center min-h-[28px] min-w-0 w-full overflow-hidden">
             <div
-              className={`transition-all duration-400 ease-in-out transform ${
+              className={`w-full max-w-full min-w-0 flex items-center justify-center transition-all duration-400 ease-in-out transform ${
                 fadeState === "fading-out"
                   ? "opacity-0 -translate-y-2.5 scale-[0.98] blur-[0.5px]"
                   : "opacity-100 translate-y-0 scale-100 blur-0"
@@ -336,12 +336,12 @@ function DashboardContent() {
               <Link 
                 key={`${activeNews.id}-${currentNewsIndex}`} 
                 href={`/local-currents?id=${activeNews.id}`} 
-                className="inline-flex items-center justify-center gap-2 md:gap-3 group hover:text-primary transition-colors text-center animate-in fade-in slide-in-from-bottom-2.5 duration-500 ease-out max-w-full"
+                className="flex items-center justify-center gap-2 md:gap-3 group hover:text-primary transition-colors text-center animate-in fade-in slide-in-from-bottom-2.5 duration-500 ease-out max-w-full min-w-0"
               >
                 <span className="sticker-badge bg-primary text-black text-[10px] font-black uppercase py-0.5 px-2.5 shrink-0 border-none shadow-sm">
                   {activeNews.category}
                 </span>
-                <span className="font-black italic tracking-widest uppercase text-xs md:text-sm group-hover:underline truncate">
+                <span className="font-black italic tracking-widest uppercase text-xs md:text-sm text-zinc-800 group-hover:text-primary group-hover:underline transition-colors truncate min-w-0 text-left sm:text-center">
                   {activeNews.title}
                 </span>
                 <Sparkles className="h-4 w-4 text-primary ml-1 shrink-0 hidden sm:block transition-transform group-hover:scale-125" />

@@ -178,10 +178,6 @@ export function GlobalHeader() {
         });
 
       fetchUnreadCount();
-
-      // Poll for unread notifications every 10 seconds to ensure the badge updates automatically
-      const interval = setInterval(fetchUnreadCount, 10000);
-      return () => clearInterval(interval);
     }
   }, [session]);
 
