@@ -16,6 +16,7 @@ import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import { isSameDay, startOfDay, isBefore, isAfter, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, format, isToday } from "date-fns";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { siteConfig } from "@/config/site";
 
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "";
 
@@ -57,6 +58,9 @@ function DashboardContent() {
   const [calendarViewMode, setCalendarViewMode] = useState<'month' | 'week'>('month');
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [dashboardNews, setDashboardNews] = useState<any[]>([]);
+  const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
+  const [fadeState, setFadeState] = useState<"visible" | "fading-out">("visible");
+  const [isTickerHovered, setIsTickerHovered] = useState(false);
 
   const todayDate = new Date();
   const minWeekStart = startOfWeek(todayDate, { weekStartsOn: 1 });
@@ -71,7 +75,11 @@ function DashboardContent() {
       try {
         const res = await fetch(`${baseUrl}/api/news?city=${encodeURIComponent(currentCity)}`);
         const json = await res.json();
-        if (json.success && json.data) setDashboardNews(json.data.slice(0, 4));
+        if (json.success && json.data) {
+          setDashboardNews(json.data.slice(0, 4));
+          setCurrentNewsIndex(0);
+          setFadeState("visible");
+        }
       } catch (err) {}
     }
   });
@@ -104,11 +112,38 @@ function DashboardContent() {
         .then(res => {
           if (res.success && res.data) {
             setDashboardNews(res.data.slice(0, 4));
+            setCurrentNewsIndex(0);
+            setFadeState("visible");
           }
         })
         .catch(err => console.error("Could not fetch news", err));
     }
   }, [currentCity]);
+
+  useEffect(() => {
+    if (dashboardNews.length <= 1) return;
+    if (isTickerHovered && siteConfig.pauseTickerOnHover) return;
+
+    const durationSeconds = siteConfig.rssItemDurationSeconds ?? siteConfig.rssTickerSpeedSeconds ?? 3;
+    const totalMs = Math.max(1, durationSeconds) * 1000;
+    const fadeOutMs = 400;
+    const visibleMs = Math.max(400, totalMs - fadeOutMs);
+
+    let switchTimeout: NodeJS.Timeout;
+    const fadeTimeout = setTimeout(() => {
+      setFadeState("fading-out");
+
+      switchTimeout = setTimeout(() => {
+        setCurrentNewsIndex((prev) => (prev + 1) % dashboardNews.length);
+        setFadeState("visible");
+      }, fadeOutMs);
+    }, visibleMs);
+
+    return () => {
+      clearTimeout(fadeTimeout);
+      if (switchTimeout) clearTimeout(switchTimeout);
+    };
+  }, [dashboardNews.length, currentNewsIndex, isTickerHovered]);
 
   const handleJoinWhatsApp = () => {
     if (!session?.user?.email) {
@@ -263,6 +298,7 @@ function DashboardContent() {
   
   const featuredEvent = displayEvents[0];
   const otherEvents = displayEvents.slice(1);
+  const activeNews = dashboardNews.length > 0 ? dashboardNews[currentNewsIndex % dashboardNews.length] : null;
 
   return (
     <main className={`w-full ${showCalendarView ? 'pb-6' : 'pb-12'}`}>
@@ -280,23 +316,37 @@ function DashboardContent() {
       </div>
 
       <div className={showCalendarView ? 'space-y-4' : 'space-y-12'}>
-      {/* Local Currents RSS Ticker at the top */}
-      {dashboardNews.length > 0 && (
-        <div className="w-full bg-black text-white py-4 border-b-4 border-primary overflow-hidden relative shadow-lg">
-          <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-black to-transparent z-10" />
-          <div className="absolute right-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-l from-black to-transparent z-10" />
-          <div className="flex animate-marquee gap-8 md:gap-16 items-center whitespace-nowrap px-4">
-             {[...dashboardNews, ...dashboardNews, ...dashboardNews].map((news, idx) => (
-                <Link key={`${news.id}-${idx}`} href={`/local-currents?id=${news.id}`} className="flex items-center gap-2 group hover:text-primary transition-colors">
-                  <span className="sticker-badge bg-primary text-black text-[10px] font-black uppercase py-0.5 px-2 border-none">
-                    {news.category}
-                  </span>
-                  <span className="font-black italic tracking-widest uppercase text-xs md:text-sm group-hover:underline">
-                    {news.title}
-                  </span>
-                  <Sparkles className="h-4 w-4 text-primary ml-2 hidden md:block" />
-                </Link>
-             ))}
+      {/* Local Currents RSS Feed Banner at the top */}
+      {dashboardNews.length > 0 && activeNews && (
+        <div 
+          className="w-full bg-black text-white py-3.5 md:py-4 border-b-4 border-primary overflow-hidden relative shadow-lg select-none"
+          onMouseEnter={() => setIsTickerHovered(true)}
+          onMouseLeave={() => setIsTickerHovered(false)}
+        >
+          <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-center min-h-[28px] overflow-hidden">
+            <div
+              className={`transition-all duration-400 ease-in-out transform ${
+                fadeState === "fading-out"
+                  ? "opacity-0 -translate-y-2.5 scale-[0.98] blur-[0.5px]"
+                  : "opacity-100 translate-y-0 scale-100 blur-0"
+              }`}
+            >
+              <Link 
+                key={`${activeNews.id}-${currentNewsIndex}`} 
+                href={`/local-currents?id=${activeNews.id}`} 
+                className="inline-flex items-center justify-center gap-2 md:gap-3 group hover:text-primary transition-colors text-center animate-in fade-in slide-in-from-bottom-2.5 duration-500 ease-out max-w-full"
+              >
+                <span className="sticker-badge bg-primary text-black text-[10px] font-black uppercase py-0.5 px-2.5 shrink-0 border-none shadow-sm">
+                  {activeNews.category}
+                </span>
+                <span className="font-black italic tracking-widest uppercase text-xs md:text-sm group-hover:underline truncate">
+                  {activeNews.title}
+                </span>
+                <Sparkles className="h-4 w-4 text-primary ml-1 shrink-0 hidden sm:block transition-transform group-hover:scale-125" />
+              </Link>
+            </div>
           </div>
         </div>
       )}
