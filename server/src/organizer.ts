@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { sendWhatsAppMessage } from './whatsapp';
-import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull, updateEventStatusByOrganizer } from './queries/events';
+import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull, updateEventStatusByOrganizer, issueOrganizerEventPass, cancelOrganizerEventRSVP } from './queries/events';
 import { getSystemSetting, getOrganizerDashboardAnalytics } from './queries/analytics';
 import { config } from './config';
 import { getChatModel } from './rag';
@@ -344,6 +344,54 @@ export async function organizerGetDashboardAnalyticsHandler(req: Request, res: R
     res.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching organizer dashboard analytics:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function organizerIssuePassHandler(req: Request, res: Response, pool: Pool) {
+  const { id, rsvpId } = req.params;
+  const { email } = req.body;
+
+  if (!email) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+  try {
+    const eventCheck = await getEventByOrganizer(pool, id as string);
+    if (!eventCheck || eventCheck.organizer_email !== email) {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
+
+    const updated = await issueOrganizerEventPass(pool, id as string, rsvpId);
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'RSVP not found' });
+    }
+
+    res.json({ success: true, data: updated, message: 'Attendee pass issued successfully!' });
+  } catch (error) {
+    console.error('Issue pass error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function organizerCancelRsvpHandler(req: Request, res: Response, pool: Pool) {
+  const { id, rsvpId } = req.params;
+  const { email } = req.body;
+
+  if (!email) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+  try {
+    const eventCheck = await getEventByOrganizer(pool, id as string);
+    if (!eventCheck || eventCheck.organizer_email !== email) {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
+
+    const updated = await cancelOrganizerEventRSVP(pool, id as string, rsvpId);
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'RSVP not found' });
+    }
+
+    res.json({ success: true, data: updated, message: 'RSVP cancelled successfully.' });
+  } catch (error) {
+    console.error('Cancel RSVP error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

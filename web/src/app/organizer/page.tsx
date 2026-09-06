@@ -305,11 +305,60 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
               <h4 className="text-black font-black uppercase tracking-tighter italic mb-4">Guestlist ({rsvps.length})</h4>
               <ul className="divide-y divide-black/5 bg-white rounded-3xl border border-black/5 overflow-hidden">
                 {rsvps.map((r, i) => (
-                  <li key={i} className="text-sm p-4 px-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 hover:bg-zinc-50 transition-colors">
-                    <span className="text-black font-bold">
-                      {r.name || 'Anonymous Guest'}
-                    </span>
-                    <span className="text-zinc-300 text-[10px] font-black uppercase tracking-widest">{new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                  <li key={i} className="text-sm p-4 px-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 hover:bg-zinc-50 transition-colors">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-black font-bold">
+                          {r.name || 'Anonymous Guest'}
+                        </span>
+                        {r.status === 'confirmed' ? (
+                          <span className="sticker-badge bg-primary/10 text-primary border-primary/20 text-[9px] font-black">
+                            ✓ Pass Issued {r.pass_code ? `(#${r.pass_code})` : ''}
+                          </span>
+                        ) : (
+                          <span className="sticker-badge bg-amber-500/10 text-amber-600 border-amber-500/20 text-[9px] font-black">
+                            ⏳ Pending Payment
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-zinc-400 text-[10px] font-medium mt-0.5">
+                        {r.user_email ? r.user_email : ''} {r.contact_phone && r.contact_phone !== 'Not provided' ? `• 📞 ${r.contact_phone}` : ''}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-zinc-300 text-[10px] font-black uppercase tracking-widest">
+                        {new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      
+                      {r.status === 'pending' && (
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+                              const res = await fetch(`${baseUrl}/api/organizer/events/${eventId}/rsvps/${r.id}/issue-pass`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ email: organizerEmail })
+                              });
+                              const data = await res.json();
+                              if (data.success) {
+                                toast.success(data.message || "Attendee pass issued!");
+                                setRsvps(prev => prev.map(item => item.id === r.id ? { ...item, status: 'confirmed', payment_status: 'paid', pass_code: data.data?.pass_code } : item));
+                              } else {
+                                toast.error(data.error || "Failed to issue pass");
+                              }
+                            } catch (err) {
+                              toast.error("Error issuing pass");
+                            }
+                          }}
+                          className="ringer-button bg-primary text-black hover:bg-primary/90 text-[10px] font-black uppercase py-1.5 px-3.5 rounded-full cursor-pointer shadow-xs"
+                        >
+                          Mark Paid &amp; Issue Pass
+                        </button>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>

@@ -109,19 +109,35 @@ export async function getEventById(pool: Pool, id: string) {
     return rows[0] || null;
 }
 
-export async function insertEventRSVPEmail(pool: Pool, eventId: string, email: string) {
-    await pool.query(`
-      INSERT INTO event_rsvps (event_id, user_email)
-      VALUES ($1, $2)
-      ON CONFLICT (event_id, user_email) DO NOTHING;
-    `, [eventId, email]);
+export async function insertEventRSVPEmail(pool: Pool, eventId: string, email: string, isPaid: boolean = false, phoneNumber?: string) {
+    const status = isPaid ? 'pending' : 'confirmed';
+    const paymentStatus = isPaid ? 'unpaid' : 'paid';
+    const passCode = !isPaid ? `VB-${Math.floor(100000 + Math.random() * 900000)}` : null;
+
+    const { rows } = await pool.query(`
+      INSERT INTO event_rsvps (event_id, user_email, phone_number, status, payment_status, pass_code)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (event_id, user_email) 
+      DO UPDATE SET status = EXCLUDED.status, payment_status = EXCLUDED.payment_status
+      RETURNING id, event_id, user_email, phone_number, status, payment_status, pass_code;
+    `, [eventId, email, phoneNumber || null, status, paymentStatus, passCode]);
+
+    return rows[0];
 }
 
 export async function checkEventRSVPEmail(pool: Pool, eventId: string, email: string) {
     const { rows } = await pool.query(`
-      SELECT 1 FROM event_rsvps WHERE event_id = $1 AND user_email = $2
+      SELECT id, status, payment_status, pass_code FROM event_rsvps WHERE event_id = $1 AND user_email = $2
     `, [eventId, email]);
-    return rows.length > 0;
+    if (rows.length === 0) {
+      return { rsvped: false, status: null, payment_status: null, pass_code: null };
+    }
+    return {
+      rsvped: true,
+      status: rows[0].status || 'confirmed',
+      payment_status: rows[0].payment_status || 'unpaid',
+      pass_code: rows[0].pass_code
+    };
 }
 
 export async function getEventByOrganizer(pool: Pool, eventId: string) {
@@ -152,7 +168,9 @@ export async function getEventsByOrganizerEmail(pool: Pool, email: string) {
 
 export async function getOrganizerEventRSVPs(pool: Pool, eventId: string) {
     const { rows } = await pool.query(
-      `SELECT er.created_at, COALESCE(u.name, 'Anonymous Guest') as name 
+      `SELECT er.id, er.user_email, er.phone_number, er.status, er.payment_status, er.pass_code, er.created_at, 
+              COALESCE(u.name, 'Anonymous Guest') as name,
+              COALESCE(er.phone_number, u.phone_number, 'Not provided') as contact_phone
        FROM event_rsvps er 
        LEFT JOIN web_users u ON er.user_email = u.email 
        WHERE er.event_id = $1 
@@ -160,6 +178,29 @@ export async function getOrganizerEventRSVPs(pool: Pool, eventId: string) {
       [eventId]
     );
     return rows;
+}
+
+export async function issueOrganizerEventPass(pool: Pool, eventId: string, rsvpId: string | number) {
+    const passCode = `VB-${Math.floor(100000 + Math.random() * 900000)}`;
+    const { rows } = await pool.query(
+      `UPDATE event_rsvps 
+       SET status = 'confirmed', payment_status = 'paid', pass_code = COALESCE(pass_code, $1) 
+       WHERE event_id = $2 AND id = $3 
+       RETURNING *`,
+      [passCode, eventId, rsvpId]
+    );
+    return rows[0] || null;
+}
+
+export async function cancelOrganizerEventRSVP(pool: Pool, eventId: string, rsvpId: string | number) {
+    const { rows } = await pool.query(
+      `UPDATE event_rsvps 
+       SET status = 'cancelled' 
+       WHERE event_id = $1 AND id = $2 
+       RETURNING *`,
+      [eventId, rsvpId]
+    );
+    return rows[0] || null;
 }
 
 export async function getOrganizerEventAnalytics(pool: Pool, eventId: string) {

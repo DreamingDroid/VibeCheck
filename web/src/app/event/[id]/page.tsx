@@ -6,9 +6,10 @@ import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
+import { AttendeeBriefingModal } from "@/components/AttendeeBriefingModal";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
 import { useTheme } from "@/context/ThemeContext";
-import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle, Users, Star, Sparkles } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle, Users, Star, Sparkles, Ticket, Clock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSwipeToClose } from "@/hooks/useSwipeToClose";
@@ -20,9 +21,12 @@ export default function EventDetailsPage() {
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [rsvped, setRsvped] = useState(false);
+  const [rsvpStatus, setRsvpStatus] = useState<'pending' | 'confirmed' | null>(null);
+  const [passCode, setPassCode] = useState<string | null>(null);
   const [device, setDevice] = useState<'desktop' | 'ios' | 'android'>('desktop');
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showOrganizerModal, setShowOrganizerModal] = useState(false);
+  const [showBriefingModal, setShowBriefingModal] = useState(false);
   const [userHasPhone, setUserHasPhone] = useState(false);
   const { isVibrant } = useTheme();
 
@@ -52,7 +56,8 @@ export default function EventDetailsPage() {
       .then(r => r.json())
       .then(res => {
         if (res.success) {
-          setEvent(res.data);
+          const eventData = res.data;
+          setEvent(eventData);
           if (session?.user?.email) {
             const baseUrlInner = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
             fetch(`${baseUrlInner}/api/events/${params.id}/rsvp/check?email=${encodeURIComponent(session.user.email)}`)
@@ -60,6 +65,8 @@ export default function EventDetailsPage() {
               .then(d => {
                 if (d.success && d.rsvped) {
                   setRsvped(true);
+                  setRsvpStatus(d.rsvp_status || (eventData?.is_paid ? 'pending' : 'confirmed'));
+                  setPassCode(d.pass_code || null);
                 }
               })
               .finally(() => setLoading(false));
@@ -108,12 +115,12 @@ export default function EventDetailsPage() {
     window.open(gcalUrl, '_blank');
   };
 
-  const handleRSVP = async () => {
+  const handleRSVP = async (skipPhoneCheck: boolean = false) => {
     if (!session?.user?.email) {
       signIn("google");
       return;
     }
-    if (!userHasPhone) {
+    if (!skipPhoneCheck && !userHasPhone) {
       setShowPhoneModal(true);
       return;
     }
@@ -128,6 +135,15 @@ export default function EventDetailsPage() {
       const data = await res.json();
       if (data.success) {
         setRsvped(true);
+        const resolvedStatus = data.rsvp_status || (event?.is_paid ? 'pending' : 'confirmed');
+        setRsvpStatus(resolvedStatus);
+        setPassCode(data.pass_code || null);
+        setShowBriefingModal(true);
+        if (event?.is_paid) {
+          toast.success("Registration received! Pass pending payment with organizer.");
+        } else {
+          toast.success("RSVP confirmed! Free pass issued.");
+        }
         // Refresh event data to update rsvp_count
         const refreshedEventRes = await fetch(`${baseUrl}/api/events/${params.id}`);
         const refreshedEvent = await refreshedEventRes.json();
@@ -196,7 +212,7 @@ export default function EventDetailsPage() {
           onVerified={() => {
             setUserHasPhone(true);
             setShowPhoneModal(false);
-            handleRSVP();
+            handleRSVP(true);
           }}
           email={session.user.email}
         />
@@ -251,26 +267,60 @@ export default function EventDetailsPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 pt-6">
-            <button 
-              onClick={handleRSVP}
-              disabled={rsvped || isHousefull}
-              className={`ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] ${
-                isHousefull
-                ? 'bg-red-500 text-white cursor-not-allowed hover:bg-red-600'
-                : rsvped 
-                  ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed' 
-                  : isVibrant 
-                    ? 'bg-black text-white hover:bg-zinc-800 vibe-shimmer'
-                    : 'bg-black text-white hover:bg-zinc-800'
-              }`}
-            >
-              {rsvped ? <CheckCircle2 className="h-5 w-5" /> : null}
-              {isHousefull ? "HOUSEFULL" : rsvped ? "ALREADY IN" : "RSVP TO EVENT"}
-            </button>
+            {rsvped ? (
+              rsvpStatus === 'pending' ? (
+                <button 
+                  onClick={() => setShowBriefingModal(true)}
+                  className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] bg-amber-500 text-black hover:bg-amber-400 shadow-md cursor-pointer"
+                >
+                  <Clock className="h-5 w-5" />
+                  PAYMENT PENDING • VIEW BRIEFING
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setShowBriefingModal(true)}
+                  className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] bg-primary text-black hover:bg-primary/90 shadow-md cursor-pointer"
+                >
+                  <Ticket className="h-5 w-5" />
+                  VIEW CONFIRMED PASS &amp; BRIEFING
+                </button>
+              )
+            ) : (
+              isHousefull ? (
+                <button 
+                  disabled
+                  className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 rounded-[20px] bg-red-500 text-white cursor-not-allowed shadow-none"
+                >
+                  HOUSEFULL / SOLD OUT
+                </button>
+              ) : event.is_paid ? (
+                <button 
+                  onClick={() => handleRSVP()}
+                  className={`ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] ${
+                    isVibrant 
+                      ? 'bg-black text-white hover:bg-zinc-800 vibe-shimmer cursor-pointer'
+                      : 'bg-black text-white hover:bg-zinc-800 cursor-pointer'
+                  }`}
+                >
+                  RSVP &amp; REQUEST PASS
+                </button>
+              ) : (
+                <button 
+                  onClick={() => handleRSVP()}
+                  className={`ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] ${
+                    isVibrant 
+                      ? 'bg-black text-white hover:bg-zinc-800 vibe-shimmer cursor-pointer'
+                      : 'bg-black text-white hover:bg-zinc-800 cursor-pointer'
+                  }`}
+                >
+                  RSVP FOR FREE ENTRY
+                </button>
+              )
+            )}
             
             <button 
               onClick={handleDownloadICS}
-              className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 border-2 border-black/5 hover:bg-black/5 active:scale-95 transition-transform rounded-[20px]"
+              className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 border-2 border-black/5 hover:bg-black/5 active:scale-95 transition-transform rounded-[20px] cursor-pointer"
             >
               <CalendarPlus className="h-5 w-5" />
               ADD TO CALENDAR
@@ -281,6 +331,42 @@ export default function EventDetailsPage() {
         {/* Right Side: Meta Info Box */}
         <div className="w-full md:w-80 bg-zinc-50 border-t md:border-t-0 md:border-l border-black/5 p-6 sm:p-12 space-y-8 sm:space-y-12">
            <div className="space-y-6">
+              {rsvped && (
+                rsvpStatus === 'pending' ? (
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-700">
+                      <Clock className="h-4 w-4" />
+                      <span>Registration Received</span>
+                    </div>
+                    <p className="text-xs text-amber-900/80 font-bold leading-snug">
+                      Pass pending payment with organizer.
+                    </p>
+                    <button
+                      onClick={() => setShowBriefingModal(true)}
+                      className="text-xs font-black uppercase tracking-wider text-black underline underline-offset-4 hover:text-amber-700 transition-colors block pt-1 cursor-pointer"
+                    >
+                      Contact Organizer &amp; View Guide →
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 space-y-2">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>Pass Confirmed!</span>
+                    </div>
+                    <p className="text-xs text-zinc-600 font-bold leading-snug">
+                      {passCode ? `Pass #${passCode} is active.` : "Your spot is locked in."} Access schedule &amp; venue details anytime.
+                    </p>
+                    <button
+                      onClick={() => setShowBriefingModal(true)}
+                      className="text-xs font-black uppercase tracking-wider text-black underline underline-offset-4 hover:text-primary transition-colors block pt-1 cursor-pointer"
+                    >
+                      Open Confirmed Pass →
+                    </button>
+                  </div>
+                )
+              )}
+
               <div className="space-y-1">
                  <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Date & Time</div>
                  <div className="flex items-center gap-2 text-black font-black">
@@ -410,6 +496,16 @@ export default function EventDetailsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AttendeeBriefingModal
+        isOpen={showBriefingModal}
+        onClose={() => setShowBriefingModal(false)}
+        event={event}
+        rsvpStatus={rsvpStatus || (event?.is_paid ? 'pending' : 'confirmed')}
+        passCode={passCode || undefined}
+        onDownloadICS={handleDownloadICS}
+        onShare={handleShare}
+      />
 
     </div>
     </>

@@ -57,17 +57,24 @@ export async function rsvpEventHandler(req: Request, res: Response, pool: Pool) 
       return res.status(404).json({ success: false, error: 'Event not found' });
     }
 
+    // Capacity check: applies to BOTH paid and free events
     if (event.status === 'housefull') {
       return res.status(400).json({ success: false, error: 'This event is housefull' });
     }
 
     if (event.participant_limit && event.rsvp_count >= event.participant_limit) {
-      return res.status(400).json({ success: false, error: 'This event is full' });
+      return res.status(400).json({ success: false, error: 'This event is housefull' });
     }
 
-    await insertEventRSVPEmail(pool, id as string, email as string);
+    const rsvp = await insertEventRSVPEmail(pool, id as string, email as string, !!event.is_paid);
 
-    return res.json({ success: true, message: 'RSVP confirmed' });
+    return res.json({ 
+      success: true, 
+      message: event.is_paid ? 'Registration received. Pass pending payment.' : 'RSVP confirmed. Pass issued.',
+      rsvp_status: rsvp.status,
+      payment_status: rsvp.payment_status,
+      pass_code: rsvp.pass_code
+    });
   } catch (error) {
     console.error('Error handling RSVP:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
@@ -79,11 +86,17 @@ export async function checkRsvpHandler(req: Request, res: Response, pool: Pool) 
     const { id } = req.params;
     const { email } = req.query;
     if (!email || typeof email !== 'string') {
-      return res.json({ success: true, rsvped: false });
+      return res.json({ success: true, rsvped: false, rsvp_status: null, payment_status: null, pass_code: null });
     }
 
-    const rsvped = await checkEventRSVPEmail(pool, id as string, email as string);
-    return res.json({ success: true, rsvped });
+    const checkResult = await checkEventRSVPEmail(pool, id as string, email as string);
+    return res.json({ 
+      success: true, 
+      rsvped: checkResult.rsvped,
+      rsvp_status: checkResult.status,
+      payment_status: checkResult.payment_status,
+      pass_code: checkResult.pass_code
+    });
   } catch (error) {
     console.error('Error checking RSVP:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });

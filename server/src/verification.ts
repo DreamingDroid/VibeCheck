@@ -95,6 +95,18 @@ export async function verifyPhoneNumberHandler(req: Request, res: Response, pool
   const cachedValue = verificationCache.get(formattedPhone);
 
   if (!cachedValue) {
+    // If the phone number is already linked to this user's email, treat as verified
+    try {
+      const alreadyLinked = await pool.query(
+        'SELECT email FROM web_users WHERE phone_number = $1 AND email = $2',
+        [formattedPhone, email]
+      );
+      if (alreadyLinked.rows.length > 0) {
+        return res.json({ success: true, message: 'Phone number already verified and linked' });
+      }
+    } catch (e) {
+      console.error('Error checking already linked user on verify:', e);
+    }
     return res.status(400).json({ success: false, error: 'No verification code found for this number' });
   }
 

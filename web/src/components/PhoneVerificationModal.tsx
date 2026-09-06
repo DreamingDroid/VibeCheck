@@ -84,6 +84,9 @@ export function PhoneVerificationModal({
       });
       const data = await res.json();
       if (data.success) {
+        setError("");
+        setVerificationCode("");
+        setStep("phone");
         onVerified();
       } else {
         setError(data.error || "Invalid verification code");
