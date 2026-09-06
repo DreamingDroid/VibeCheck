@@ -360,7 +360,7 @@ export async function organizerIssuePassHandler(req: Request, res: Response, poo
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
 
-    const updated = await issueOrganizerEventPass(pool, id as string, rsvpId);
+    const updated = await issueOrganizerEventPass(pool, id as string, rsvpId as string);
     if (!updated) {
       return res.status(404).json({ success: false, error: 'RSVP not found' });
     }
@@ -384,7 +384,7 @@ export async function organizerCancelRsvpHandler(req: Request, res: Response, po
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
 
-    const updated = await cancelOrganizerEventRSVP(pool, id as string, rsvpId);
+    const updated = await cancelOrganizerEventRSVP(pool, id as string, rsvpId as string);
     if (!updated) {
       return res.status(404).json({ success: false, error: 'RSVP not found' });
     }

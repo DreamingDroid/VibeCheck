@@ -22,7 +22,7 @@ import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHan
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
 import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler, organizerGetEventAnalyticsHandler, organizerToggleHousefullHandler, organizerUpdateStatusHandler, organizerGetCrmContactsHandler, organizerUpsertCrmNotesHandler, organizerCrmBroadcastHandler, organizerGetDashboardAnalyticsHandler, organizerIssuePassHandler, organizerCancelRsvpHandler } from './organizer';
 import { getCitiesHandler } from './cities';
-import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingOrganizersHandler, adminApproveOrganizerHandler, adminRejectOrganizerHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminGetEventsByStatusHandler, adminAddCityHandler, adminDeleteCityHandler, adminGetAdminsHandler, adminAddAdminHandler, adminRemoveAdminHandler } from './admin';
+import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingOrganizersHandler, adminApproveOrganizerHandler, adminRejectOrganizerHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminGetEventsByStatusHandler, adminAddCityHandler, adminDeleteCityHandler, adminGetAdminsHandler, adminAddAdminHandler, adminRemoveAdminHandler, adminSearchHandler, adminAttendeeDetailsHandler, adminOrganizerDetailsHandler, adminEventDetailsHandler } from './admin';
 import { startPushAlertCron, runMatchmakerJob } from './cron';
 import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verification';
 import { followOrganizerHandler, unfollowOrganizerHandler, getUserFollowingHandler, getOrganizerFollowersHandler } from './followers';
@@ -259,6 +259,10 @@ app.post('/api/apply/submit', (req, res) => submitApplicationHandler(req, res, p
 
 // Admin API
 app.get('/api/admin/check', (req, res) => checkAdminHandler(req, res, pool));
+app.get('/api/admin/search', (req, res) => adminSearchHandler(req, res, pool));
+app.get('/api/admin/search/attendee-details', (req, res) => adminAttendeeDetailsHandler(req, res, pool));
+app.get('/api/admin/search/organizer-details', (req, res) => adminOrganizerDetailsHandler(req, res, pool));
+app.get('/api/admin/search/event-details', (req, res) => adminEventDetailsHandler(req, res, pool));
 app.get('/api/admin/events', (req, res) => adminGetEventsHandler(req, res, pool));
 app.get('/api/admin/events/:id/rsvps', (req, res) => adminGetEventRsvpsHandler(req, res, pool));
 app.post('/api/admin/events', (req, res) => adminCreateEventHandler(req, res, pool));

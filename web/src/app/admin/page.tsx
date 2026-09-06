@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Users, Calendar, ShieldCheck, ListChecks, CheckCircle2, XCircle, Sparkles, MapPin } from "lucide-react";
+import { Users, Calendar, ShieldCheck, ListChecks, CheckCircle2, XCircle, Sparkles, MapPin, Search, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 // Joyful Ringer-style Palette
@@ -153,6 +154,8 @@ function EventRequestsSummaryCard() {
 }
 
 export default function AdminPage() {
+  const router = useRouter();
+  const [quickSearch, setQuickSearch] = useState("");
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [cronEnabled, setCronEnabled] = useState(false);
@@ -160,6 +163,15 @@ export default function AdminPage() {
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
   const [updatingWhatsapp, setUpdatingWhatsapp] = useState(false);
   const [eventsList, setEventsList] = useState<any[]>([]);
+
+  const handleQuickSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (quickSearch.trim()) {
+      router.push(`/admin/search?q=${encodeURIComponent(quickSearch.trim())}`);
+    } else {
+      router.push(`/admin/search`);
+    }
+  };
 
   useEffect(() => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -284,6 +296,34 @@ export default function AdminPage() {
            </div>
         </div>
       </div>
+
+      {/* QUICK DATABASE SEARCH BANNER */}
+      <form onSubmit={handleQuickSearch} className="ringer-card bg-white p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-black/10">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="h-10 w-10 rounded-2xl bg-black text-white flex items-center justify-center shrink-0">
+            <Search className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="text-sm font-black uppercase italic tracking-tight text-black">Database Explorer</div>
+            <div className="text-xs text-zinc-400 font-medium">Instantly search Organizers, Attendees, and Events</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-1 sm:max-w-md">
+          <div className="relative flex-1">
+            <Input
+              type="text"
+              value={quickSearch}
+              onChange={(e) => setQuickSearch(e.target.value)}
+              placeholder="Search by keyword, email, city, title..."
+              className="rounded-xl bg-zinc-50 border-black/10 text-xs font-semibold pr-8"
+            />
+          </div>
+          <Button type="submit" className="rounded-xl bg-black text-white hover:bg-zinc-800 text-xs font-black uppercase tracking-wider shrink-0 gap-1.5">
+            Search <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </form>
 
       {/* High impact Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

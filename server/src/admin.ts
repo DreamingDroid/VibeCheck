@@ -7,6 +7,7 @@ import { config } from './config';
 const resend = new Resend(config.RESEND_API_KEY);
 import { getAllEvents, createEvent, updateEvent, deleteEvent, getPendingEvents, updateEventStatus, getEventsByStatus, getAdminEventRSVPs, addCity, deleteCity } from './queries/events';
 import { initSystemSettings, getSystemSetting, getAnalyticsOverview, getEventsByCategoryStats, getPreferredCategoriesStats, toggleCronSetting } from './queries/analytics';
+import { searchOrganizers, searchAttendees, searchEvents, searchGlobal, getAttendeeDeepDetails, getOrganizerDeepDetails, getEventDeepDetails } from './queries/search';
 import { deleteImage } from './cloudinary';
 
 // Check if an email belongs to an admin
@@ -363,3 +364,139 @@ export async function adminRemoveAdminHandler(req: Request, res: Response, pool:
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
+
+// --- UNIVERSAL DATABASE SEARCH & EXPLORER ---
+
+export async function adminSearchHandler(req: Request, res: Response, pool: Pool) {
+  const { 
+    q, 
+    type = 'all', 
+    status, 
+    platform, 
+    city, 
+    category, 
+    isPaid, 
+    timeframe, 
+    organizerEmail, 
+    hasRsvps,
+    sortBy, 
+    sortOrder, 
+    limit = '50', 
+    offset = '0' 
+  } = req.query;
+
+  const parsedLimit = Math.min(Math.max(parseInt(limit as string, 10) || 50, 1), 200);
+  const parsedOffset = Math.max(parseInt(offset as string, 10) || 0, 0);
+  const queryStr = typeof q === 'string' ? q : '';
+
+  try {
+    if (type === 'all') {
+      const results = await searchGlobal(pool, queryStr, parsedLimit);
+      return res.json({ success: true, ...results });
+    }
+
+    if (type === 'organizers') {
+      const results = await searchOrganizers(pool, {
+        q: queryStr,
+        status: typeof status === 'string' ? status : undefined,
+        sortBy: typeof sortBy === 'string' ? sortBy : undefined,
+        sortOrder: sortOrder === 'ASC' || sortOrder === 'asc' ? 'ASC' : 'DESC',
+        limit: parsedLimit,
+        offset: parsedOffset
+      });
+      return res.json({ success: true, ...results });
+    }
+
+    if (type === 'attendees') {
+      const results = await searchAttendees(pool, {
+        q: queryStr,
+        platform: platform as any,
+        city: typeof city === 'string' ? city : undefined,
+        category: typeof category === 'string' ? category : undefined,
+        hasRsvps: hasRsvps === 'true',
+        sortBy: typeof sortBy === 'string' ? sortBy : undefined,
+        sortOrder: sortOrder === 'ASC' || sortOrder === 'asc' ? 'ASC' : 'DESC',
+        limit: parsedLimit,
+        offset: parsedOffset
+      });
+      return res.json({ success: true, ...results });
+    }
+
+    if (type === 'events') {
+      const results = await searchEvents(pool, {
+        q: queryStr,
+        category: typeof category === 'string' ? category : undefined,
+        status: typeof status === 'string' ? status : undefined,
+        city: typeof city === 'string' ? city : undefined,
+        isPaid: typeof isPaid === 'string' ? isPaid : undefined,
+        timeframe: typeof timeframe === 'string' ? timeframe : undefined,
+        organizerEmail: typeof organizerEmail === 'string' ? organizerEmail : undefined,
+        sortBy: typeof sortBy === 'string' ? sortBy : undefined,
+        sortOrder: sortOrder === 'ASC' || sortOrder === 'asc' ? 'ASC' : 'DESC',
+        limit: parsedLimit,
+        offset: parsedOffset
+      });
+      return res.json({ success: true, ...results });
+    }
+
+    return res.status(400).json({ success: false, error: 'Invalid search type. Expected all, organizers, attendees, or events.' });
+  } catch (error) {
+    console.error('Admin search error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error during search' });
+  }
+}
+
+export async function adminAttendeeDetailsHandler(req: Request, res: Response, pool: Pool) {
+  const { email, phone } = req.query;
+  if (!email && !phone) {
+    return res.status(400).json({ success: false, error: 'email or phone query parameter is required' });
+  }
+
+  try {
+    const details = await getAttendeeDeepDetails(pool, email as string | undefined, phone as string | undefined);
+    if (!details) {
+      return res.status(404).json({ success: false, error: 'Attendee not found' });
+    }
+    res.json({ success: true, data: details });
+  } catch (error) {
+    console.error('Admin attendee details error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function adminOrganizerDetailsHandler(req: Request, res: Response, pool: Pool) {
+  const { email } = req.query;
+  if (!email) {
+    return res.status(400).json({ success: false, error: 'email query parameter is required' });
+  }
+
+  try {
+    const details = await getOrganizerDeepDetails(pool, email as string);
+    if (!details) {
+      return res.status(404).json({ success: false, error: 'Organizer not found' });
+    }
+    res.json({ success: true, data: details });
+  } catch (error) {
+    console.error('Admin organizer details error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function adminEventDetailsHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.query;
+  if (!id) {
+    return res.status(400).json({ success: false, error: 'id query parameter is required' });
+  }
+
+  try {
+    const details = await getEventDeepDetails(pool, id as string);
+    if (!details) {
+      return res.status(404).json({ success: false, error: 'Event not found' });
+    }
+    res.json({ success: true, data: details });
+  } catch (error) {
+    console.error('Admin event details error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
