@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useSession, signOut, signIn } from "next-auth/react"
 import { usePathname, useRouter } from "next/navigation"
 import { useCity } from "@/context/CityContext"
-import { 
+import {
   ChevronDown, MapPin, Search, Music, Mic2, Tv,
   Trophy, Palette, BookOpen, Compass, Heart,
   Activity, Wine, Smile, Briefcase, Sparkles, Bell,
@@ -76,7 +76,7 @@ export function GlobalHeader() {
   const { theme, toggleTheme, isVibrant } = useTheme()
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const { 
+  const {
     currentCity, setCity, supportedCities, isLoading,
     selectedCategory, setSelectedCategory, activeCategories, events
   } = useCity()
@@ -138,7 +138,7 @@ export function GlobalHeader() {
           setUnreadCount(data.count || 0);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   };
 
   const fetchNotificationsList = (filter = notificationFilter) => {
@@ -217,9 +217,9 @@ export function GlobalHeader() {
             duration: type === "emergency_alert" ? 10000 : 6000,
             action: link
               ? {
-                  label: "View",
-                  onClick: () => router.push(link),
-                }
+                label: "View",
+                onClick: () => router.push(link),
+              }
               : undefined,
           }
         );
@@ -345,14 +345,17 @@ export function GlobalHeader() {
           {/* Logo & City */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-1.5 sm:gap-2">
-              <img src="/logo.png" alt="VibeCheck Logo" className="h-5 w-5 sm:h-6 sm:w-6 rounded-lg shrink-0 object-contain" />
-              <span className="text-lg sm:text-xl vibecheck_font_style">VIBECHECK</span>
+              <img src="/logo.png" alt="VibeCheck Space Logo" className="h-5 w-5 sm:h-6 sm:w-6 rounded-lg shrink-0 object-contain" />
+              <div className="flex flex-col items-end leading-none">
+                <span className="text-lg sm:text-xl vibecheck_font_style leading-none">VIBECHECK</span>
+                <span className="text-xs sm:text-[13px] vibecheck_font_style not-italic -skew-x-[12deg] text-primary leading-none tracking-tight inline-block origin-right scale-x-[1.25] scale-y-[0.82] pr-0 -mt-1 sm:-mt-1.5">SPACE</span>
+              </div>
             </Link>
 
             <div className="h-4 w-[1px] bg-black/10 mx-1 sm:mx-2" />
 
             <div className="relative" ref={cityMenuRef}>
-              <button 
+              <button
                 onClick={() => setShowCityMenu(!showCityMenu)}
                 disabled={isLoading}
                 className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 hover:bg-black/5 rounded-full transition-all text-[10px] sm:text-[11px] font-bold tracking-tight text-zinc-600 hover:text-black disabled:opacity-50 uppercase"
@@ -373,11 +376,10 @@ export function GlobalHeader() {
                             setCity(cityObj.name);
                             setShowCityMenu(false);
                           }}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                            cityObj.name === currentCity 
-                              ? 'bg-primary/10 text-primary' 
+                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${cityObj.name === currentCity
+                              ? 'bg-primary/10 text-primary'
                               : 'text-zinc-500 hover:bg-black/5 hover:text-black'
-                          }`}
+                            }`}
                         >
                           {cityObj.name}
                         </button>
@@ -395,7 +397,7 @@ export function GlobalHeader() {
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Search className="h-4 w-4 text-zinc-400 group-focus-within:text-primary transition-colors" />
               </div>
-              <input 
+              <input
                 type="text"
                 placeholder="Discover your next vibe"
                 className="block w-full pl-11 pr-4 py-2 bg-zinc-100/50 border-none rounded-full text-xs font-medium focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all placeholder:text-zinc-500"
@@ -449,7 +451,7 @@ export function GlobalHeader() {
                 <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                   {/* Notification Center Bell */}
                   <div className="relative mr-1" ref={notificationsRef}>
-                    <button 
+                    <button
                       onClick={() => setShowNotifications(!showNotifications)}
                       className="relative p-2 hover:bg-black/5 rounded-full transition-all text-zinc-600 hover:text-black flex items-center justify-center shrink-0"
                       title="Notifications"
@@ -491,11 +493,10 @@ export function GlobalHeader() {
                               <button
                                 key={tab}
                                 onClick={() => setNotificationFilter(tab)}
-                                className={`flex-1 py-1 rounded-lg uppercase tracking-wider transition-all ${
-                                  notificationFilter === tab
+                                className={`flex-1 py-1 rounded-lg uppercase tracking-wider transition-all ${notificationFilter === tab
                                     ? "bg-white text-black shadow-xs font-black"
                                     : "text-zinc-500 hover:text-black"
-                                }`}
+                                  }`}
                               >
                                 {tab}
                               </button>
@@ -558,15 +559,13 @@ export function GlobalHeader() {
                                   <div
                                     key={notif.id}
                                     onClick={() => handleNotificationClick(notif)}
-                                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative flex items-start gap-3 group hover:scale-[1.01] ${
-                                      notif.is_read
+                                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative flex items-start gap-3 group hover:scale-[1.01] ${notif.is_read
                                         ? "bg-zinc-50/50 border-black/5 hover:bg-zinc-100/60 opacity-80"
                                         : `${typeCfg.cardBg} border-black/10 hover:border-black/20 shadow-xs`
-                                    } ${
-                                      notif.type === "emergency_alert" && !notif.is_read
+                                      } ${notif.type === "emergency_alert" && !notif.is_read
                                         ? "border-red-300 ring-1 ring-red-400/30"
                                         : ""
-                                    }`}
+                                      }`}
                                   >
                                     <span className="text-xl shrink-0 p-1 bg-white rounded-xl shadow-xs border border-black/5">
                                       {typeCfg.icon}
@@ -604,8 +603,8 @@ export function GlobalHeader() {
                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 leading-none mb-1">Authenticated</span>
                     <span className="text-xs font-bold text-black leading-none truncate max-w-[80px] lg:max-w-[120px]">{session.user?.name}</span>
                   </div>
-                  <button 
-                    onClick={handleSignOut} 
+                  <button
+                    onClick={handleSignOut}
                     disabled={isSigningOut}
                     className="hidden lg:block ringer-button bg-black text-white text-[10px] sm:text-[11px] hover:bg-zinc-800 h-9 sm:h-10 px-3 sm:px-4 shrink-0"
                   >
@@ -615,7 +614,7 @@ export function GlobalHeader() {
               </>
             ) : (
               pathname !== "/" && (
-                <button 
+                <button
                   onClick={() => signIn("google")}
                   className="hidden md:flex ringer-button bg-primary text-white text-[11px] h-10 px-8 items-center shadow-lg hover:scale-105 active:scale-95 transition-all"
                 >
@@ -637,26 +636,25 @@ export function GlobalHeader() {
         {/* Category Pills Bar */}
         {pathname === "/dashboard" && events.length > 0 && (
           <div className="max-w-7xl mx-auto h-12 flex items-center border-t border-black/5 overflow-x-auto no-scrollbar gap-2 py-1 snap-x snap-mandatory px-4 sm:px-6 scroll-pl-4 sm:scroll-pl-6 after:content-[''] after:w-px after:shrink-0">
-             {categories.map((cat, i) => {
-               const isActive = selectedCategory === cat.name;
-               const vibrantActiveClass = isVibrant && isActive
-                 ? (VIBRANT_PILL_COLORS[cat.name] || 'bg-black text-white') + ' border-transparent'
-                 : '';
-               return (
-                 <button 
-                   key={cat.name}
-                   onClick={() => setSelectedCategory(cat.name)}
-                   className={`sticker-badge flex items-center gap-1.5 whitespace-nowrap h-8 px-4 transition-all snap-start ${
-                     isActive 
-                       ? (isVibrant ? vibrantActiveClass : 'bg-black text-white border-transparent')
-                       : 'bg-white hover:bg-zinc-100 text-zinc-600 hover:text-black border-black/10'
-                   }`}
-                 >
-                   {cat.icon}
-                   {cat.name}
-                 </button>
-               );
-             })}
+            {categories.map((cat, i) => {
+              const isActive = selectedCategory === cat.name;
+              const vibrantActiveClass = isVibrant && isActive
+                ? (VIBRANT_PILL_COLORS[cat.name] || 'bg-black text-white') + ' border-transparent'
+                : '';
+              return (
+                <button
+                  key={cat.name}
+                  onClick={() => setSelectedCategory(cat.name)}
+                  className={`sticker-badge flex items-center gap-1.5 whitespace-nowrap h-8 px-4 transition-all snap-start ${isActive
+                      ? (isVibrant ? vibrantActiveClass : 'bg-black text-white border-transparent')
+                      : 'bg-white hover:bg-zinc-100 text-zinc-600 hover:text-black border-black/10'
+                    }`}
+                >
+                  {cat.icon}
+                  {cat.name}
+                </button>
+              );
+            })}
           </div>
         )}
       </header>
@@ -671,7 +669,7 @@ export function GlobalHeader() {
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Search className="h-4 w-4 text-zinc-400" />
               </div>
-              <input 
+              <input
                 type="text"
                 placeholder="Discover your next vibe"
                 className="block w-full pl-11 pr-4 py-3 bg-zinc-100/50 border-none rounded-full text-xs font-bold focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all placeholder:text-zinc-500 text-black"
@@ -726,7 +724,7 @@ export function GlobalHeader() {
                       <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Signed in as</p>
                       <p className="text-xs font-bold text-black mt-0.5 truncate">{session.user?.name}</p>
                     </div>
-                    
+
                     <button
                       onClick={() => { handleSignOut(); setIsMobileMenuOpen(false); }}
                       disabled={isSigningOut}
@@ -752,13 +750,12 @@ export function GlobalHeader() {
       {/* Themed Notification Pop-up Modal */}
       {selectedNotification && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
-          <div 
-            className="fixed inset-0" 
-            onClick={() => setSelectedNotification(null)} 
+          <div
+            className="fixed inset-0"
+            onClick={() => setSelectedNotification(null)}
           />
-          <div 
-            className={`relative z-10 w-full max-w-lg bg-white rounded-[32px] overflow-hidden shadow-2xl border-4 transition-all animate-in zoom-in-95 duration-200 ${
-              selectedNotification.type === 'pending'
+          <div
+            className={`relative z-10 w-full max-w-lg bg-white rounded-[32px] overflow-hidden shadow-2xl border-4 transition-all animate-in zoom-in-95 duration-200 ${selectedNotification.type === 'pending'
                 ? 'border-amber-400'
                 : selectedNotification.type === 'rejected'
                   ? 'border-red-500'
@@ -775,12 +772,11 @@ export function GlobalHeader() {
                             : selectedNotification.type === 'event_cancellation'
                               ? 'border-rose-500'
                               : 'border-blue-500'
-            }`}
+              }`}
           >
             {/* Modal Themed Header */}
-            <div 
-              className={`p-6 sm:p-8 flex items-start justify-between border-b ${
-                selectedNotification.type === 'pending'
+            <div
+              className={`p-6 sm:p-8 flex items-start justify-between border-b ${selectedNotification.type === 'pending'
                   ? 'bg-gradient-to-br from-amber-500/20 via-amber-50 to-white border-amber-200 text-amber-950'
                   : selectedNotification.type === 'rejected'
                     ? 'bg-gradient-to-br from-red-500/20 via-red-50 to-white border-red-200 text-red-950'
@@ -797,15 +793,14 @@ export function GlobalHeader() {
                               : selectedNotification.type === 'event_cancellation'
                                 ? 'bg-gradient-to-br from-rose-500/20 via-rose-50 to-white border-rose-200 text-rose-950'
                                 : 'bg-gradient-to-br from-blue-500/20 via-blue-50 to-white border-blue-200 text-blue-950'
-              }`}
+                }`}
             >
               <div className="flex items-center gap-3">
 
                 <div>
                   <div className="flex items-center gap-2">
-                    <span 
-                      className={`sticker-badge text-[9px] font-black uppercase py-0.5 px-2 border-none ${
-                        selectedNotification.type === 'pending'
+                    <span
+                      className={`sticker-badge text-[9px] font-black uppercase py-0.5 px-2 border-none ${selectedNotification.type === 'pending'
                           ? 'bg-amber-500 text-black'
                           : selectedNotification.type === 'rejected'
                             ? 'bg-red-600 text-white'
@@ -822,7 +817,7 @@ export function GlobalHeader() {
                                       : selectedNotification.type === 'event_cancellation'
                                         ? 'bg-rose-600 text-white'
                                         : 'bg-blue-600 text-white'
-                      }`}
+                        }`}
                     >
                       {selectedNotification.badge}
                     </span>
