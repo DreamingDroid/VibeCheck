@@ -179,7 +179,7 @@ export function GlobalHeader() {
 
       fetchUnreadCount();
     }
-  }, [session]);
+  }, [session?.user?.email]);
 
   // Firebase Cloud Messaging Real-Time Registration & Foreground Listener
   useEffect(() => {

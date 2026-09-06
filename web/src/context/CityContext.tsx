@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
 
 export interface City {
   id: number;
@@ -122,9 +122,9 @@ export function CityProvider({ children }: { children: ReactNode }) {
   };
 
   // Get active categories dynamically from current events list
-  const activeCategories = Array.from(
-    new Set(events.map((e) => e.category))
-  ).filter(Boolean);
+  const activeCategories = useMemo(() => {
+    return Array.from(new Set(events.map((e) => e.category))).filter(Boolean);
+  }, [events]);
 
   return (
     <CityContext.Provider

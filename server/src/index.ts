@@ -81,9 +81,11 @@ app.use((req, res, next) => {
 });
 
 // Rate Limiting for API routes
+const isDev = appEnv === 'local' || appEnv === 'development' || process.env.NODE_ENV !== 'production';
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // Limit each IP to 300 requests per 15 mins
+  max: isDev ? 10000 : 2000, // Generous limit for local/dev, 2000 for production
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Too many requests, please try again later.' }
