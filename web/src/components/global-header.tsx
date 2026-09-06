@@ -348,7 +348,7 @@ export function GlobalHeader() {
               <img src="/logo.png" alt="VibeCheck Space Logo" className="h-5 w-5 sm:h-6 sm:w-6 rounded-lg shrink-0 object-contain" />
               <div className="flex flex-col items-end leading-none">
                 <span className="text-lg sm:text-xl vibecheck_font_style leading-none">VIBECHECK</span>
-                <span className="text-xs sm:text-[13px] vibecheck_font_style not-italic -skew-x-[12deg] text-primary leading-none tracking-tight inline-block origin-right scale-x-[1.25] scale-y-[0.82] pr-0 -mt-1 sm:-mt-1.5">SPACE</span>
+                <span className="text-xs sm:text-[13px] vibecheck_font_style not-italic -skew-x-[13.5deg] text-primary leading-none tracking-tight inline-block origin-right scale-x-[1.25] scale-y-[0.82] pr-0 -mt-1 sm:-mt-1.5">SPACE</span>
               </div>
             </Link>
 

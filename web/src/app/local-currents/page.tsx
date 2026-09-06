@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   Search, SlidersHorizontal, BookOpen, Clock, Calendar, User, 
-  ArrowRight, X, Sparkles, Plus, Edit2, Trash2, ArrowLeft, Heart, Share2 
+  ArrowRight, X, Sparkles, Plus, Edit2, Trash2, ArrowLeft, Heart, Share2, ChevronDown 
 } from "lucide-react";
 import { toast } from "sonner";
 import { vibeConfirm } from "@/components/vibe-confirm";
@@ -481,49 +481,49 @@ export default function LocalCurrentsPage() {
           </div>
         </header>
       ) : (
-        <header className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 md:pt-16 border-b border-black/5 pb-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-1">
-                THE VIBECHECK ARCHIVES
-              </p>
-              <h1 className="text-4xl sm:text-6xl font-black italic tracking-tighter uppercase leading-[0.85] mb-3">
+        <header className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-2">
+          <div className="pb-4 border-b border-black/5">
+            <div className="min-w-0">
+              {/* Live Badge */}
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] mb-1.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary"></span>
+                </span>
+                <span>THE ARCHIVES</span>
+                <span className="text-black/20">•</span>
+                <span className="text-zinc-600 font-bold tracking-wider">{currentCity || "VIZAG"} DISPATCHES</span>
+              </div>
+
+              {/* Title */}
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black italic tracking-tighter uppercase leading-none text-black">
                 LOCAL CURRENTS
               </h1>
-              <p className="text-zinc-500 text-xs sm:text-sm font-normal max-w-xl">
-                The ultimate pulse on Vizag&apos;s culture, music, tech, and coastal stories.
+
+              {/* Subtitle */}
+              <p className="text-zinc-500 text-xs sm:text-sm font-medium leading-normal mt-1.5 max-w-xl">
+                The ultimate pulse on {currentCity || "Vizag"}&apos;s culture, music, tech, and coastal stories.
               </p>
             </div>
-
-            {/* Quick Actions */}
-            {(isEditor || isAdmin) && (
-              <button
-                onClick={handleOpenCreateModal}
-                className="ringer-button bg-black text-white px-6 py-3 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-zinc-800 self-start md:self-end"
-              >
-                <Plus className="h-4 w-4 text-primary animate-pulse" />
-                Write Story
-              </button>
-            )}
           </div>
         </header>
       )}
 
       {/* Guest Sign-In CTA */}
       {status === "unauthenticated" && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 animate-in fade-in duration-300">
-          <div className="bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 border border-black/5 rounded-[28px] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
-            <div className="space-y-2 text-center md:text-left max-w-2xl">
-              <h3 className="text-lg sm:text-xl font-black italic uppercase tracking-tight flex items-center justify-center md:justify-start gap-2 text-black">
-                <Sparkles className="h-5 w-5 text-primary animate-pulse" /> Customize your Vibe
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-3 animate-in fade-in duration-300">
+          <div className="bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 border border-black/5 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-3 shadow-xs">
+            <div className="space-y-1 text-center md:text-left max-w-2xl">
+              <h3 className="text-sm sm:text-base font-black italic uppercase tracking-tight flex items-center justify-center md:justify-start gap-1.5 text-black">
+                <Sparkles className="h-4 w-4 text-primary animate-pulse" /> Customize your Vibe
               </h3>
-              <p className="text-zinc-600 text-xs sm:text-sm font-semibold leading-relaxed">
-                Sign in to synchronize your local currents feed and get customized event updates. Personalizing your preferences filters your feed to match the topics you care about most.
+              <p className="text-zinc-600 text-xs font-medium leading-snug">
+                Sign in to synchronize your local currents feed and get customized event updates.
               </p>
             </div>
             <button 
               onClick={() => signIn("google")}
-              className="ringer-button bg-black hover:bg-zinc-800 text-white font-black text-xs px-6 py-4 uppercase shrink-0 transition-transform active:scale-95 shadow-md border-none"
+              className="ringer-button bg-black hover:bg-zinc-800 text-white font-black text-[11px] px-5 py-2.5 uppercase shrink-0 transition-transform active:scale-95 shadow-xs border-none"
             >
               Sign in to VibeCheck
             </button>
@@ -533,11 +533,11 @@ export default function LocalCurrentsPage() {
 
       {/* Personalized Feed Notification */}
       {status === "authenticated" && userCategories.length > 0 && selectedCategory === "All" && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 animate-in fade-in duration-300">
-          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex items-center justify-between text-xs font-bold text-zinc-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-3 animate-in fade-in duration-300">
+          <div className="bg-primary/5 border border-primary/20 rounded-xl px-3.5 py-2.5 flex items-center justify-between text-xs font-bold text-zinc-700">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4.5 w-4.5 text-primary" />
-              <span>Personalized feed active based on your preferences: <span className="text-black uppercase">{userCategories.join(", ")}</span></span>
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span>Personalized feed active: <span className="text-black uppercase">{userCategories.join(", ")}</span></span>
             </div>
             <Link href="/preferences" className="text-primary hover:underline font-black uppercase tracking-wider text-[10px]">
               Edit Preferences
@@ -547,49 +547,82 @@ export default function LocalCurrentsPage() {
       )}
 
       {/* Interactive Filter Toolbar */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-zinc-50/50 p-6 rounded-[28px] border border-black/5 backdrop-blur-md">
-          {/* Search bar */}
-          <div className="relative flex-1 max-w-lg">
-            <Search className="absolute left-4 top-3.5 h-4.5 w-4.5 text-zinc-400" />
-            <input
-              type="text"
-              placeholder="Search news, topics, authors..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-black/5 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-zinc-400 text-black"
-            />
-          </div>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+        <div className="bg-white/90 backdrop-blur-md p-2.5 sm:p-3 rounded-2xl sm:rounded-full border border-black/5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          
+          {/* Top Row on Mobile: Search + Sort */}
+          <div className="flex items-center gap-2 flex-1 lg:max-w-md">
+            {/* Search bar */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
+              <input
+                type="text"
+                placeholder="Search stories, topics, authors..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 py-2 bg-zinc-100/70 hover:bg-zinc-100 focus:bg-white border border-transparent focus:border-black/10 rounded-full text-xs font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-zinc-400 text-black"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-zinc-400 hover:text-black rounded-full hover:bg-zinc-200 text-[9px]"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
 
-          {/* Category Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar snap-x snap-mandatory">
-            {CATEGORY_FILTERS.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap border snap-start shrink-0
-                  ${selectedCategory === cat
-                    ? "bg-black border-black text-white shadow-md scale-[1.03]"
-                    : "bg-white border-black/5 text-zinc-400 hover:border-black/20 hover:text-black"
-                  }`}
+            {/* Mobile Sort Dropdown */}
+            <div className="relative flex sm:hidden items-center bg-zinc-100/80 rounded-full px-2.5 py-2 shrink-0">
+              <SlidersHorizontal className="h-3 w-3 text-zinc-500 mr-1" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="bg-transparent text-[9px] font-black uppercase tracking-wider text-zinc-800 focus:outline-none cursor-pointer pr-3 appearance-none"
               >
-                {cat}
-              </button>
-            ))}
+                <option value="latest">LATEST</option>
+                <option value="oldest">OLDEST</option>
+              </select>
+              <ChevronDown className="h-2.5 w-2.5 text-zinc-400 pointer-events-none absolute right-1.5" />
+            </div>
           </div>
 
-          {/* Sort By controls */}
-          <div className="flex items-center gap-3 shrink-0">
-            <SlidersHorizontal className="h-4 w-4 text-zinc-400" />
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-white border border-black/5 rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="latest">LATEST FIRST</option>
-              <option value="oldest">OLDEST FIRST</option>
-            </select>
+          {/* Category Filter Pills (Scrollable horizontally) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar snap-x snap-mandatory flex-1 justify-start sm:justify-center">
+            {CATEGORY_FILTERS.map((cat) => {
+              const isSelected = selectedCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3.5 py-1.5 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all whitespace-nowrap snap-start shrink-0 border ${
+                    isSelected
+                      ? "bg-black text-white border-black shadow-xs"
+                      : "bg-zinc-100/60 hover:bg-zinc-100 text-zinc-600 hover:text-black border-transparent"
+                  }`}
+                >
+                  {cat}
+                </button>
+              );
+            })}
           </div>
+
+          {/* Desktop Sort Controls */}
+          <div className="hidden sm:flex items-center shrink-0">
+            <div className="relative flex items-center bg-zinc-100/70 hover:bg-zinc-100 rounded-full px-3 py-1.5 border border-transparent hover:border-black/5 transition-all">
+              <SlidersHorizontal className="h-3 w-3 text-zinc-500 mr-1.5 shrink-0" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="bg-transparent text-[10px] font-black uppercase tracking-wider text-zinc-800 focus:outline-none cursor-pointer pr-3.5 appearance-none"
+              >
+                <option value="latest">LATEST FIRST</option>
+                <option value="oldest">OLDEST FIRST</option>
+              </select>
+              <ChevronDown className="h-3 w-3 text-zinc-400 pointer-events-none absolute right-2" />
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -1007,154 +1040,168 @@ export default function LocalCurrentsPage() {
 
       {/* Editor Modal for Write/Edit Story */}
       {showEditorModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-5xl bg-white rounded-[32px] border border-black/5 shadow-2xl p-6 sm:p-8 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="flex justify-between items-center pb-4 border-b border-black/5 mb-6">
-              <h2 className="text-xl sm:text-2xl font-black italic uppercase tracking-tight flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                {editingArticleId ? "Modify News Story" : "Compose Editorial Piece"}
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          <div className="absolute inset-0" onClick={handleCloseModal} />
+          
+          <div className="relative w-full max-w-5xl bg-white rounded-[32px] border border-black/5 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-10 animate-in zoom-in-95 duration-200">
+            {/* Modal Header with Action & Close */}
+            <div className="flex justify-between items-center px-5 sm:px-8 py-4 sm:py-5 border-b border-black/5 shrink-0 bg-white">
+              <h2 className="text-lg sm:text-2xl font-black italic tracking-tight flex items-center gap-2 text-black truncate pr-2">
+                <Sparkles className="h-5 w-5 text-primary shrink-0" />
+                <span className="truncate">{editingArticleId ? "Modify News Story" : "Compose Editorial Piece"}</span>
               </h2>
-              <button
-                onClick={handleCloseModal}
-                className="p-1.5 hover:bg-black/5 rounded-full transition-all text-zinc-400 hover:text-black"
-              >
-                <X className="h-5 w-5" />
-              </button>
+
+              <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+                <button
+                  type="submit"
+                  form="article-form"
+                  disabled={savingArticle}
+                  className="ringer-button bg-black hover:bg-zinc-800 text-white h-10 px-5 sm:px-6 text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all shadow-md active:scale-95 disabled:opacity-50"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
+                  <span>{savingArticle ? "SAVING..." : editingArticleId ? "UPDATE STORY" : "PUBLISH STORY"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="p-2 hover:bg-black/5 rounded-full transition-all text-zinc-400 hover:text-black"
+                  title="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
-            {/* Modal Form */}
-            <form onSubmit={handleSaveArticle} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              {/* Left Column: Metadata */}
-              <div className="lg:col-span-5 space-y-5">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">Title</Label>
-                  <Input
-                    value={formTitle}
-                    onChange={(e) => setFormTitle(e.target.value)}
-                    placeholder="e.g. Vizag Beachfront Clean-up Drive Organised"
-                    required
-                    className="bg-zinc-50 border-black/5 rounded-xl h-12 text-sm font-bold"
+            {/* Scrollable Form Body */}
+            <div className="overflow-y-auto p-6 sm:p-8 flex-1">
+              <form id="article-form" onSubmit={handleSaveArticle} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Left Column: Metadata */}
+                <div className="lg:col-span-5 space-y-5">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">Title</Label>
+                    <Input
+                      value={formTitle}
+                      onChange={(e) => setFormTitle(e.target.value)}
+                      placeholder="e.g. Vizag Beachfront Clean-up Drive Organised"
+                      required
+                      className="bg-zinc-50 border-black/5 rounded-xl h-12 text-sm font-bold text-black"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">Category</Label>
+                      <select
+                        value={formCategory}
+                        onChange={(e) => setFormCategory(e.target.value)}
+                        className="flex h-12 w-full rounded-xl border border-black/5 bg-zinc-50 px-3 py-2 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      >
+                        {NEWS_CATEGORIES.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">City</Label>
+                      <select
+                        value={formCity}
+                        onChange={(e) => setFormCity(e.target.value)}
+                        className="flex h-12 w-full rounded-xl border border-black/5 bg-zinc-50 px-3 py-2 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      >
+                        {supportedCities.map((c) => (
+                          <option key={c.id} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">Author Identity</Label>
+                      <Input
+                        value={formAuthor}
+                        onChange={(e) => setFormAuthor(e.target.value)}
+                        placeholder="VibeCheck Editorial"
+                        className="bg-zinc-50 border-black/5 rounded-xl h-12 text-xs font-bold text-black"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 mt-4">
+                    <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1">Editorial Image</Label>
+                    <div className="flex flex-col gap-3">
+                      <Input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 5 * 1024 * 1024) {
+                              toast.error("Image size must be less than 5MB");
+                              e.target.value = "";
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onloadend = () => setSelectedImageBase64(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="bg-zinc-50 border-black/5 rounded-xl h-10 text-xs font-bold pt-2 cursor-pointer"
+                      />
+                      {(selectedImageBase64 || formImageUrl) && (
+                        <div className="relative h-40 w-full rounded-xl overflow-hidden border border-black/10">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={selectedImageBase64 || formImageUrl} alt="Preview" className="object-cover w-full h-full" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedImageBase64("");
+                              setFormImageUrl("");
+                              setFormImagePublicId("");
+                            }}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow hover:bg-red-600 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Content Body Textarea */}
+                <div className="lg:col-span-7 flex flex-col h-full min-h-[320px]">
+                  <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 mb-2">Content Body</Label>
+                  <ReactQuill 
+                    theme="snow"
+                    value={formContent}
+                    onChange={setFormContent}
+                    placeholder="Draft the editorial narrative here..."
+                    className="bg-white rounded-2xl flex-1 min-h-[250px]"
                   />
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">Category</Label>
-                    <select
-                      value={formCategory}
-                      onChange={(e) => setFormCategory(e.target.value)}
-                      className="flex h-12 w-full rounded-xl border border-black/5 bg-zinc-50 px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    >
-                      {NEWS_CATEGORIES.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">City</Label>
-                    <select
-                      value={formCity}
-                      onChange={(e) => setFormCity(e.target.value)}
-                      className="flex h-12 w-full rounded-xl border border-black/5 bg-zinc-50 px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    >
-                      {supportedCities.map((c) => (
-                        <option key={c.id} value={c.name}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">Author Identity</Label>
-                    <Input
-                      value={formAuthor}
-                      onChange={(e) => setFormAuthor(e.target.value)}
-                      placeholder="VibeCheck Editorial"
-                      className="bg-zinc-50 border-black/5 rounded-xl h-12 text-sm font-bold"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2 mt-4">
-                  <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1">Editorial Image</Label>
-                  <div className="flex flex-col gap-3">
-                    <Input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          if (file.size > 5 * 1024 * 1024) {
-                            toast.error("Image size must be less than 5MB");
-                            e.target.value = "";
-                            return;
-                          }
-                          const reader = new FileReader();
-                          reader.onloadend = () => setSelectedImageBase64(reader.result as string);
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="bg-zinc-50 border-black/5 rounded-xl h-10 text-xs font-bold pt-2 cursor-pointer"
-                    />
-                    {(selectedImageBase64 || formImageUrl) && (
-                      <div className="relative h-40 w-full rounded-xl overflow-hidden border border-black/10">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={selectedImageBase64 || formImageUrl} alt="Preview" className="object-cover w-full h-full" />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedImageBase64("");
-                            setFormImageUrl("");
-                            setFormImagePublicId("");
-                          }}
-                          className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow hover:bg-red-600 transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Submit Buttons */}
-                <div className="flex gap-3 pt-4 border-t border-black/5">
-                  <button
-                    type="submit"
-                    disabled={savingArticle}
-                    className="ringer-button flex-1 bg-black text-white h-12 text-[10px] flex items-center justify-center gap-2"
-                  >
-                    <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                    {savingArticle ? "SAVING..." : editingArticleId ? "UPDATE STORY" : "PUBLISH STORY"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    className="ringer-button bg-zinc-200 text-black h-12 text-[10px] px-6"
-                  >
-                    CLOSE
-                  </button>
-                </div>
-              </div>
-
-              {/* Right Column: Full-Height Content Body Textarea */}
-              <div className="lg:col-span-7 flex flex-col h-full min-h-[400px]">
-                <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 mb-2">Content Body</Label>
-                <ReactQuill 
-                  theme="snow"
-                  value={formContent}
-                  onChange={setFormContent}
-                  placeholder="Draft the editorial narrative here..."
-                  className="bg-white rounded-2xl flex-1 min-h-[350px]"
-                />
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
+      )}
+
+      {/* Floating Action Button (FAB) for Creating / Writing Stories */}
+      {(isEditor || isAdmin) && !showEditorModal && !activeArticle && (
+        <button
+          onClick={handleOpenCreateModal}
+          className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-50 bg-black hover:bg-zinc-900 text-white px-5 py-3.5 sm:px-6 sm:py-4 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2.5 shadow-[0_10px_35px_rgba(0,0,0,0.35)] hover:shadow-[0_15px_40px_rgba(0,0,0,0.45)] border border-white/20 hover:scale-105 active:scale-95 transition-all group"
+          title="Write a new story"
+        >
+          <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+            <Plus className="h-4 w-4 text-primary group-hover:rotate-90 transition-transform duration-300" />
+          </div>
+          <span>WRITE STORY</span>
+        </button>
       )}
     </div>
   );
