@@ -51,3 +51,6 @@ next-env.d.ts
 docs/security_guidelines.md
 docs/cloudinary_implementation_plan.md
 
+### Testing
+testing/
+
