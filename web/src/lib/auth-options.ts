@@ -33,6 +33,29 @@ if (process.env.NODE_ENV !== "production") {
 export const authOptions: AuthOptions = {
   providers,
   callbacks: {
+    async signIn({ user }) {
+      if (user?.email) {
+        try {
+          const backendUrl = process.env.BACKEND_URL || "http://localhost:4000";
+          const token = process.env.PRIVATE_BACKEND_TOKEN || "";
+          await fetch(`${backendUrl}/api/user`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { "Authorization": `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({
+              email: user.email,
+              name: user.name || user.email.split("@")[0],
+              categories: []
+            })
+          });
+        } catch (err) {
+          console.error("[NextAuth] Failed to auto-create web_user on signIn:", err);
+        }
+      }
+      return true;
+    },
     async session({ session, token }) {
       if (session.user && token.email) {
         session.user.email = token.email;

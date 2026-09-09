@@ -13,12 +13,15 @@ export async function upsertWebUser(pool: Pool, email: string, name: string | nu
     `INSERT INTO web_users (email, name, categories, phone_number, city, profession, age_group)
      VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7)
      ON CONFLICT (email) DO UPDATE
-     SET name       = EXCLUDED.name,
-         categories = EXCLUDED.categories,
+     SET name       = COALESCE(EXCLUDED.name, web_users.name),
+         categories = CASE 
+                        WHEN jsonb_array_length(EXCLUDED.categories) > 0 THEN EXCLUDED.categories 
+                        ELSE web_users.categories 
+                      END,
          phone_number = COALESCE(EXCLUDED.phone_number, web_users.phone_number),
-         city       = EXCLUDED.city,
-         profession = EXCLUDED.profession,
-         age_group  = EXCLUDED.age_group,
+         city       = COALESCE(EXCLUDED.city, web_users.city),
+         profession = COALESCE(EXCLUDED.profession, web_users.profession),
+         age_group  = COALESCE(EXCLUDED.age_group, web_users.age_group),
          updated_at = CURRENT_TIMESTAMP`,
     [email, name, JSON.stringify(categories), phone_number, city, profession, age_group]
   );
