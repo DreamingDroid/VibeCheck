@@ -187,16 +187,26 @@ export function GlobalHeader() {
     if (userEmail) {
       // 1. Register Service Worker and FCM Token
       if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-        navigator.serviceWorker
-          .register("/firebase-messaging-sw.js")
-          .then(() => {
-            return registerFcmForUser({
-              email: userEmail,
-              city: currentCity,
-              categories: activeCategories,
-            });
-          })
-          .catch((err) => console.log("[FCM Registration Log]:", err));
+        const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "";
+        const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "";
+        const messagingSenderId = process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "";
+        const appId = process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "";
+
+        if (apiKey && projectId) {
+          const swUrl = `/firebase-messaging-sw.js?apiKey=${encodeURIComponent(apiKey)}&projectId=${encodeURIComponent(projectId)}&messagingSenderId=${encodeURIComponent(messagingSenderId)}&appId=${encodeURIComponent(appId)}`;
+
+          navigator.serviceWorker
+            .register(swUrl)
+            .then((registration) => {
+              registration.update().catch(() => {});
+              return registerFcmForUser({
+                email: userEmail,
+                city: currentCity,
+                categories: activeCategories,
+              });
+            })
+            .catch((err) => console.log("[FCM Registration Log]:", err));
+        }
       }
 
       // 2. Subscribe to instant real-time foreground broadcasts
