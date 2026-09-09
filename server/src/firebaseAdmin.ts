@@ -68,13 +68,10 @@ export async function sendFcmTopicBroadcast(payload: FcmBroadcastPayload): Promi
 
     const fcmMessage: admin.messaging.Message = {
       topic: safeTopic,
-      notification: {
-        title: payload.title,
-        body: payload.message,
-      },
       data: {
         title: payload.title,
         message: payload.message,
+        body: payload.message,
         type: payload.type,
         link: targetUrl,
         click_action: targetUrl,
@@ -84,13 +81,6 @@ export async function sendFcmTopicBroadcast(payload: FcmBroadcastPayload): Promi
       webpush: {
         headers: {
           Urgency: payload.type === 'emergency_alert' ? 'high' : 'normal',
-        },
-        notification: {
-          title: payload.title,
-          body: payload.message,
-          icon: '/logo.png',
-          badge: '/logo.png',
-          requireInteraction: payload.type === 'emergency_alert',
         },
         fcmOptions: {
           link: targetUrl,
