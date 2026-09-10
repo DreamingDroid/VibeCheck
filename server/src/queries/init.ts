@@ -60,6 +60,8 @@ export async function initializeDatabaseSchema(pool: Pool) {
       email_verified BOOLEAN DEFAULT false,
       phone_verified BOOLEAN DEFAULT false,
       rejection_reason TEXT,
+      image_url TEXT,
+      rating NUMERIC(3,1) DEFAULT 4.5,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -189,6 +191,8 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false`);
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN DEFAULT false`);
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS rejection_reason TEXT`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS image_url TEXT`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS rating NUMERIC(3,1) DEFAULT 4.5`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_email TEXT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_history JSONB DEFAULT '[]'::jsonb`);

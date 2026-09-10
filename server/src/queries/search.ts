@@ -424,48 +424,79 @@ export async function getAttendeeDeepDetails(pool: Pool, email?: string, phone?:
   }
 
   // Get RSVPs
-  const rsvpsQuery = `
-    SELECT 
-      er.id,
-      er.event_id,
-      er.status as rsvp_status,
-      er.payment_status,
-      er.pass_code,
-      er.created_at as rsvp_created_at,
-      e.title as event_title,
-      e.date_time as event_date,
-      e.category as event_category,
-      e.city as event_city,
-      e.location as event_location,
-      e.is_paid as event_is_paid,
-      e.organizer_email,
-      a.brand_name as organizer_name
-    FROM event_rsvps er
-    JOIN events e ON er.event_id = e.id
-    LEFT JOIN admins a ON e.organizer_email = a.email
-    WHERE ($1::text IS NOT NULL AND er.user_email = $1)
-       OR ($2::text IS NOT NULL AND er.phone_number = $2)
-    ORDER BY er.created_at DESC
-  `;
-  const rsvpsRes = await pool.query(rsvpsQuery, [email || null, searchPhone || null]);
+  let rsvps: any[] = [];
+  try {
+    const rsvpsQuery = `
+      SELECT 
+        er.id,
+        er.event_id,
+        er.status as rsvp_status,
+        er.payment_status,
+        er.pass_code,
+        er.created_at as rsvp_created_at,
+        e.title as event_title,
+        e.date_time as event_date,
+        e.category as event_category,
+        e.city as event_city,
+        e.location as event_location,
+        e.is_paid as event_is_paid,
+        e.organizer_email,
+        a.brand_name as organizer_name
+      FROM event_rsvps er
+      JOIN events e ON er.event_id = e.id
+      LEFT JOIN admins a ON e.organizer_email = a.email
+      WHERE ($1::text IS NOT NULL AND er.user_email = $1)
+         OR ($2::text IS NOT NULL AND er.phone_number = $2)
+      ORDER BY er.created_at DESC
+    `;
+    const rsvpsRes = await pool.query(rsvpsQuery, [email || null, searchPhone || null]);
+    rsvps = rsvpsRes.rows;
+  } catch (rsvpErr) {
+    console.error('[getAttendeeDeepDetails] RSVPs query error, falling back:', rsvpErr);
+    try {
+      const fallbackRsvps = await pool.query(`
+        SELECT er.id, er.event_id, er.created_at as rsvp_created_at, e.title as event_title, e.date_time as event_date, e.category as event_category, e.city as event_city
+        FROM event_rsvps er
+        JOIN events e ON er.event_id = e.id
+        WHERE ($1::text IS NOT NULL AND er.user_email = $1)
+           OR ($2::text IS NOT NULL AND er.phone_number = $2)
+        ORDER BY er.created_at DESC
+      `, [email || null, searchPhone || null]);
+      rsvps = fallbackRsvps.rows;
+    } catch (_) {}
+  }
 
   // Get Followed Organizers
   let followedOrganizers: any[] = [];
   if (email) {
-    const folRes = await pool.query(`
-      SELECT of.organizer_email, of.created_at as followed_at, a.brand_name, a.image_url, a.rating
-      FROM organizer_followers of
-      LEFT JOIN admins a ON of.organizer_email = a.email
-      WHERE of.user_email = $1
-      ORDER BY of.created_at DESC
-    `, [email]);
-    followedOrganizers = folRes.rows;
+    try {
+      const folRes = await pool.query(`
+        SELECT of.organizer_email, of.created_at as followed_at, a.brand_name, a.image_url, a.rating
+        FROM organizer_followers of
+        LEFT JOIN admins a ON of.organizer_email = a.email
+        WHERE of.user_email = $1
+        ORDER BY of.created_at DESC
+      `, [email]);
+      followedOrganizers = folRes.rows;
+    } catch (folErr) {
+      console.error('[getAttendeeDeepDetails] Followed organizers query error, falling back:', folErr);
+      try {
+        const folResFallback = await pool.query(`
+          SELECT of.organizer_email, of.created_at as followed_at, a.brand_name
+          FROM organizer_followers of
+          LEFT JOIN admins a ON of.organizer_email = a.email
+          WHERE of.user_email = $1
+          ORDER BY of.created_at DESC
+        `, [email]);
+        followedOrganizers = folResFallback.rows;
+      } catch (_) {}
+    }
   }
 
   return {
     webUser,
     whatsappUser,
-    rsvps: rsvpsRes.rows,
+    rsvps,
     followedOrganizers
   };
 }
@@ -473,82 +504,142 @@ export async function getAttendeeDeepDetails(pool: Pool, email?: string, phone?:
 export async function getOrganizerDeepDetails(pool: Pool, email: string) {
   if (!email) return null;
 
-  const orgRes = await pool.query(`
-    SELECT 
-      id, email, role, status, brand_name, description, social_links, 
-      phone_number, email_verified, phone_verified, rejection_reason, 
-      image_url, rating, created_at
-    FROM admins 
-    WHERE email = $1
-  `, [email]);
+  let organizer: any = null;
+  try {
+    const orgRes = await pool.query(`
+      SELECT 
+        id, email, role, status, brand_name, description, social_links, 
+        phone_number, email_verified, phone_verified, rejection_reason, 
+        image_url, rating, created_at
+      FROM admins 
+      WHERE email = $1
+    `, [email]);
+    organizer = orgRes.rows[0];
+  } catch (err) {
+    console.error('[getOrganizerDeepDetails] admins query error, falling back:', err);
+    try {
+      const orgResFallback = await pool.query(`
+        SELECT 
+          id, email, role, status, brand_name, description, social_links, 
+          phone_number, email_verified, phone_verified, rejection_reason, 
+          created_at
+        FROM admins 
+        WHERE email = $1
+      `, [email]);
+      organizer = orgResFallback.rows[0];
+    } catch (_) {}
+  }
 
-  const organizer = orgRes.rows[0];
   if (!organizer) return null;
 
   // Get events hosted by this organizer
-  const eventsRes = await pool.query(`
-    SELECT 
-      id, title, category, location, city, date_time, status, participant_limit, is_paid, created_at,
-      (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) as rsvp_count
-    FROM events
-    WHERE organizer_email = $1
-    ORDER BY date_time DESC
-  `, [email]);
+  let events: any[] = [];
+  try {
+    const eventsRes = await pool.query(`
+      SELECT 
+        id, title, category, location, city, date_time, status, participant_limit, is_paid, created_at,
+        (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) as rsvp_count
+      FROM events
+      WHERE organizer_email = $1
+      ORDER BY date_time DESC
+    `, [email]);
+    events = eventsRes.rows;
+  } catch (evErr) {
+    console.error('[getOrganizerDeepDetails] events query error:', evErr);
+  }
 
   // Get followers
-  const followersRes = await pool.query(`
-    SELECT of.user_email, of.created_at, u.name, u.phone_number, u.city
-    FROM organizer_followers of
-    LEFT JOIN web_users u ON of.user_email = u.email
-    WHERE of.organizer_email = $1
-    ORDER BY of.created_at DESC
-  `, [email]);
+  let followers: any[] = [];
+  try {
+    const followersRes = await pool.query(`
+      SELECT of.user_email, of.created_at, u.name, u.phone_number, u.city
+      FROM organizer_followers of
+      LEFT JOIN web_users u ON of.user_email = u.email
+      WHERE of.organizer_email = $1
+      ORDER BY of.created_at DESC
+    `, [email]);
+    followers = followersRes.rows;
+  } catch (folErr) {
+    console.error('[getOrganizerDeepDetails] followers query error:', folErr);
+  }
 
   return {
     organizer,
-    events: eventsRes.rows,
-    followers: followersRes.rows
+    events,
+    followers
   };
 }
 
 export async function getEventDeepDetails(pool: Pool, id: string) {
   if (!id) return null;
 
-  const eventRes = await pool.query(`
-    SELECT 
-      e.*,
-      a.brand_name as organizer_name,
-      a.phone_number as organizer_phone,
-      a.image_url as organizer_image,
-      a.rating as organizer_rating
-    FROM events e
-    LEFT JOIN admins a ON e.organizer_email = a.email
-    WHERE e.id = $1
-  `, [id]);
+  let event: any = null;
+  try {
+    const eventRes = await pool.query(`
+      SELECT 
+        e.*,
+        a.brand_name as organizer_name,
+        a.phone_number as organizer_phone,
+        a.image_url as organizer_image,
+        a.rating as organizer_rating
+      FROM events e
+      LEFT JOIN admins a ON e.organizer_email = a.email
+      WHERE e.id = $1
+    `, [id]);
+    event = eventRes.rows[0];
+  } catch (err) {
+    console.error('[getEventDeepDetails] events query error, falling back:', err);
+    try {
+      const eventResFallback = await pool.query(`
+        SELECT 
+          e.*,
+          a.brand_name as organizer_name,
+          a.phone_number as organizer_phone
+        FROM events e
+        LEFT JOIN admins a ON e.organizer_email = a.email
+        WHERE e.id = $1
+      `, [id]);
+      event = eventResFallback.rows[0];
+    } catch (_) {}
+  }
 
-  const event = eventRes.rows[0];
   if (!event) return null;
 
   // Get full RSVP list
-  const rsvpsRes = await pool.query(`
-    SELECT 
-      er.id,
-      er.user_email,
-      er.phone_number,
-      er.status,
-      er.payment_status,
-      er.pass_code,
-      er.created_at,
-      COALESCE(u.name, 'Guest') as attendee_name,
-      COALESCE(u.city, '') as attendee_city
-    FROM event_rsvps er
-    LEFT JOIN web_users u ON er.user_email = u.email
-    WHERE er.event_id = $1
-    ORDER BY er.created_at DESC
-  `, [id]);
+  let rsvps: any[] = [];
+  try {
+    const rsvpsRes = await pool.query(`
+      SELECT 
+        er.id,
+        er.user_email,
+        er.phone_number,
+        er.status,
+        er.payment_status,
+        er.pass_code,
+        er.created_at,
+        COALESCE(u.name, 'Guest') as attendee_name,
+        COALESCE(u.city, '') as attendee_city
+      FROM event_rsvps er
+      LEFT JOIN web_users u ON er.user_email = u.email
+      WHERE er.event_id = $1
+      ORDER BY er.created_at DESC
+    `, [id]);
+    rsvps = rsvpsRes.rows;
+  } catch (rsvpErr) {
+    console.error('[getEventDeepDetails] rsvps query error, falling back:', rsvpErr);
+    try {
+      const fallbackRsvps = await pool.query(`
+        SELECT er.id, er.user_email, er.phone_number, er.created_at
+        FROM event_rsvps er
+        WHERE er.event_id = $1
+        ORDER BY er.created_at DESC
+      `, [id]);
+      rsvps = fallbackRsvps.rows;
+    } catch (_) {}
+  }
 
   return {
     event,
-    rsvps: rsvpsRes.rows
+    rsvps
   };
 }
