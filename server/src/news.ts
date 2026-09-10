@@ -60,6 +60,19 @@ export async function getLatestNewsArticlesHandler(req: Request, res: Response, 
   }
 }
 
+export async function getSingleNewsArticleHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  try {
+    const result = await pool.query('SELECT * FROM news_articles WHERE id = $1', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Article not found' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
 export async function adminCreateNewsArticleHandler(req: Request, res: Response, pool: Pool) {
   const { title, content, category, author, image_url, image_public_id, email, city } = req.body;
   if (!title || !content) {

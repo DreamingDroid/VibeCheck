@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useTheme } from "@/context/ThemeContext";
 import { useCity } from "@/context/CityContext";
 import { optimizeCloudinaryUrl } from "@/lib/utils";
+import { generateNewsArticleJsonLd } from "@/lib/seo";
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -416,8 +417,26 @@ export default function LocalCurrentsPage() {
     ? filteredArticles.slice(1) 
     : filteredArticles;
 
+  const currentArticleForSchema = activeArticle || featuredArticle;
+  const articleJsonLd = currentArticleForSchema ? generateNewsArticleJsonLd({
+    id: currentArticleForSchema.id,
+    title: currentArticleForSchema.title,
+    content: currentArticleForSchema.content,
+    category: currentArticleForSchema.category,
+    author: currentArticleForSchema.author,
+    imageUrl: currentArticleForSchema.image_url || undefined,
+    city: currentArticleForSchema.city,
+    createdAt: currentArticleForSchema.created_at,
+  }) : null;
+
   return (
     <div className="min-h-screen bg-background pb-24 text-black font-helvetica select-none">
+      {articleJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+        />
+      )}
       {/* Pull to refresh indicator */}
       <div 
         className="w-full flex items-center justify-center overflow-hidden transition-all duration-200 bg-zinc-50"

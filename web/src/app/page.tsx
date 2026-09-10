@@ -273,14 +273,14 @@ export default function Home() {
         </h1>
         
         <p className="text-sm sm:text-base md:text-lg font-helvetica text-zinc-600 max-w-xl leading-relaxed sm:leading-loose tracking-wide px-4 sm:px-0">
-          VibeCheck is the ultimate insider's guide to networking, discovery, and culture in Visakhapatnam. Powered by coastal energy and community.
+          VibeCheck Space is your ultimate local guide to discovering upcoming <strong>events</strong>, live concerts, tech meetups, creative workshops, and breaking <strong>city news</strong> in Visakhapatnam and beyond.
         </p>
         
         <div className="pt-4 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
           <button 
             onClick={handleSignIn} 
             disabled={isSigningIn}
-            className="ringer-button w-auto bg-gradient-to-br from-[#22C55E] to-[#16A34A] hover:from-[#16A34A] hover:to-[#15803D] text-white hover:scale-[1.02] h-12 sm:h-16 px-8 sm:px-10 text-xs sm:text-sm font-black flex items-center justify-center gap-3 shadow-lg shadow-green-500/20 transition-all"
+            className="ringer-button w-auto bg-gradient-to-br from-[#22C55E] to-[#16A34A] hover:from-[#16A34A] hover:to-[#15803D] text-white hover:scale-[1.02] h-12 sm:h-16 px-8 sm:px-10 text-xs sm:text-sm font-black flex items-center justify-center gap-3 shadow-lg shadow-green-500/20 transition-all cursor-pointer"
           >
             {isSigningIn ? (
                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -288,20 +288,20 @@ export default function Home() {
               <>JOIN THE VIBE <Sparkles className="h-4 w-4" /></>
             )}
           </button>
-          <Link href="/local-currents" className="text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors py-4 px-6">
-            Read the Latest
+          <Link href="/local-currents" className="text-xs font-black uppercase tracking-widest text-zinc-600 hover:text-black transition-colors py-4 px-6 border border-black/10 rounded-full hover:border-black">
+            Explore Local News &amp; Currents
           </Link>
         </div>
       </section>
 
       {/* Local Currents Section */}
-      <section id="happenings" className="max-w-4xl mx-auto pt-16 pb-12">
+      <section id="happenings" aria-label="Local City News and Currents" className="max-w-4xl mx-auto pt-16 pb-12">
         <div className="border-t border-black/5 pt-12 space-y-10">
           <div className="text-center space-y-2">
-            <h2 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none">Local Currents</h2>
+            <h2 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none">Local Currents &amp; News</h2>
             <div className="flex items-center justify-center gap-2 mt-2">
               <p className="text-[10px] font-black tracking-[0.2em] uppercase text-zinc-400 flex items-center justify-center gap-2">
-                 <MapPin className="h-3.5 w-3.5 text-primary" /> Live from the coast
+                 <MapPin className="h-3.5 w-3.5 text-primary" /> Live updates from {currentCity}
               </p>
             </div>
           </div>

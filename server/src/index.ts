@@ -28,7 +28,7 @@ import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verific
 import { followOrganizerHandler, unfollowOrganizerHandler, getUserFollowingHandler, getOrganizerFollowersHandler } from './followers';
 import { sendApplyOtpHandler, verifyApplyOtpHandler, submitApplicationHandler } from './organizer-apply';
 import { initializeDatabaseSchema } from './queries/init';
-import { getNewsArticlesHandler, getLatestNewsArticlesHandler, adminCreateNewsArticleHandler, adminUpdateNewsArticleArticleHandler, adminDeleteNewsArticleHandler } from './news';
+import { getNewsArticlesHandler, getLatestNewsArticlesHandler, getSingleNewsArticleHandler, adminCreateNewsArticleHandler, adminUpdateNewsArticleArticleHandler, adminDeleteNewsArticleHandler } from './news';
 import { uploadImageHandler } from './upload';
 import {
   getAudienceEstimateHandler,
@@ -277,6 +277,7 @@ app.post('/api/admin/settings', (req, res) => adminUpdateSettingsHandler(req, re
 // News API
 app.get('/api/news', (req, res) => getNewsArticlesHandler(req, res, pool));
 app.get('/api/news/latest', (req, res) => getLatestNewsArticlesHandler(req, res, pool));
+app.get('/api/news/:id', (req, res) => getSingleNewsArticleHandler(req, res, pool));
 app.post('/api/admin/news', (req, res) => adminCreateNewsArticleHandler(req, res, pool));
 app.put('/api/admin/news/:id', (req, res) => adminUpdateNewsArticleArticleHandler(req, res, pool));
 app.delete('/api/admin/news/:id', (req, res) => adminDeleteNewsArticleHandler(req, res, pool));

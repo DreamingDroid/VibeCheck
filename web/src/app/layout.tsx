@@ -22,9 +22,75 @@ const courierPrime = Courier_Prime({
   style: ["normal", "italic"],
 });
 
+import { SITE_URL, SITE_NAME, generateRootJsonLd } from "@/lib/seo";
+
 export const metadata: Metadata = {
-  title: "VibeCheck Space",
-  description: "Discover local events and connect with the Vizag community.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "VibeCheck Space | Discover Local Events, News & City Happenings",
+    template: "%s | VibeCheck Space",
+  },
+  description: "Find upcoming local events, live music concerts, tech meetups, workshops, cultural festivals, and local news stories in Vizag and beyond on VibeCheck Space.",
+  keywords: [
+    "local events",
+    "local news",
+    "Vizag events",
+    "events in Vizag",
+    "things to do in Vizag",
+    "Vizag news",
+    "upcoming events Vizag",
+    "workshops Vizag",
+    "concerts Vizag",
+    "tech meetups Vizag",
+    "local happenings",
+    "city guide Vizag",
+    "community events",
+    "VibeCheck Space",
+  ],
+  authors: [{ name: "BayBuzz Labs" }],
+  creator: "BayBuzz Labs",
+  publisher: SITE_NAME,
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "VibeCheck Space | Discover Local Events & City News",
+    description: "Discover upcoming local events, workshops, concerts, and breaking city news in Vizag.",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    images: [
+      {
+        url: `${SITE_URL}/apple-touch-icon.png`,
+        width: 512,
+        height: 512,
+        alt: "VibeCheck Space",
+      },
+    ],
+    locale: "en_IN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "VibeCheck Space | Discover Local Events & City News",
+    description: "Discover upcoming local events, workshops, concerts, and breaking city news in Vizag.",
+    images: [`${SITE_URL}/apple-touch-icon.png`],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 import { GlobalHeader } from "@/components/global-header";
@@ -34,12 +100,20 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const rootJsonLd = generateRootJsonLd();
+
   return (
     <html
       lang="en"
       data-theme="vibrant"
       className={`${inter.variable} ${lora.variable} ${courierPrime.variable} h-full antialiased font-sans`}
     >
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(rootJsonLd) }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <Providers>
           <GlobalHeader />
