@@ -274,13 +274,16 @@ export function GlobalHeader() {
       minute: "2-digit"
     });
 
+    const isWhatsApp = notif.type === 'whatsapp_group_invite' || (notif.link && (notif.link.includes('whatsapp.com') || notif.link.includes('wa.me')));
+    const actionText = isWhatsApp ? "Join WhatsApp Group" : notif.link ? "View Details" : undefined;
+
     setSelectedNotification({
       type: notif.type,
       badge: typeConfig.label,
       title: notif.title,
       message: notif.message,
       link: notif.link || undefined,
-      actionText: notif.link ? "View Details" : undefined,
+      actionText,
       time: timeStr
     });
 
@@ -769,7 +772,7 @@ export function GlobalHeader() {
                 ? 'border-amber-400'
                 : selectedNotification.type === 'rejected'
                   ? 'border-red-500'
-                  : selectedNotification.type === 'approved'
+                  : selectedNotification.type === 'approved' || selectedNotification.type === 'whatsapp_group_invite'
                     ? 'border-emerald-500'
                     : selectedNotification.type === 'emergency_alert'
                       ? 'border-red-500 ring-2 ring-red-300'
@@ -790,7 +793,7 @@ export function GlobalHeader() {
                   ? 'bg-gradient-to-br from-amber-500/20 via-amber-50 to-white border-amber-200 text-amber-950'
                   : selectedNotification.type === 'rejected'
                     ? 'bg-gradient-to-br from-red-500/20 via-red-50 to-white border-red-200 text-red-950'
-                    : selectedNotification.type === 'approved'
+                    : selectedNotification.type === 'approved' || selectedNotification.type === 'whatsapp_group_invite'
                       ? 'bg-gradient-to-br from-emerald-500/20 via-emerald-50 to-white border-emerald-200 text-emerald-950'
                       : selectedNotification.type === 'emergency_alert'
                         ? 'bg-gradient-to-br from-red-500/20 via-red-50 to-white border-red-200 text-red-950'
@@ -814,7 +817,7 @@ export function GlobalHeader() {
                           ? 'bg-amber-500 text-black'
                           : selectedNotification.type === 'rejected'
                             ? 'bg-red-600 text-white'
-                            : selectedNotification.type === 'approved'
+                            : selectedNotification.type === 'approved' || selectedNotification.type === 'whatsapp_group_invite'
                               ? 'bg-emerald-600 text-white'
                               : selectedNotification.type === 'emergency_alert'
                                 ? 'bg-red-600 text-white'
@@ -873,9 +876,17 @@ export function GlobalHeader() {
                     onClick={() => {
                       const link = selectedNotification.link!;
                       setSelectedNotification(null);
-                      router.push(link);
+                      if (link.startsWith("http://") || link.startsWith("https://")) {
+                        window.open(link, "_blank", "noopener,noreferrer");
+                      } else {
+                        router.push(link);
+                      }
                     }}
-                    className="w-full sm:w-auto ringer-button bg-black hover:bg-zinc-800 text-white text-xs py-2.5 px-5 flex items-center justify-center gap-2"
+                    className={`w-full sm:w-auto ringer-button text-white text-xs py-2.5 px-5 flex items-center justify-center gap-2 ${
+                      selectedNotification.type === 'whatsapp_group_invite'
+                        ? 'bg-emerald-600 hover:bg-emerald-700'
+                        : 'bg-black hover:bg-zinc-800'
+                    }`}
                   >
                     <span>{selectedNotification.actionText || 'VIEW DETAILS'}</span>
                     <ExternalLink className="w-3.5 h-3.5" />

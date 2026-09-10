@@ -1,13 +1,18 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
+import { Resend } from 'resend';
 import { sendWhatsAppMessage } from './whatsapp';
-import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull, updateEventStatusByOrganizer, issueOrganizerEventPass, cancelOrganizerEventRSVP } from './queries/events';
+import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull, updateEventStatusByOrganizer, issueOrganizerEventPass, cancelOrganizerEventRSVP, updateEventWhatsAppGroupLink, getEventById } from './queries/events';
+import { createBroadcastAndDispatch, getAudienceRecipientEmails, CreateBroadcastInput } from './queries/broadcasts';
+import { sendFcmTopicBroadcast } from './firebaseAdmin';
 import { getSystemSetting, getOrganizerDashboardAnalytics } from './queries/analytics';
 import { config } from './config';
 import { getChatModel } from './rag';
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { getOrganizerCrmContacts, upsertOrganizerCrmNotes, getPhoneNumbersForEmails } from './queries/crm';
 import { notifySuperAdmins } from './notifications';
+
+const resend = new Resend(config.RESEND_API_KEY);
 
 export async function organizerCreateEventHandler(req: Request, res: Response, pool: Pool) {
   const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email } = req.body;
@@ -444,6 +449,155 @@ export async function organizerCancelRsvpHandler(req: Request, res: Response, po
     res.json({ success: true, data: updated, message: 'RSVP cancelled successfully.' });
   } catch (error) {
     console.error('Cancel RSVP error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+/**
+ * Update WhatsApp group link for an event
+ * PUT /api/organizer/events/:id/whatsapp-group
+ */
+export async function organizerUpdateWhatsAppGroupLinkHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  const { organizer_email, whatsapp_group_link } = req.body;
+
+  if (!organizer_email) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+  try {
+    const eventCheck = await getEventByOrganizer(pool, id as string);
+    if (!eventCheck || eventCheck.organizer_email !== organizer_email) {
+      return res.status(403).json({ success: false, error: 'Forbidden: You are not the organizer of this event' });
+    }
+
+    const updated = await updateEventWhatsAppGroupLink(pool, id as string, organizer_email, whatsapp_group_link);
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'Event not found or unauthorized' });
+    }
+
+    res.json({ success: true, data: updated, message: 'WhatsApp group invite link updated successfully.' });
+  } catch (error) {
+    console.error('Update WhatsApp group link error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+/**
+ * Dispatch WhatsApp Group Invite Notification to all RSVP'd Attendees
+ * POST /api/organizer/events/:id/whatsapp-group-invite
+ */
+export async function organizerSendWhatsAppGroupInviteHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  const { organizer_email, whatsapp_group_link, custom_message } = req.body;
+
+  if (!organizer_email) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+  try {
+    const event = await getEventById(pool, id as string);
+    if (!event) {
+      return res.status(404).json({ success: false, error: 'Event not found' });
+    }
+
+    if (event.organizer_email !== organizer_email) {
+      return res.status(403).json({ success: false, error: 'Forbidden: You are not the organizer of this event' });
+    }
+
+    const linkToUse = (whatsapp_group_link || event.whatsapp_group_link || '').trim();
+    if (!linkToUse) {
+      return res.status(400).json({ success: false, error: 'Please provide a valid WhatsApp group invite link.' });
+    }
+
+    // Persist new link if updated
+    if (whatsapp_group_link && whatsapp_group_link.trim() !== (event.whatsapp_group_link || '').trim()) {
+      await updateEventWhatsAppGroupLink(pool, id as string, organizer_email, linkToUse);
+    }
+
+    const title = `💬 WhatsApp Group Invite: ${event.title}`;
+    const defaultMsg = `Join the official attendee WhatsApp group for "${event.title}" to chat with the organizer and fellow guests!`;
+    const message = custom_message && custom_message.trim() ? custom_message.trim() : defaultMsg;
+
+    const input: CreateBroadcastInput = {
+      title,
+      message,
+      type: 'whatsapp_group_invite',
+      scope: 'event',
+      target_event_id: id as string,
+      sender_email: organizer_email,
+      sender_role: 'organizer',
+      link: linkToUse,
+      metadata: {
+        event_id: id,
+        event_title: event.title,
+        whatsapp_group_link: linkToUse,
+        action: 'join_whatsapp_group'
+      }
+    };
+
+    const result = await createBroadcastAndDispatch(pool, input);
+
+    // Instant FCM push broadcast to event topic
+    sendFcmTopicBroadcast({
+      topic: `event_${id}`,
+      title,
+      message,
+      type: 'whatsapp_group_invite',
+      link: linkToUse,
+      metadata: {
+        broadcast_id: result.broadcast.id,
+        event_id: id,
+        event_title: event.title,
+        whatsapp_group_link: linkToUse,
+        action: 'join_whatsapp_group'
+      }
+    }).catch(err => console.error('[FCM WhatsApp Invite Broadcast Error]:', err));
+
+    // Optional email dispatch via Resend
+    if (config.RESEND_API_KEY && config.RESEND_API_KEY !== 're_dummy_key_123' && result.recipientCount > 0) {
+      getAudienceRecipientEmails(pool, { scope: 'event', eventId: id as string })
+        .then(async (recipientEmails) => {
+          for (const email of recipientEmails) {
+            await resend.emails.send({
+              from: 'VibeCheck <onboarding@resend.dev>',
+              to: email,
+              subject: `Join the WhatsApp Group for ${event.title}`,
+              html: `
+                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 20px;">
+                  <div style="display: inline-block; padding: 6px 12px; background: #dcfce7; color: #15803d; border-radius: 9999px; font-size: 11px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">
+                    💬 Official Attendee Group Chat
+                  </div>
+                  <h2 style="color: #0f172a; margin-top: 0; font-size: 22px; font-weight: 900; font-style: italic; text-transform: uppercase;">You're Invited to Join the Group!</h2>
+                  <p style="font-size: 14px; color: #475569;">The organizer of <strong>${event.title}</strong> has invited all confirmed RSVPs to connect, coordinate, and chat before the event.</p>
+                  
+                  <div style="background: #f8fafc; border-left: 4px solid #22c55e; border-radius: 8px; padding: 16px; margin: 20px 0;">
+                    <p style="margin: 0; color: #1e293b; font-size: 13px; font-weight: 600;">"${message}"</p>
+                  </div>
+                  
+                  <div style="text-align: center; margin: 32px 0;">
+                    <a href="${linkToUse}" style="background: #22c55e; color: #ffffff; padding: 16px 32px; border-radius: 9999px; text-decoration: none; font-weight: 900; font-size: 14px; display: inline-block; letter-spacing: 0.05em; text-transform: uppercase; box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.4);">
+                      👉 Join WhatsApp Group Chat
+                    </a>
+                  </div>
+                  
+                  <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 24px;">
+                    You received this official invitation because you are RSVP'd to ${event.title} on VibeCheck.
+                  </p>
+                </div>
+              `
+            }).catch(err => console.warn(`[WhatsApp Invite Email Error to ${email}]:`, err.message));
+          }
+        })
+        .catch(err => console.warn('[Error fetching recipient emails for invite]:', err.message));
+    }
+
+    res.json({
+      success: true,
+      message: `WhatsApp group invite successfully dispatched to ${result.recipientCount} RSVP'd attendees!`,
+      data: {
+        recipientCount: result.recipientCount,
+        whatsapp_group_link: linkToUse
+      }
+    });
+  } catch (error: any) {
+    console.error('Send WhatsApp group invite error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

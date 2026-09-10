@@ -78,6 +78,10 @@ const TEMPLATES: Record<BroadcastType, { title: string; body: string }> = {
     title: "Important Notice: Event Cancellation",
     body: "We regret to inform you that this event has been officially cancelled. Any ticket refunds or credits are currently being processed automatically.",
   },
+  whatsapp_group_invite: {
+    title: "Official WhatsApp Group Invite",
+    body: "Join our official attendee WhatsApp group to connect with fellow guests and receive live announcements!",
+  },
 };
 
 export default function AdminBroadcastsPage() {

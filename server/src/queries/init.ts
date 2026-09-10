@@ -104,6 +104,7 @@ export async function initializeDatabaseSchema(pool: Pool) {
       is_paid BOOLEAN DEFAULT false,
       image_url VARCHAR(1000),
       image_public_id VARCHAR(255),
+      whatsapp_group_link TEXT,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
@@ -211,6 +212,7 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE news_articles ADD COLUMN IF NOT EXISTS city VARCHAR(100) DEFAULT 'Vizag'`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url VARCHAR(1000)`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS image_public_id VARCHAR(255)`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS whatsapp_group_link TEXT`);
   await pool.query(`ALTER TABLE news_articles ADD COLUMN IF NOT EXISTS image_public_id VARCHAR(255)`);
 
 

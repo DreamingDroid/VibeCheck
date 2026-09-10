@@ -121,6 +121,7 @@ CREATE TABLE IF NOT EXISTS events (
     admin_comment TEXT,                          -- admin feedback on rejection/review
     participant_limit INTEGER,                   -- max number of allowed participants
     is_paid BOOLEAN DEFAULT false,               -- whether event is free or paid
+    whatsapp_group_link TEXT,                    -- WhatsApp group invite link for RSVP'd attendees
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

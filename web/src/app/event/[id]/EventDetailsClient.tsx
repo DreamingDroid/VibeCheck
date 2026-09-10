@@ -9,7 +9,7 @@ import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
 import { AttendeeBriefingModal } from "@/components/AttendeeBriefingModal";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
 import { useTheme } from "@/context/ThemeContext";
-import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle, Users, Star, Sparkles, Ticket, Clock, AlertCircle } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSwipeToClose } from "@/hooks/useSwipeToClose";
@@ -363,6 +363,33 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                     </button>
                   </div>
                 )
+              )}
+
+              {/* Official Attendee WhatsApp Group */}
+              {rsvped && event.whatsapp_group_link && (
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                      <span>💬</span>
+                      <span>Attendee Group</span>
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-200/60 text-emerald-800">
+                      Active
+                    </span>
+                  </div>
+                  <p className="text-xs text-emerald-950 font-bold leading-snug">
+                    Connect and chat with the organizer and fellow attendees!
+                  </p>
+                  <a
+                    href={event.whatsapp_group_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-600/20 active:scale-95"
+                  >
+                    <span>Join WhatsApp Group</span>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </div>
               )}
 
               <div className="space-y-1">

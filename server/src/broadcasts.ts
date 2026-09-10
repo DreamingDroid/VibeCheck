@@ -25,7 +25,8 @@ const VALID_MESSAGE_TYPES = [
   'emergency_alert',
   'agenda_shift',
   'event_rescheduled',
-  'event_cancellation'
+  'event_cancellation',
+  'whatsapp_group_invite'
 ] as const;
 
 const VALID_SCOPES = ['global', 'city', 'event', 'category'] as const;

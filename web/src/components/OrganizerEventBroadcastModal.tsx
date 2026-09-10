@@ -58,6 +58,10 @@ const ORGANIZER_TEMPLATES: Record<BroadcastType, { title: string; body: string }
     title: "Notice of Event Cancellation",
     body: "We deeply regret to announce that this event has been cancelled. Thank you for your support and understanding.",
   },
+  whatsapp_group_invite: {
+    title: "Join Our Official WhatsApp Group",
+    body: "Connect with fellow attendees and get real-time announcements by joining our event's WhatsApp group!",
+  },
 };
 
 export function OrganizerEventBroadcastModal({

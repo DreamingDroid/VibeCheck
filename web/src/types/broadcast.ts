@@ -4,7 +4,8 @@ export type BroadcastType =
   | 'emergency_alert'
   | 'agenda_shift'
   | 'event_rescheduled'
-  | 'event_cancellation';
+  | 'event_cancellation'
+  | 'whatsapp_group_invite';
 
 export const BROADCAST_TYPES: BroadcastType[] = [
   'general_update',
@@ -13,6 +14,7 @@ export const BROADCAST_TYPES: BroadcastType[] = [
   'agenda_shift',
   'event_rescheduled',
   'event_cancellation',
+  'whatsapp_group_invite',
 ];
 
 export type NotificationType =
@@ -190,6 +192,15 @@ export const BROADCAST_TYPE_CONFIGS: Record<NotificationType, BroadcastTypeConfi
     badgeText: 'text-amber-700',
     borderColor: 'border-amber-500/30',
     cardBg: 'bg-amber-50/60',
+  },
+  whatsapp_group_invite: {
+    label: 'WhatsApp Group Invite',
+    description: 'Official group chat invite for confirmed attendees',
+    icon: '💬',
+    badgeBg: 'bg-emerald-500/15 text-emerald-700 border-emerald-300 font-semibold',
+    badgeText: 'text-emerald-700',
+    borderColor: 'border-emerald-500/30',
+    cardBg: 'bg-emerald-50/60',
   },
 };
 

@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import OrganizerInsightsDashboard from "@/components/OrganizerInsightsDashboard";
 import { OrganizerEventBroadcastModal } from "@/components/OrganizerEventBroadcastModal";
+import { OrganizerWhatsAppInviteModal } from "@/components/OrganizerWhatsAppInviteModal";
 const CATEGORIES = ["Sports", "Arts", "Education", "Spiritual", "Music", "Food", "Wellness", "Indie", "Techno", "General"];
 
 const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
@@ -28,12 +29,14 @@ const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
   return `${displayHour}:${min} ${ampm}`;
 });
 
-function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminComment, onEdit, onStatusUpdated }: { eventId: string, title: string, status: string, dateStr: string, organizerEmail: string, adminComment?: string, onEdit?: () => void, onStatusUpdated?: () => void }) {
+function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminComment, whatsappGroupLink, onEdit, onStatusUpdated }: { eventId: string, title: string, status: string, dateStr: string, organizerEmail: string, adminComment?: string, whatsappGroupLink?: string, onEdit?: () => void, onStatusUpdated?: () => void }) {
   const [rsvps, setRsvps] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [inAppBroadcastOpen, setInAppBroadcastOpen] = useState(false);
+  const [whatsappInviteOpen, setWhatsappInviteOpen] = useState(false);
+  const [currentWhatsappLink, setCurrentWhatsappLink] = useState(whatsappGroupLink || "");
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [broadcastStats, setBroadcastStats] = useState<{ eligibleCount: number, costPerMessage: number, totalCost: number } | null>(null);
   const [broadcastMessage, setBroadcastMessage] = useState("");
@@ -209,6 +212,9 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
             <>
               <button onClick={(e) => { e.stopPropagation(); setInAppBroadcastOpen(true); }} className="ringer-button bg-rose-600 text-white hover:bg-rose-700 text-[10px] flex items-center gap-1.5 font-black shadow-xs">
                 <Radio className="h-3 w-3 animate-pulse" /> BROADCAST
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); setWhatsappInviteOpen(true); }} className="ringer-button bg-emerald-600 text-white hover:bg-emerald-700 text-[10px] flex items-center gap-1.5 font-black shadow-xs">
+                💬 GROUP CHAT INVITE
               </button>
               <button onClick={openPromoKit} className="ringer-button bg-black text-white hover:bg-zinc-800 text-[10px] flex items-center gap-2">
                 ✨ AI PROMO KIT
@@ -464,6 +470,20 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
         eventTitle={title}
         organizerEmail={organizerEmail}
       />
+
+      {/* WhatsApp Group Invite Modal */}
+      <OrganizerWhatsAppInviteModal
+        isOpen={whatsappInviteOpen}
+        onClose={() => setWhatsappInviteOpen(false)}
+        eventId={eventId}
+        eventTitle={title}
+        organizerEmail={organizerEmail}
+        initialLink={currentWhatsappLink}
+        onLinkUpdated={(newLink) => {
+          setCurrentWhatsappLink(newLink);
+          if (onStatusUpdated) onStatusUpdated();
+        }}
+      />
     </div>
   );
 }
@@ -499,7 +519,7 @@ export default function OrganizerDashboard() {
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState({
-    title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
+    title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
     startDate: "", endDate: "", startTime: "", endTime: "",
     participantLimit: "", isPaid: false
   });
@@ -755,7 +775,7 @@ export default function OrganizerDashboard() {
     setIsMultiDay(fDate(start) !== fDate(end));
     setFormData({
       title: ev.title, description: ev.description, category: ev.category,
-      location: ev.location || "", city: ev.city || "", google_maps_link: ev.google_maps_link || "", timings: ev.timings || "",
+      location: ev.location || "", city: ev.city || "", google_maps_link: ev.google_maps_link || "", whatsapp_group_link: ev.whatsapp_group_link || "", timings: ev.timings || "",
       startDate: fDate(start), endDate: fDate(end),
       startTime: fTime(start), endTime: fTime(end),
       participantLimit: ev.participant_limit ? String(ev.participant_limit) : "",
@@ -771,7 +791,7 @@ export default function OrganizerDashboard() {
   const handleCancelEdit = () => {
     setEditingEventId(null);
     setFormData({
-      title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
+      title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
       startDate: "", endDate: "", startTime: "", endTime: "",
       participantLimit: "", isPaid: false
     });
@@ -868,7 +888,7 @@ export default function OrganizerDashboard() {
       const data = await res.json();
       if (data.success) {
         setFormData({
-          title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
+          title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
           startDate: "", endDate: "", startTime: "", endTime: "",
           participantLimit: "", isPaid: false
         });
@@ -945,7 +965,7 @@ export default function OrganizerDashboard() {
               ) : (
                 <div className="space-y-4">
                   {myEvents.map(ev => (
-                    <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} dateStr={ev.date_time} organizerEmail={session?.user?.email || ""} adminComment={ev.admin_comment} onEdit={() => handleEditInit(ev)} onStatusUpdated={() => loadMyEvents()} />
+                    <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} dateStr={ev.date_time} organizerEmail={session?.user?.email || ""} adminComment={ev.admin_comment} whatsappGroupLink={ev.whatsapp_group_link} onEdit={() => handleEditInit(ev)} onStatusUpdated={() => loadMyEvents()} />
                   ))}
                 </div>
               )}
@@ -1179,7 +1199,7 @@ export default function OrganizerDashboard() {
           onClick={() => {
             setEditingEventId(null);
             setFormData({
-              title: "", description: "", category: "", location: "", city: "", google_maps_link: "", timings: "",
+              title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
               startDate: "", endDate: "", startTime: "", endTime: "",
               participantLimit: "", isPaid: false
             });
@@ -1397,6 +1417,11 @@ export default function OrganizerDashboard() {
                   <div className="space-y-1">
                     <Input name="google_maps_link" placeholder="Google Maps Link / URL (Optional)" value={formData.google_maps_link} onChange={e => setFormData({ ...formData, google_maps_link: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
                     <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Copy & paste a Google Maps sharing URL so users can navigate exactly to your location.</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Input name="whatsapp_group_link" placeholder="WhatsApp Group Invite Link / URL (Optional, e.g. https://chat.whatsapp.com/...)" value={formData.whatsapp_group_link} onChange={e => setFormData({ ...formData, whatsapp_group_link: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
+                    <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Optional WhatsApp group invite for confirmed attendees to chat and coordinate.</p>
                   </div>
 
                   <div className="space-y-1">
