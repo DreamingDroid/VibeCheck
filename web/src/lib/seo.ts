@@ -1,6 +1,35 @@
-export const SITE_URL = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://vibecheckspace.com';
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://vibecheckspace.com').replace(/\/+$/, '');
 export const SITE_NAME = 'VibeCheck Space';
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/apple-touch-icon.png`;
+
+export function isProductionEnvironment(): boolean {
+  const appEnv = process.env.APP_ENV || '';
+  const nextAuthUrl = process.env.NEXTAUTH_URL || '';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
+  const vercelEnv = process.env.VERCEL_ENV || '';
+  const vercelUrl = process.env.VERCEL_URL || '';
+
+  // Block search crawlers if explicitly UAT, dev, staging, or preview
+  if (
+    appEnv === 'uat' ||
+    appEnv === 'development' ||
+    appEnv === 'local' ||
+    vercelEnv === 'preview' ||
+    vercelEnv === 'development' ||
+    nextAuthUrl.includes('uat') ||
+    nextAuthUrl.includes('preview') ||
+    nextAuthUrl.includes('localhost') ||
+    siteUrl.includes('uat') ||
+    siteUrl.includes('preview') ||
+    siteUrl.includes('localhost') ||
+    vercelUrl.includes('uat') ||
+    vercelUrl.includes('preview')
+  ) {
+    return false;
+  }
+
+  return true;
+}
 
 export interface EventSchemaProps {
   id: string | number;

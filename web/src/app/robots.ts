@@ -1,7 +1,20 @@
 import { MetadataRoute } from 'next';
-import { SITE_URL } from '@/lib/seo';
+import { SITE_URL, isProductionEnvironment } from '@/lib/seo';
 
 export default function robots(): MetadataRoute.Robots {
+  // If in UAT, testing, or development, explicitly disallow all search engines
+  if (!isProductionEnvironment()) {
+    return {
+      rules: [
+        {
+          userAgent: '*',
+          disallow: '/',
+        },
+      ],
+    };
+  }
+
+  // Production indexing rules
   return {
     rules: [
       {

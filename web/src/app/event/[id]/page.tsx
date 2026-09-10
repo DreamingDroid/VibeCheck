@@ -1,6 +1,5 @@
-import { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { SITE_URL, SITE_NAME, generateEventJsonLd } from "@/lib/seo";
+import type { Metadata } from "next";
+import { SITE_URL, SITE_NAME, generateEventJsonLd, isProductionEnvironment } from "@/lib/seo";
 import { EventDetailsClient } from "./EventDetailsClient";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:4000";
@@ -95,6 +94,28 @@ export async function generateMetadata({
       description,
       images: [ogImage],
     },
+    robots: isProductionEnvironment()
+      ? {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-video-preview": -1,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+          },
+        }
+      : {
+          index: false,
+          follow: false,
+          nocache: true,
+          googleBot: {
+            index: false,
+            follow: false,
+            noarchive: true,
+          },
+        },
   };
 }
 

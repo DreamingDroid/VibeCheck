@@ -22,7 +22,9 @@ const courierPrime = Courier_Prime({
   style: ["normal", "italic"],
 });
 
-import { SITE_URL, SITE_NAME, generateRootJsonLd } from "@/lib/seo";
+import { SITE_URL, SITE_NAME, generateRootJsonLd, isProductionEnvironment } from "@/lib/seo";
+
+const isProd = isProductionEnvironment();
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -80,17 +82,28 @@ export const metadata: Metadata = {
     description: "Discover upcoming local events, workshops, concerts, and breaking city news in Vizag.",
     images: [`${SITE_URL}/apple-touch-icon.png`],
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
+  robots: isProd
+    ? {
+        index: true,
+        follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+          "max-video-preview": -1,
+          "max-image-preview": "large",
+          "max-snippet": -1,
+        },
+      }
+    : {
+        index: false,
+        follow: false,
+        nocache: true,
+        googleBot: {
+          index: false,
+          follow: false,
+          noarchive: true,
+        },
+      },
 };
 
 import { GlobalHeader } from "@/components/global-header";
