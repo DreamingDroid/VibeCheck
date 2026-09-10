@@ -7,6 +7,7 @@ import { config } from './config';
 import { getChatModel } from './rag';
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { getOrganizerCrmContacts, upsertOrganizerCrmNotes, getPhoneNumbersForEmails } from './queries/crm';
+import { notifySuperAdmins } from './notifications';
 
 export async function organizerCreateEventHandler(req: Request, res: Response, pool: Pool) {
   const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email } = req.body;
@@ -15,6 +16,33 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
 
   try {
     const event = await createOrganizerEvent(pool, req.body);
+
+    // Notify SuperAdmins of the pending event application
+    notifySuperAdmins(pool, {
+      title: `New Event Pending Approval: ${title}`,
+      message: `Organizer (${organizer_email}) submitted "${title}" for review.`,
+      type: 'event_pending_approval',
+      link: '/admin/events?tab=pending',
+      metadata: { event_id: event?.id, title, organizer_email, city, category, type: 'event_pending_approval' },
+      emailSubject: `[VibeCheck Admin] New Event Submitted for Approval: ${title}`,
+      emailHtml: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #6366f1; margin-top: 0;">New Event Submitted for Approval</h2>
+          <p>An organizer has created and submitted a new event for review on VibeCheck.</p>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <p style="margin: 6px 0;"><strong>Event Title:</strong> ${title}</p>
+            <p style="margin: 6px 0;"><strong>Organizer:</strong> ${organizer_email}</p>
+            <p style="margin: 6px 0;"><strong>Category:</strong> ${category || 'General'}</p>
+            <p style="margin: 6px 0;"><strong>Location / City:</strong> ${location || 'TBA'} (${city || 'Unspecified'})</p>
+            <p style="margin: 6px 0;"><strong>Date & Time:</strong> ${date_time ? new Date(date_time).toLocaleString() : 'TBA'}</p>
+          </div>
+          <div style="margin-top: 24px;">
+            <a href="${config.WEB_APP_URL}/admin/events?tab=pending" style="display: inline-block; background: #6366f1; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Review Event in Admin Portal &rarr;</a>
+          </div>
+        </div>
+      `
+    }).catch(err => console.warn('[Notifications] Error in notifySuperAdmins on event create:', err.message));
+
     res.json({ success: true, data: event, message: 'Event submitted for approval.' });
   } catch (error) {
     console.error('Error creating event:', error);
@@ -141,6 +169,30 @@ export async function organizerUpdateEventHandler(req: Request, res: Response, p
     if (!rowCount || rowCount === 0) {
       return res.status(403).json({ success: false, error: 'Cannot update this event. It may not be in needs_changes status or you may not be the owner.' });
     }
+
+    // Notify SuperAdmins of resubmitted event
+    notifySuperAdmins(pool, {
+      title: `Event Resubmitted: ${data.title || 'Event'}`,
+      message: `Organizer (${organizer_email}) updated and resubmitted "${data.title || 'their event'}" for approval.`,
+      type: 'event_pending_approval',
+      link: '/admin/events?tab=pending',
+      metadata: { event_id: id, title: data.title, organizer_email, type: 'event_pending_approval' },
+      emailSubject: `[VibeCheck Admin] Event Resubmitted for Approval: ${data.title || 'Event'}`,
+      emailHtml: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #6366f1; margin-top: 0;">Event Resubmitted for Review</h2>
+          <p>The organizer <strong>${organizer_email}</strong> has updated their event and resubmitted it for approval.</p>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <p style="margin: 6px 0;"><strong>Event Title:</strong> ${data.title || 'Updated Event'}</p>
+            <p style="margin: 6px 0;"><strong>Organizer:</strong> ${organizer_email}</p>
+          </div>
+          <div style="margin-top: 24px;">
+            <a href="${config.WEB_APP_URL}/admin/events?tab=pending" style="display: inline-block; background: #6366f1; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Review Resubmitted Event &rarr;</a>
+          </div>
+        </div>
+      `
+    }).catch(err => console.warn('[Notifications] Error in notifySuperAdmins on event update:', err.message));
+
     res.json({ success: true, message: 'Event updated and resubmitted for approval.' });
   } catch (error) {
     console.error('Organizer update event error:', error);

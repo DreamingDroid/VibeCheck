@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { Resend } from 'resend';
 import { config } from './config';
 import { sendWhatsAppMessage, sendWhatsAppTemplateOTP } from './whatsapp';
+import { notifySuperAdmins } from './notifications';
 
 const resend = new Resend(config.RESEND_API_KEY);
 
@@ -131,6 +132,32 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
       )`,
       [email, brandName, description, JSON.stringify(socialLinks), formattedPhone]
     );
+
+    // Notify SuperAdmins of the pending application
+    notifySuperAdmins(pool, {
+      title: `New Organizer Application: ${brandName}`,
+      message: `${brandName} (${email}) has submitted an application for organizer approval.`,
+      type: 'approval_pending',
+      link: '/admin/organizers?tab=pending',
+      metadata: { brand_name: brandName, email, phone: formattedPhone, type: 'organizer_application' },
+      emailSubject: `[VibeCheck Admin] New Organizer Application: ${brandName}`,
+      emailHtml: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #6366f1; margin-top: 0;">New Organizer Application Submitted</h2>
+          <p>A new organizer has registered and submitted an application for review on VibeCheck.</p>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <p style="margin: 6px 0;"><strong>Brand / Organization:</strong> ${brandName}</p>
+            <p style="margin: 6px 0;"><strong>Contact Email:</strong> ${email}</p>
+            <p style="margin: 6px 0;"><strong>Phone:</strong> ${formattedPhone}</p>
+            <p style="margin: 6px 0;"><strong>Description:</strong> ${description}</p>
+          </div>
+          <div style="margin-top: 24px;">
+            <a href="${config.WEB_APP_URL}/admin/organizers?tab=pending" style="display: inline-block; background: #6366f1; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Review Application in Admin Portal &rarr;</a>
+          </div>
+        </div>
+      `
+    }).catch(err => console.warn('[Notifications] Error in notifySuperAdmins on apply:', err.message));
+
     res.json({ success: true, message: 'Application submitted successfully' });
   } catch (error: any) {
     if (error.code === '23505') {
@@ -140,3 +167,4 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
+

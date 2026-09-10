@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   BroadcastType,
+  BROADCAST_TYPES,
   BROADCAST_TYPE_CONFIGS
 } from "@/types/broadcast";
 
@@ -223,7 +224,7 @@ export function OrganizerEventBroadcastModal({
               1. Select Message Type
             </Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {(Object.keys(BROADCAST_TYPE_CONFIGS) as BroadcastType[]).map((tKey) => {
+              {BROADCAST_TYPES.map((tKey) => {
                 const cfg = BROADCAST_TYPE_CONFIGS[tKey];
                 const isSel = messageType === tKey;
                 return (

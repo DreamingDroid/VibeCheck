@@ -9,6 +9,7 @@ import { getAllEvents, createEvent, updateEvent, deleteEvent, getPendingEvents, 
 import { initSystemSettings, getSystemSetting, getAnalyticsOverview, getEventsByCategoryStats, getPreferredCategoriesStats, toggleCronSetting } from './queries/analytics';
 import { searchOrganizers, searchAttendees, searchEvents, searchGlobal, getAttendeeDeepDetails, getOrganizerDeepDetails, getEventDeepDetails } from './queries/search';
 import { deleteImage } from './cloudinary';
+import { notifyOrganizer } from './notifications';
 
 // Check if an email belongs to an admin
 export async function checkAdminHandler(req: Request, res: Response, pool: Pool) {
@@ -210,15 +211,28 @@ export async function adminApproveOrganizerHandler(req: Request, res: Response, 
     const row = await updateOrganizerStatus(pool, id as string, 'approved');
     if (!row) return res.status(404).json({ success: false, error: 'Organizer not found' });
     
-    // Optional: send approval email
-    if (config.RESEND_API_KEY && config.RESEND_API_KEY !== 're_dummy_key_123') {
-      await resend.emails.send({
-        from: 'VibeCheck <onboarding@resend.dev>',
-        to: row.email,
-        subject: 'Welcome to VibeCheck! Your Application is Approved',
-        html: `<p>Great news! Your organizer application has been approved.</p><p>You can now log in to the Organizer Dashboard.</p>`
-      });
-    }
+    // Send in-app notification + email to the organizer
+    notifyOrganizer(pool, {
+      organizerEmail: row.email,
+      title: 'Organizer Application Approved! 🎉',
+      message: 'Congratulations! Your organizer application has been approved. You now have full access to create events and access the Organizer Hub.',
+      type: 'application_approved',
+      link: '/organizer',
+      metadata: { status: 'approved' },
+      emailSubject: 'Welcome to VibeCheck! Your Organizer Application is Approved 🎉',
+      emailHtml: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #10b981; margin-top: 0;">Congratulations! Your Application is Approved 🎉</h2>
+          <p>Great news! Your organizer application for VibeCheck Space has been reviewed and approved.</p>
+          <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <p style="margin: 0; color: #065f46; font-weight: 500;">You can now log in, publish events, track RSVPs, issue digital passes, and broadcast live announcements to your attendees.</p>
+          </div>
+          <div style="margin-top: 24px;">
+            <a href="${config.WEB_APP_URL}/organizer" style="display: inline-block; background: #10b981; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Open Organizer Dashboard &rarr;</a>
+          </div>
+        </div>
+      `
+    }).catch(err => console.warn('[Notifications] Error in notifyOrganizer on approve:', err.message));
 
     res.json({ success: true, message: 'Organizer approved successfully.' });
   } catch (error) {
@@ -236,15 +250,30 @@ export async function adminRejectOrganizerHandler(req: Request, res: Response, p
     const row = await updateOrganizerStatus(pool, id as string, 'rejected', reason);
     if (!row) return res.status(404).json({ success: false, error: 'Organizer not found' });
 
-    // Send rejection email
-    if (config.RESEND_API_KEY && config.RESEND_API_KEY !== 're_dummy_key_123') {
-      await resend.emails.send({
-        from: 'VibeCheck <onboarding@resend.dev>',
-        to: row.email,
-        subject: 'Update on your VibeCheck Application',
-        html: `<p>We have reviewed your application.</p><p>Unfortunately, it has been rejected for the following reason:</p><blockquote style="border-left: 4px solid #ccc; padding-left: 10px;">${reason}</blockquote>`
-      });
-    }
+    // Send in-app notification + email to the organizer
+    notifyOrganizer(pool, {
+      organizerEmail: row.email,
+      title: 'Organizer Application Update',
+      message: `Your organizer application was not approved. Reason: ${reason}`,
+      type: 'application_rejected',
+      link: '/organizer/apply',
+      metadata: { status: 'rejected', reason },
+      emailSubject: 'Update on your VibeCheck Application',
+      emailHtml: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #ef4444; margin-top: 0;">Organizer Application Status Update</h2>
+          <p>Thank you for applying to become an organizer on VibeCheck. Our team has reviewed your application.</p>
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <p style="margin: 0 0 8px 0; color: #991b1b; font-weight: bold;">Review Feedback:</p>
+            <blockquote style="margin: 0; padding-left: 12px; border-left: 3px solid #ef4444; color: #7f1d1d;">${reason}</blockquote>
+          </div>
+          <p>You may update your details and submit a new application anytime.</p>
+          <div style="margin-top: 24px;">
+            <a href="${config.WEB_APP_URL}/organizer/apply" style="display: inline-block; background: #6366f1; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Re-apply as Organizer &rarr;</a>
+          </div>
+        </div>
+      `
+    }).catch(err => console.warn('[Notifications] Error in notifyOrganizer on reject:', err.message));
 
     res.json({ success: true, message: 'Organizer rejected successfully.' });
   } catch (error) {
@@ -269,8 +298,87 @@ export async function adminReviewEventHandler(req: Request, res: Response, pool:
     return res.status(400).json({ success: false, error: 'Invalid status. Must be approved, rejected, or needs_changes.' });
   }
   try {
+    // Fetch event details for notification recipient
+    const { rows: eventRows } = await pool.query(
+      `SELECT title, organizer_email FROM events WHERE id = $1`,
+      [id]
+    );
+    const event = eventRows[0];
+
     const rowCount = await updateEventStatus(pool, id as string, status, comment || null);
     if (rowCount === 0) return res.status(404).json({ success: false, error: 'Event not found' });
+
+    // Notify the organizer if organizer_email exists
+    if (event?.organizer_email) {
+      if (status === 'approved') {
+        notifyOrganizer(pool, {
+          organizerEmail: event.organizer_email,
+          title: `Event Approved: ${event.title} 🚀`,
+          message: `Great news! Your event "${event.title}" has been approved and is now live on VibeCheck!`,
+          type: 'event_approved',
+          link: `/event/${id}`,
+          metadata: { event_id: id, status: 'approved' },
+          emailSubject: `Your Event is Approved & Published: ${event.title} 🚀`,
+          emailHtml: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #10b981; margin-top: 0;">Your Event is Live! 🚀</h2>
+              <p>Congratulations! Your event <strong>"${event.title}"</strong> has been approved by the editorial team and is now live for discovery and RSVPs.</p>
+              <div style="margin-top: 24px;">
+                <a href="${config.WEB_APP_URL}/event/${id}" style="display: inline-block; background: #10b981; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">View Published Event &rarr;</a>
+              </div>
+            </div>
+          `
+        }).catch(err => console.warn('[Notifications] Error in notifyOrganizer on event approve:', err.message));
+      } else if (status === 'rejected') {
+        notifyOrganizer(pool, {
+          organizerEmail: event.organizer_email,
+          title: `Event Rejected: ${event.title}`,
+          message: `Your event "${event.title}" was not approved.${comment ? ` Reason: ${comment}` : ''}`,
+          type: 'event_rejected',
+          link: '/organizer',
+          metadata: { event_id: id, status: 'rejected', comment },
+          emailSubject: `Update on your Event Submission: ${event.title}`,
+          emailHtml: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #ef4444; margin-top: 0;">Event Submission Update</h2>
+              <p>We have reviewed your event submission for <strong>"${event.title}"</strong>.</p>
+              <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 20px 0;">
+                <p style="margin: 0 0 8px 0; color: #991b1b; font-weight: bold;">Review Feedback:</p>
+                <blockquote style="margin: 0; padding-left: 12px; border-left: 3px solid #ef4444; color: #7f1d1d;">${comment || 'Event does not meet current publishing criteria.'}</blockquote>
+              </div>
+              <div style="margin-top: 24px;">
+                <a href="${config.WEB_APP_URL}/organizer" style="display: inline-block; background: #6366f1; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Visit Organizer Hub &rarr;</a>
+              </div>
+            </div>
+          `
+        }).catch(err => console.warn('[Notifications] Error in notifyOrganizer on event reject:', err.message));
+      } else if (status === 'needs_changes') {
+        notifyOrganizer(pool, {
+          organizerEmail: event.organizer_email,
+          title: `Action Required: ${event.title} ✏️`,
+          message: `Your event "${event.title}" requires updates before approval.${comment ? ` Admin note: ${comment}` : ''}`,
+          type: 'event_needs_changes',
+          link: '/organizer',
+          metadata: { event_id: id, status: 'needs_changes', comment },
+          emailSubject: `Action Required for your Event: ${event.title}`,
+          emailHtml: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #f59e0b; margin-top: 0;">Action Required: Updates Needed ✏️</h2>
+              <p>Our editorial team reviewed your event <strong>"${event.title}"</strong> and requested a few changes before it can be published.</p>
+              <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin: 20px 0;">
+                <p style="margin: 0 0 8px 0; color: #92400e; font-weight: bold;">Requested Updates:</p>
+                <blockquote style="margin: 0; padding-left: 12px; border-left: 3px solid #f59e0b; color: #78350f;">${comment || 'Please update the event details.'}</blockquote>
+              </div>
+              <p>Please edit your event in the Organizer Hub and resubmit it for review.</p>
+              <div style="margin-top: 24px;">
+                <a href="${config.WEB_APP_URL}/organizer" style="display: inline-block; background: #f59e0b; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Edit & Resubmit Event &rarr;</a>
+              </div>
+            </div>
+          `
+        }).catch(err => console.warn('[Notifications] Error in notifyOrganizer on event needs_changes:', err.message));
+      }
+    }
+
     const messages: Record<string, string> = {
       approved: 'Event approved and published.',
       rejected: 'Event rejected.',

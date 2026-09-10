@@ -868,6 +868,19 @@ export function GlobalHeader() {
                 >
                   DISMISS
                 </button>
+                {selectedNotification.link && (
+                  <button
+                    onClick={() => {
+                      const link = selectedNotification.link!;
+                      setSelectedNotification(null);
+                      router.push(link);
+                    }}
+                    className="w-full sm:w-auto ringer-button bg-black hover:bg-zinc-800 text-white text-xs py-2.5 px-5 flex items-center justify-center gap-2"
+                  >
+                    <span>{selectedNotification.actionText || 'VIEW DETAILS'}</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
           </div>

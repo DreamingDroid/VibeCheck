@@ -36,6 +36,7 @@ import {
   BroadcastType,
   BroadcastScope,
   BroadcastMessage,
+  BROADCAST_TYPES,
   BROADCAST_TYPE_CONFIGS
 } from "@/types/broadcast";
 
@@ -521,7 +522,7 @@ export default function AdminBroadcastsPage() {
 
               <CardContent className="p-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {(Object.keys(BROADCAST_TYPE_CONFIGS) as BroadcastType[]).map((typeKey) => {
+                  {BROADCAST_TYPES.map((typeKey) => {
                     const cfg = BROADCAST_TYPE_CONFIGS[typeKey];
                     const isSelected = messageType === typeKey;
                     return (
@@ -760,7 +761,7 @@ export default function AdminBroadcastsPage() {
                 className="bg-zinc-50 border border-black/10 rounded-xl px-2.5 py-1 text-xs font-bold"
               >
                 <option value="all">All Types</option>
-                {(Object.keys(BROADCAST_TYPE_CONFIGS) as BroadcastType[]).map((t) => (
+                {BROADCAST_TYPES.map((t) => (
                   <option key={t} value={t}>
                     {BROADCAST_TYPE_CONFIGS[t].label}
                   </option>
