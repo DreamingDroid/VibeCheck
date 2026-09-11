@@ -251,7 +251,7 @@ export default function AdminNewsPage() {
 
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      const res = await fetch(`${baseUrl}/api/admin/news/${id}`, {
+      const res = await fetch(`${baseUrl}/api/admin/news/${id}?email=${encodeURIComponent(email)}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

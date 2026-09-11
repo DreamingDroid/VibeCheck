@@ -145,10 +145,20 @@ function AdminEventsPageContent() {
       variant: "danger",
     });
     if (!confirmed) return;
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-    await fetch(`${baseUrl}/api/admin/events/${id}`, { method: "DELETE" });
-    toast.success("Event deleted.");
-    fetchEvents();
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/admin/events/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Event deleted successfully.");
+        fetchEvents();
+      } else {
+        toast.error(data.error || "Failed to delete event.");
+      }
+    } catch (err) {
+      console.error("Delete event error:", err);
+      toast.error("Failed to delete event.");
+    }
   };
 
   const handleReview = async (id: string, status: string) => {

@@ -6,9 +6,10 @@ import {
   Search, Users, Calendar, Shield, Download, RefreshCw, 
   ExternalLink, Eye, Phone, Mail, MapPin, Tag, CheckCircle2, 
   XCircle, Clock, DollarSign, Filter, ChevronRight, Copy, Check,
-  Sparkles, Radio, MessageSquare, Ticket, UserCheck, Star
+  Sparkles, Radio, MessageSquare, Ticket, UserCheck, Star, Trash2
 } from "lucide-react";
 import { toast } from "sonner";
+import { vibeConfirm } from "@/components/vibe-confirm";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -307,6 +308,60 @@ function SearchContent() {
       console.error(err);
       toast.error("Network error while inspecting record.");
       setDetailModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleDeleteOrganizer = async (id: string, name: string) => {
+    const confirmed = await vibeConfirm({
+      title: `Delete Organizer "${name}"?`,
+      message: "This action will permanently delete this organizer profile and revoke all their organizer privileges. This action cannot be undone.",
+      confirmLabel: "Delete Permanently",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    try {
+      const r = await fetch(`${baseUrl}/api/admin/organizers/${id}`, {
+        method: "DELETE",
+      });
+      const d = await r.json();
+      if (d.success) {
+        toast.success(`Organizer "${name}" deleted.`);
+        setDetailModal(prev => ({ ...prev, isOpen: false }));
+        executeSearch();
+      } else {
+        toast.error(d.error || "Failed to delete organizer.");
+      }
+    } catch (err) {
+      console.error("Delete organizer error:", err);
+      toast.error("An error occurred while deleting organizer.");
+    }
+  };
+
+  const handleDeleteEvent = async (id: string, titleStr: string) => {
+    const confirmed = await vibeConfirm({
+      title: `Delete Event "${titleStr}"?`,
+      message: "This action is permanent and cannot be undone. All RSVPs for this event will also be removed.",
+      confirmLabel: "Delete Permanently",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    try {
+      const res = await fetch(`${baseUrl}/api/admin/events/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Event "${titleStr}" deleted.`);
+        setDetailModal(prev => ({ ...prev, isOpen: false }));
+        executeSearch();
+      } else {
+        toast.error(data.error || "Failed to delete event.");
+      }
+    } catch (err) {
+      console.error("Delete event error:", err);
+      toast.error("Failed to delete event.");
     }
   };
 
@@ -870,14 +925,25 @@ function SearchContent() {
                       <span className="text-[11px] font-bold text-zinc-500">
                         {org.events_count || 0} Events • {org.total_rsvps || 0} RSVPs
                       </span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openInspector("organizer", org.email)}
-                        className="rounded-xl text-[10px] font-black uppercase tracking-wider h-7 px-2.5"
-                      >
-                        <Eye className="h-3 w-3 mr-1" /> Inspect
-                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openInspector("organizer", org.email)}
+                          className="rounded-xl text-[10px] font-black uppercase tracking-wider h-7 px-2.5"
+                        >
+                          <Eye className="h-3 w-3 mr-1" /> Inspect
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteOrganizer(org.id, org.brand_name || org.email)}
+                          className="rounded-xl text-[10px] font-black uppercase tracking-wider h-7 w-7 p-0 text-zinc-400 hover:text-red-500 hover:bg-red-50 border-black/10"
+                          title="Delete Organizer"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </Card>
                 ))}
@@ -1000,14 +1066,25 @@ function SearchContent() {
                       <span className="text-[11px] font-bold text-zinc-500">
                         {ev.rsvp_count || 0} RSVPs • {ev.is_paid ? "Paid" : "Free"}
                       </span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openInspector("event", ev.id)}
-                        className="rounded-xl text-[10px] font-black uppercase tracking-wider h-7 px-2.5"
-                      >
-                        <Eye className="h-3 w-3 mr-1" /> Inspect
-                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openInspector("event", ev.id)}
+                          className="rounded-xl text-[10px] font-black uppercase tracking-wider h-7 px-2.5"
+                        >
+                          <Eye className="h-3 w-3 mr-1" /> Inspect
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteEvent(ev.id, ev.title)}
+                          className="rounded-xl text-[10px] font-black uppercase tracking-wider h-7 w-7 p-0 text-zinc-400 hover:text-red-500 hover:bg-red-50 border-black/10"
+                          title="Delete Event"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </Card>
                 ))}
@@ -1098,14 +1175,25 @@ function SearchContent() {
                         {org.followers_count || 0}
                       </td>
                       <td className="p-4 text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openInspector("organizer", org.email)}
-                          className="rounded-xl text-[10px] font-black uppercase tracking-wider h-8 px-3"
-                        >
-                          <Eye className="h-3 w-3 mr-1" /> Inspect
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openInspector("organizer", org.email)}
+                            className="rounded-xl text-[10px] font-black uppercase tracking-wider h-8 px-3"
+                          >
+                            <Eye className="h-3 w-3 mr-1" /> Inspect
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteOrganizer(org.id, org.brand_name || org.email)}
+                            className="rounded-xl text-[10px] font-black uppercase tracking-wider h-8 w-8 p-0 text-zinc-400 hover:text-red-500 hover:bg-red-50 border-black/10"
+                            title="Delete Organizer"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1330,14 +1418,25 @@ function SearchContent() {
                         )}
                       </td>
                       <td className="p-4 text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openInspector("event", ev.id)}
-                          className="rounded-xl text-[10px] font-black uppercase tracking-wider h-8 px-3"
-                        >
-                          <Eye className="h-3 w-3 mr-1" /> Inspect
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openInspector("event", ev.id)}
+                            className="rounded-xl text-[10px] font-black uppercase tracking-wider h-8 px-3"
+                          >
+                            <Eye className="h-3 w-3 mr-1" /> Inspect
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteEvent(ev.id, ev.title)}
+                            className="rounded-xl text-[10px] font-black uppercase tracking-wider h-8 w-8 p-0 text-zinc-400 hover:text-red-500 hover:bg-red-50 border-black/10"
+                            title="Delete Event"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1466,6 +1565,18 @@ function SearchContent() {
                         ))}
                       </div>
                     )}
+                  </div>
+
+                  {/* Modal Actions */}
+                  <div className="pt-4 border-t border-black/5 flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteOrganizer(detailModal.data.organizer.id, detailModal.data.organizer.brand_name || detailModal.data.organizer.email)}
+                      className="rounded-xl text-[10px] font-black uppercase tracking-wider h-9 px-4 flex items-center gap-2"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Delete Organizer
+                    </Button>
                   </div>
                 </div>
               )}
@@ -1676,6 +1787,18 @@ function SearchContent() {
                         ))}
                       </div>
                     )}
+                  </div>
+
+                  {/* Modal Actions */}
+                  <div className="pt-4 border-t border-black/5 flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteEvent(detailModal.data.event.id, detailModal.data.event.title)}
+                      className="rounded-xl text-[10px] font-black uppercase tracking-wider h-9 px-4 flex items-center gap-2"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Delete Event
+                    </Button>
                   </div>
                 </div>
               )}

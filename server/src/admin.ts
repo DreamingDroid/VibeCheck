@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
-import { getAdminByEmail, addOrganizer, getOrganizers, getPendingOrganizers, updateOrganizerStatus, getAdmins, addAdmin, removeAdmin } from './queries/admins';
+import { getAdminByEmail, addOrganizer, getOrganizers, getPendingOrganizers, updateOrganizerStatus, getAdmins, addAdmin, removeAdmin, deleteOrganizer } from './queries/admins';
 import { Resend } from 'resend';
 import { config } from './config';
 
@@ -278,6 +278,20 @@ export async function adminRejectOrganizerHandler(req: Request, res: Response, p
     res.json({ success: true, message: 'Organizer rejected successfully.' });
   } catch (error) {
     console.error('Reject organizer error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function adminDeleteOrganizerHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  try {
+    const deleted = await deleteOrganizer(pool, id as string);
+    if (!deleted) {
+      return res.status(404).json({ success: false, error: 'Organizer not found' });
+    }
+    res.json({ success: true, data: deleted, message: 'Organizer deleted successfully.' });
+  } catch (error) {
+    console.error('Delete organizer error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

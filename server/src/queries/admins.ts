@@ -92,3 +92,13 @@ export async function removeAdmin(pool: Pool, id: string) {
   return rowCount > 0;
 }
 
+export async function deleteOrganizer(pool: Pool, id: string) {
+  const { rows } = await pool.query(
+    `DELETE FROM admins
+     WHERE id = $1 AND LOWER(role::text) = 'organizer'
+     RETURNING id, email, brand_name`,
+    [id]
+  );
+  return rows[0] || null;
+}
+

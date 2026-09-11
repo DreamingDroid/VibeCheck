@@ -7,9 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   Users, CheckCircle2, XCircle, ChevronDown, ChevronUp, 
-  Mail, Phone, Calendar, ExternalLink 
+  Mail, Phone, Calendar, ExternalLink, Trash2 
 } from "lucide-react";
 import { toast } from "sonner";
+import { vibeConfirm } from "@/components/vibe-confirm";
 
 type Organizer = {
   id: string;
@@ -126,6 +127,36 @@ function AdminOrganizersPageContent() {
     }
   };
 
+  const handleDeleteOrganizer = async (id: string, name: string) => {
+    const confirmed = await vibeConfirm({
+      title: `Delete Organizer "${name}"?`,
+      message: "This action will permanently delete this organizer profile and revoke all their organizer privileges. This action cannot be undone.",
+      confirmLabel: "Delete Permanently",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    setActionLoading(true);
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    try {
+      const r = await fetch(`${baseUrl}/api/admin/organizers/${id}`, {
+        method: "DELETE",
+      });
+      const d = await r.json();
+      if (d.success) {
+        toast.success(`Organizer "${name}" deleted.`);
+        loadRequests();
+      } else {
+        toast.error(d.error || "Failed to delete organizer.");
+      }
+    } catch (err) {
+      console.error("Delete organizer error:", err);
+      toast.error("An error occurred while deleting organizer.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in duration-700">
       {/* Page Header */}
@@ -223,14 +254,32 @@ function AdminOrganizersPageContent() {
                       </div>
                     </div>
 
-                    {/* Expand/Collapse Indicator */}
+                    {/* Actions & Expand/Collapse Indicator */}
                     <div className="flex items-center gap-3 shrink-0" onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteOrganizer(req.id, req.brand_name || req.email);
+                        }}
+                        disabled={actionLoading}
+                        className="h-8 w-8 rounded-full flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100"
+                        title="Delete Organizer"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+
                       {!isExpanded ? (
-                        <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-black flex items-center gap-1.5">
+                        <div 
+                          onClick={() => setExpandedId(req.id)}
+                          className="text-[10px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-black flex items-center gap-1.5 cursor-pointer"
+                        >
                           SHOW DETAILS <ChevronDown className="h-4 w-4" />
                         </div>
                       ) : (
-                        <div className="text-[10px] font-black uppercase tracking-widest text-black flex items-center gap-1.5">
+                        <div 
+                          onClick={() => setExpandedId(null)}
+                          className="text-[10px] font-black uppercase tracking-widest text-black flex items-center gap-1.5 cursor-pointer"
+                        >
                           HIDE DETAILS <ChevronUp className="h-4 w-4" />
                         </div>
                       )}
@@ -300,24 +349,38 @@ function AdminOrganizersPageContent() {
                       </div>
 
                       {/* Action buttons inside expanded card */}
-                      {activeTab === "pending" && (
-                        <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-black/5">
+                      <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-black/5">
+                        <div className="flex items-center gap-3">
+                          {activeTab === "pending" && (
+                            <>
+                              <button
+                                onClick={() => handleApprove(req.id)}
+                                disabled={actionLoading}
+                                className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2"
+                              >
+                                <CheckCircle2 className="h-4 w-4" /> APPROVE APPLICANT
+                              </button>
+                              <button
+                                onClick={() => setRejectModal({ isOpen: true, id: req.id })}
+                                disabled={actionLoading}
+                                className="ringer-button bg-black text-white text-[10px] flex items-center gap-2"
+                              >
+                                <XCircle className="h-4 w-4" /> REJECT APPLICANT
+                              </button>
+                            </>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-3">
                           <button
-                            onClick={() => handleApprove(req.id)}
+                            onClick={() => handleDeleteOrganizer(req.id, req.brand_name || req.email)}
                             disabled={actionLoading}
-                            className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2"
+                            className="ringer-button bg-zinc-50 border border-black/5 hover:bg-red-500 hover:text-white text-black text-[10px] flex items-center gap-2 transition-colors"
                           >
-                            <CheckCircle2 className="h-4 w-4" /> APPROVE APPLICANT
-                          </button>
-                          <button
-                            onClick={() => setRejectModal({ isOpen: true, id: req.id })}
-                            disabled={actionLoading}
-                            className="ringer-button bg-black text-white text-[10px] flex items-center gap-2"
-                          >
-                            <XCircle className="h-4 w-4" /> REJECT APPLICANT
+                            <Trash2 className="h-3.5 w-3.5" /> DELETE ORGANIZER
                           </button>
                         </div>
-                      )}
+                      </div>
                     </div>
                   )}
                 </div>
