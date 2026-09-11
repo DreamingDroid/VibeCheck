@@ -1,7 +1,6 @@
 import { Pool } from 'pg';
 import { registerType } from 'pgvector/pg';
 import { config } from './config';
-import sampleEvents from './mock-data-for-testing.json';
 
 const pool = new Pool({
   connectionString: config.DATABASE_URL,
@@ -15,12 +14,46 @@ function generateRandomEmbedding(dim = 1024): string {
   return `[${arr.join(',')}]`;
 }
 
+const sampleEvents = [
+  {
+    title: 'Neon Garden: Melodic Techno',
+    description: 'An immersive botanical techno experience with deep melodic beats and custom light installations.',
+    location: 'The Glass House, Bangalore',
+    city: 'Bangalore',
+    date_time: '2026-06-10T20:00:00Z',
+    category: 'Techno',
+  },
+  {
+    title: 'Sunset Rooftop Yoga',
+    description: 'Find your zen with a 60-minute Vinyasa flow followed by fresh organic juices and networking.',
+    location: 'Sky Deck, Vizag',
+    city: 'Vizag',
+    date_time: '2026-06-11T17:30:00Z',
+    category: 'Wellness',
+  },
+  {
+    title: 'Indie Vibes Night',
+    description: "Discover the city's best emerging indie bands in an intimate warehouse setting.",
+    location: 'Warehouse 42, London',
+    city: 'London',
+    date_time: '2026-06-12T21:00:00Z',
+    category: 'Indie',
+  },
+  {
+    title: 'Abstract Painting Workshop',
+    description: 'Learn the basics of abstract expressionism with local artists. All materials provided.',
+    location: 'Art Collective, Bangalore',
+    city: 'Bangalore',
+    date_time: '2026-06-13T10:00:00Z',
+    category: 'Workshop',
+  },
+];
+
 async function main() {
   console.log('Using DATABASE_URL:', config.DATABASE_URL);
   const client = await pool.connect();
-    try {
-      await registerType(client);
-  
+  try {
+    await registerType(client);
 
     for (const ev of sampleEvents) {
       const embedding = generateRandomEmbedding();

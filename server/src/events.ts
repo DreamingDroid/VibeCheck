@@ -1,20 +1,13 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { getEventsList, getEventById, insertEventRSVPEmail, checkEventRSVPEmail } from './queries/events';
-import mockData from './mock-data-for-testing.json';
 
 export async function getEventsHandler(req: Request, res: Response, pool: Pool) {
   try {
     const { category, search, city } = req.query;
-    
-    let rows = await getEventsList(pool, category, search, city);
-    
-    // Fallback to mock data if DB is empty
-    if (rows.length === 0 && !category && !search && !city) {
-      console.log('[API] DB is empty, serving mock data fallback');
-      rows = mockData;
-    }
-    
+
+    const rows = await getEventsList(pool, category, search, city);
+
     res.json({
       success: true,
       data: rows
@@ -68,8 +61,8 @@ export async function rsvpEventHandler(req: Request, res: Response, pool: Pool) 
 
     const rsvp = await insertEventRSVPEmail(pool, id as string, email as string, !!event.is_paid);
 
-    return res.json({ 
-      success: true, 
+    return res.json({
+      success: true,
       message: event.is_paid ? 'Registration received. Pass pending payment.' : 'RSVP confirmed. Pass issued.',
       rsvp_status: rsvp.status,
       payment_status: rsvp.payment_status,
@@ -90,8 +83,8 @@ export async function checkRsvpHandler(req: Request, res: Response, pool: Pool) 
     }
 
     const checkResult = await checkEventRSVPEmail(pool, id as string, email as string);
-    return res.json({ 
-      success: true, 
+    return res.json({
+      success: true,
       rsvped: checkResult.rsvped,
       rsvp_status: checkResult.status,
       payment_status: checkResult.payment_status,
