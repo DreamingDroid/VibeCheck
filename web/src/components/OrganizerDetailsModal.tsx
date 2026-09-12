@@ -195,7 +195,7 @@ export function OrganizerDetailsModal({
                   />
                 ) : (
                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-500 text-white border-4 border-white shadow-xl ring-4 ring-emerald-500/20 flex items-center justify-center font-black text-3xl italic">
-                    {organizerName.charAt(0).toUpperCase()}
+                    {(organizerName?.charAt(0) || "O").toUpperCase()}
                   </div>
                 )}
                 <div

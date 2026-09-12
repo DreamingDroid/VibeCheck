@@ -21,10 +21,10 @@ interface EventRatingModalProps {
   onClose: () => void;
   eventId: string;
   eventTitle: string;
-  eventDate?: string;
-  eventLocation?: string;
-  organizerEmail?: string;
-  organizerName?: string;
+  eventDate?: string | null;
+  eventLocation?: string | null;
+  organizerEmail?: string | null;
+  organizerName?: string | null;
   organizerImage?: string | null;
   organizerRating?: number | null;
   userEmail?: string | null;
@@ -55,12 +55,13 @@ export function EventRatingModal({
   eventDate,
   eventLocation,
   organizerEmail,
-  organizerName = "VibeCheck Organizer",
+  organizerName: rawOrganizerName,
   organizerImage,
   organizerRating,
   userEmail,
   onSuccess,
 }: EventRatingModalProps) {
+  const organizerName = rawOrganizerName || "VibeCheck Organizer";
   const [eventRating, setEventRating] = useState<number>(0);
   const [hoverEventRating, setHoverEventRating] = useState<number>(0);
 
@@ -342,7 +343,7 @@ export function EventRatingModal({
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        organizerName.charAt(0).toUpperCase()
+                        (organizerName?.charAt(0) || "O").toUpperCase()
                       )}
                     </div>
                     <div className="min-w-0">
