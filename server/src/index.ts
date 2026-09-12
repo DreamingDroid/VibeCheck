@@ -255,7 +255,7 @@ app.get('/api/settings', async (req, res) => {
 });
 
 // Organizer Application & Verification API
-app.post('/api/apply/send-otp', sendApplyOtpHandler);
+app.post('/api/apply/send-otp', (req, res) => sendApplyOtpHandler(req, res, pool));
 app.post('/api/apply/verify-otp', verifyApplyOtpHandler);
 app.post('/api/apply/submit', (req, res) => submitApplicationHandler(req, res, pool));
 

@@ -3,16 +3,17 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, ShieldAlert, Timer, RefreshCw } from "lucide-react";
+import { CheckCircle2, ShieldAlert, Timer, RefreshCw, Clock, AlertCircle, ArrowLeft, Sparkles, Check, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 export default function OrganizerApplyPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status: authStatus } = useSession();
   const [formData, setFormData] = useState({
     brandName: "",
     description: "",
@@ -28,24 +29,44 @@ export default function OrganizerApplyPage() {
   const [verifyModal, setVerifyModal] = useState<{ isOpen: boolean; type: "phone" | null }>({ isOpen: false, type: null });
   const [otpCode, setOtpCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(true);
+  const [organizerStatus, setOrganizerStatus] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   
   // Timer state
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes = 180 seconds
 
-  // Prefill email from Google session
+  // Prefill email and check existing organizer status
   useEffect(() => {
     if (session?.user?.email) {
       setFormData((prev) => ({ ...prev, email: session?.user?.email || "" }));
+
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      fetch(`${baseUrl}/api/admin/check?email=${encodeURIComponent(session.user.email)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success && data.isOrganizer) {
+            setOrganizerStatus(data.status || null);
+            setRejectionReason(data.rejectionReason || null);
+          } else {
+            setOrganizerStatus(null);
+            setRejectionReason(null);
+          }
+        })
+        .catch((err) => console.error("Error checking organizer status:", err))
+        .finally(() => setCheckingStatus(false));
+    } else if (authStatus !== "loading") {
+      setCheckingStatus(false);
     }
-  }, [session]);
+  }, [session, authStatus]);
 
   // Protect route
   useEffect(() => {
-    if (session === null) {
+    if (authStatus === "unauthenticated") {
       toast.error("Please sign in first.");
       router.push("/dashboard");
     }
-  }, [session, router]);
+  }, [authStatus, router]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -118,7 +139,7 @@ export default function OrganizerApplyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phoneVerified) {
-      toast.error("Please verify your phone number before submitting.");
+      toast.error("Please verify your WhatsApp number before submitting.");
       return;
     }
 
@@ -132,8 +153,8 @@ export default function OrganizerApplyPage() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success("Application submitted successfully! Please wait for admin approval.");
-        router.push("/");
+        toast.success(data.message || "Application submitted successfully! Please wait for admin approval.");
+        setOrganizerStatus("pending_approval");
       } else {
         toast.error(data.error || "Failed to submit application");
       }
@@ -149,16 +170,185 @@ export default function OrganizerApplyPage() {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
+  // Loading skeleton while resolving session and status
+  if (checkingStatus || authStatus === "loading") {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center py-20 px-4">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-black/5 shadow-xl text-center space-y-4">
+          <div className="h-12 w-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto animate-pulse">
+            <Clock className="h-6 w-6" />
+          </div>
+          <p className="text-xs font-black uppercase tracking-widest text-zinc-400">Checking Organizer Status...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 1. Pending Approval State View
+  if (organizerStatus === "pending_approval") {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex flex-col items-center py-12 md:py-20 px-4 animate-in fade-in duration-300">
+        <div className="max-w-2xl w-full">
+          {/* Header Badge */}
+          <div className="flex justify-center mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-black uppercase tracking-wider shadow-xs">
+              <Clock className="h-4 w-4 animate-pulse text-amber-500" />
+              <span>Organiser Approval Pending</span>
+            </div>
+          </div>
+
+          <Card className="ringer-card border-none bg-white shadow-2xl overflow-hidden rounded-3xl">
+            <div className="bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent p-8 sm:p-10 border-b border-black/5 text-center">
+              <div className="h-20 w-20 rounded-3xl bg-amber-500/20 text-amber-600 flex items-center justify-center mx-auto mb-5 shadow-inner">
+                <Clock className="h-10 w-10 animate-pulse text-amber-600" />
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-zinc-900 mb-2">
+                Application Under Review
+              </h1>
+              <p className="text-zinc-500 text-sm font-bold max-w-lg mx-auto leading-relaxed">
+                Thank you for applying to become an organizer on VibeCheck. Your application has been submitted and is currently being reviewed by our SuperAdmin editorial team.
+              </p>
+            </div>
+
+            <CardContent className="p-6 sm:p-8 space-y-6">
+              {/* Application Lifecycle Pipeline */}
+              <div className="bg-zinc-50/80 rounded-2xl p-5 border border-black/5 space-y-4">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Approval Workflow</h3>
+                
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="h-6 w-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                      <Check className="h-3.5 w-3.5 stroke-[3]" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase text-zinc-800">Application Submitted</h4>
+                      <p className="text-[11px] font-medium text-zinc-500">Your brand details and WhatsApp verification were recorded.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="h-6 w-6 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 animate-pulse shadow-xs">
+                      <Clock className="h-3.5 w-3.5 stroke-[3]" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase text-amber-700">SuperAdmin Review in Progress</h4>
+                      <p className="text-[11px] font-medium text-zinc-500">Our administrators are validating your organizer credentials and brand info.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 opacity-50">
+                    <div className="h-6 w-6 rounded-full bg-zinc-200 text-zinc-500 flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-[10px] font-black">3</span>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase text-zinc-700">Organizer Hub Activation</h4>
+                      <p className="text-[11px] font-medium text-zinc-500">Upon approval, you unlock event creation, RSVP management, and broadcasts.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Informational callout */}
+              <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 text-xs font-bold text-amber-900 flex items-start gap-3">
+                <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-black uppercase tracking-wider text-[11px] text-amber-800">Single Organizer Account Policy</p>
+                  <p className="text-[11px] text-amber-800/90 font-medium leading-relaxed">
+                    You cannot submit multiple organizer applications while an existing request is pending review. As soon as a SuperAdmin approves or responds to your application, you will be notified.
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Link href="/" className="flex-1">
+                  <Button variant="outline" className="w-full h-12 rounded-2xl border-black/10 font-black uppercase text-xs tracking-wider hover:bg-black hover:text-white transition-colors">
+                    <ArrowLeft className="h-4 w-4 mr-2" /> Back to Home
+                  </Button>
+                </Link>
+                <Link href="/vibes" className="flex-1">
+                  <Button className="w-full h-12 rounded-2xl bg-black text-white hover:bg-primary hover:text-black font-black uppercase text-xs tracking-wider transition-colors shadow-md">
+                    Explore Events <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Already Approved View
+  if (organizerStatus === "approved") {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex flex-col items-center py-12 md:py-20 px-4 animate-in fade-in duration-300">
+        <div className="max-w-xl w-full">
+          <div className="flex justify-center mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 text-xs font-black uppercase tracking-wider shadow-xs">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <span>Verified Organizer</span>
+            </div>
+          </div>
+
+          <Card className="ringer-card border-none bg-white shadow-2xl overflow-hidden rounded-3xl text-center p-8 sm:p-10 space-y-6">
+            <div className="h-20 w-20 rounded-3xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+              <Sparkles className="h-10 w-10 text-emerald-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-zinc-900 mb-2">
+                You're a Verified Organiser!
+              </h1>
+              <p className="text-zinc-500 text-sm font-bold max-w-md mx-auto leading-relaxed">
+                Your account is fully activated with organizer privileges. You can manage events, attendee passes, and live broadcasts from the Organizer Hub.
+              </p>
+            </div>
+            <Link href="/organizer" className="block pt-2">
+              <Button className="w-full h-14 rounded-2xl bg-primary text-black font-black uppercase tracking-tight text-base hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl">
+                Open Organizer Hub
+              </Button>
+            </Link>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. Application Form (for new applicants or re-applying after rejection)
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col items-center py-12 md:py-20 px-4">
       <div className="max-w-4xl w-full">
-        <h1 className="text-3xl sm:text-5xl font-black italic tracking-tighter uppercase mb-4 text-center">Become a <span className="text-primary">Guardian</span></h1>
-        <p className="text-zinc-500 text-sm font-bold text-center mb-12 uppercase tracking-widest">Apply to organize events on VibeCheck</p>
+        <h1 className="text-3xl sm:text-5xl font-black italic tracking-tighter uppercase mb-4 text-center">
+          Become a <span className="text-primary">Guardian</span>
+        </h1>
+        <p className="text-zinc-500 text-sm font-bold text-center mb-8 uppercase tracking-widest">
+          Apply to organize events on VibeCheck
+        </p>
+
+        {/* Rejection Notice Banner (if re-applying) */}
+        {organizerStatus === "rejected" && (
+          <div className="mb-8 p-5 bg-red-50/90 border border-red-200 rounded-3xl shadow-sm text-left animate-in fade-in duration-300">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
+              <h4 className="text-xs font-black uppercase tracking-wider text-red-700">Previous Application Update Required</h4>
+            </div>
+            <p className="text-xs font-medium text-zinc-700 leading-relaxed">
+              Your previous organizer application was not approved. Please review the feedback below and update your brand details before re-submitting.
+            </p>
+            {rejectionReason && (
+              <div className="mt-3 bg-white/90 p-3 rounded-2xl border border-red-100 text-xs font-bold text-red-900 italic">
+                "{rejectionReason}"
+              </div>
+            )}
+          </div>
+        )}
 
         <Card className="ringer-card border-none bg-white shadow-xl">
           <CardHeader className="border-b border-black/5 bg-zinc-50/50 pb-8">
             <CardTitle className="text-xl font-black uppercase tracking-tight">Your Vibe Identity</CardTitle>
-            <CardDescription className="text-zinc-400 font-bold text-xs uppercase tracking-widest mt-2">Drop your details and let the people know who's setting the stage</CardDescription>
+            <CardDescription className="text-zinc-400 font-bold text-xs uppercase tracking-widest mt-2">
+              Drop your details and let the people know who's setting the stage
+            </CardDescription>
           </CardHeader>
           <CardContent className="p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -213,9 +403,13 @@ export default function OrganizerApplyPage() {
                         placeholder="+91 99999 99999" 
                       />
                       {phoneVerified ? (
-                        <Button type="button" disabled className="bg-primary/20 text-primary border-none text-[10px] uppercase font-black px-6 h-12 rounded-2xl shrink-0"><CheckCircle2 className="h-4 w-4 mr-2" /> Verified</Button>
+                        <Button type="button" disabled className="bg-primary/20 text-primary border-none text-[10px] uppercase font-black px-6 h-12 rounded-2xl shrink-0">
+                          <CheckCircle2 className="h-4 w-4 mr-2" /> Verified
+                        </Button>
                       ) : (
-                        <Button type="button" onClick={() => handleSendOtp("phone")} disabled={loading || !formData.phone} className="bg-black text-white text-[10px] uppercase font-black px-6 h-12 rounded-2xl hover:bg-primary hover:text-black transition-colors shadow-md hover:shadow-xl hover:-translate-y-0.5 duration-200 shrink-0">Verify</Button>
+                        <Button type="button" onClick={() => handleSendOtp("phone")} disabled={loading || !formData.phone} className="bg-black text-white text-[10px] uppercase font-black px-6 h-12 rounded-2xl hover:bg-primary hover:text-black transition-colors shadow-md hover:shadow-xl hover:-translate-y-0.5 duration-200 shrink-0">
+                          Verify
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -224,7 +418,7 @@ export default function OrganizerApplyPage() {
 
               <div className="pt-6">
                 <Button type="submit" disabled={loading || !phoneVerified} className="w-full bg-primary text-black font-black italic tracking-tighter uppercase text-xl h-16 rounded-2xl hover:bg-primary/80 transition-colors shadow-lg hover:shadow-xl hover:-translate-y-1 duration-300">
-                  Submit Application
+                  {organizerStatus === "rejected" ? "Re-Submit Application" : "Submit Application"}
                 </Button>
                 {!phoneVerified && (
                   <p className="text-center text-xs text-zinc-400 font-bold mt-4 flex items-center justify-center gap-2">
@@ -288,3 +482,4 @@ export default function OrganizerApplyPage() {
     </div>
   );
 }
+

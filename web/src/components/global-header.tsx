@@ -9,7 +9,7 @@ import {
   ChevronDown, MapPin, Search, Music, Mic2, Tv,
   Trophy, Palette, BookOpen, Compass, Heart,
   Activity, Wine, Smile, Briefcase, Sparkles, Bell,
-  SunMoon, Menu, X, CheckCircle2, AlertCircle, Clock, ExternalLink, Calendar
+  SunMoon, Menu, X, CheckCircle2, AlertCircle, Clock, ExternalLink, Calendar, User
 } from "lucide-react"
 import { useTheme } from "@/context/ThemeContext"
 import {
@@ -88,6 +88,7 @@ export function GlobalHeader() {
   const [rejectionReason, setRejectionReason] = useState<string | null>(null)
   const [showNotifications, setShowNotifications] = useState(false)
   const [selectedNotification, setSelectedNotification] = useState<ModalNotification | null>(null)
+  const [avatarImgError, setAvatarImgError] = useState(false)
 
   // In-App Notification Center States
   const [notifications, setNotifications] = useState<UserNotification[]>([])
@@ -443,14 +444,30 @@ export function GlobalHeader() {
                         ORGANIZER HUB
                       </button>
                     </Link>
+                  ) : isOrganizer && organizerStatus === 'pending_approval' ? (
+                    <button
+                      onClick={handleOrganizerStatusClick}
+                      className="ringer-button border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] py-2 px-3 flex items-center gap-1.5 font-black uppercase tracking-wider transition-all shadow-xs"
+                      title="Click to view application status"
+                    >
+                      <Clock className="w-3.5 h-3.5 text-amber-500 animate-pulse shrink-0" />
+                      <span>ORGANISER APPROVAL PENDING</span>
+                    </button>
+                  ) : isOrganizer && organizerStatus === 'rejected' ? (
+                    <button
+                      onClick={handleOrganizerStatusClick}
+                      className="ringer-button border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-700 dark:text-red-400 text-[10px] py-2 px-3 flex items-center gap-1.5 font-black uppercase tracking-wider transition-all shadow-xs"
+                      title="Click to view rejection reason"
+                    >
+                      <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                      <span>APPLICATION REJECTED</span>
+                    </button>
                   ) : (
-                    !(organizerStatus === 'pending_approval' || organizerStatus === 'rejected') && (
-                      <Link href="/organizer/apply">
-                        <button className="ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-4">
-                          BECOME AN ORGANIZER
-                        </button>
-                      </Link>
-                    )
+                    <Link href="/organizer/apply">
+                      <button className="ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-4">
+                        BECOME AN ORGANIZER
+                      </button>
+                    </Link>
                   )}
                   {isAdmin && (
                     <Link href="/admin">
@@ -608,38 +625,56 @@ export function GlobalHeader() {
                             )}
                           </div>
                         </div>
+                        {/* Backdrop for closing notification dropdown */}
+                        <div
+                          className="fixed inset-0 z-40 bg-transparent"
+                          onClick={() => setShowNotifications(false)}
+                        />
                       </>
                     )}
                   </div>
 
-                  <div className="hidden sm:flex flex-col items-end mr-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 leading-none mb-1">Authenticated</span>
-                    <span className="text-xs font-bold text-black leading-none truncate max-w-[80px] lg:max-w-[120px]">{session.user?.name}</span>
-                  </div>
+                  <Link href="/preferences" className="relative group" title="Account Preferences">
+                    <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-black/10 overflow-hidden bg-zinc-100 flex items-center justify-center hover:ring-2 hover:ring-black transition-all shadow-xs">
+                      {session.user?.image && !avatarImgError ? (
+                        <img
+                          src={session.user.image}
+                          alt=""
+                          onError={() => setAvatarImgError(true)}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : session.user?.name ? (
+                        <span className="text-xs font-black text-black">
+                          {session.user.name.charAt(0).toUpperCase()}
+                        </span>
+                      ) : (
+                        <User className="h-4 w-4 text-zinc-600" />
+                      )}
+                    </div>
+                  </Link>
+
                   <button
                     onClick={handleSignOut}
                     disabled={isSigningOut}
-                    className="hidden lg:block ringer-button bg-black text-white text-[10px] sm:text-[11px] hover:bg-zinc-800 h-9 sm:h-10 px-3 sm:px-4 shrink-0"
+                    className="hidden sm:inline-flex ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-3"
                   >
                     {isSigningOut ? "..." : "DISCONNECT"}
                   </button>
                 </div>
               </>
             ) : (
-              pathname !== "/" && (
-                <button
-                  onClick={() => signIn("google")}
-                  className="hidden md:flex ringer-button bg-primary text-white text-[11px] h-10 px-8 items-center shadow-lg hover:scale-105 active:scale-95 transition-all"
-                >
-                  JOIN THE VIBE
-                </button>
-              )
+              <button
+                onClick={() => signIn("google")}
+                className="ringer-button bg-primary text-black hover:bg-black hover:text-white text-[10px] py-2 px-4 border-none transition-colors"
+              >
+                JOIN THE VIBE
+              </button>
             )}
 
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 hover:bg-black/5 rounded-full transition-all text-zinc-600 hover:text-black shrink-0"
-              aria-label="Toggle Menu"
+              className="lg:hidden p-2 rounded-xl bg-zinc-100 hover:bg-black hover:text-white transition-colors flex items-center justify-center shrink-0"
+              aria-label="Toggle menu"
             >
               {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -712,14 +747,34 @@ export function GlobalHeader() {
                         ORGANIZER HUB
                       </div>
                     </Link>
+                  ) : isOrganizer && organizerStatus === 'pending_approval' ? (
+                    <div
+                      onClick={() => { setIsMobileMenuOpen(false); handleOrganizerStatusClick(); }}
+                      className="w-full text-left px-5 py-4 rounded-2xl bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-xs font-black uppercase tracking-widest flex items-center justify-between cursor-pointer hover:bg-amber-500/20 transition-all"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-amber-500 animate-pulse shrink-0" />
+                        <span>ORGANISER APPROVAL PENDING</span>
+                      </div>
+                      <span className="text-[10px] bg-amber-500 text-white font-bold px-2.5 py-0.5 rounded-full uppercase">Review</span>
+                    </div>
+                  ) : isOrganizer && organizerStatus === 'rejected' ? (
+                    <div
+                      onClick={() => { setIsMobileMenuOpen(false); handleOrganizerStatusClick(); }}
+                      className="w-full text-left px-5 py-4 rounded-2xl bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20 text-xs font-black uppercase tracking-widest flex items-center justify-between cursor-pointer hover:bg-red-500/20 transition-all"
+                    >
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                        <span>APPLICATION REJECTED</span>
+                      </div>
+                      <span className="text-[10px] bg-red-500 text-white font-bold px-2.5 py-0.5 rounded-full uppercase">Reason</span>
+                    </div>
                   ) : (
-                    !(organizerStatus === 'pending_approval' || organizerStatus === 'rejected') && (
-                      <Link href="/organizer/apply" onClick={() => setIsMobileMenuOpen(false)}>
-                        <div className="w-full text-left px-5 py-4 rounded-2xl bg-zinc-50 hover:bg-black hover:text-white transition-all text-xs font-black uppercase tracking-widest">
-                          BECOME AN ORGANIZER
-                        </div>
-                      </Link>
-                    )
+                    <Link href="/organizer/apply" onClick={() => setIsMobileMenuOpen(false)}>
+                      <div className="w-full text-left px-5 py-4 rounded-2xl bg-zinc-50 hover:bg-black hover:text-white transition-all text-xs font-black uppercase tracking-widest">
+                        BECOME AN ORGANIZER
+                      </div>
+                    </Link>
                   )}
 
                   {isAdmin && (
