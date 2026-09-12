@@ -7,12 +7,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
 import { AttendeeBriefingModal } from "@/components/AttendeeBriefingModal";
+import { OrganizerDetailsModal } from "@/components/OrganizerDetailsModal";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
 import { useTheme } from "@/context/ThemeContext";
 import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useSwipeToClose } from "@/hooks/useSwipeToClose";
 
 interface EventDetailsClientProps {
   initialEvent?: any;
@@ -33,8 +32,6 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
   const [showBriefingModal, setShowBriefingModal] = useState(false);
   const [userHasPhone, setUserHasPhone] = useState(false);
   const { isVibrant } = useTheme();
-
-  const swipeRef = useSwipeToClose(() => setShowOrganizerModal(false));
 
   useEffect(() => {
     if (!eventId) return;
@@ -474,53 +471,13 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
          </div>
       </div>
 
-      <Dialog open={showOrganizerModal} onOpenChange={setShowOrganizerModal}>
-        <DialogContent ref={swipeRef} className="sm:max-w-md rounded-[32px] p-8 border-none shadow-2xl max-h-[90vh] overflow-y-auto">
-          <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mb-4 md:hidden" />
-          <DialogHeader>
-            <DialogTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-center">Organizer Details</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center space-y-6 pt-2">
-            {event.organizer_image ? (
-              <img 
-                src={event.organizer_image} 
-                alt={event.organizer_name} 
-                className="w-24 h-24 rounded-full object-cover border-4 border-zinc-100"
-              />
-            ) : (
-              <div className="w-24 h-24 rounded-full bg-zinc-100 flex items-center justify-center border-4 border-white shadow-sm">
-                <Users className="h-10 w-10 text-zinc-400" />
-              </div>
-            )}
-            
-            <div className="text-center space-y-3 w-full">
-              <h3 className="text-3xl font-black tracking-tight">{event.organizer_name || "VibeCheck Organizer"}</h3>
-              
-              <div className="flex items-center justify-center gap-3 text-xs font-bold text-zinc-600">
-                {event.organizer_rating && (
-                  <div className="flex items-center gap-1.5 bg-yellow-100/50 text-yellow-700 px-3 py-1 rounded-full border border-yellow-200/50">
-                    <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
-                    <span>{event.organizer_rating} Rating</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-1.5 bg-zinc-100 px-3 py-1 rounded-full border border-black/5">
-                  <Users className="h-3.5 w-3.5" />
-                  <span>{event.organizer_followers_count || 0} Followers</span>
-                </div>
-              </div>
-            </div>
-            
-            {event.organizer_description && (
-              <div className="w-full bg-zinc-50 border border-black/5 rounded-[20px] p-5">
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-2">About Organizer</div>
-                <p className="text-sm font-medium text-zinc-600 leading-relaxed text-left">
-                  {event.organizer_description}
-                </p>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <OrganizerDetailsModal
+        isOpen={showOrganizerModal}
+        onClose={() => setShowOrganizerModal(false)}
+        event={event}
+        userEmail={session?.user?.email || null}
+        userImage={session?.user?.image || null}
+      />
 
       <AttendeeBriefingModal
         isOpen={showBriefingModal}

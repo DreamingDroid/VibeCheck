@@ -47,6 +47,7 @@ export const authOptions: AuthOptions = {
             body: JSON.stringify({
               email: user.email,
               name: user.name || user.email.split("@")[0],
+              image: user.image || null,
               categories: []
             })
           });
@@ -57,14 +58,16 @@ export const authOptions: AuthOptions = {
       return true;
     },
     async session({ session, token }) {
-      if (session.user && token.email) {
-        session.user.email = token.email;
+      if (session.user) {
+        if (token.email) session.user.email = token.email;
+        if (token.picture) session.user.image = token.picture as string;
       }
       return session;
     },
     async jwt({ token, user }) {
       if (user) {
         token.email = user.email;
+        if (user.image) token.picture = user.image;
       }
       return token;
     }

@@ -25,8 +25,8 @@ export function useSwipeToClose(onClose: () => void, threshold = 100) {
       const diff = currentY - startY;
 
       if (diff > 0) {
-        // Dragging down
-        element.style.transform = `translateY(${diff}px)`;
+        // Dragging down: preserve -50% centering on both X and Y
+        element.style.transform = `translate(-50%, calc(-50% + ${diff}px))`;
         if (e.cancelable) e.preventDefault(); // Prevent background scroll
       }
     };
@@ -36,21 +36,29 @@ export function useSwipeToClose(onClose: () => void, threshold = 100) {
       isDragging = false;
       
       const diff = currentY - startY;
-      element.style.transition = 'transform 0.3s ease-out';
+      element.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
       
       if (diff > threshold) {
         // Swipe successful, push it down out of view then close
-        element.style.transform = `translateY(100vh)`;
+        element.style.transform = `translate(-50%, 100vh)`;
         setTimeout(() => {
           onClose();
           // Reset for next open
           setTimeout(() => {
-            if (element) element.style.transform = 'none';
-          }, 100);
+            if (element) {
+              element.style.transform = '';
+              element.style.transition = '';
+            }
+          }, 150);
         }, 300);
       } else {
-        // Snap back
-        element.style.transform = 'translateY(0)';
+        // Snap back to centered position and clear inline transform
+        element.style.transform = '';
+        setTimeout(() => {
+          if (element) {
+            element.style.transition = '';
+          }
+        }, 300);
       }
     };
 

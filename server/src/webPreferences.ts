@@ -20,13 +20,14 @@ export async function getWebUserHandler(req: Request, res: Response, pool: Pool)
 }
 
 export async function saveWebUserHandler(req: Request, res: Response, pool: Pool) {
-  const { email, name, categories, phone_number, city, profession, age_group, language } = req.body;
+  const { email, name, categories, phone_number, city, profession, age_group, language, image_url, image } = req.body;
   if (!email || !Array.isArray(categories)) {
     return res.status(400).json({ success: false, error: 'email and categories[] required' });
   }
   try {
+    const avatarUrl = image_url || image || null;
     // Upsert into web_users (Tier 1)
-    await upsertWebUser(pool, email, name || null, categories, phone_number || null, city || null, profession || null, age_group || null, language || null);
+    await upsertWebUser(pool, email, name || null, categories, phone_number || null, city || null, profession || null, age_group || null, language || null, avatarUrl);
 
     // If phone number given, also upsert into users (Tier 2 — WhatsApp table)
     if (phone_number) {

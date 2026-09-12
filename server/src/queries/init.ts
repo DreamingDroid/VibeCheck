@@ -200,6 +200,7 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
   await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS profession VARCHAR(100)`);
   await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS age_group VARCHAR(50)`);
+  await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS image_url TEXT`);
   await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS phone_number TEXT`);
   await pool.query(`ALTER TABLE event_rsvps ALTER COLUMN user_email DROP NOT NULL`);
   await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'confirmed'`);
