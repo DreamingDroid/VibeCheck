@@ -51,6 +51,7 @@ function DashboardContent() {
   const { currentCity, events, isLoadingEvents: loading, selectedCategory, refreshEvents } = useCity();
   const { isVibrant } = useTheme();
   const { t, getCategoryLabel } = useTranslation();
+  const [vipInvites, setVipInvites] = useState<any[]>([]);
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
   const [following, setFollowing] = useState<string[]>([]);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
@@ -70,8 +71,24 @@ function DashboardContent() {
   const canGoPrevWeek = isAfter(startOfDay(currentWeekStart), startOfDay(minWeekStart));
   const canGoNextWeek = isBefore(startOfDay(currentWeekStart), startOfDay(maxWeekStart));
 
+  const fetchVipInvites = async (userEmail: string) => {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/user/vip-invites?email=${encodeURIComponent(userEmail)}`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setVipInvites(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch VIP invites:", err);
+    }
+  };
+
   const { isPulling, pullDistance, isRefreshing } = usePullToRefresh(async () => {
     await refreshEvents();
+    if (session?.user?.email) {
+      fetchVipInvites(session.user.email);
+    }
     if (currentCity) {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
       try {
@@ -103,6 +120,8 @@ function DashboardContent() {
           }
         })
         .catch(err => console.error("Could not fetch user preferences", err));
+
+      fetchVipInvites(session.user.email);
     }
   }, [session]);
 
@@ -650,6 +669,91 @@ function DashboardContent() {
             Back to Calendar
           </button>
         </div>
+      )}
+
+      {/* Exclusive VIP Invitations Section */}
+      {vipInvites.length > 0 && !showCalendarView && (
+        <section className="relative overflow-hidden rounded-[24px] md:rounded-[36px] bg-gradient-to-br from-zinc-950 via-zinc-900 to-amber-950/60 p-6 md:p-8 border-2 border-amber-400/30 shadow-[0_10px_35px_-5px_rgba(245,158,11,0.2)] animate-in fade-in duration-500">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2" />
+          
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="sticker-badge bg-gradient-to-r from-amber-400 to-yellow-300 text-black border-none font-black text-[10px] uppercase py-0.5 px-2.5 shadow-sm">
+                  ✨ Exclusive Access
+                </span>
+                <span className="text-amber-400/80 text-xs font-bold uppercase tracking-widest">
+                  VIP Guest List
+                </span>
+              </div>
+              <h3 className="text-2xl md:text-3xl font-black italic tracking-tighter uppercase text-white">
+                You're On The VIP List ({vipInvites.length})
+              </h3>
+              <p className="text-zinc-400 text-xs md:text-sm max-w-xl">
+                The host has personally invited you to these exclusive, private events. Click to view details and secure your access pass.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-6 relative z-10">
+            {vipInvites.map((vip) => {
+              const formattedDate = new Date(vip.date_time).toLocaleDateString(undefined, {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              });
+              const timeStr = new Date(vip.date_time).toLocaleTimeString(undefined, {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+
+              return (
+                <div
+                  key={vip.id}
+                  className="group relative bg-zinc-900/90 hover:bg-zinc-800/90 border border-amber-400/20 hover:border-amber-400/50 rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all duration-300 hover:shadow-[0_8px_25px_-5px_rgba(245,158,11,0.25)] hover:-translate-y-0.5"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                        {vip.category || 'VIP Experience'}
+                      </span>
+                      <span className="text-[10px] font-bold text-zinc-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-amber-400" />
+                        {timeStr}
+                      </span>
+                    </div>
+
+                    <h4 className="text-base font-black text-white group-hover:text-amber-300 transition-colors line-clamp-1 uppercase italic tracking-tight">
+                      {vip.title}
+                    </h4>
+
+                    <p className="text-xs text-zinc-400 line-clamp-2">
+                      {vip.description}
+                    </p>
+
+                    <div className="flex items-center gap-1.5 text-xs text-zinc-400 pt-1">
+                      <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span className="truncate">{vip.location}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/5 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-amber-300/80">
+                      📅 {formattedDate}
+                    </span>
+                    <Link
+                      href={`/event/${vip.id}`}
+                      className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-black px-3.5 py-1.5 rounded-xl transition-all shadow-sm active:scale-95"
+                    >
+                      <span>Claim Pass</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {/* Editorial Hero Section */}

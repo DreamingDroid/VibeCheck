@@ -18,6 +18,11 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
   const params: any[] = [`[${queryEmbedding.join(',')}]`];
   let paramIdx = 2;
 
+  let visibilityFilter = `AND (visibility = 'public' OR visibility IS NULL)`;
+  if (email) {
+    visibilityFilter = `AND (visibility = 'public' OR visibility IS NULL OR organizer_email = $${paramIdx} OR EXISTS (SELECT 1 FROM event_invites ei WHERE ei.event_id = events.id AND LOWER(ei.user_email) = LOWER($${paramIdx})))`;
+  }
+
   if (city) {
     params.push(`%${city}%`);
     paramIdx++;
@@ -38,10 +43,12 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
         status,
         participant_limit,
         is_paid,
+        visibility,
         1 - (embedding <=> $1::vector) AS similarity,
         CASE WHEN city ILIKE $2 THEN 0 ELSE 1 END AS city_rank
       FROM events
       WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)
+      ${visibilityFilter}
       ${emailFilter}
       ORDER BY city_rank ASC, embedding <=> $1::vector ASC
       LIMIT 8;
@@ -66,9 +73,11 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
         status,
         participant_limit,
         is_paid,
+        visibility,
         1 - (embedding <=> $1::vector) AS similarity
       FROM events
       WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)
+      ${visibilityFilter}
       ${emailFilter}
       ORDER BY embedding <=> $1::vector
       LIMIT 8;
@@ -81,7 +90,7 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
 
 export async function getEventsList(pool: Pool, category: any, search: any, city: any, email?: any) {
     let queryText = `
-      SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, image_url, image_public_id, average_rating, ratings_count,
+      SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, visibility, image_url, image_public_id, average_rating, ratings_count,
              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count
       FROM events
       WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status = 'ended' OR status IS NULL)
@@ -105,9 +114,12 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
       paramIndex++;
     }
     if (email) {
+      queryText += ` AND (visibility = 'public' OR visibility IS NULL OR organizer_email = $${paramIndex} OR EXISTS (SELECT 1 FROM event_invites ei WHERE ei.event_id = events.id AND LOWER(ei.user_email) = LOWER($${paramIndex})))`;
       queryText += ` AND NOT EXISTS (SELECT 1 FROM event_ratings er WHERE er.event_id = events.id AND er.user_email = $${paramIndex})`;
       queryParams.push(email);
       paramIndex++;
+    } else {
+      queryText += ` AND (visibility = 'public' OR visibility IS NULL)`;
     }
 
     queryText += ` ORDER BY date_time ASC LIMIT 50;`;
@@ -117,7 +129,7 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
 
 export async function getEventById(pool: Pool, id: string) {
     const { rows } = await pool.query(
-      `SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, contact_info, image_url, image_public_id, average_rating, ratings_count,
+      `SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, visibility, contact_info, image_url, image_public_id, average_rating, ratings_count,
               (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
               (SELECT brand_name FROM admins WHERE email = events.organizer_email) as organizer_name,
               COALESCE(
@@ -135,6 +147,98 @@ export async function getEventById(pool: Pool, id: string) {
     return rows[0] || null;
 }
 
+export async function checkUserEventAccess(pool: Pool, eventId: string, email?: string) {
+    const { rows } = await pool.query(`SELECT id, visibility, organizer_email, status FROM events WHERE id = $1`, [eventId]);
+    if (rows.length === 0) return { exists: false, allowed: false, event: null };
+    const event = rows[0];
+
+    // If public or visibility is null, everyone has access
+    if (!event.visibility || event.visibility === 'public') {
+      return { exists: true, allowed: true, event };
+    }
+
+    // If invite-only, check authorization
+    if (!email) {
+      return { exists: true, allowed: false, event, reason: 'unauthenticated' };
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check if user is the event organizer
+    if (event.organizer_email && event.organizer_email.toLowerCase() === cleanEmail) {
+      return { exists: true, allowed: true, event, isOrganizer: true };
+    }
+
+    // Check if user is SuperAdmin
+    const adminCheck = await pool.query(`SELECT role FROM admins WHERE LOWER(email) = $1 AND role = 'SuperAdmin'`, [cleanEmail]);
+    if (adminCheck.rows.length > 0) {
+      return { exists: true, allowed: true, event, isAdmin: true };
+    }
+
+    // Check if user is in event_invites
+    const inviteCheck = await pool.query(
+      `SELECT id, status FROM event_invites WHERE event_id = $1 AND LOWER(user_email) = $2`,
+      [eventId, cleanEmail]
+    );
+    if (inviteCheck.rows.length > 0) {
+      return { exists: true, allowed: true, event, invite: inviteCheck.rows[0] };
+    }
+
+    return { exists: true, allowed: false, event, reason: 'not_invited' };
+}
+
+export async function addEventInvites(pool: Pool, eventId: string, emails: string[]) {
+    if (!emails || emails.length === 0) return [];
+    const cleanEmails = [...new Set(emails.map(e => e.trim().toLowerCase()).filter(Boolean))];
+    const inserted = [];
+
+    for (const email of cleanEmails) {
+      try {
+        const { rows } = await pool.query(
+          `INSERT INTO event_invites (event_id, user_email, status)
+           VALUES ($1, $2, 'invited')
+           ON CONFLICT (event_id, user_email) DO UPDATE SET invited_at = CURRENT_TIMESTAMP
+           RETURNING id, event_id, user_email, status`,
+          [eventId, email]
+        );
+        if (rows[0]) inserted.push(rows[0]);
+      } catch (err) {
+        console.error('[DAL] Error inserting event invite for:', email, err);
+      }
+    }
+    return inserted;
+}
+
+export async function getEventInvites(pool: Pool, eventId: string) {
+    const { rows } = await pool.query(
+      `SELECT id, event_id, user_email, phone_number, status, invited_at, claimed_at
+       FROM event_invites
+       WHERE event_id = $1
+       ORDER BY invited_at DESC`,
+      [eventId]
+    );
+    return rows;
+}
+
+export async function getUserVipInvites(pool: Pool, email: string) {
+    const cleanEmail = email.trim().toLowerCase();
+    const { rows } = await pool.query(
+      `SELECT e.id, e.title, e.description, e.location, e.city, e.date_time, e.end_time, e.category, e.image_url, e.is_paid, e.visibility,
+              (SELECT brand_name FROM admins WHERE email = e.organizer_email) as organizer_name,
+              ei.status as invite_status, ei.invited_at,
+              (SELECT status FROM event_rsvps WHERE event_id = e.id AND LOWER(user_email) = $1) as rsvp_status
+       FROM event_invites ei
+       JOIN events e ON ei.event_id = e.id
+       WHERE LOWER(ei.user_email) = $1
+         AND e.visibility = 'invite_only'
+         AND (e.status = 'approved' OR e.status = 'housefull' OR e.status = 'filling_fast' OR e.status IS NULL)
+         AND (e.date_time >= NOW() - INTERVAL '4 hours')
+       ORDER BY e.date_time ASC`,
+      [cleanEmail]
+    );
+    return rows;
+}
+
 export async function insertEventRSVPEmail(pool: Pool, eventId: string, email: string, isPaid: boolean = false, phoneNumber?: string) {
     const status = isPaid ? 'pending' : 'confirmed';
     const paymentStatus = isPaid ? 'unpaid' : 'paid';
@@ -147,6 +251,12 @@ export async function insertEventRSVPEmail(pool: Pool, eventId: string, email: s
       DO UPDATE SET status = EXCLUDED.status, payment_status = EXCLUDED.payment_status
       RETURNING id, event_id, user_email, phone_number, status, payment_status, pass_code;
     `, [eventId, email, phoneNumber || null, status, paymentStatus, passCode]);
+
+    // Mark invite as claimed if exists
+    await pool.query(
+      `UPDATE event_invites SET status = 'claimed', claimed_at = CURRENT_TIMESTAMP WHERE event_id = $1 AND LOWER(user_email) = $2`,
+      [eventId, email.toLowerCase().trim()]
+    ).catch(() => {});
 
     return rows[0];
 }
@@ -172,12 +282,13 @@ export async function getEventByOrganizer(pool: Pool, eventId: string) {
 }
 
 export async function createOrganizerEvent(pool: Pool, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, organizer_email, participant_limit, is_paid, image_url, image_public_id } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, organizer_email, participant_limit, is_paid, visibility, image_url, image_public_id } = data;
+    const validVisibility = visibility === 'invite_only' ? 'invite_only' : 'public';
     const { rows } = await pool.query(
-      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, status, organizer_email, participant_limit, is_paid, image_url, image_public_id)
-       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending', $13, $14, $15, $16, $17)
-       RETURNING id, title, status, image_url, image_public_id, whatsapp_group_link`,
-      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, organizer_email, participant_limit || null, is_paid || false, image_url || null, image_public_id || null]
+      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, status, organizer_email, participant_limit, is_paid, visibility, image_url, image_public_id)
+       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending', $13, $14, $15, $16::event_visibility, $17, $18)
+       RETURNING id, title, status, visibility, image_url, image_public_id, whatsapp_group_link`,
+      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, organizer_email, participant_limit || null, is_paid || false, validVisibility, image_url || null, image_public_id || null]
     );
     return rows[0];
 }
@@ -185,7 +296,9 @@ export async function createOrganizerEvent(pool: Pool, data: any) {
 export async function getEventsByOrganizerEmail(pool: Pool, email: string) {
     const { rows } = await pool.query(
       `SELECT id, title, category, location, city, date_time, end_time, timings, description,
-              external_link, google_maps_link, whatsapp_group_link, contact_info, status, admin_comment, participant_limit, is_paid, image_url, image_public_id, average_rating, ratings_count, created_at 
+              external_link, google_maps_link, whatsapp_group_link, contact_info, status, admin_comment, participant_limit, is_paid, visibility, image_url, image_public_id, average_rating, ratings_count, created_at,
+              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
+              (SELECT COUNT(*)::int FROM event_invites WHERE event_id = events.id) AS invite_count
        FROM events WHERE organizer_email = $1 ORDER BY created_at DESC`,
       [email]
     );
@@ -270,7 +383,7 @@ export async function getBroadcastAttendees(pool: Pool, eventId: string) {
 
 export async function getRecentEvents(pool: Pool, hours: number) {
     const { rows } = await pool.query(`
-      SELECT id, title, category, location, date_time, description
+      SELECT id, title, category, location, date_time, description, visibility
       FROM events
       WHERE created_at >= NOW() - INTERVAL '${hours} hours'
       ORDER BY created_at DESC
@@ -280,31 +393,33 @@ export async function getRecentEvents(pool: Pool, hours: number) {
 
 export async function getAllEvents(pool: Pool) {
     const { rows } = await pool.query(
-      `SELECT id, title, category, location, city, date_time, description, external_link, google_maps_link, whatsapp_group_link, contact_info, status, participant_limit, is_paid, image_url, image_public_id
+      `SELECT id, title, category, location, city, date_time, description, external_link, google_maps_link, whatsapp_group_link, contact_info, status, participant_limit, is_paid, visibility, image_url, image_public_id
        FROM events ORDER BY date_time ASC`
     );
     return rows;
 }
 
 export async function createEvent(pool: Pool, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, image_url, image_public_id } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, visibility, image_url, image_public_id } = data;
+    const validVisibility = visibility === 'invite_only' ? 'invite_only' : 'public';
     const { rows } = await pool.query(
-      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, image_url, image_public_id)
-       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-       RETURNING id, title, category, image_url, image_public_id, whatsapp_group_link`,
-      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, participant_limit || null, is_paid || false, image_url || null, image_public_id || null]
+      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, visibility, image_url, image_public_id)
+       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::event_visibility, $16, $17)
+       RETURNING id, title, category, visibility, image_url, image_public_id, whatsapp_group_link`,
+      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, participant_limit || null, is_paid || false, validVisibility, image_url || null, image_public_id || null]
     );
     return rows[0];
 }
 
 export async function updateEvent(pool: Pool, id: string, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, image_url, image_public_id } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, visibility, image_url, image_public_id } = data;
+    const validVisibility = visibility === 'invite_only' ? 'invite_only' : 'public';
     await pool.query(
       `UPDATE events SET title=$1, description=$2, category=$3::event_category, location=$4, city=$5,
        date_time=$6, end_time=$7, timings=$8, external_link=$9, google_maps_link=$10, whatsapp_group_link=$11, contact_info=$12,
-       participant_limit=$13, is_paid=$14, image_url=$15, image_public_id=$16, updated_at=CURRENT_TIMESTAMP
-       WHERE id=$17`,
-      [title, description, category, location, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, participant_limit || null, is_paid || false, image_url || null, image_public_id || null, id]
+       participant_limit=$13, is_paid=$14, visibility=$15::event_visibility, image_url=$16, image_public_id=$17, updated_at=CURRENT_TIMESTAMP
+       WHERE id=$18`,
+      [title, description, category, location, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, participant_limit || null, is_paid || false, validVisibility, image_url || null, image_public_id || null, id]
     );
 }
 
@@ -315,7 +430,7 @@ export async function deleteEvent(pool: Pool, id: string) {
 
 export async function getPendingEvents(pool: Pool) {
     const { rows } = await pool.query(
-      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, google_maps_link, whatsapp_group_link, participant_limit, is_paid, image_url, image_public_id
+      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, google_maps_link, whatsapp_group_link, participant_limit, is_paid, visibility, image_url, image_public_id
        FROM events WHERE status = 'pending' ORDER BY created_at ASC`
     );
     return rows;
@@ -329,7 +444,7 @@ export async function getEventsByStatus(pool: Pool, status: string, days?: numbe
 
     if (days) {
         const { rows } = await pool.query(
-          `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at, google_maps_link, whatsapp_group_link, participant_limit, is_paid, image_url, image_public_id
+          `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at, google_maps_link, whatsapp_group_link, participant_limit, is_paid, visibility, image_url, image_public_id
            FROM events WHERE ${statusCondition} AND updated_at >= NOW() - INTERVAL '${days} days'
            ORDER BY updated_at DESC`,
           [status]
@@ -337,7 +452,7 @@ export async function getEventsByStatus(pool: Pool, status: string, days?: numbe
         return rows;
     }
     const { rows } = await pool.query(
-      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at, google_maps_link, whatsapp_group_link, participant_limit, is_paid, image_url, image_public_id
+      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at, google_maps_link, whatsapp_group_link, participant_limit, is_paid, visibility, image_url, image_public_id
        FROM events WHERE ${statusCondition} ORDER BY updated_at DESC`,
       [status]
     );
@@ -353,17 +468,18 @@ export async function updateEventStatus(pool: Pool, id: string, status: string, 
 }
 
 export async function updateOrganizerEvent(pool: Pool, id: string, organizerEmail: string, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, image_url, image_public_id } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, visibility, image_url, image_public_id } = data;
+    const validVisibility = visibility === 'invite_only' ? 'invite_only' : 'public';
     const { rowCount } = await pool.query(
       `UPDATE events
        SET title=$1, description=$2, category=$3::event_category, location=$4, city=$5,
            date_time=$6, end_time=$7, timings=$8, external_link=$9, google_maps_link=$10, whatsapp_group_link=$11, contact_info=$12,
            status='pending', admin_comment=NULL, updated_at=CURRENT_TIMESTAMP, participant_limit=$13, is_paid=$14,
-           image_url=$15, image_public_id=$16
-       WHERE id=$17 AND organizer_email=$18 AND status='needs_changes'`,
+           visibility=$15::event_visibility, image_url=$16, image_public_id=$17
+       WHERE id=$18 AND organizer_email=$19 AND status='needs_changes'`,
       [title, description, category, location || null, city || null,
        date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null,
-       participant_limit || null, is_paid || false, image_url || null, image_public_id || null, id, organizerEmail]
+       participant_limit || null, is_paid || false, validVisibility, image_url || null, image_public_id || null, id, organizerEmail]
     );
     return rowCount;
 }

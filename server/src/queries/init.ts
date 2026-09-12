@@ -221,6 +221,36 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS average_rating NUMERIC(3,1)`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS ratings_count INTEGER DEFAULT 0`);
 
+  // Event visibility migration (public vs invite_only)
+  await pool.query(`
+    DO $$ BEGIN
+      CREATE TYPE event_visibility AS ENUM ('public', 'invite_only');
+    EXCEPTION
+      WHEN duplicate_object THEN null;
+    END $$;
+  `).catch(() => {});
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS visibility event_visibility DEFAULT 'public'`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_events_visibility ON events (visibility)`).catch(() => {});
+
+  // Event Invites table (Guest list for Invite-Only / VIP Events)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS event_invites (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+      user_email VARCHAR(255) NOT NULL,
+      phone_number VARCHAR(50),
+      status VARCHAR(50) DEFAULT 'invited',
+      invited_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      claimed_at TIMESTAMP WITH TIME ZONE,
+      metadata JSONB DEFAULT '{}'::jsonb,
+      UNIQUE(event_id, user_email)
+    );
+  `).catch((err) => {
+    console.error('Failed to create event_invites table:', err.message);
+  });
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_event_invites_user ON event_invites (user_email)`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_event_invites_event ON event_invites (event_id)`).catch(() => {});
+
   // 11b. Create Event Ratings table (Event & Organizer Star Ratings)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS event_ratings (

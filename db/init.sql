@@ -103,6 +103,8 @@ VALUES ('cron_enabled', 'false'::jsonb)
 ON CONFLICT (key) DO NOTHING;
 
 -- 5. Events
+CREATE TYPE event_visibility AS ENUM ('public', 'invite_only');
+
 CREATE TABLE IF NOT EXISTS events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     category event_category NOT NULL DEFAULT 'General',
@@ -121,6 +123,7 @@ CREATE TABLE IF NOT EXISTS events (
     admin_comment TEXT,                          -- admin feedback on rejection/review
     participant_limit INTEGER,                   -- max number of allowed participants
     is_paid BOOLEAN DEFAULT false,               -- whether event is free or paid
+    visibility event_visibility DEFAULT 'public', -- public | invite_only
     whatsapp_group_link TEXT,                    -- WhatsApp group invite link for RSVP'd attendees
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -128,6 +131,7 @@ CREATE TABLE IF NOT EXISTS events (
 
 -- Fast cosine similarity search on event embeddings
 CREATE INDEX ON events USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX IF NOT EXISTS idx_events_visibility ON events (visibility);
 
 -- 6. Event RSVPs
 CREATE TABLE IF NOT EXISTS event_rsvps (
@@ -135,9 +139,28 @@ CREATE TABLE IF NOT EXISTS event_rsvps (
     event_id UUID REFERENCES events(id) ON DELETE CASCADE,
     user_email TEXT,                             -- NULL if RSVP came from WhatsApp
     phone_number TEXT,                           -- NULL if RSVP came from web
+    status VARCHAR(50) DEFAULT 'confirmed',      -- pending | confirmed | cancelled
+    payment_status VARCHAR(50) DEFAULT 'unpaid', -- unpaid | paid
+    pass_code VARCHAR(50),                       -- VB-XXXXXX
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(event_id, user_email)
 );
+
+-- 6b. Event Invites (Guest List for Invite-Only / VIP Events)
+CREATE TABLE IF NOT EXISTS event_invites (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    user_email VARCHAR(255) NOT NULL,
+    phone_number VARCHAR(50),
+    status VARCHAR(50) DEFAULT 'invited',       -- 'invited' | 'opened' | 'claimed' | 'declined'
+    invited_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    claimed_at TIMESTAMP WITH TIME ZONE,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    UNIQUE(event_id, user_email)
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_invites_user ON event_invites (user_email);
+CREATE INDEX IF NOT EXISTS idx_event_invites_event ON event_invites (event_id);
 
 -- 7. Cities (multi-city support)
 CREATE TABLE IF NOT EXISTS cities (

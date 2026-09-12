@@ -24,6 +24,8 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
   const { data: session, status } = useSession();
   const [event, setEvent] = useState<any>(initialEvent || null);
   const [loading, setLoading] = useState(!initialEvent);
+  const [isPrivateDenied, setIsPrivateDenied] = useState(false);
+  const [privateErrorMsg, setPrivateErrorMsg] = useState<string | null>(null);
   const [rsvped, setRsvped] = useState(false);
   const [rsvpStatus, setRsvpStatus] = useState<'pending' | 'confirmed' | null>(null);
   const [passCode, setPassCode] = useState<string | null>(null);
@@ -40,8 +42,10 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
   useEffect(() => {
     if (!eventId) return;
 
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    const userEmailParam = session?.user?.email ? `?email=${encodeURIComponent(session.user.email)}` : '';
+
     if (session?.user?.email) {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
       fetch(`${baseUrl}/api/user?email=${encodeURIComponent(session.user.email)}`)
         .then(r => r.json())
         .then(res => {
@@ -76,23 +80,26 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         .catch(console.error);
     }
 
-    if (!initialEvent) {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      fetch(`${baseUrl}/api/events/${eventId}`)
-        .then(r => r.json())
-        .then(res => {
-          if (res.success && res.data) {
-            setEvent(res.data);
-          } else {
-            router.push("/dashboard");
-          }
-        })
-        .catch(err => {
-          console.error(err);
+    // Always fetch or verify event access (especially for invite-only events)
+    fetch(`${baseUrl}/api/events/${eventId}${userEmailParam}`)
+      .then(async res => {
+        const json = await res.json();
+        if (res.status === 403 || json.is_private) {
+          setIsPrivateDenied(true);
+          setPrivateErrorMsg(json.error || "This is a private, invite-only event.");
+          setEvent(null);
+        } else if (json.success && json.data) {
+          setEvent(json.data);
+          setIsPrivateDenied(false);
+        } else if (!initialEvent) {
           router.push("/dashboard");
-        })
-        .finally(() => setLoading(false));
-    }
+        }
+      })
+      .catch(err => {
+        console.error("Event fetch error:", err);
+        if (!initialEvent) router.push("/dashboard");
+      })
+      .finally(() => setLoading(false));
 
     if (typeof window !== "undefined") {
       const ua = navigator.userAgent;
@@ -210,6 +217,72 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
     </div>
   );
 
+  if (isPrivateDenied) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 sm:py-24 text-center animate-in fade-in zoom-in-95 duration-500">
+        <div className="rounded-[36px] bg-gradient-to-b from-zinc-900 to-zinc-950 border-2 border-amber-400/40 p-8 sm:p-12 shadow-[0_20px_50px_rgba(245,158,11,0.15)] relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-3xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-3xl sm:text-4xl shadow-inner mb-6">
+            🔒
+          </div>
+
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[10px] sm:text-xs font-black uppercase tracking-wider mb-4">
+            <Sparkles className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> Exclusive VIP Guest List Only
+          </div>
+
+          <h1 className="text-2xl sm:text-4xl font-black italic uppercase tracking-tight text-white mb-4">
+            Private VIP Access Required
+          </h1>
+
+          <p className="text-zinc-400 text-sm sm:text-base max-w-md mx-auto mb-8 leading-relaxed">
+            {privateErrorMsg || "This experience is strictly invite-only. Only guests on the host's confirmed VIP list can view details and claim passes."}
+          </p>
+
+          {!session?.user?.email ? (
+            <div className="space-y-4 max-w-xs mx-auto">
+              <Button
+                onClick={() => signIn("google", { callbackUrl: window.location.href })}
+                className="w-full bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-black font-black uppercase text-xs sm:text-sm py-6 rounded-2xl shadow-lg hover:scale-105 active:scale-95 transition-all"
+              >
+                Sign In to Verify Access
+              </Button>
+              <p className="text-[11px] text-zinc-500">
+                Already invited? Sign in with your registered email address.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4 max-w-md mx-auto">
+              <div className="p-3.5 rounded-2xl bg-zinc-800/80 border border-white/10 text-xs text-zinc-300 text-left sm:text-center">
+                Signed in as: <span className="text-amber-300 font-bold">{session.user.email}</span>
+                <p className="text-[11px] text-zinc-400 mt-1">
+                  This account is not on the VIP guest list. If you received an invitation on another email, please switch accounts or contact the organizer.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Button
+                  onClick={() => signIn("google", { callbackUrl: window.location.href })}
+                  variant="outline"
+                  className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10 text-xs font-black uppercase tracking-wider rounded-xl"
+                >
+                  Switch Account
+                </Button>
+                <Link href="/dashboard" className="w-full sm:w-auto">
+                  <Button
+                    className="w-full bg-white text-black hover:bg-zinc-200 text-xs font-black uppercase tracking-wider rounded-xl"
+                  >
+                    Back to Explore
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (!event) return null;
 
   const isHousefull = event.status === 'housefull' || (event.participant_limit && (event.rsvp_count || 0) >= event.participant_limit);
@@ -249,6 +322,11 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               >
                 {event.category}
               </div>
+              {event.visibility === 'invite_only' && (
+                <div className="sticker-badge bg-gradient-to-r from-amber-500 to-yellow-400 text-black border-none font-black shadow-md flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 fill-black text-black" /> VIP Invite-Only
+                </div>
+              )}
               <div className="sticker-badge bg-zinc-100 border-none text-zinc-400">Verified Vibe</div>
               <div className="sticker-badge bg-zinc-100 border-none text-zinc-500 font-bold">
                 {event.is_paid ? "Paid Event" : "Free Entry"}

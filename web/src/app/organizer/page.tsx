@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
-import { Trash2, Image as ImageIcon, Radio, Sparkles } from "lucide-react";
+import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import OrganizerInsightsDashboard from "@/components/OrganizerInsightsDashboard";
@@ -30,7 +30,7 @@ const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
   return `${displayHour}:${min} ${ampm}`;
 });
 
-function EventRsvpList({ eventId, title, status, dateStr, endDateTime, organizerEmail, adminComment, whatsappGroupLink, onEdit, onStatusUpdated }: { eventId: string, title: string, status: string, dateStr: string, endDateTime?: string, organizerEmail: string, adminComment?: string, whatsappGroupLink?: string, onEdit?: () => void, onStatusUpdated?: () => void }) {
+function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateStr, endDateTime, organizerEmail, adminComment, whatsappGroupLink, onEdit, onStatusUpdated }: { eventId: string, title: string, status: string, visibility?: string, inviteCount?: number, dateStr: string, endDateTime?: string, organizerEmail: string, adminComment?: string, whatsappGroupLink?: string, onEdit?: () => void, onStatusUpdated?: () => void }) {
   const [rsvps, setRsvps] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -156,9 +156,14 @@ function EventRsvpList({ eventId, title, status, dateStr, endDateTime, organizer
     <div className="ringer-card overflow-hidden group mb-4">
       <div className="flex flex-col md:flex-row justify-between md:items-center p-6 bg-white cursor-pointer hover:bg-zinc-50 transition-colors gap-4" onClick={() => loadRsvps()}>
         <div className="flex flex-col">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <span className="text-black font-black uppercase tracking-tighter italic text-xl">{title}</span>
             {getStatusBadge(status)}
+            {visibility === 'invite_only' && (
+              <span className="sticker-badge bg-amber-500/15 text-amber-900 border-amber-300 font-black flex items-center gap-1">
+                <Lock className="h-3 w-3" /> VIP Invite-Only {inviteCount !== undefined ? `(${inviteCount} Invited)` : ''}
+              </span>
+            )}
           </div>
           <span className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mt-1">
             {new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -566,7 +571,9 @@ export default function OrganizerDashboard() {
   const [formData, setFormData] = useState({
     title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
     startDate: "", endDate: "", startTime: "", endTime: "",
-    participantLimit: "", isPaid: false
+    participantLimit: "", isPaid: false,
+    visibility: "public" as "public" | "invite_only",
+    guestList: ""
   });
   const [imageUrl, setImageUrl] = useState("");
   const [imagePublicId, setImagePublicId] = useState("");
@@ -824,7 +831,9 @@ export default function OrganizerDashboard() {
       startDate: fDate(start), endDate: fDate(end),
       startTime: fTime(start), endTime: fTime(end),
       participantLimit: ev.participant_limit ? String(ev.participant_limit) : "",
-      isPaid: ev.is_paid || false
+      isPaid: ev.is_paid || false,
+      visibility: ev.visibility || "public",
+      guestList: ""
     });
     setImageUrl(ev.image_url || "");
     setImagePublicId(ev.image_public_id || "");
@@ -838,7 +847,9 @@ export default function OrganizerDashboard() {
     setFormData({
       title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
       startDate: "", endDate: "", startTime: "", endTime: "",
-      participantLimit: "", isPaid: false
+      participantLimit: "", isPaid: false,
+      visibility: "public",
+      guestList: ""
     });
     setImageUrl("");
     setImagePublicId("");
@@ -923,6 +934,8 @@ export default function OrganizerDashboard() {
           ...formData,
           participant_limit: formData.participantLimit ? parseInt(formData.participantLimit, 10) : null,
           is_paid: formData.isPaid,
+          visibility: formData.visibility,
+          guest_list: formData.visibility === "invite_only" ? formData.guestList : undefined,
           image_url: finalImageUrl || null,
           image_public_id: finalImagePublicId || null,
           date_time: start_iso,
@@ -935,7 +948,9 @@ export default function OrganizerDashboard() {
         setFormData({
           title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
           startDate: "", endDate: "", startTime: "", endTime: "",
-          participantLimit: "", isPaid: false
+          participantLimit: "", isPaid: false,
+          visibility: "public",
+          guestList: ""
         });
         setImageUrl("");
         setImagePublicId("");
@@ -944,7 +959,10 @@ export default function OrganizerDashboard() {
         setEditingEventId(null);
         setShowForm(false);
         loadMyEvents();
-        toast.success("Event submitted!", { id: toastId, description: "Your event is pending review by the VibeCheck team." });
+        toast.success(
+          formData.visibility === 'invite_only' ? "VIP Event submitted & Invitations dispatched!" : "Event submitted!",
+          { id: toastId, description: "Your event is pending review by the VibeCheck team." }
+        );
       } else {
         toast.error("Submission failed.", { id: toastId, description: data.error || "VibeCheck server rejected the request. Please check your details." });
       }
@@ -1010,7 +1028,7 @@ export default function OrganizerDashboard() {
               ) : (
                 <div className="space-y-4">
                   {myEvents.map(ev => (
-                    <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} dateStr={ev.date_time} endDateTime={ev.end_time} organizerEmail={session?.user?.email || ""} adminComment={ev.admin_comment} whatsappGroupLink={ev.whatsapp_group_link} onEdit={() => handleEditInit(ev)} onStatusUpdated={() => loadMyEvents()} />
+                    <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} visibility={ev.visibility} inviteCount={ev.invite_count} dateStr={ev.date_time} endDateTime={ev.end_time} organizerEmail={session?.user?.email || ""} adminComment={ev.admin_comment} whatsappGroupLink={ev.whatsapp_group_link} onEdit={() => handleEditInit(ev)} onStatusUpdated={() => loadMyEvents()} />
                   ))}
                 </div>
               )}
@@ -1246,7 +1264,9 @@ export default function OrganizerDashboard() {
             setFormData({
               title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
               startDate: "", endDate: "", startTime: "", endTime: "",
-              participantLimit: "", isPaid: false
+              participantLimit: "", isPaid: false,
+              visibility: "public",
+              guestList: ""
             });
             setImageUrl("");
             setImagePublicId("");
@@ -1382,6 +1402,55 @@ export default function OrganizerDashboard() {
                   </div>
 
                   <Input placeholder="Extra Timings Note (Optional)" value={formData.timings} onChange={e => setFormData({ ...formData, timings: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
+
+                  {/* Access & Privacy Switcher: Public vs Invite-Only */}
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1">
+                      <Lock className="h-3 w-3" /> Event Privacy &amp; Access Level
+                    </Label>
+                    <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/5">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, visibility: 'public' })}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                          formData.visibility === 'public' ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'
+                        }`}
+                      >
+                        <span>🌍 Public Vibe</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, visibility: 'invite_only' })}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                          formData.visibility === 'invite_only' ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-black font-black shadow-lg shadow-amber-500/20' : 'text-zinc-400 hover:text-black'
+                        }`}
+                      >
+                        <span>✨ 🔒 Invite-Only VIP</span>
+                      </button>
+                    </div>
+
+                    {formData.visibility === 'invite_only' && (
+                      <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-2 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1">
+                            <span>VIP Guest List Emails</span>
+                          </Label>
+                          <span className="text-[8px] font-black uppercase tracking-wider text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded-full">
+                            Free In-App VIP Broadcast
+                          </span>
+                        </div>
+                        <Textarea
+                          placeholder="Enter invited guest emails separated by comma or new line...&#10;e.g. alex@gmail.com, priya@outlook.com"
+                          value={formData.guestList}
+                          onChange={e => setFormData({ ...formData, guestList: e.target.value })}
+                          className="bg-white border-amber-300 focus:ring-amber-500 text-xs font-bold min-h-[70px] rounded-xl p-3"
+                        />
+                        <p className="text-[10px] text-amber-900/80 font-bold leading-snug">
+                          🔒 This event will be hidden from the public explore feed. Only users on this guest list will be notified and granted access.
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Free vs Paid Switcher */}
                   <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/5">

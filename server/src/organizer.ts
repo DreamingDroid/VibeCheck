@@ -2,33 +2,74 @@ import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { Resend } from 'resend';
 import { sendWhatsAppMessage } from './whatsapp';
-import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull, updateEventStatusByOrganizer, issueOrganizerEventPass, cancelOrganizerEventRSVP, updateEventWhatsAppGroupLink, getEventById } from './queries/events';
+import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull, updateEventStatusByOrganizer, issueOrganizerEventPass, cancelOrganizerEventRSVP, updateEventWhatsAppGroupLink, getEventById, addEventInvites, getEventInvites } from './queries/events';
 import { createBroadcastAndDispatch, getAudienceRecipientEmails, CreateBroadcastInput } from './queries/broadcasts';
-import { sendFcmTopicBroadcast } from './firebaseAdmin';
+import { sendFcmTopicBroadcast, sanitizeTopicName } from './firebaseAdmin';
 import { getSystemSetting, getOrganizerDashboardAnalytics } from './queries/analytics';
 import { config } from './config';
 import { getChatModel } from './rag';
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { getOrganizerCrmContacts, upsertOrganizerCrmNotes, getPhoneNumbersForEmails } from './queries/crm';
-import { notifySuperAdmins } from './notifications';
+import { notifySuperAdmins, createUserNotification } from './notifications';
 
 const resend = new Resend(config.RESEND_API_KEY);
 
 export async function organizerCreateEventHandler(req: Request, res: Response, pool: Pool) {
-  const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email } = req.body;
+  const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email, visibility, guest_list, guestList } = req.body;
 
   if (!organizer_email) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
   try {
     const event = await createOrganizerEvent(pool, req.body);
 
+    // Process VIP guest list if event is invite_only
+    const rawList = guest_list || guestList;
+    if (visibility === 'invite_only' && rawList && event?.id) {
+      let emails: string[] = [];
+      if (Array.isArray(rawList)) {
+        emails = rawList;
+      } else if (typeof rawList === 'string') {
+        emails = rawList.split(/[\n,;]+/).map(s => s.trim()).filter(s => s.length > 3 && s.includes('@'));
+      }
+
+      if (emails.length > 0) {
+        await addEventInvites(pool, event.id, emails);
+
+        // Fetch organizer brand name
+        const adminRes = await pool.query('SELECT brand_name FROM admins WHERE LOWER(email) = $1', [organizer_email.toLowerCase().trim()]);
+        const brandName = adminRes.rows[0]?.brand_name || 'An organizer';
+
+        // Dispatch In-App Notifications and Web Push
+        for (const guestEmail of emails) {
+          const cleanEmail = guestEmail.trim().toLowerCase();
+          createUserNotification(pool, {
+            userEmail: cleanEmail,
+            title: `✨ VIP Invite: ${title}`,
+            message: `${brandName} personally invited you to the exclusive guest list for '${title}'.`,
+            type: 'vip_invite',
+            link: `/event/${event.id}`,
+            metadata: { event_id: event.id, title, organizer_email, brand_name: brandName }
+          }).catch(err => console.warn('[Notifications] VIP in-app notify error:', err.message));
+
+          sendFcmTopicBroadcast({
+            topic: `user_${sanitizeTopicName(cleanEmail)}`,
+            title: `✨ VIP Invite: ${title}`,
+            message: `${brandName} added you to the exclusive guest list for '${title}'!`,
+            type: 'vip_invite',
+            link: `/event/${event.id}`,
+            metadata: { event_id: event.id, title, organizer_email }
+          }).catch(err => console.warn('[Notifications] VIP FCM push error:', err.message));
+        }
+      }
+    }
+
     // Notify SuperAdmins of the pending event application
     notifySuperAdmins(pool, {
       title: `New Event Pending Approval: ${title}`,
-      message: `Organizer (${organizer_email}) submitted "${title}" for review.`,
+      message: `Organizer (${organizer_email}) submitted "${title}" for review.${visibility === 'invite_only' ? ' (Invite-Only VIP)' : ''}`,
       type: 'event_pending_approval',
       link: '/admin/events?tab=pending',
-      metadata: { event_id: event?.id, title, organizer_email, city, category, type: 'event_pending_approval' },
+      metadata: { event_id: event?.id, title, organizer_email, city, category, visibility: visibility || 'public', type: 'event_pending_approval' },
       emailSubject: `[VibeCheck Admin] New Event Submitted for Approval: ${title}`,
       emailHtml: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -37,6 +78,7 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
             <p style="margin: 6px 0;"><strong>Event Title:</strong> ${title}</p>
             <p style="margin: 6px 0;"><strong>Organizer:</strong> ${organizer_email}</p>
+            <p style="margin: 6px 0;"><strong>Access Type:</strong> ${visibility === 'invite_only' ? '🔒 Invite-Only / VIP' : '🌍 Public'}</p>
             <p style="margin: 6px 0;"><strong>Category:</strong> ${category || 'General'}</p>
             <p style="margin: 6px 0;"><strong>Location / City:</strong> ${location || 'TBA'} (${city || 'Unspecified'})</p>
             <p style="margin: 6px 0;"><strong>Date & Time:</strong> ${date_time ? new Date(date_time).toLocaleString() : 'TBA'}</p>
@@ -51,6 +93,20 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
     res.json({ success: true, data: event, message: 'Event submitted for approval.' });
   } catch (error) {
     console.error('Error creating event:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function organizerGetEventInvitesHandler(req: Request, res: Response, pool: Pool) {
+  const { eventId } = req.params;
+  const { email } = req.query;
+  if (!email) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+  try {
+    const invites = await getEventInvites(pool, eventId as string);
+    res.json({ success: true, data: invites });
+  } catch (error) {
+    console.error('Error fetching event invites:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

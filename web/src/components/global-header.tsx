@@ -36,6 +36,16 @@ interface ModalNotification {
 
 function getNotificationModalTheme(type: string, customIcon?: string) {
   switch (type) {
+    case 'vip_invite':
+      return {
+        cardBorder: 'border-amber-400 shadow-[0_20px_50px_rgba(245,158,11,0.25)] ring-4 ring-amber-400/20',
+        headerBg: 'bg-gradient-to-br from-amber-400/20 via-amber-50 to-white',
+        headerBorder: 'border-amber-200',
+        iconBox: 'bg-amber-100/90 text-amber-700 border-amber-300 ring-2 ring-amber-400/30',
+        badgeClass: 'bg-amber-500 text-black font-black',
+        actionBtnClass: 'bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black shadow-md shadow-amber-500/25 font-black',
+        icon: customIcon || '✨',
+      };
     case 'emergency_alert':
       return {
         cardBorder: 'border-red-500 shadow-[0_20px_50px_rgba(239,68,68,0.25)] ring-4 ring-red-500/20',

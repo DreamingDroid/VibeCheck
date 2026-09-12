@@ -21,6 +21,7 @@ export const BROADCAST_TYPES: BroadcastType[] = [
 
 export type NotificationType =
   | BroadcastType
+  | 'vip_invite'
   | 'approval_pending'
   | 'application_approved'
   | 'application_rejected'
@@ -77,6 +78,16 @@ export interface BroadcastTypeConfig {
 }
 
 export const BROADCAST_TYPE_CONFIGS: Record<NotificationType, BroadcastTypeConfig> = {
+  vip_invite: {
+    label: 'VIP Invite',
+    description: 'Exclusive guest list invitation to a private vibe',
+    icon: '✨',
+    badgeBg: 'bg-amber-500/20 text-amber-900 border-amber-300 font-black',
+    badgeText: 'text-amber-800',
+    borderColor: 'border-amber-400/40 ring-1 ring-amber-400/20',
+    accentGlow: 'shadow-[0_0_20px_rgba(245,158,11,0.25)]',
+    cardBg: 'bg-gradient-to-r from-amber-50/80 via-amber-50/40 to-white',
+  },
   general_update: {
     label: 'General Update',
     description: 'Community notices, new features, and general announcements',

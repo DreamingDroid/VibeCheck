@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
-import { getEventsList, getEventById, insertEventRSVPEmail, checkEventRSVPEmail } from './queries/events';
+import { getEventsList, getEventById, insertEventRSVPEmail, checkEventRSVPEmail, checkUserEventAccess, getUserVipInvites } from './queries/events';
 
 export async function getEventsHandler(req: Request, res: Response, pool: Pool) {
   try {
@@ -21,8 +21,23 @@ export async function getEventsHandler(req: Request, res: Response, pool: Pool) 
 export async function getSingleEventHandler(req: Request, res: Response, pool: Pool) {
   try {
     const { id } = req.params;
-    const event = await getEventById(pool, id as string);
+    const { email } = req.query;
 
+    // Check visibility and access control
+    const access = await checkUserEventAccess(pool, id as string, typeof email === 'string' ? email : undefined);
+    if (!access.exists) {
+      return res.status(404).json({ success: false, error: 'Event not found' });
+    }
+
+    if (!access.allowed) {
+      return res.status(403).json({
+        success: false,
+        is_private: true,
+        error: 'This is an exclusive invite-only vibe. Access is restricted to invited guests.'
+      });
+    }
+
+    const event = await getEventById(pool, id as string);
     if (!event) {
       return res.status(404).json({ success: false, error: 'Event not found' });
     }
@@ -43,6 +58,20 @@ export async function rsvpEventHandler(req: Request, res: Response, pool: Pool) 
     const { email } = req.body;
     if (!email) {
       return res.status(400).json({ success: false, error: 'Email is required' });
+    }
+
+    // Access check for invite-only events
+    const access = await checkUserEventAccess(pool, id as string, email as string);
+    if (!access.exists) {
+      return res.status(404).json({ success: false, error: 'Event not found' });
+    }
+
+    if (!access.allowed) {
+      return res.status(403).json({
+        success: false,
+        is_private: true,
+        error: 'This is an exclusive invite-only event. Your email is not on the guest list.'
+      });
     }
 
     const event = await getEventById(pool, id as string);
@@ -95,3 +124,22 @@ export async function checkRsvpHandler(req: Request, res: Response, pool: Pool) 
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
+
+export async function getUserVipInvitesHandler(req: Request, res: Response, pool: Pool) {
+  try {
+    const { email } = req.query;
+    if (!email || typeof email !== 'string') {
+      return res.json({ success: true, data: [] });
+    }
+
+    const invites = await getUserVipInvites(pool, email);
+    return res.json({
+      success: true,
+      data: invites
+    });
+  } catch (error) {
+    console.error('Error fetching user VIP invites:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
