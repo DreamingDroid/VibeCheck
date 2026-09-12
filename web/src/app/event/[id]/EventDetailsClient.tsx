@@ -32,6 +32,8 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
   const [showOrganizerModal, setShowOrganizerModal] = useState(false);
   const [showBriefingModal, setShowBriefingModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [hasRated, setHasRated] = useState(false);
+  const [userRating, setUserRating] = useState<any>(null);
   const [userHasPhone, setUserHasPhone] = useState(false);
   const { isVibrant } = useTheme();
 
@@ -56,6 +58,19 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             setRsvped(true);
             setRsvpStatus(d.rsvp_status || (event?.is_paid ? 'pending' : 'confirmed'));
             setPassCode(d.pass_code || null);
+          }
+        })
+        .catch(console.error);
+
+      fetch(`${baseUrl}/api/events/${eventId}/ratings?email=${encodeURIComponent(session.user.email)}`)
+        .then(r => r.json())
+        .then(res => {
+          if (res.success && res.data?.userRating) {
+            setHasRated(true);
+            setUserRating(res.data.userRating);
+          } else {
+            setHasRated(false);
+            setUserRating(null);
           }
         })
         .catch(console.error);
@@ -199,6 +214,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
 
   const isHousefull = event.status === 'housefull' || (event.participant_limit && (event.rsvp_count || 0) >= event.participant_limit);
   const isFillingFast = event.status === 'filling_fast';
+  const isEventEnded = event.status === 'ended' || (event.end_time ? new Date(event.end_time).getTime() <= Date.now() : event.date_time ? new Date(event.date_time).getTime() <= Date.now() : false);
 
   return (
     <>
@@ -250,7 +266,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               {event.status === 'filling_fast' && (
                 <div className="sticker-badge bg-orange-500 border-none text-white font-black animate-pulse flex items-center gap-1"><Sparkles className="h-4 w-4" /> Filling Fast</div>
               )}
-              {event.status === 'ended' && (
+              {isEventEnded && (
                 <div className="sticker-badge bg-zinc-800 border-none text-white font-bold">Event Ended</div>
               )}
             </div>
@@ -274,79 +290,107 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 pt-6">
-            {rsvped ? (
-              rsvpStatus === 'pending' ? (
-                <button 
-                  onClick={() => setShowBriefingModal(true)}
-                  className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] bg-amber-500 text-black hover:bg-amber-400 shadow-md cursor-pointer"
-                >
-                  <Clock className="h-5 w-5" />
-                  PAYMENT PENDING • VIEW BRIEFING
-                </button>
+            {isEventEnded ? (
+              // ENDED EVENT STATE: Only Rating button or "Already Rated" confirmation stays
+              hasRated ? (
+                <div className="w-full p-4 sm:p-5 rounded-[20px] bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black">
+                      <CheckCircle2 className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-emerald-950 uppercase tracking-wide">
+                        You've Rated This Vibe &amp; Host
+                      </div>
+                      <div className="text-xs font-bold text-emerald-700">
+                        Thank you for your feedback! This event is completed.
+                      </div>
+                    </div>
+                  </div>
+                  {userRating?.event_rating && (
+                    <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-100 font-black text-emerald-900 text-sm shadow-xs">
+                      <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                      <span>{userRating.event_rating}/5</span>
+                    </div>
+                  )}
+                </div>
               ) : (
-                <button 
-                  onClick={() => setShowBriefingModal(true)}
-                  className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] bg-primary text-black hover:bg-primary/90 shadow-md cursor-pointer"
+                <button
+                  onClick={() => {
+                    if (!session?.user?.email) {
+                      signIn("google", { callbackUrl: window.location.href });
+                      return;
+                    }
+                    setShowRatingModal(true);
+                  }}
+                  className="ringer-button h-16 w-full text-base font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-black shadow-lg shadow-amber-500/25 cursor-pointer uppercase tracking-wider"
                 >
-                  <Ticket className="h-5 w-5" />
-                  VIEW CONFIRMED PASS &amp; BRIEFING
+                  <Star className="h-5 w-5 fill-black text-black" />
+                  <span>⭐ RATE EVENT &amp; HOST</span>
                 </button>
               )
             ) : (
-              isHousefull ? (
+              // ACTIVE / UPCOMING EVENT STATE
+              <>
+                {rsvped ? (
+                  rsvpStatus === 'pending' ? (
+                    <button 
+                      onClick={() => setShowBriefingModal(true)}
+                      className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] bg-amber-500 text-black hover:bg-amber-400 shadow-md cursor-pointer"
+                    >
+                      <Clock className="h-5 w-5" />
+                      PAYMENT PENDING • VIEW BRIEFING
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => setShowBriefingModal(true)}
+                      className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] bg-primary text-black hover:bg-primary/90 shadow-md cursor-pointer"
+                    >
+                      <Ticket className="h-5 w-5" />
+                      VIEW CONFIRMED PASS &amp; BRIEFING
+                    </button>
+                  )
+                ) : (
+                  isHousefull ? (
+                    <button 
+                      disabled
+                      className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 rounded-[20px] bg-red-500 text-white cursor-not-allowed shadow-none"
+                    >
+                      HOUSEFULL / SOLD OUT
+                    </button>
+                  ) : event.is_paid ? (
+                    <button 
+                      onClick={() => handleRSVP()}
+                      className={`ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] ${
+                        isVibrant 
+                          ? 'bg-black text-white hover:bg-zinc-800 vibe-shimmer cursor-pointer'
+                          : 'bg-black text-white hover:bg-zinc-800 cursor-pointer'
+                      }`}
+                    >
+                      RSVP &amp; REQUEST PASS
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => handleRSVP()}
+                      className={`ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] ${
+                        isVibrant 
+                          ? 'bg-black text-white hover:bg-zinc-800 vibe-shimmer cursor-pointer'
+                          : 'bg-black text-white hover:bg-zinc-800 cursor-pointer'
+                      }`}
+                    >
+                      RSVP FOR FREE ENTRY
+                    </button>
+                  )
+                )}
+                
                 <button 
-                  disabled
-                  className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 rounded-[20px] bg-red-500 text-white cursor-not-allowed shadow-none"
+                  onClick={handleDownloadICS}
+                  className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 border-2 border-black/5 hover:bg-black/5 active:scale-95 transition-transform rounded-[20px] cursor-pointer"
                 >
-                  HOUSEFULL / SOLD OUT
+                  <CalendarPlus className="h-5 w-5" />
+                  ADD TO CALENDAR
                 </button>
-              ) : event.is_paid ? (
-                <button 
-                  onClick={() => handleRSVP()}
-                  className={`ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] ${
-                    isVibrant 
-                      ? 'bg-black text-white hover:bg-zinc-800 vibe-shimmer cursor-pointer'
-                      : 'bg-black text-white hover:bg-zinc-800 cursor-pointer'
-                  }`}
-                >
-                  RSVP &amp; REQUEST PASS
-                </button>
-              ) : (
-                <button 
-                  onClick={() => handleRSVP()}
-                  className={`ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] ${
-                    isVibrant 
-                      ? 'bg-black text-white hover:bg-zinc-800 vibe-shimmer cursor-pointer'
-                      : 'bg-black text-white hover:bg-zinc-800 cursor-pointer'
-                  }`}
-                >
-                  RSVP FOR FREE ENTRY
-                </button>
-              )
-            )}
-            
-            <button 
-              onClick={handleDownloadICS}
-              className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 border-2 border-black/5 hover:bg-black/5 active:scale-95 transition-transform rounded-[20px] cursor-pointer"
-            >
-              <CalendarPlus className="h-5 w-5" />
-              ADD TO CALENDAR
-            </button>
-
-            {(event.status === 'ended' || rsvped || (event.date_time && Date.now() >= new Date(event.date_time).getTime())) && (
-              <button
-                onClick={() => {
-                  if (!session?.user?.email) {
-                    signIn("google", { callbackUrl: window.location.href });
-                    return;
-                  }
-                  setShowRatingModal(true);
-                }}
-                className="ringer-button h-16 px-6 text-sm font-black flex items-center justify-center gap-2.5 transition-all active:scale-95 rounded-[20px] bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black shadow-md shadow-amber-500/20 cursor-pointer"
-              >
-                <Star className="h-4 w-4 fill-black text-black" />
-                <span>RATE EVENT &amp; HOST</span>
-              </button>
+              </>
             )}
           </div>
         </div>
@@ -531,6 +575,11 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         userEmail={session?.user?.email || null}
         onSuccess={(result) => {
           if (result) {
+            setHasRated(true);
+            setUserRating({
+              event_rating: result.event_rating,
+              organizer_rating: result.organizer_rating
+            });
             setEvent((prev: any) => ({
               ...prev,
               average_rating: result.event_average_rating ?? prev.average_rating,

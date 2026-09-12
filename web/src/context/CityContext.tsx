@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
+import { useSession } from "next-auth/react";
 
 export interface City {
   id: number;
@@ -41,6 +42,9 @@ interface CityContextType {
 const CityContext = createContext<CityContextType | undefined>(undefined);
 
 export function CityProvider({ children }: { children: ReactNode }) {
+  const { data: session } = useSession();
+  const userEmail = session?.user?.email;
+
   const [currentCity, setCurrentCity] = useState<string>("Vizag");
   const [supportedCities, setSupportedCities] = useState<City[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -65,13 +69,14 @@ export function CityProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const fetchEvents = useCallback(async (city: string) => {
+  const fetchEvents = useCallback(async (city: string, email?: string | null) => {
     setIsLoadingEvents(true);
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
       const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3500';
       const url = new URL(`${baseUrl}/api/events`, origin);
       if (city) url.searchParams.append("city", city);
+      if (email) url.searchParams.append("email", email);
       const res = await fetch(url.toString());
       const data = await res.json();
       if (data.success) {
@@ -112,10 +117,10 @@ export function CityProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (currentCity) {
-      fetchEvents(currentCity);
+      fetchEvents(currentCity, userEmail);
       setSelectedCategory("The Latest");
     }
-  }, [currentCity, fetchEvents]);
+  }, [currentCity, userEmail, fetchEvents]);
 
   const setCity = useCallback((city: string) => {
     setCurrentCity(city);
@@ -127,7 +132,7 @@ export function CityProvider({ children }: { children: ReactNode }) {
     return Array.from(new Set(events.map((e) => e.category))).filter(Boolean);
   }, [events]);
 
-  const refreshEvents = useCallback(() => fetchEvents(currentCity), [fetchEvents, currentCity]);
+  const refreshEvents = useCallback(() => fetchEvents(currentCity, userEmail), [fetchEvents, currentCity, userEmail]);
 
   const contextValue = useMemo<CityContextType>(() => ({
     currentCity,

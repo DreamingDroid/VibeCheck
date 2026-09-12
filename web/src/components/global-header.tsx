@@ -20,7 +20,6 @@ import {
   BROADCAST_TYPE_CONFIGS
 } from "@/types/broadcast"
 import { registerFcmForUser, onForegroundFcmMessage, isFirebaseConfigured } from "@/lib/firebase"
-import { EventRatingModal } from "@/components/EventRatingModal"
 import { toast } from "sonner"
 
 interface ModalNotification {
@@ -239,19 +238,6 @@ export function GlobalHeader() {
   const [selectedNotification, setSelectedNotification] = useState<ModalNotification | null>(null)
   const [avatarImgError, setAvatarImgError] = useState(false)
 
-  // Event Rating Modal state
-  const [ratingModalOpen, setRatingModalOpen] = useState(false)
-  const [ratingModalEvent, setRatingModalEvent] = useState<{
-    eventId: string;
-    title: string;
-    date?: string;
-    location?: string;
-    organizerEmail?: string;
-    organizerName?: string;
-    organizerImage?: string | null;
-    organizerRating?: number | null;
-  } | null>(null)
-
   // In-App Notification Center States
   const [notifications, setNotifications] = useState<UserNotification[]>([])
   const [unreadCount, setUnreadCount] = useState<number>(0)
@@ -437,22 +423,16 @@ export function GlobalHeader() {
       }).catch(err => console.error("Error marking notification read:", err));
     }
 
-    // If this is a post-event rating request, open the interactive EventRatingModal directly!
+    // If this is a post-event rating request, direct the user to the event page directly!
     if (notif.type === 'rating_request') {
       const targetEventId = notif.target_event_id || notif.metadata?.event_id;
+      setShowNotifications(false);
       if (targetEventId) {
-        setRatingModalEvent({
-          eventId: targetEventId,
-          title: notif.metadata?.event_title || notif.title || "Rate Your Experience",
-          date: notif.metadata?.event_date,
-          location: notif.metadata?.event_location,
-          organizerEmail: notif.metadata?.organizer_email,
-          organizerName: notif.metadata?.organizer_name || "Event Host",
-          organizerImage: notif.metadata?.organizer_image || null,
-          organizerRating: notif.metadata?.organizer_rating ? Number(notif.metadata.organizer_rating) : null,
-        });
-        setRatingModalOpen(true);
-        setShowNotifications(false);
+        router.push(`/event/${targetEventId}`);
+        return;
+      }
+      if (notif.link) {
+        router.push(notif.link);
         return;
       }
     }
@@ -1364,18 +1344,13 @@ export function GlobalHeader() {
                     <button
                       onClick={() => {
                         const notif = selectedNotification;
-                        const eventId = notif.link?.replace('/event/', '') || '';
+                        const link = notif.link || '/event';
                         setSelectedNotification(null);
-                        setRatingModalEvent({
-                          eventId,
-                          title: notif.title,
-                          organizerName: 'Event Host'
-                        });
-                        setRatingModalOpen(true);
+                        router.push(link);
                       }}
                       className="w-full sm:w-auto ringer-button bg-amber-500 hover:bg-amber-600 text-black font-black text-xs py-2.5 px-5 flex items-center justify-center gap-2 transition-all shadow-md shadow-amber-500/20"
                     >
-                      <span>⭐ RATE EVENT &amp; HOST</span>
+                      <span>⭐ GO TO EVENT &amp; RATE</span>
                     </button>
                   ) : selectedNotification.link ? (
                     <button
@@ -1401,31 +1376,6 @@ export function GlobalHeader() {
         );
       })()}
 
-      {/* Interactive Event & Organizer Rating Modal */}
-      {ratingModalOpen && ratingModalEvent && (
-        <EventRatingModal
-          isOpen={ratingModalOpen}
-          onClose={() => {
-            setRatingModalOpen(false);
-            setRatingModalEvent(null);
-          }}
-          eventId={ratingModalEvent.eventId}
-          eventTitle={ratingModalEvent.title}
-          eventDate={ratingModalEvent.date}
-          eventLocation={ratingModalEvent.location}
-          organizerEmail={ratingModalEvent.organizerEmail}
-          organizerName={ratingModalEvent.organizerName}
-          organizerImage={ratingModalEvent.organizerImage}
-          organizerRating={ratingModalEvent.organizerRating}
-          userEmail={session?.user?.email}
-          onSuccess={() => {
-            // refresh active list if notification center is open
-            if (showNotifications && session?.user?.email) {
-              fetchNotificationsList();
-            }
-          }}
-        />
-      )}
     </div>
   )
 }

@@ -4,9 +4,9 @@ import { getEventsList, getEventById, insertEventRSVPEmail, checkEventRSVPEmail 
 
 export async function getEventsHandler(req: Request, res: Response, pool: Pool) {
   try {
-    const { category, search, city } = req.query;
+    const { category, search, city, email } = req.query;
 
-    const rows = await getEventsList(pool, category, search, city);
+    const rows = await getEventsList(pool, category, search, city, email);
 
     res.json({
       success: true,

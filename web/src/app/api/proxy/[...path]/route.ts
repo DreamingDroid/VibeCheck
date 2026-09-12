@@ -82,14 +82,16 @@ function isPublicRoute(method: string, endpointPath: string): boolean {
     }
   }
 
-  // Public OTP / Application submission endpoints
+  // Public OTP / Application / RSVP / Ratings submission endpoints
   if (method === "POST") {
     if (
       normalizedPath.startsWith("/api/apply/send-otp") ||
       normalizedPath.startsWith("/api/apply/verify-otp") ||
       normalizedPath.startsWith("/api/apply/submit") ||
       normalizedPath.startsWith("/api/verify/send-code") ||
-      normalizedPath.startsWith("/api/verify/confirm-code")
+      normalizedPath.startsWith("/api/verify/confirm-code") ||
+      normalizedPath.includes("/rsvp") ||
+      normalizedPath.includes("/ratings")
     ) {
       return true;
     }

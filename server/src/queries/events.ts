@@ -13,8 +13,18 @@ export async function insertEventRSVP(pool: Pool, eventId: string, phone: string
   }
 }
 
-export async function searchEventsByVector(pool: Pool, queryEmbedding: number[], city?: string) {
+export async function searchEventsByVector(pool: Pool, queryEmbedding: number[], city?: string, email?: string) {
+  let emailFilter = '';
+  const params: any[] = [`[${queryEmbedding.join(',')}]`];
+  let paramIdx = 2;
+
   if (city) {
+    params.push(`%${city}%`);
+    paramIdx++;
+    if (email) {
+      params.push(email);
+      emailFilter = ` AND NOT EXISTS (SELECT 1 FROM event_ratings er WHERE er.event_id = events.id AND er.user_email = $${paramIdx - 1})`;
+    }
     const { rows } = await pool.query(
       `
       SELECT
@@ -32,13 +42,18 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
         CASE WHEN city ILIKE $2 THEN 0 ELSE 1 END AS city_rank
       FROM events
       WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)
+      ${emailFilter}
       ORDER BY city_rank ASC, embedding <=> $1::vector ASC
       LIMIT 8;
       `,
-      [`[${queryEmbedding.join(',')}]`, `%${city}%`]
+      params
     );
     return rows;
   } else {
+    if (email) {
+      params.push(email);
+      emailFilter = ` AND NOT EXISTS (SELECT 1 FROM event_ratings er WHERE er.event_id = events.id AND er.user_email = $2)`;
+    }
     const { rows } = await pool.query(
       `
       SELECT
@@ -54,18 +69,19 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
         1 - (embedding <=> $1::vector) AS similarity
       FROM events
       WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)
+      ${emailFilter}
       ORDER BY embedding <=> $1::vector
       LIMIT 8;
       `,
-      [`[${queryEmbedding.join(',')}]`]
+      params
     );
     return rows;
   }
 }
 
-export async function getEventsList(pool: Pool, category: any, search: any, city: any) {
+export async function getEventsList(pool: Pool, category: any, search: any, city: any, email?: any) {
     let queryText = `
-      SELECT id, title, description, location, city, date_time, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, image_url, image_public_id, average_rating, ratings_count,
+      SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, image_url, image_public_id, average_rating, ratings_count,
              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count
       FROM events
       WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status = 'ended' OR status IS NULL)
@@ -86,6 +102,11 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
     if (search) {
       queryText += ` AND (title ILIKE $${paramIndex} OR description ILIKE $${paramIndex})`;
       queryParams.push(`%${search}%`);
+      paramIndex++;
+    }
+    if (email) {
+      queryText += ` AND NOT EXISTS (SELECT 1 FROM event_ratings er WHERE er.event_id = events.id AND er.user_email = $${paramIndex})`;
+      queryParams.push(email);
       paramIndex++;
     }
 
