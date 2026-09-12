@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCity } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
+import { useTranslation } from "@/context/LanguageContext";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
 import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock } from "lucide-react";
 import { toast } from "sonner";
@@ -49,6 +50,7 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const { currentCity, events, isLoadingEvents: loading, selectedCategory, refreshEvents } = useCity();
   const { isVibrant } = useTheme();
+  const { t, getCategoryLabel } = useTranslation();
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
   const [following, setFollowing] = useState<string[]>([]);
   const [showPhoneModal, setShowPhoneModal] = useState(false);

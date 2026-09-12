@@ -12,6 +12,7 @@ import {
   SunMoon, Menu, X, CheckCircle2, AlertCircle, Clock, ExternalLink, Calendar, User
 } from "lucide-react"
 import { useTheme } from "@/context/ThemeContext"
+import { useLanguage, useTranslation, ALL_LANGUAGES } from "@/context/LanguageContext"
 import {
   UserNotification,
   BroadcastType,
@@ -212,6 +213,9 @@ export function GlobalHeader() {
     currentCity, setCity, supportedCities, isLoading,
     selectedCategory, setSelectedCategory, activeCategories, events
   } = useCity()
+  const { language, setLanguage, availableLanguages, hasMultipleLanguages, detectedCountryName } = useLanguage()
+  const { t, getCategoryLabel } = useTranslation()
+  const [showLangMenu, setShowLangMenu] = useState(false)
   const [showCityMenu, setShowCityMenu] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isOrganizer, setIsOrganizer] = useState(false)
@@ -230,6 +234,7 @@ export function GlobalHeader() {
 
   const notificationsRef = useRef<HTMLDivElement>(null)
   const cityMenuRef = useRef<HTMLDivElement>(null)
+  const langMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -238,6 +243,9 @@ export function GlobalHeader() {
       }
       if (cityMenuRef.current && !cityMenuRef.current.contains(event.target as Node)) {
         setShowCityMenu(false)
+      }
+      if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
+        setShowLangMenu(false)
       }
     }
 
@@ -539,6 +547,51 @@ export function GlobalHeader() {
                 </>
               )}
             </div>
+
+            {/* Language Selector: only shown if location has multiple languages (e.g. Netherlands: English + Dutch) */}
+            {hasMultipleLanguages && (
+              <>
+                <div className="h-4 w-[1px] bg-black/10 mx-1 sm:mx-2" />
+                <div className="relative" ref={langMenuRef}>
+                  <button
+                    onClick={() => setShowLangMenu(!showLangMenu)}
+                    className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 hover:bg-black/5 rounded-full transition-all text-[10px] sm:text-[11px] font-bold tracking-tight text-zinc-700 hover:text-black uppercase border border-black/5"
+                    title={`Language: ${ALL_LANGUAGES[language]?.name}`}
+                  >
+                    <span className="text-xs">{ALL_LANGUAGES[language]?.flag}</span>
+                    <span>{language.toUpperCase()}</span>
+                    <ChevronDown className={`h-3 w-3 transition-transform ${showLangMenu ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {showLangMenu && (
+                    <div className="absolute top-full left-0 mt-2 w-36 bg-white border border-black/5 rounded-[20px] shadow-2xl z-20 overflow-hidden p-2 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="grid gap-1">
+                        {availableLanguages.map((langOpt) => (
+                          <button
+                            key={langOpt.code}
+                            onClick={() => {
+                              setLanguage(langOpt.code);
+                              setShowLangMenu(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                              langOpt.code === language
+                                ? 'bg-primary/10 text-primary'
+                                : 'text-zinc-500 hover:bg-black/5 hover:text-black'
+                            }`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span>{langOpt.flag}</span>
+                              <span>{langOpt.nativeName}</span>
+                            </span>
+                            {langOpt.code === language && <CheckCircle2 className="h-3 w-3 text-primary" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Search Bar */}
@@ -549,7 +602,7 @@ export function GlobalHeader() {
               </div>
               <input
                 type="text"
-                placeholder="Discover your next vibe"
+                placeholder={t("nav.search_placeholder")}
                 className="block w-full pl-11 pr-4 py-2 bg-zinc-100/50 border-none rounded-full text-xs font-medium focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all placeholder:text-zinc-500"
               />
             </div>
@@ -561,7 +614,7 @@ export function GlobalHeader() {
             <div className="hidden lg:flex items-center gap-2 mr-1">
               <Link href="/local-currents">
                 <button className="ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-4">
-                  LOCAL CURRENTS
+                  {t("nav.local_currents")}
                 </button>
               </Link>
             </div>
@@ -571,13 +624,13 @@ export function GlobalHeader() {
                 <div className="hidden lg:flex items-center gap-2 mr-2">
                   <Link href="/preferences">
                     <button className="ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-4">
-                      PREFERENCES
+                      {t("nav.preferences")}
                     </button>
                   </Link>
                   {isOrganizer && organizerStatus === 'approved' ? (
                     <Link href="/organizer">
                       <button className="ringer-button bg-primary text-black hover:bg-black hover:text-white text-[10px] py-2 px-4 border-none transition-colors">
-                        ORGANIZER HUB
+                        {t("nav.organizer_hub")}
                       </button>
                     </Link>
                   ) : isOrganizer && organizerStatus === 'pending_approval' ? (
@@ -587,7 +640,7 @@ export function GlobalHeader() {
                       title="Click to view application status"
                     >
                       <Clock className="w-3.5 h-3.5 text-amber-500 animate-pulse shrink-0" />
-                      <span>ORGANISER APPROVAL PENDING</span>
+                      <span>{t("nav.approval_pending")}</span>
                     </button>
                   ) : isOrganizer && organizerStatus === 'rejected' ? (
                     <button
@@ -596,19 +649,19 @@ export function GlobalHeader() {
                       title="Click to view rejection reason"
                     >
                       <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                      <span>APPLICATION REJECTED</span>
+                      <span>{t("nav.rejected")}</span>
                     </button>
                   ) : (
                     <Link href="/organizer/apply">
                       <button className="ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-4">
-                        BECOME AN ORGANIZER
+                        {t("nav.become_organizer")}
                       </button>
                     </Link>
                   )}
                   {isAdmin && (
                     <Link href="/admin">
                       <button className="ringer-button bg-black text-white hover:bg-zinc-800 text-[10px] py-2 px-4 border-none transition-colors">
-                        ADMIN
+                        {t("nav.admin")}
                       </button>
                     </Link>
                   )}
@@ -636,7 +689,7 @@ export function GlobalHeader() {
                           {/* Header */}
                           <div className="flex items-center justify-between border-b border-black/5 pb-3 mb-3">
                             <div className="flex items-center gap-2">
-                              <h4 className="text-xs font-black uppercase tracking-widest text-zinc-900">Notifications</h4>
+                              <h4 className="text-xs font-black uppercase tracking-widest text-zinc-900">{t("nav.notifications")}</h4>
                               {unreadCount > 0 && (
                                 <span className="px-2 py-0.5 text-[9px] font-black rounded-full bg-rose-500/10 text-rose-600 border border-rose-200">
                                   {unreadCount} new
@@ -648,7 +701,7 @@ export function GlobalHeader() {
                                 onClick={handleMarkAllRead}
                                 className="text-[10px] font-bold text-zinc-400 hover:text-black uppercase tracking-wider transition-colors"
                               >
-                                Mark all as read
+                                {t("nav.mark_all_read")}
                               </button>
                             )}
                           </div>
@@ -664,7 +717,7 @@ export function GlobalHeader() {
                                     : "text-zinc-500 hover:text-black"
                                   }`}
                               >
-                                {tab}
+                                {tab === "all" ? t("nav.filter_all") : tab === "unread" ? t("nav.filter_unread") : t("nav.filter_alerts")}
                               </button>
                             ))}
                           </div>
@@ -708,8 +761,8 @@ export function GlobalHeader() {
                             ) : notifications.length === 0 ? (
                               <div className="py-12 text-center text-zinc-400">
                                 <Sparkles className="h-8 w-8 mx-auto mb-2 text-zinc-300" />
-                                <p className="text-xs font-black uppercase tracking-wider text-zinc-600">All Caught Up!</p>
-                                <p className="text-[10px] font-medium text-zinc-400 mt-0.5">No notifications matching this filter.</p>
+                                <p className="text-xs font-black uppercase tracking-wider text-zinc-600">{t("nav.all_caught_up")}</p>
+                                <p className="text-[10px] font-medium text-zinc-400 mt-0.5">{t("nav.no_notifications")}</p>
                               </div>
                             ) : (
                               notifications.map((notif) => {
@@ -794,7 +847,7 @@ export function GlobalHeader() {
                     disabled={isSigningOut}
                     className="hidden sm:inline-flex ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-3"
                   >
-                    {isSigningOut ? "..." : "DISCONNECT"}
+                    {isSigningOut ? "..." : t("nav.disconnect")}
                   </button>
                 </div>
               </>
@@ -803,7 +856,7 @@ export function GlobalHeader() {
                 onClick={() => signIn("google")}
                 className="ringer-button bg-primary text-black hover:bg-black hover:text-white text-[10px] py-2 px-4 border-none transition-colors"
               >
-                JOIN THE VIBE
+                {t("nav.join_vibe")}
               </button>
             )}
 
@@ -835,7 +888,7 @@ export function GlobalHeader() {
                     }`}
                 >
                   {cat.icon}
-                  {cat.name}
+                  {getCategoryLabel(cat.name)}
                 </button>
               );
             })}
@@ -855,17 +908,40 @@ export function GlobalHeader() {
               </div>
               <input
                 type="text"
-                placeholder="Discover your next vibe"
+                placeholder={t("nav.search_placeholder")}
                 className="block w-full pl-11 pr-4 py-3 bg-zinc-100/50 border-none rounded-full text-xs font-bold focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all placeholder:text-zinc-500 text-black"
               />
             </div>
+
+            {/* Mobile Language Switcher (if Netherlands / multiple languages) */}
+            {hasMultipleLanguages && (
+              <div className="flex items-center justify-between bg-zinc-50 p-3.5 rounded-2xl border border-black/5">
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Language / Taal</span>
+                  <span className="text-xs font-bold text-black">{ALL_LANGUAGES[language]?.nativeName}</span>
+                </div>
+                <div className="flex items-center gap-1 bg-zinc-200/60 p-1 rounded-xl">
+                  {availableLanguages.map((langOpt) => (
+                    <button
+                      key={langOpt.code}
+                      onClick={() => setLanguage(langOpt.code)}
+                      className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
+                        language === langOpt.code ? "bg-black text-white shadow-xs" : "text-zinc-600 hover:text-black"
+                      }`}
+                    >
+                      {langOpt.flag} {langOpt.code.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Navigation links */}
             <nav className="flex flex-col gap-3">
               {/* Local Currents always visible on Mobile */}
               <Link href="/local-currents" onClick={() => setIsMobileMenuOpen(false)}>
                 <div className="w-full text-left px-5 py-4 rounded-2xl bg-zinc-50 hover:bg-black hover:text-white transition-all text-xs font-black uppercase tracking-widest">
-                  LOCAL CURRENTS
+                  {t("nav.local_currents")}
                 </div>
               </Link>
 
@@ -873,14 +949,14 @@ export function GlobalHeader() {
                 <>
                   <Link href="/preferences" onClick={() => setIsMobileMenuOpen(false)}>
                     <div className="w-full text-left px-5 py-4 rounded-2xl bg-zinc-50 hover:bg-black hover:text-white transition-all text-xs font-black uppercase tracking-widest">
-                      PREFERENCES
+                      {t("nav.preferences")}
                     </div>
                   </Link>
 
                   {isOrganizer && organizerStatus === 'approved' ? (
                     <Link href="/organizer" onClick={() => setIsMobileMenuOpen(false)}>
                       <div className="w-full text-left px-5 py-4 rounded-2xl bg-primary/10 text-primary hover:bg-primary hover:text-black transition-all text-xs font-black uppercase tracking-widest">
-                        ORGANIZER HUB
+                        {t("nav.organizer_hub")}
                       </div>
                     </Link>
                   ) : isOrganizer && organizerStatus === 'pending_approval' ? (
@@ -890,7 +966,7 @@ export function GlobalHeader() {
                     >
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-amber-500 animate-pulse shrink-0" />
-                        <span>ORGANISER APPROVAL PENDING</span>
+                        <span>{t("nav.approval_pending")}</span>
                       </div>
                       <span className="text-[10px] bg-amber-500 text-white font-bold px-2.5 py-0.5 rounded-full uppercase">Review</span>
                     </div>
@@ -901,14 +977,14 @@ export function GlobalHeader() {
                     >
                       <div className="flex items-center gap-2">
                         <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                        <span>APPLICATION REJECTED</span>
+                        <span>{t("nav.rejected")}</span>
                       </div>
                       <span className="text-[10px] bg-red-500 text-white font-bold px-2.5 py-0.5 rounded-full uppercase">Reason</span>
                     </div>
                   ) : (
                     <Link href="/organizer/apply" onClick={() => setIsMobileMenuOpen(false)}>
                       <div className="w-full text-left px-5 py-4 rounded-2xl bg-zinc-50 hover:bg-black hover:text-white transition-all text-xs font-black uppercase tracking-widest">
-                        BECOME AN ORGANIZER
+                        {t("nav.become_organizer")}
                       </div>
                     </Link>
                   )}
@@ -916,7 +992,7 @@ export function GlobalHeader() {
                   {isAdmin && (
                     <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)}>
                       <div className="w-full text-left px-5 py-4 rounded-2xl bg-black text-white hover:bg-zinc-800 transition-all text-xs font-black uppercase tracking-widest">
-                        ADMIN PANEL
+                        {t("nav.admin")}
                       </div>
                     </Link>
                   )}
@@ -925,7 +1001,7 @@ export function GlobalHeader() {
 
                   <div className="flex items-center justify-between bg-zinc-100 p-4 rounded-2xl mt-2">
                     <div className="flex flex-col min-w-0 pr-3">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Signed in as</p>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">{t("nav.signed_in_as")}</p>
                       <p className="text-xs font-bold text-black mt-0.5 truncate">{session.user?.name}</p>
                     </div>
 
@@ -934,7 +1010,7 @@ export function GlobalHeader() {
                       disabled={isSigningOut}
                       className="shrink-0 px-4 py-2.5 rounded-xl bg-black text-white hover:bg-zinc-800 transition-all text-[10px] font-black uppercase tracking-widest"
                     >
-                      {isSigningOut ? "..." : "DISCONNECT"}
+                      {isSigningOut ? "..." : t("nav.disconnect")}
                     </button>
                   </div>
                 </>
@@ -943,7 +1019,7 @@ export function GlobalHeader() {
                   onClick={() => { signIn("google"); setIsMobileMenuOpen(false); }}
                   className="w-full text-center py-4 rounded-2xl bg-primary text-black font-black uppercase tracking-widest text-xs hover:bg-primary/90 transition-all shadow-md"
                 >
-                  JOIN THE VIBE
+                  {t("nav.join_vibe")}
                 </button>
               )}
             </nav>

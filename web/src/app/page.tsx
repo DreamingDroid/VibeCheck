@@ -7,14 +7,13 @@ import { useState, useEffect, useRef } from "react"
 import { Sparkles, MapPin, Zap, Music, Heart, Star, Calendar, BookOpen, Compass, ArrowUpRight } from "lucide-react"
 import { useTheme } from "@/context/ThemeContext"
 import { useCity } from "@/context/CityContext"
+import { useTranslation } from "@/context/LanguageContext"
 
-
-
-const calculateReadTime = (content: string) => {
-  if (!content) return "1 min read";
+const calculateReadTime = (content: string, t?: (key: string, vars?: any) => string) => {
+  if (!content) return t ? t("landing.read_time", { min: 1 }) : "1 min read";
   const words = content.trim().split(/\s+/).length;
   const minutes = Math.max(1, Math.ceil(words / 200));
-  return `${minutes} min read`;
+  return t ? t("landing.read_time", { min: minutes }) : `${minutes} min read`;
 };
 
 const getCategoryStyles = (category: string) => {
@@ -193,6 +192,7 @@ export default function Home() {
   const { isVibrant } = useTheme()
 
   const { currentCity } = useCity()
+  const { t } = useTranslation()
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -261,19 +261,19 @@ export default function Home() {
         )}
         <div className="flex items-center gap-2 sticker-badge bg-primary/10 text-primary border-none shadow-sm">
           <Zap className="h-3.5 w-3.5" />
-          <span>vizag's exclusive network</span>
+          <span>{currentCity.toLowerCase()}&apos;s {t("landing.badge")}</span>
         </div>
         
         <h1 className="text-5xl sm:text-7xl md:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] text-black drop-shadow-sm relative px-2">
           {isVibrant && (
             <span className="absolute inset-0 blur-3xl opacity-10 bg-gradient-to-r from-purple-400 via-pink-300 to-amber-300 rounded-full -z-10" />
           )}
-          The City of Destiny, <br className="hidden md:block"/>
-          <span className={isVibrant ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-amber-500 bg-clip-text text-transparent' : 'text-primary'}>Reimagined.</span>
+          {t("landing.hero_title_1")} <br className="hidden md:block"/>
+          <span className={isVibrant ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-amber-500 bg-clip-text text-transparent' : 'text-primary'}>{t("landing.hero_title_2")}</span>
         </h1>
         
         <p className="text-sm sm:text-base md:text-lg font-helvetica text-zinc-600 max-w-xl leading-relaxed sm:leading-loose tracking-wide px-4 sm:px-0">
-          VibeCheck Space is your ultimate local guide to discovering upcoming <strong>events</strong>, live concerts, tech meetups, creative workshops, and breaking <strong>city news</strong> in Visakhapatnam and beyond.
+          {t("landing.hero_desc")}
         </p>
         
         <div className="pt-4 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
@@ -285,11 +285,11 @@ export default function Home() {
             {isSigningIn ? (
                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <>JOIN THE VIBE <Sparkles className="h-4 w-4" /></>
+              <>{t("landing.join_cta")} <Sparkles className="h-4 w-4" /></>
             )}
           </button>
           <Link href="/local-currents" className="text-xs font-black uppercase tracking-widest text-zinc-600 hover:text-black transition-colors py-4 px-6 border border-black/10 rounded-full hover:border-black">
-            Explore Local News &amp; Currents
+            {t("landing.explore_news")}
           </Link>
         </div>
       </section>
@@ -298,10 +298,10 @@ export default function Home() {
       <section id="happenings" aria-label="Local City News and Currents" className="max-w-4xl mx-auto pt-16 pb-12">
         <div className="border-t border-black/5 pt-12 space-y-10">
           <div className="text-center space-y-2">
-            <h2 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none">Local Currents &amp; News</h2>
+            <h2 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none">{t("landing.local_currents_title")}</h2>
             <div className="flex items-center justify-center gap-2 mt-2">
               <p className="text-[10px] font-black tracking-[0.2em] uppercase text-zinc-400 flex items-center justify-center gap-2">
-                 <MapPin className="h-3.5 w-3.5 text-primary" /> Live updates from {currentCity}
+                 <MapPin className="h-3.5 w-3.5 text-primary" /> {t("landing.live_updates_from", { city: currentCity })}
               </p>
             </div>
           </div>
@@ -327,7 +327,7 @@ export default function Home() {
                             {item.category}
                           </span>
                           <span className={`text-[9px] font-black uppercase tracking-[0.15em] truncate ${styles.mutedTextColor}`}>
-                            • {calculateReadTime(item.content)}
+                            • {calculateReadTime(item.content, t)}
                             {item.created_at && ` • ${new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()}`}
                           </span>
                         </div>
@@ -345,7 +345,7 @@ export default function Home() {
               })
             ) : (
               <div className="col-span-full text-center py-12 text-zinc-400 text-sm font-bold italic bg-zinc-50/50 rounded-3xl border border-dashed border-black/5 w-full max-w-2xl">
-                No local currents reported for {currentCity} today. Check back later!
+                {t("landing.no_currents", { city: currentCity })}
               </div>
             )}
           </div>

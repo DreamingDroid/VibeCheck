@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, FileText, MapPin, ArrowLeft, Users, Shield, Newspaper, Sliders, Radio, Search } from "lucide-react";
+import { LayoutDashboard, FileText, MapPin, ArrowLeft, Users, Shield, Newspaper, Sliders, Radio, Search, Globe } from "lucide-react";
+import { useLanguage, ALL_LANGUAGES, LanguageCode, LanguageOption } from "@/context/LanguageContext";
+import { toast } from "sonner";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const { language, setLanguage, detectedCountryName } = useLanguage();
   const [checking, setChecking] = useState(true);
   const [pendingEventsCount, setPendingEventsCount] = useState(0);
   const [pendingOrganizersCount, setPendingOrganizersCount] = useState(0);
@@ -78,10 +81,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="min-h-screen bg-background text-black flex flex-col md:flex-row">
+    <div className="min-h-screen md:h-screen md:overflow-hidden bg-background text-black flex flex-col md:flex-row">
       {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-black/5 flex flex-col shrink-0">
-        <div className="p-4 md:p-8 border-b border-black/5 flex flex-row md:flex-col justify-between items-center md:items-start">
+      <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-black/5 flex flex-col shrink-0 md:h-screen md:sticky md:top-0">
+        <div className="p-4 md:p-8 border-b border-black/5 flex flex-row md:flex-col justify-between items-center md:items-start gap-4 shrink-0">
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="VibeCheck Logo" className="h-6 w-6 rounded-lg shrink-0 object-contain" />
             <div>
@@ -89,14 +92,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <h2 className="text-xs md:text-sm font-black italic tracking-tighter uppercase leading-none">Admin Panel</h2>
             </div>
           </div>
-          <Link href="/dashboard" className="md:hidden">
-            <div className="px-3 py-1.5 rounded-full border border-black/10 text-[9px] font-black uppercase tracking-widest text-zinc-600 hover:bg-black/5 hover:text-black transition-all flex items-center gap-1.5">
-              <ArrowLeft className="h-3 w-3" /> Exit
+          <div className="flex items-center gap-2 md:hidden">
+            {/* Mobile Language Switcher */}
+            <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-full border border-black/5">
+              {(Object.values(ALL_LANGUAGES) as LanguageOption[]).map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => {
+                    setLanguage(lang.code, true);
+                    toast.success(`Switched language to ${lang.nativeName}`);
+                  }}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${
+                    language === lang.code
+                      ? "bg-black text-white shadow-sm"
+                      : "text-zinc-500 hover:text-black"
+                  }`}
+                  title={lang.name}
+                >
+                  {lang.flag} {lang.code.toUpperCase()}
+                </button>
+              ))}
             </div>
-          </Link>
+            <Link href="/dashboard">
+              <div className="px-3 py-1.5 rounded-full border border-black/10 text-[9px] font-black uppercase tracking-widest text-zinc-600 hover:bg-black/5 hover:text-black transition-all flex items-center gap-1.5">
+                <ArrowLeft className="h-3 w-3" /> Exit
+              </div>
+            </Link>
+          </div>
         </div>
         
-        <nav className="flex-1 p-4 md:p-6 space-y-0 md:space-y-2 flex flex-row md:flex-col overflow-x-auto md:overflow-visible gap-2 md:gap-0 no-scrollbar">
+        <nav className="flex-1 p-4 md:p-6 space-y-0 md:space-y-2 flex flex-row md:flex-col overflow-x-auto md:overflow-y-auto gap-2 md:gap-0 no-scrollbar">
           {navItems.map(item => (
             <Link key={item.href} href={item.href} className="w-auto md:w-full shrink-0">
               <div className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-between transition-all cursor-pointer whitespace-nowrap gap-4 md:gap-0
@@ -122,9 +148,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ))}
         </nav>
 
-        <div className="hidden md:block p-6 border-t border-black/5">
+        {/* SuperAdmin Manual Language Switcher Widget (Desktop) */}
+        <div className="hidden md:block p-4 border-t border-black/5 bg-zinc-50/50 shrink-0">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400 flex items-center gap-1.5">
+              <Globe className="h-3 w-3 text-primary" />
+              Language Switcher
+            </span>
+            <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-200/50 px-1.5 py-0.5 rounded">
+              SuperAdmin
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5 p-1 bg-zinc-200/60 rounded-xl">
+            {(Object.values(ALL_LANGUAGES) as LanguageOption[]).map((lang) => (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => {
+                  setLanguage(lang.code, true);
+                  toast.success(`SuperAdmin: Language switched to ${lang.nativeName} (${lang.name})`);
+                }}
+                className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                  language === lang.code
+                    ? "bg-black text-white shadow-sm"
+                    : "text-zinc-600 hover:text-black hover:bg-white/50"
+                }`}
+                title={`Switch active platform language to ${lang.name}`}
+              >
+                <span>{lang.flag}</span>
+                <span>{lang.code.toUpperCase()}</span>
+              </button>
+            ))}
+          </div>
+          {detectedCountryName && (
+            <p className="text-[8px] text-zinc-400 font-medium tracking-wide mt-2 px-1 truncate">
+              Detected Origin: <span className="text-zinc-600 font-bold">{detectedCountryName}</span>
+            </p>
+          )}
+        </div>
+
+        <div className="hidden md:block p-4 border-t border-black/5 shrink-0">
           <Link href="/dashboard">
-            <div className="px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:bg-black/5 hover:text-black transition-all cursor-pointer flex items-center gap-2">
+            <div className="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:bg-black/5 hover:text-black transition-all cursor-pointer flex items-center gap-2">
               <ArrowLeft className="h-3 w-3" />
               Portal Home
             </div>
@@ -133,7 +198,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto bg-zinc-50/50">
+      <main className="flex-1 h-full overflow-y-auto bg-zinc-50/50">
         <div className="p-4 sm:p-12 animate-in fade-in slide-in-from-bottom-2 duration-700">
            {children}
         </div>

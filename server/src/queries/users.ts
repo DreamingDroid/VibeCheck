@@ -2,16 +2,16 @@ import { Pool } from 'pg';
 
 export async function getWebUserByEmail(pool: Pool, email: string) {
   const { rows } = await pool.query(
-    `SELECT email, name, categories, phone_number, city, profession, age_group FROM web_users WHERE email = $1`,
+    `SELECT email, name, categories, phone_number, city, profession, age_group, language FROM web_users WHERE email = $1`,
     [email]
   );
   return rows[0] || null;
 }
 
-export async function upsertWebUser(pool: Pool, email: string, name: string | null, categories: any[], phone_number: string | null, city: string | null, profession: string | null, age_group: string | null) {
+export async function upsertWebUser(pool: Pool, email: string, name: string | null, categories: any[], phone_number: string | null, city: string | null, profession: string | null, age_group: string | null, language: string | null = 'en') {
   await pool.query(
-    `INSERT INTO web_users (email, name, categories, phone_number, city, profession, age_group)
-     VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7)
+    `INSERT INTO web_users (email, name, categories, phone_number, city, profession, age_group, language)
+     VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8)
      ON CONFLICT (email) DO UPDATE
      SET name       = COALESCE(EXCLUDED.name, web_users.name),
          categories = CASE 
@@ -22,8 +22,9 @@ export async function upsertWebUser(pool: Pool, email: string, name: string | nu
          city       = COALESCE(EXCLUDED.city, web_users.city),
          profession = COALESCE(EXCLUDED.profession, web_users.profession),
          age_group  = COALESCE(EXCLUDED.age_group, web_users.age_group),
+         language   = COALESCE(EXCLUDED.language, web_users.language),
          updated_at = CURRENT_TIMESTAMP`,
-    [email, name, JSON.stringify(categories), phone_number, city, profession, age_group]
+    [email, name, JSON.stringify(categories), phone_number, city, profession, age_group, language || 'en']
   );
 }
 

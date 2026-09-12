@@ -1,13 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sliders, Sparkles, Zap, MessageSquare } from "lucide-react";
+import { Sliders, Sparkles, Zap, MessageSquare, Globe, Check, MapPin, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { useLanguage, ALL_LANGUAGES, LanguageOption, LanguageCode } from "@/context/LanguageContext";
 
 export default function CommandControlPage() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<Record<string, boolean>>({});
+  const {
+    language,
+    setLanguage,
+    detectedCountry,
+    detectedCountryName,
+    isDetectingLocation,
+    autoDetectEnabled,
+    setAutoDetectEnabled,
+  } = useLanguage();
 
   // Configuration States
   const [autoScroll, setAutoScroll] = useState(true);
@@ -66,7 +76,7 @@ export default function CommandControlPage() {
       <div className="space-y-12 max-w-4xl mx-auto">
         <div className="h-10 w-64 bg-zinc-100 animate-pulse rounded-full" />
         <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-24 bg-zinc-100 rounded-[24px] animate-pulse" />
           ))}
         </div>
@@ -94,6 +104,111 @@ export default function CommandControlPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
+        {/* SuperAdmin Manual Language Switcher & Localization Override */}
+        <Card className="ringer-card overflow-hidden bg-white border border-black/5">
+          <CardContent className="p-8 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-blue-50 rounded-2xl border border-blue-100 text-blue-600 shrink-0">
+                  <Globe className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-black font-black uppercase tracking-[0.05em] text-sm leading-none">
+                      Platform Language & Localization Override
+                    </h3>
+                    <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      SuperAdmin Access
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 font-medium">
+                    SuperAdmin can switch the platform language to any supported language manually on demand, bypassing geographic/network restrictions.
+                  </p>
+                </div>
+              </div>
+
+              {/* Active Language Badge */}
+              <div className="flex items-center gap-2 self-start sm:self-auto bg-zinc-100 px-3 py-1.5 rounded-xl border border-black/5">
+                <span className="text-xs">{ALL_LANGUAGES[language]?.flag}</span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-black">
+                  Active: {ALL_LANGUAGES[language]?.nativeName} ({ALL_LANGUAGES[language]?.code.toUpperCase()})
+                </span>
+              </div>
+            </div>
+
+            {/* Language Selector Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              {(Object.values(ALL_LANGUAGES) as LanguageOption[]).map((lang) => {
+                const isSelected = language === lang.code;
+                return (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => {
+                      setLanguage(lang.code, true);
+                      toast.success(`Platform language manually switched to ${lang.nativeName} (${lang.name})`);
+                    }}
+                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all text-left ${
+                      isSelected
+                        ? "bg-black text-white border-black shadow-lg scale-[1.01]"
+                        : "bg-zinc-50/70 hover:bg-zinc-100/80 text-black border-black/5 hover:border-black/15"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{lang.flag}</span>
+                      <div>
+                        <p className={`text-xs font-black uppercase tracking-wider ${isSelected ? "text-white" : "text-black"}`}>
+                          {lang.name}
+                        </p>
+                        <p className={`text-[10px] font-semibold ${isSelected ? "text-zinc-300" : "text-zinc-500"}`}>
+                          {lang.nativeName} ({lang.code.toUpperCase()})
+                        </p>
+                      </div>
+                    </div>
+                    {isSelected ? (
+                      <div className="h-6 w-6 rounded-full bg-primary text-black flex items-center justify-center font-bold text-xs">
+                        <Check className="h-3.5 w-3.5 stroke-[3]" />
+                      </div>
+                    ) : (
+                      <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 bg-white/80 border border-black/5 px-2.5 py-1 rounded-lg">
+                        Switch
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Location & Network Telemetry details */}
+            <div className="pt-2 border-t border-black/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[11px] text-zinc-500">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-3.5 w-3.5 text-zinc-400" />
+                <span>
+                  Detected Network Origin:{" "}
+                  <strong className="text-zinc-700 font-bold">
+                    {detectedCountryName} ({detectedCountry})
+                  </strong>
+                </span>
+                {isDetectingLocation && (
+                  <span className="text-[9px] text-primary animate-pulse">(Detecting...)</span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setAutoDetectEnabled(true);
+                  localStorage.removeItem("vibecheck_language_manual");
+                  toast.success("Auto-detection reset. Language will adapt to network location.");
+                }}
+                className="text-[10px] font-bold text-zinc-500 hover:text-black hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Reset to Location Auto-Detection
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Toggle 1: Auto Scroll */}
         <Card className="ringer-card overflow-hidden bg-white border border-black/5">
           <CardContent className="p-8 flex items-center justify-between gap-6">
