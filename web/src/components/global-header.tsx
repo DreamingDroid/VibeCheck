@@ -9,7 +9,8 @@ import {
   ChevronDown, MapPin, Search, Music, Mic2, Tv,
   Trophy, Palette, BookOpen, Compass, Heart,
   Activity, Wine, Smile, Briefcase, Sparkles, Bell,
-  SunMoon, Menu, X, CheckCircle2, AlertCircle, Clock, ExternalLink, Calendar, User
+  SunMoon, Menu, X, CheckCircle2, AlertCircle, Clock, ExternalLink, Calendar, User,
+  Sliders, LogOut, Shield, Newspaper
 } from "lucide-react"
 import { useTheme } from "@/context/ThemeContext"
 import { useLanguage, useTranslation, ALL_LANGUAGES } from "@/context/LanguageContext"
@@ -67,7 +68,7 @@ function getNotificationModalTheme(type: string, customIcon?: string) {
       };
     case 'event_rescheduled':
       return {
-        cardBorder: 'border-emerald-500 shadow-[0_20px_50px_rgba(16,185,129,0.2)] ring-4 ring-emerald-500/10',
+        cardBorder: 'border-emerald-500 shadow-[0_20px_50px_rgba(160,185,129,0.2)] ring-4 ring-emerald-500/10',
         headerBg: 'bg-gradient-to-br from-emerald-500/20 via-emerald-50 to-white',
         headerBorder: 'border-emerald-200',
         iconBox: 'bg-emerald-100/90 text-emerald-700 border-emerald-300',
@@ -217,6 +218,7 @@ export function GlobalHeader() {
   const { t, getCategoryLabel } = useTranslation()
   const [showLangMenu, setShowLangMenu] = useState(false)
   const [showCityMenu, setShowCityMenu] = useState(false)
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isOrganizer, setIsOrganizer] = useState(false)
   const [isEditor, setIsEditor] = useState(false)
@@ -235,6 +237,7 @@ export function GlobalHeader() {
   const notificationsRef = useRef<HTMLDivElement>(null)
   const cityMenuRef = useRef<HTMLDivElement>(null)
   const langMenuRef = useRef<HTMLDivElement>(null)
+  const profileMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -246,6 +249,9 @@ export function GlobalHeader() {
       }
       if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
         setShowLangMenu(false)
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false)
       }
     }
 
@@ -622,11 +628,6 @@ export function GlobalHeader() {
             {session ? (
               <>
                 <div className="hidden lg:flex items-center gap-2 mr-2">
-                  <Link href="/preferences">
-                    <button className="ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-4">
-                      {t("nav.preferences")}
-                    </button>
-                  </Link>
                   {isOrganizer && organizerStatus === 'approved' ? (
                     <Link href="/organizer">
                       <button className="ringer-button bg-primary text-black hover:bg-black hover:text-white text-[10px] py-2 px-4 border-none transition-colors">
@@ -671,7 +672,10 @@ export function GlobalHeader() {
                   {/* Notification Center Bell */}
                   <div className="relative mr-1" ref={notificationsRef}>
                     <button
-                      onClick={() => setShowNotifications(!showNotifications)}
+                      onClick={() => {
+                        setShowNotifications(!showNotifications);
+                        setShowProfileMenu(false);
+                      }}
                       className="relative p-2 hover:bg-black/5 rounded-full transition-all text-zinc-600 hover:text-black flex items-center justify-center shrink-0"
                       title="Notifications"
                     >
@@ -823,32 +827,241 @@ export function GlobalHeader() {
                     )}
                   </div>
 
-                  <Link href="/preferences" className="relative group" title="Account Preferences">
-                    <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-black/10 overflow-hidden bg-zinc-100 flex items-center justify-center hover:ring-2 hover:ring-black transition-all shadow-xs">
-                      {session.user?.image && !avatarImgError ? (
-                        <img
-                          src={session.user.image}
-                          alt=""
-                          onError={() => setAvatarImgError(true)}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : session.user?.name ? (
-                        <span className="text-xs font-black text-black">
-                          {session.user.name.charAt(0).toUpperCase()}
-                        </span>
-                      ) : (
-                        <User className="h-4 w-4 text-zinc-600" />
-                      )}
-                    </div>
-                  </Link>
+                  {/* Profile Avatar Trigger & Dropdown Menu */}
+                  <div className="relative" ref={profileMenuRef}>
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(!showProfileMenu);
+                        setShowNotifications(false);
+                      }}
+                      className="relative group block rounded-full focus:outline-none transition-all"
+                      aria-label="Account Menu"
+                      title={session.user?.name || "Account"}
+                    >
+                      <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full border overflow-hidden bg-zinc-100 flex items-center justify-center transition-all shadow-xs ${
+                        showProfileMenu ? 'ring-2 ring-black border-black' : 'border-black/10 hover:ring-2 hover:ring-black'
+                      }`}>
+                        {session.user?.image && !avatarImgError ? (
+                          <img
+                            src={session.user.image}
+                            alt=""
+                            onError={() => setAvatarImgError(true)}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : session.user?.name ? (
+                          <span className="text-xs font-black text-black">
+                            {session.user.name.charAt(0).toUpperCase()}
+                          </span>
+                        ) : (
+                          <User className="h-4 w-4 text-zinc-600" />
+                        )}
+                      </div>
+                      {isAdmin ? (
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-black border-2 border-white ring-1 ring-black/10" title="Admin" />
+                      ) : isOrganizer && organizerStatus === 'approved' ? (
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-emerald-500/20" title="Verified Organizer" />
+                      ) : null}
+                    </button>
 
-                  <button
-                    onClick={handleSignOut}
-                    disabled={isSigningOut}
-                    className="hidden sm:inline-flex ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-3"
-                  >
-                    {isSigningOut ? "..." : t("nav.disconnect")}
-                  </button>
+                    {showProfileMenu && (
+                      <>
+                        <div className="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 top-[72px] sm:top-full mt-2 sm:w-80 bg-white border border-black/10 rounded-[28px] shadow-2xl z-50 p-4 animate-in fade-in zoom-in-95 duration-200 text-black flex flex-col">
+                          {/* User Profile Header Card */}
+                          <div className="p-3 bg-zinc-50 rounded-2xl border border-black/5 mb-3 flex items-center gap-3">
+                            <div className="h-11 w-11 rounded-full border border-black/10 overflow-hidden bg-white flex items-center justify-center shrink-0 shadow-xs">
+                              {session.user?.image && !avatarImgError ? (
+                                <img
+                                  src={session.user.image}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-sm font-black text-black">
+                                  {session.user?.name?.charAt(0).toUpperCase() || "U"}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0 text-left">
+                              <h4 className="text-xs font-black text-zinc-900 truncate leading-tight">
+                                {session.user?.name || "Community Member"}
+                              </h4>
+                              <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5">
+                                {session.user?.email}
+                              </p>
+                              <div className="mt-1.5">
+                                {isAdmin ? (
+                                  <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider bg-black text-white px-2 py-0.5 rounded-full">
+                                    <Shield className="w-2.5 h-2.5 text-primary" /> SuperAdmin
+                                  </span>
+                                ) : isOrganizer && organizerStatus === 'approved' ? (
+                                  <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" /> Verified Organizer
+                                  </span>
+                                ) : isOrganizer && organizerStatus === 'pending_approval' ? (
+                                  <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+                                    <Clock className="w-2.5 h-2.5 text-amber-500" /> Organizer (Pending)
+                                  </span>
+                                ) : isOrganizer && organizerStatus === 'rejected' ? (
+                                  <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full">
+                                    <AlertCircle className="w-2.5 h-2.5 text-red-500" /> Application Rejected
+                                  </span>
+                                ) : isEditor ? (
+                                  <span className="inline-flex items-center text-[8px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full">
+                                    Editor
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center text-[8px] font-black uppercase tracking-wider bg-zinc-200/70 text-zinc-600 px-2 py-0.5 rounded-full">
+                                    Community Member
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Menu Navigation Links */}
+                          <div className="space-y-1 text-left">
+                            <Link
+                              href="/preferences"
+                              onClick={() => setShowProfileMenu(false)}
+                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-zinc-100/80 transition-colors group"
+                            >
+                              <div className="h-8 w-8 rounded-lg bg-zinc-100 group-hover:bg-black group-hover:text-white flex items-center justify-center transition-colors text-zinc-700">
+                                <Sliders className="h-4 w-4" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <span className="text-xs font-black uppercase tracking-wider block text-zinc-900 group-hover:text-black">
+                                  {t("nav.preferences")}
+                                </span>
+                                <span className="text-[10px] text-zinc-400 font-medium block">
+                                  Home base, vibe tags & alerts
+                                </span>
+                              </div>
+                            </Link>
+
+                            <Link
+                              href="/local-currents"
+                              onClick={() => setShowProfileMenu(false)}
+                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-zinc-100/80 transition-colors group"
+                            >
+                              <div className="h-8 w-8 rounded-lg bg-zinc-100 group-hover:bg-black group-hover:text-white flex items-center justify-center transition-colors text-zinc-700">
+                                <Newspaper className="h-4 w-4" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <span className="text-xs font-black uppercase tracking-wider block text-zinc-900 group-hover:text-black">
+                                  {t("nav.local_currents")}
+                                </span>
+                                <span className="text-[10px] text-zinc-400 font-medium block">
+                                  Real-time city news and radar
+                                </span>
+                              </div>
+                            </Link>
+
+                            {isOrganizer && organizerStatus === 'approved' ? (
+                              <Link
+                                href="/organizer"
+                                onClick={() => setShowProfileMenu(false)}
+                                className="flex items-center gap-3 p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors group"
+                              >
+                                <div className="h-8 w-8 rounded-lg bg-primary text-black flex items-center justify-center transition-colors">
+                                  <Sparkles className="h-4 w-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-xs font-black uppercase tracking-wider block text-black">
+                                    {t("nav.organizer_hub")}
+                                  </span>
+                                  <span className="text-[10px] text-zinc-600 font-medium block">
+                                    Host events, RSVPs & broadcasts
+                                  </span>
+                                </div>
+                              </Link>
+                            ) : isOrganizer && (organizerStatus === 'pending_approval' || organizerStatus === 'rejected') ? (
+                              <button
+                                onClick={() => { setShowProfileMenu(false); handleOrganizerStatusClick(); }}
+                                className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-zinc-100/80 transition-colors group text-left"
+                              >
+                                <div className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${organizerStatus === 'pending_approval' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                                  {organizerStatus === 'pending_approval' ? <Clock className="h-4 w-4 animate-pulse" /> : <AlertCircle className="h-4 w-4" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-xs font-black uppercase tracking-wider block text-zinc-900">
+                                    {organizerStatus === 'pending_approval' ? t("nav.approval_pending") : t("nav.rejected")}
+                                  </span>
+                                  <span className="text-[10px] text-zinc-400 font-medium block">
+                                    Click to view status details
+                                  </span>
+                                </div>
+                              </button>
+                            ) : (
+                              <Link
+                                href="/organizer/apply"
+                                onClick={() => setShowProfileMenu(false)}
+                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-zinc-100/80 transition-colors group"
+                              >
+                                <div className="h-8 w-8 rounded-lg bg-zinc-100 group-hover:bg-black group-hover:text-white flex items-center justify-center transition-colors text-zinc-700">
+                                  <Briefcase className="h-4 w-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-xs font-black uppercase tracking-wider block text-zinc-900 group-hover:text-black">
+                                    {t("nav.become_organizer")}
+                                  </span>
+                                  <span className="text-[10px] text-zinc-400 font-medium block">
+                                    Publish events and build community
+                                  </span>
+                                </div>
+                              </Link>
+                            )}
+
+                            {isAdmin && (
+                              <Link
+                                href="/admin"
+                                onClick={() => setShowProfileMenu(false)}
+                                className="flex items-center gap-3 p-2.5 rounded-xl bg-black text-white hover:bg-zinc-800 transition-colors group"
+                              >
+                                <div className="h-8 w-8 rounded-lg bg-zinc-800 text-primary flex items-center justify-center transition-colors">
+                                  <Shield className="h-4 w-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-xs font-black uppercase tracking-wider block text-white">
+                                    {t("nav.admin")} Portal
+                                  </span>
+                                  <span className="text-[10px] text-zinc-400 font-medium block">
+                                    Platform administration
+                                  </span>
+                                </div>
+                              </Link>
+                            )}
+                          </div>
+
+                          <div className="w-full h-[1px] bg-black/5 my-2.5" />
+
+                          {/* Sign out */}
+                          <button
+                            onClick={() => { setShowProfileMenu(false); handleSignOut(); }}
+                            disabled={isSigningOut}
+                            className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-red-50 text-zinc-600 hover:text-red-600 transition-colors text-left group"
+                          >
+                            <div className="h-8 w-8 rounded-lg bg-zinc-100 group-hover:bg-red-100 group-hover:text-red-600 flex items-center justify-center transition-colors text-zinc-600">
+                              <LogOut className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs font-black uppercase tracking-wider block">
+                                {isSigningOut ? "Disconnecting..." : t("nav.disconnect")}
+                              </span>
+                              <span className="text-[10px] text-zinc-400 group-hover:text-red-400 font-medium block">
+                                Sign out of current session
+                              </span>
+                            </div>
+                          </button>
+                        </div>
+
+                        {/* Backdrop for closing profile dropdown */}
+                        <div
+                          className="fixed inset-0 z-40 bg-transparent"
+                          onClick={() => setShowProfileMenu(false)}
+                        />
+                      </>
+                    )}
+                  </div>
                 </div>
               </>
             ) : (

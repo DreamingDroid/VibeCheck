@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 
 export interface City {
   id: number;
@@ -35,6 +35,7 @@ interface CityContextType {
   setSelectedCategory: (category: string) => void;
   activeCategories: string[];
   refreshEvents: () => Promise<void>;
+  refreshCities: () => Promise<void>;
 }
 
 const CityContext = createContext<CityContextType | undefined>(undefined);
@@ -49,12 +50,12 @@ export function CityProvider({ children }: { children: ReactNode }) {
   const [selectedCategory, setSelectedCategory] = useState<string>("The Latest");
 
   // Fetch cities from DB
-  const fetchCities = async () => {
+  const fetchCities = useCallback(async () => {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
       const res = await fetch(`${baseUrl}/api/cities`);
       const data = await res.json();
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         setSupportedCities(data.data);
       }
     } catch (error) {
@@ -62,9 +63,9 @@ export function CityProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const fetchEvents = async (city: string) => {
+  const fetchEvents = useCallback(async (city: string) => {
     setIsLoadingEvents(true);
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -81,7 +82,7 @@ export function CityProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoadingEvents(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchCities();
@@ -107,41 +108,56 @@ export function CityProvider({ children }: { children: ReactNode }) {
         setIsLoadingLocation(false);
       }
     }
-  }, []);
+  }, [fetchCities]);
 
   useEffect(() => {
     if (currentCity) {
       fetchEvents(currentCity);
       setSelectedCategory("The Latest");
     }
-  }, [currentCity]);
+  }, [currentCity, fetchEvents]);
 
-  const setCity = (city: string) => {
+  const setCity = useCallback((city: string) => {
     setCurrentCity(city);
     localStorage.setItem("vibecheck_city", city);
-  };
+  }, []);
 
   // Get active categories dynamically from current events list
   const activeCategories = useMemo(() => {
     return Array.from(new Set(events.map((e) => e.category))).filter(Boolean);
   }, [events]);
 
+  const refreshEvents = useCallback(() => fetchEvents(currentCity), [fetchEvents, currentCity]);
+
+  const contextValue = useMemo<CityContextType>(() => ({
+    currentCity,
+    setCity,
+    supportedCities,
+    isLoading,
+    isLoadingLocation,
+    events,
+    isLoadingEvents,
+    selectedCategory,
+    setSelectedCategory,
+    activeCategories,
+    refreshEvents,
+    refreshCities: fetchCities,
+  }), [
+    currentCity,
+    setCity,
+    supportedCities,
+    isLoading,
+    isLoadingLocation,
+    events,
+    isLoadingEvents,
+    selectedCategory,
+    activeCategories,
+    refreshEvents,
+    fetchCities,
+  ]);
+
   return (
-    <CityContext.Provider
-      value={{
-        currentCity,
-        setCity,
-        supportedCities,
-        isLoading,
-        isLoadingLocation,
-        events,
-        isLoadingEvents,
-        selectedCategory,
-        setSelectedCategory,
-        activeCategories,
-        refreshEvents: () => fetchEvents(currentCity),
-      }}
-    >
+    <CityContext.Provider value={contextValue}>
       {children}
     </CityContext.Provider>
   );

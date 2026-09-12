@@ -419,9 +419,12 @@ export async function adminGetEventsByStatusHandler(req: Request, res: Response,
 
 export async function adminAddCityHandler(req: Request, res: Response, pool: Pool) {
   const { name } = req.body;
-  if (!name) return res.status(400).json({ success: false, error: 'City name required' });
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ success: false, error: 'City name required' });
+  }
+  const formattedName = name.trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   try {
-    const city = await addCity(pool, name);
+    const city = await addCity(pool, formattedName);
     res.json({ success: true, data: city, message: 'City added successfully.' });
   } catch (error: any) {
     if (error.code === '23505') {
