@@ -23,12 +23,144 @@ import { toast } from "sonner"
 interface ModalNotification {
   type: string;
   badge: string;
+  icon?: string;
   title: string;
   message: string;
   reason?: string | null;
   link?: string | null;
   actionText?: string;
   time: string;
+}
+
+function getNotificationModalTheme(type: string, customIcon?: string) {
+  switch (type) {
+    case 'emergency_alert':
+      return {
+        cardBorder: 'border-red-500 shadow-[0_20px_50px_rgba(239,68,68,0.25)] ring-4 ring-red-500/20',
+        headerBg: 'bg-gradient-to-br from-red-500/20 via-red-50 to-white',
+        headerBorder: 'border-red-200',
+        iconBox: 'bg-red-100/90 text-red-600 border-red-300 ring-2 ring-red-400/30 animate-pulse',
+        badgeClass: 'bg-red-600 text-white animate-pulse',
+        actionBtnClass: 'bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-500/25 font-black',
+        icon: customIcon || '🚨',
+      };
+    case 'event_reminder':
+      return {
+        cardBorder: 'border-amber-500 shadow-[0_20px_50px_rgba(245,158,11,0.2)] ring-4 ring-amber-500/10',
+        headerBg: 'bg-gradient-to-br from-amber-500/20 via-amber-50 to-white',
+        headerBorder: 'border-amber-200',
+        iconBox: 'bg-amber-100/90 text-amber-700 border-amber-300',
+        badgeClass: 'bg-amber-500 text-black font-black',
+        actionBtnClass: 'bg-amber-500 hover:bg-amber-600 text-black font-black shadow-md shadow-amber-500/20',
+        icon: customIcon || '⏰',
+      };
+    case 'agenda_shift':
+      return {
+        cardBorder: 'border-orange-500 shadow-[0_20px_50px_rgba(249,115,22,0.2)] ring-4 ring-orange-500/10',
+        headerBg: 'bg-gradient-to-br from-orange-500/20 via-orange-50 to-white',
+        headerBorder: 'border-orange-200',
+        iconBox: 'bg-orange-100/90 text-orange-700 border-orange-300',
+        badgeClass: 'bg-orange-500 text-white font-black',
+        actionBtnClass: 'bg-orange-600 hover:bg-orange-700 text-white shadow-md shadow-orange-500/20 font-black',
+        icon: customIcon || '⏳',
+      };
+    case 'event_rescheduled':
+      return {
+        cardBorder: 'border-emerald-500 shadow-[0_20px_50px_rgba(16,185,129,0.2)] ring-4 ring-emerald-500/10',
+        headerBg: 'bg-gradient-to-br from-emerald-500/20 via-emerald-50 to-white',
+        headerBorder: 'border-emerald-200',
+        iconBox: 'bg-emerald-100/90 text-emerald-700 border-emerald-300',
+        badgeClass: 'bg-emerald-600 text-white font-black',
+        actionBtnClass: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20 font-black',
+        icon: customIcon || '📅',
+      };
+    case 'event_cancellation':
+      return {
+        cardBorder: 'border-rose-500 shadow-[0_20px_50px_rgba(244,63,94,0.2)] ring-4 ring-rose-500/10',
+        headerBg: 'bg-gradient-to-br from-rose-500/20 via-rose-50 to-white',
+        headerBorder: 'border-rose-200',
+        iconBox: 'bg-rose-100/90 text-rose-700 border-rose-300',
+        badgeClass: 'bg-rose-600 text-white font-black',
+        actionBtnClass: 'bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-500/20 font-black',
+        icon: customIcon || '🚫',
+      };
+    case 'whatsapp_group_invite':
+      return {
+        cardBorder: 'border-[#25D366] shadow-[0_20px_50px_rgba(37,211,102,0.2)] ring-4 ring-emerald-500/10',
+        headerBg: 'bg-gradient-to-br from-[#25D366]/20 via-emerald-50 to-white',
+        headerBorder: 'border-emerald-200',
+        iconBox: 'bg-emerald-100/90 text-[#25D366] border-emerald-300',
+        badgeClass: 'bg-[#25D366] text-white font-black',
+        actionBtnClass: 'bg-[#25D366] hover:bg-[#20ba59] text-white shadow-md shadow-emerald-500/20 font-bold',
+        icon: customIcon || '💬',
+      };
+    case 'approval_pending':
+    case 'pending':
+      return {
+        cardBorder: 'border-indigo-500 shadow-[0_20px_50px_rgba(99,102,241,0.2)] ring-4 ring-indigo-500/10',
+        headerBg: 'bg-gradient-to-br from-indigo-500/20 via-indigo-50 to-white',
+        headerBorder: 'border-indigo-200',
+        iconBox: 'bg-indigo-100/90 text-indigo-700 border-indigo-300',
+        badgeClass: 'bg-indigo-600 text-white font-black',
+        actionBtnClass: 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 font-bold',
+        icon: customIcon || '📝',
+      };
+    case 'application_approved':
+    case 'approved':
+    case 'event_approved':
+      return {
+        cardBorder: 'border-emerald-500 shadow-[0_20px_50px_rgba(16,185,129,0.2)] ring-4 ring-emerald-500/10',
+        headerBg: 'bg-gradient-to-br from-emerald-500/20 via-emerald-50 to-white',
+        headerBorder: 'border-emerald-200',
+        iconBox: 'bg-emerald-100/90 text-emerald-700 border-emerald-300',
+        badgeClass: 'bg-emerald-600 text-white font-black',
+        actionBtnClass: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20 font-bold',
+        icon: customIcon || (type === 'event_approved' ? '🚀' : '🎉'),
+      };
+    case 'application_rejected':
+    case 'rejected':
+    case 'event_rejected':
+      return {
+        cardBorder: 'border-rose-500 shadow-[0_20px_50px_rgba(244,63,94,0.2)] ring-4 ring-rose-500/10',
+        headerBg: 'bg-gradient-to-br from-rose-500/20 via-rose-50 to-white',
+        headerBorder: 'border-rose-200',
+        iconBox: 'bg-rose-100/90 text-rose-700 border-rose-300',
+        badgeClass: 'bg-rose-600 text-white font-black',
+        actionBtnClass: 'bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-500/20 font-bold',
+        icon: customIcon || (type === 'event_rejected' ? '⚠️' : '❌'),
+      };
+    case 'event_pending_approval':
+      return {
+        cardBorder: 'border-purple-500 shadow-[0_20px_50px_rgba(168,85,247,0.2)] ring-4 ring-purple-500/10',
+        headerBg: 'bg-gradient-to-br from-purple-500/20 via-purple-50 to-white',
+        headerBorder: 'border-purple-200',
+        iconBox: 'bg-purple-100/90 text-purple-700 border-purple-300',
+        badgeClass: 'bg-purple-600 text-white font-black',
+        actionBtnClass: 'bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-500/20 font-bold',
+        icon: customIcon || '📅',
+      };
+    case 'event_needs_changes':
+      return {
+        cardBorder: 'border-amber-500 shadow-[0_20px_50px_rgba(245,158,11,0.2)] ring-4 ring-amber-500/10',
+        headerBg: 'bg-gradient-to-br from-amber-500/20 via-amber-50 to-white',
+        headerBorder: 'border-amber-200',
+        iconBox: 'bg-amber-100/90 text-amber-700 border-amber-300',
+        badgeClass: 'bg-amber-600 text-white font-black',
+        actionBtnClass: 'bg-amber-600 hover:bg-amber-700 text-white shadow-md shadow-amber-500/20 font-bold',
+        icon: customIcon || '✏️',
+      };
+    case 'general_update':
+    default:
+      return {
+        cardBorder: 'border-blue-500 shadow-[0_20px_50px_rgba(59,130,246,0.2)] ring-4 ring-blue-500/10',
+        headerBg: 'bg-gradient-to-br from-blue-500/20 via-blue-50 to-white',
+        headerBorder: 'border-blue-200',
+        iconBox: 'bg-blue-100/90 text-blue-700 border-blue-300',
+        badgeClass: 'bg-blue-600 text-white font-black',
+        actionBtnClass: 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 font-bold',
+        icon: customIcon || '📢',
+      };
+  }
 }
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
@@ -281,6 +413,7 @@ export function GlobalHeader() {
     setSelectedNotification({
       type: notif.type,
       badge: typeConfig.label,
+      icon: typeConfig.icon,
       title: notif.title,
       message: notif.message,
       link: notif.link || undefined,
@@ -294,16 +427,18 @@ export function GlobalHeader() {
   const handleOrganizerStatusClick = () => {
     if (organizerStatus === 'pending_approval') {
       setSelectedNotification({
-        type: 'pending',
+        type: 'approval_pending',
         badge: 'Under Review',
+        icon: '📝',
         title: 'Organizer Application Pending',
         message: 'Thank you for applying to become an organizer on VibeCheck Space! Our editorial team is currently reviewing your brand information and event credentials. You will be notified as soon as verification is complete.',
         time: 'Pending Review'
       });
     } else if (organizerStatus === 'rejected') {
       setSelectedNotification({
-        type: 'rejected',
+        type: 'application_rejected',
         badge: 'Action Required',
+        icon: '❌',
         title: 'Organizer Application Rejected',
         message: 'Unfortunately, your organizer application could not be approved based on our submission guidelines. Please review the official reason below and submit an updated application.',
         reason: rejectionReason || 'Information provided did not meet organizer verification criteria.',
@@ -313,8 +448,9 @@ export function GlobalHeader() {
       });
     } else if (organizerStatus === 'approved') {
       setSelectedNotification({
-        type: 'approved',
+        type: 'application_approved',
         badge: 'Verified Organizer',
+        icon: '🎉',
         title: 'Organizer Status Active',
         message: 'Congratulations! You are officially verified as a VibeCheck Organizer. You have full access to create events, manage RSVPs, broadcast WhatsApp updates, and connect with followers.',
         link: '/organizer',
@@ -816,142 +952,104 @@ export function GlobalHeader() {
       )}
 
       {/* Themed Notification Pop-up Modal */}
-      {selectedNotification && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
-          <div
-            className="fixed inset-0"
-            onClick={() => setSelectedNotification(null)}
-          />
-          <div
-            className={`relative z-10 w-full max-w-lg bg-white rounded-[32px] overflow-hidden shadow-2xl border-4 transition-all animate-in zoom-in-95 duration-200 ${selectedNotification.type === 'pending'
-                ? 'border-amber-400'
-                : selectedNotification.type === 'rejected'
-                  ? 'border-red-500'
-                  : selectedNotification.type === 'approved' || selectedNotification.type === 'whatsapp_group_invite'
-                    ? 'border-emerald-500'
-                    : selectedNotification.type === 'emergency_alert'
-                      ? 'border-red-500 ring-2 ring-red-300'
-                      : selectedNotification.type === 'event_reminder'
-                        ? 'border-amber-500'
-                        : selectedNotification.type === 'agenda_shift'
-                          ? 'border-orange-500'
-                          : selectedNotification.type === 'event_rescheduled'
-                            ? 'border-emerald-500'
-                            : selectedNotification.type === 'event_cancellation'
-                              ? 'border-rose-500'
-                              : 'border-blue-500'
-              }`}
-          >
-            {/* Modal Themed Header */}
+      {selectedNotification && (() => {
+        const modalTheme = getNotificationModalTheme(selectedNotification.type, selectedNotification.icon);
+
+        return (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
             <div
-              className={`p-6 sm:p-8 flex items-start justify-between border-b ${selectedNotification.type === 'pending'
-                  ? 'bg-gradient-to-br from-amber-500/20 via-amber-50 to-white border-amber-200 text-amber-950'
-                  : selectedNotification.type === 'rejected'
-                    ? 'bg-gradient-to-br from-red-500/20 via-red-50 to-white border-red-200 text-red-950'
-                    : selectedNotification.type === 'approved' || selectedNotification.type === 'whatsapp_group_invite'
-                      ? 'bg-gradient-to-br from-emerald-500/20 via-emerald-50 to-white border-emerald-200 text-emerald-950'
-                      : selectedNotification.type === 'emergency_alert'
-                        ? 'bg-gradient-to-br from-red-500/20 via-red-50 to-white border-red-200 text-red-950'
-                        : selectedNotification.type === 'event_reminder'
-                          ? 'bg-gradient-to-br from-amber-500/20 via-amber-50 to-white border-amber-200 text-amber-950'
-                          : selectedNotification.type === 'agenda_shift'
-                            ? 'bg-gradient-to-br from-orange-500/20 via-orange-50 to-white border-orange-200 text-orange-950'
-                            : selectedNotification.type === 'event_rescheduled'
-                              ? 'bg-gradient-to-br from-emerald-500/20 via-emerald-50 to-white border-emerald-200 text-emerald-950'
-                              : selectedNotification.type === 'event_cancellation'
-                                ? 'bg-gradient-to-br from-rose-500/20 via-rose-50 to-white border-rose-200 text-rose-950'
-                                : 'bg-gradient-to-br from-blue-500/20 via-blue-50 to-white border-blue-200 text-blue-950'
-                }`}
+              className="fixed inset-0"
+              onClick={() => setSelectedNotification(null)}
+            />
+            <div
+              className={`relative z-10 w-full max-w-lg bg-white rounded-[32px] overflow-hidden shadow-2xl border-4 transition-all animate-in zoom-in-95 duration-200 ${modalTheme.cardBorder}`}
             >
-              <div className="flex items-center gap-3">
-
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`sticker-badge text-[9px] font-black uppercase py-0.5 px-2 border-none ${selectedNotification.type === 'pending'
-                          ? 'bg-amber-500 text-black'
-                          : selectedNotification.type === 'rejected'
-                            ? 'bg-red-600 text-white'
-                            : selectedNotification.type === 'approved' || selectedNotification.type === 'whatsapp_group_invite'
-                              ? 'bg-emerald-600 text-white'
-                              : selectedNotification.type === 'emergency_alert'
-                                ? 'bg-red-600 text-white'
-                                : selectedNotification.type === 'event_reminder'
-                                  ? 'bg-amber-500 text-black'
-                                  : selectedNotification.type === 'agenda_shift'
-                                    ? 'bg-orange-500 text-white'
-                                    : selectedNotification.type === 'event_rescheduled'
-                                      ? 'bg-emerald-600 text-white'
-                                      : selectedNotification.type === 'event_cancellation'
-                                        ? 'bg-rose-600 text-white'
-                                        : 'bg-blue-600 text-white'
-                        }`}
-                    >
-                      {selectedNotification.badge}
-                    </span>
-                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                      {selectedNotification.time}
-                    </span>
+              {/* Modal Themed Header */}
+              <div
+                className={`p-6 sm:p-7 flex items-start justify-between border-b ${modalTheme.headerBg} ${modalTheme.headerBorder}`}
+              >
+                <div className="flex items-start gap-3.5 sm:gap-4 flex-1 min-w-0 pr-2">
+                  {/* Broadcast Type Icon */}
+                  <div className={`p-3 sm:p-3.5 rounded-2xl shrink-0 flex items-center justify-center text-2xl sm:text-3xl shadow-sm border ${modalTheme.iconBox}`}>
+                    <span>{modalTheme.icon}</span>
                   </div>
-                  <h3 className="text-xl font-black italic uppercase tracking-tight mt-1 leading-tight text-black">
-                    {selectedNotification.title}
-                  </h3>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`sticker-badge text-[9px] font-black uppercase py-0.5 px-2.5 border-none shadow-xs ${modalTheme.badgeClass}`}
+                      >
+                        {selectedNotification.badge}
+                      </span>
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                        {selectedNotification.time}
+                      </span>
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-black italic uppercase tracking-tight mt-1.5 leading-tight text-black break-words">
+                      {selectedNotification.title}
+                    </h3>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Modal Body */}
-            <div className="p-6 sm:p-8 space-y-6 text-left">
-              <p className="text-sm font-medium text-zinc-700 leading-relaxed">
-                {selectedNotification.message}
-              </p>
-
-              {/* Reason Box for Rejection or Extra details */}
-              {selectedNotification.reason && (
-                <div className="p-4 rounded-2xl bg-red-50 border border-red-200/80 space-y-1">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-red-600 block">
-                    Official Reason for Decision
-                  </span>
-                  <p className="text-xs font-bold text-red-950 italic leading-normal">
-                    "{selectedNotification.reason}"
-                  </p>
-                </div>
-              )}
-
-              {/* Action Controls */}
-              <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
+                {/* Close Button */}
                 <button
                   onClick={() => setSelectedNotification(null)}
-                  className="w-full sm:w-auto ringer-button border border-black/10 bg-zinc-100 hover:bg-zinc-200 text-black text-xs py-2.5 px-5"
+                  className="p-2 rounded-full hover:bg-black/5 text-zinc-400 hover:text-black transition-colors shrink-0 -mt-1 -mr-1"
+                  aria-label="Close notification"
                 >
-                  DISMISS
+                  <X className="h-5 w-5" />
                 </button>
-                {selectedNotification.link && (
-                  <button
-                    onClick={() => {
-                      const link = selectedNotification.link!;
-                      setSelectedNotification(null);
-                      if (link.startsWith("http://") || link.startsWith("https://")) {
-                        window.open(link, "_blank", "noopener,noreferrer");
-                      } else {
-                        router.push(link);
-                      }
-                    }}
-                    className={`w-full sm:w-auto ringer-button text-white text-xs py-2.5 px-5 flex items-center justify-center gap-2 ${
-                      selectedNotification.type === 'whatsapp_group_invite'
-                        ? 'bg-emerald-600 hover:bg-emerald-700'
-                        : 'bg-black hover:bg-zinc-800'
-                    }`}
-                  >
-                    <span>{selectedNotification.actionText || 'VIEW DETAILS'}</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 sm:p-8 space-y-6 text-left">
+                <p className="text-sm font-medium text-zinc-700 leading-relaxed whitespace-pre-wrap">
+                  {selectedNotification.message}
+                </p>
+
+                {/* Reason Box for Rejection or Extra details */}
+                {selectedNotification.reason && (
+                  <div className="p-4 rounded-2xl bg-red-50 border border-red-200/80 space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-red-600 block">
+                      Official Reason for Decision
+                    </span>
+                    <p className="text-xs font-bold text-red-950 italic leading-normal">
+                      "{selectedNotification.reason}"
+                    </p>
+                  </div>
                 )}
+
+                {/* Action Controls */}
+                <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
+                  <button
+                    onClick={() => setSelectedNotification(null)}
+                    className="w-full sm:w-auto ringer-button border border-black/10 bg-zinc-100 hover:bg-zinc-200 text-black text-xs py-2.5 px-5 transition-colors"
+                  >
+                    DISMISS
+                  </button>
+                  {selectedNotification.link && (
+                    <button
+                      onClick={() => {
+                        const link = selectedNotification.link!;
+                        setSelectedNotification(null);
+                        if (link.startsWith("http://") || link.startsWith("https://")) {
+                          window.open(link, "_blank", "noopener,noreferrer");
+                        } else {
+                          router.push(link);
+                        }
+                      }}
+                      className={`w-full sm:w-auto ringer-button text-xs py-2.5 px-5 flex items-center justify-center gap-2 transition-all ${modalTheme.actionBtnClass}`}
+                    >
+                      <span>{selectedNotification.actionText || 'VIEW DETAILS'}</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   )
 }
