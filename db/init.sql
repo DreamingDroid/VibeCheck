@@ -193,3 +193,20 @@ CREATE TABLE IF NOT EXISTS user_notifications (
 CREATE INDEX IF NOT EXISTS idx_user_notifications_email_created ON user_notifications (user_email, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_user_notifications_unread ON user_notifications (user_email, is_read);
 
+-- 11. Event & Organizer Ratings
+CREATE TABLE IF NOT EXISTS event_ratings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    organizer_email VARCHAR(255) NOT NULL REFERENCES admins(email) ON DELETE CASCADE,
+    user_email VARCHAR(255) NOT NULL,
+    event_rating NUMERIC(2,1) NOT NULL CHECK (event_rating >= 1 AND event_rating <= 5),
+    organizer_rating NUMERIC(2,1) NOT NULL CHECK (organizer_rating >= 1 AND organizer_rating <= 5),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(event_id, user_email)
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_ratings_event_id ON event_ratings (event_id);
+CREATE INDEX IF NOT EXISTS idx_event_ratings_organizer_email ON event_ratings (organizer_email);
+
+

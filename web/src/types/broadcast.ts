@@ -5,7 +5,8 @@ export type BroadcastType =
   | 'agenda_shift'
   | 'event_rescheduled'
   | 'event_cancellation'
-  | 'whatsapp_group_invite';
+  | 'whatsapp_group_invite'
+  | 'rating_request';
 
 export const BROADCAST_TYPES: BroadcastType[] = [
   'general_update',
@@ -15,6 +16,7 @@ export const BROADCAST_TYPES: BroadcastType[] = [
   'event_rescheduled',
   'event_cancellation',
   'whatsapp_group_invite',
+  'rating_request',
 ];
 
 export type NotificationType =
@@ -201,6 +203,16 @@ export const BROADCAST_TYPE_CONFIGS: Record<NotificationType, BroadcastTypeConfi
     badgeText: 'text-emerald-700',
     borderColor: 'border-emerald-500/30',
     cardBg: 'bg-emerald-50/60',
+  },
+  rating_request: {
+    label: 'Post-Event Rating Request',
+    description: 'Rate the event, rate the organizer, and follow the organizer',
+    icon: '⭐',
+    badgeBg: 'bg-amber-500/15 text-amber-700 border-amber-300 font-black shadow-xs',
+    badgeText: 'text-amber-700',
+    borderColor: 'border-amber-400 ring-1 ring-amber-400/20',
+    accentGlow: 'shadow-[0_0_15px_rgba(245,158,11,0.2)]',
+    cardBg: 'bg-amber-50/60',
   },
 };
 

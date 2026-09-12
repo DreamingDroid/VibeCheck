@@ -65,10 +65,10 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
 
 export async function getEventsList(pool: Pool, category: any, search: any, city: any) {
     let queryText = `
-      SELECT id, title, description, location, city, date_time, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, image_url, image_public_id,
+      SELECT id, title, description, location, city, date_time, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, image_url, image_public_id, average_rating, ratings_count,
              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count
       FROM events
-      WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)
+      WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status = 'ended' OR status IS NULL)
     `;
     const queryParams: any[] = [];
     let paramIndex = 1;
@@ -96,7 +96,7 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
 
 export async function getEventById(pool: Pool, id: string) {
     const { rows } = await pool.query(
-      `SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, contact_info, image_url, image_public_id,
+      `SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, contact_info, image_url, image_public_id, average_rating, ratings_count,
               (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
               (SELECT brand_name FROM admins WHERE email = events.organizer_email) as organizer_name,
               COALESCE(
@@ -106,9 +106,9 @@ export async function getEventById(pool: Pool, id: string) {
               (SELECT description FROM admins WHERE email = events.organizer_email) as organizer_description,
               (SELECT rating FROM admins WHERE email = events.organizer_email) as organizer_rating,
               (SELECT social_links FROM admins WHERE email = events.organizer_email) as organizer_social_links,
-              (SELECT COUNT(*)::int FROM events e2 WHERE e2.organizer_email = events.organizer_email AND (e2.status = 'approved' OR e2.status = 'housefull' OR e2.status = 'filling_fast')) as organizer_events_count,
+              (SELECT COUNT(*)::int FROM events e2 WHERE e2.organizer_email = events.organizer_email AND (e2.status = 'approved' OR e2.status = 'housefull' OR e2.status = 'filling_fast' OR e2.status = 'ended')) as organizer_events_count,
               (SELECT COUNT(*)::int FROM organizer_followers WHERE organizer_email = events.organizer_email) as organizer_followers_count
-       FROM events WHERE id = $1 AND (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)`,
+       FROM events WHERE id = $1 AND (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status = 'ended' OR status IS NULL)`,
       [id]
     );
     return rows[0] || null;
@@ -164,7 +164,7 @@ export async function createOrganizerEvent(pool: Pool, data: any) {
 export async function getEventsByOrganizerEmail(pool: Pool, email: string) {
     const { rows } = await pool.query(
       `SELECT id, title, category, location, city, date_time, end_time, timings, description,
-              external_link, google_maps_link, whatsapp_group_link, contact_info, status, admin_comment, participant_limit, is_paid, image_url, image_public_id, created_at 
+              external_link, google_maps_link, whatsapp_group_link, contact_info, status, admin_comment, participant_limit, is_paid, image_url, image_public_id, average_rating, ratings_count, created_at 
        FROM events WHERE organizer_email = $1 ORDER BY created_at DESC`,
       [email]
     );

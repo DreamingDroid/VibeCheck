@@ -20,6 +20,7 @@ import {
   BROADCAST_TYPE_CONFIGS
 } from "@/types/broadcast"
 import { registerFcmForUser, onForegroundFcmMessage, isFirebaseConfigured } from "@/lib/firebase"
+import { EventRatingModal } from "@/components/EventRatingModal"
 import { toast } from "sonner"
 
 interface ModalNotification {
@@ -95,6 +96,16 @@ function getNotificationModalTheme(type: string, customIcon?: string) {
         badgeClass: 'bg-[#25D366] text-white font-black',
         actionBtnClass: 'bg-[#25D366] hover:bg-[#20ba59] text-white shadow-md shadow-emerald-500/20 font-bold',
         icon: customIcon || '💬',
+      };
+    case 'rating_request':
+      return {
+        cardBorder: 'border-amber-400 shadow-[0_20px_50px_rgba(245,158,11,0.25)] ring-4 ring-amber-400/20',
+        headerBg: 'bg-gradient-to-br from-amber-500/20 via-amber-50 to-white',
+        headerBorder: 'border-amber-200',
+        iconBox: 'bg-amber-100/90 text-amber-700 border-amber-300',
+        badgeClass: 'bg-amber-500 text-black font-black',
+        actionBtnClass: 'bg-amber-500 hover:bg-amber-600 text-black font-black shadow-md shadow-amber-500/20',
+        icon: customIcon || '⭐',
       };
     case 'approval_pending':
     case 'pending':
@@ -227,6 +238,19 @@ export function GlobalHeader() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [selectedNotification, setSelectedNotification] = useState<ModalNotification | null>(null)
   const [avatarImgError, setAvatarImgError] = useState(false)
+
+  // Event Rating Modal state
+  const [ratingModalOpen, setRatingModalOpen] = useState(false)
+  const [ratingModalEvent, setRatingModalEvent] = useState<{
+    eventId: string;
+    title: string;
+    date?: string;
+    location?: string;
+    organizerEmail?: string;
+    organizerName?: string;
+    organizerImage?: string | null;
+    organizerRating?: number | null;
+  } | null>(null)
 
   // In-App Notification Center States
   const [notifications, setNotifications] = useState<UserNotification[]>([])
@@ -411,6 +435,26 @@ export function GlobalHeader() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notificationId: notif.id, email: session.user.email })
       }).catch(err => console.error("Error marking notification read:", err));
+    }
+
+    // If this is a post-event rating request, open the interactive EventRatingModal directly!
+    if (notif.type === 'rating_request') {
+      const targetEventId = notif.target_event_id || notif.metadata?.event_id;
+      if (targetEventId) {
+        setRatingModalEvent({
+          eventId: targetEventId,
+          title: notif.metadata?.event_title || notif.title || "Rate Your Experience",
+          date: notif.metadata?.event_date,
+          location: notif.metadata?.event_location,
+          organizerEmail: notif.metadata?.organizer_email,
+          organizerName: notif.metadata?.organizer_name || "Event Host",
+          organizerImage: notif.metadata?.organizer_image || null,
+          organizerRating: notif.metadata?.organizer_rating ? Number(notif.metadata.organizer_rating) : null,
+        });
+        setRatingModalOpen(true);
+        setShowNotifications(false);
+        return;
+      }
     }
 
     const typeConfig = BROADCAST_TYPE_CONFIGS[notif.type] || BROADCAST_TYPE_CONFIGS.general_update;
@@ -1316,7 +1360,24 @@ export function GlobalHeader() {
                   >
                     DISMISS
                   </button>
-                  {selectedNotification.link && (
+                  {selectedNotification.type === 'rating_request' ? (
+                    <button
+                      onClick={() => {
+                        const notif = selectedNotification;
+                        const eventId = notif.link?.replace('/event/', '') || '';
+                        setSelectedNotification(null);
+                        setRatingModalEvent({
+                          eventId,
+                          title: notif.title,
+                          organizerName: 'Event Host'
+                        });
+                        setRatingModalOpen(true);
+                      }}
+                      className="w-full sm:w-auto ringer-button bg-amber-500 hover:bg-amber-600 text-black font-black text-xs py-2.5 px-5 flex items-center justify-center gap-2 transition-all shadow-md shadow-amber-500/20"
+                    >
+                      <span>⭐ RATE EVENT &amp; HOST</span>
+                    </button>
+                  ) : selectedNotification.link ? (
                     <button
                       onClick={() => {
                         const link = selectedNotification.link!;
@@ -1332,13 +1393,39 @@ export function GlobalHeader() {
                       <span>{selectedNotification.actionText || 'VIEW DETAILS'}</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </button>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
           </div>
         );
       })()}
+
+      {/* Interactive Event & Organizer Rating Modal */}
+      {ratingModalOpen && ratingModalEvent && (
+        <EventRatingModal
+          isOpen={ratingModalOpen}
+          onClose={() => {
+            setRatingModalOpen(false);
+            setRatingModalEvent(null);
+          }}
+          eventId={ratingModalEvent.eventId}
+          eventTitle={ratingModalEvent.title}
+          eventDate={ratingModalEvent.date}
+          eventLocation={ratingModalEvent.location}
+          organizerEmail={ratingModalEvent.organizerEmail}
+          organizerName={ratingModalEvent.organizerName}
+          organizerImage={ratingModalEvent.organizerImage}
+          organizerRating={ratingModalEvent.organizerRating}
+          userEmail={session?.user?.email}
+          onSuccess={() => {
+            // refresh active list if notification center is open
+            if (showNotifications && session?.user?.email) {
+              fetchNotificationsList();
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
 import { AttendeeBriefingModal } from "@/components/AttendeeBriefingModal";
 import { OrganizerDetailsModal } from "@/components/OrganizerDetailsModal";
+import { EventRatingModal } from "@/components/EventRatingModal";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
 import { useTheme } from "@/context/ThemeContext";
 import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink } from "lucide-react";
@@ -30,6 +31,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showOrganizerModal, setShowOrganizerModal] = useState(false);
   const [showBriefingModal, setShowBriefingModal] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
   const [userHasPhone, setUserHasPhone] = useState(false);
   const { isVibrant } = useTheme();
 
@@ -235,11 +237,21 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               <div className="sticker-badge bg-zinc-100 border-none text-zinc-500 font-bold">
                 {event.is_paid ? "Paid Event" : "Free Entry"}
               </div>
+              {event.average_rating ? (
+                <div className="sticker-badge bg-amber-100/90 text-amber-900 border-amber-300 font-black flex items-center gap-1.5 shadow-xs">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                  <span>{Number(event.average_rating).toFixed(1)}</span>
+                  <span className="text-[10px] text-amber-800/80 font-bold">({event.ratings_count || 0})</span>
+                </div>
+              ) : null}
               {event.status === 'housefull' && (
                 <div className="sticker-badge bg-red-500 border-none text-white font-black animate-pulse">Sold Out</div>
               )}
               {event.status === 'filling_fast' && (
                 <div className="sticker-badge bg-orange-500 border-none text-white font-black animate-pulse flex items-center gap-1"><Sparkles className="h-4 w-4" /> Filling Fast</div>
+              )}
+              {event.status === 'ended' && (
+                <div className="sticker-badge bg-zinc-800 border-none text-white font-bold">Event Ended</div>
               )}
             </div>
             
@@ -320,6 +332,22 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               <CalendarPlus className="h-5 w-5" />
               ADD TO CALENDAR
             </button>
+
+            {(event.status === 'ended' || rsvped || (event.date_time && Date.now() >= new Date(event.date_time).getTime())) && (
+              <button
+                onClick={() => {
+                  if (!session?.user?.email) {
+                    signIn("google", { callbackUrl: window.location.href });
+                    return;
+                  }
+                  setShowRatingModal(true);
+                }}
+                className="ringer-button h-16 px-6 text-sm font-black flex items-center justify-center gap-2.5 transition-all active:scale-95 rounded-[20px] bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black shadow-md shadow-amber-500/20 cursor-pointer"
+              >
+                <Star className="h-4 w-4 fill-black text-black" />
+                <span>RATE EVENT &amp; HOST</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -487,6 +515,30 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         passCode={passCode || undefined}
         onDownloadICS={handleDownloadICS}
         onShare={handleShare}
+      />
+
+      <EventRatingModal
+        isOpen={showRatingModal}
+        onClose={() => setShowRatingModal(false)}
+        eventId={eventId}
+        eventTitle={event.title}
+        eventDate={event.date_time}
+        eventLocation={event.venue || event.location}
+        organizerEmail={event.organizer_email}
+        organizerName={event.organizer_name}
+        organizerImage={event.organizer_image}
+        organizerRating={event.organizer_rating}
+        userEmail={session?.user?.email || null}
+        onSuccess={(result) => {
+          if (result) {
+            setEvent((prev: any) => ({
+              ...prev,
+              average_rating: result.event_average_rating ?? prev.average_rating,
+              ratings_count: result.event_ratings_count ?? prev.ratings_count,
+              organizer_rating: result.organizer_average_rating ?? prev.organizer_rating,
+            }));
+          }
+        }}
       />
 
     </div>

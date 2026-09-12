@@ -19,6 +19,7 @@ import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import OrganizerInsightsDashboard from "@/components/OrganizerInsightsDashboard";
 import { OrganizerEventBroadcastModal } from "@/components/OrganizerEventBroadcastModal";
 import { OrganizerWhatsAppInviteModal } from "@/components/OrganizerWhatsAppInviteModal";
+import { BroadcastType } from "@/types/broadcast";
 const CATEGORIES = ["Sports", "Arts", "Education", "Spiritual", "Music", "Food", "Wellness", "Indie", "Techno", "General"];
 
 const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
@@ -29,12 +30,13 @@ const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
   return `${displayHour}:${min} ${ampm}`;
 });
 
-function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminComment, whatsappGroupLink, onEdit, onStatusUpdated }: { eventId: string, title: string, status: string, dateStr: string, organizerEmail: string, adminComment?: string, whatsappGroupLink?: string, onEdit?: () => void, onStatusUpdated?: () => void }) {
+function EventRsvpList({ eventId, title, status, dateStr, endDateTime, organizerEmail, adminComment, whatsappGroupLink, onEdit, onStatusUpdated }: { eventId: string, title: string, status: string, dateStr: string, endDateTime?: string, organizerEmail: string, adminComment?: string, whatsappGroupLink?: string, onEdit?: () => void, onStatusUpdated?: () => void }) {
   const [rsvps, setRsvps] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [inAppBroadcastOpen, setInAppBroadcastOpen] = useState(false);
+  const [broadcastInitialType, setBroadcastInitialType] = useState<BroadcastType>("general_update");
   const [whatsappInviteOpen, setWhatsappInviteOpen] = useState(false);
   const [currentWhatsappLink, setCurrentWhatsappLink] = useState(whatsappGroupLink || "");
   const [broadcastOpen, setBroadcastOpen] = useState(false);
@@ -48,6 +50,13 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
   const [promoData, setPromoData] = useState("");
 
   const [analytics, setAnalytics] = useState<any>(null);
+
+  // 24-Hour window calculation for post-event rating broadcasts
+  const eventEndMs = endDateTime ? new Date(endDateTime).getTime() : new Date(dateStr).getTime();
+  const now = Date.now();
+  const isConcluded = now >= eventEndMs;
+  const isWithin24hRatingWindow = isConcluded && now <= eventEndMs + 24 * 60 * 60 * 1000;
+  const hoursLeftInWindow = isWithin24hRatingWindow ? Math.max(1, Math.ceil((eventEndMs + 24 * 60 * 60 * 1000 - now) / (1000 * 60 * 60))) : 0;
 
   const loadRsvps = () => {
     if (!open) {
@@ -136,6 +145,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
       case 'approved': return <span className="sticker-badge bg-primary/10 text-primary border-primary/20">Tickets Live</span>;
       case 'filling_fast': return <span className="sticker-badge bg-orange-500/10 text-orange-600 border-orange-500/20 flex items-center gap-1"><Sparkles className="h-3 w-3 animate-pulse" /> Filling Fast</span>;
       case 'housefull': return <span className="sticker-badge bg-red-500/10 text-red-600 border-red-500/20">Sold Out</span>;
+      case 'ended': return <span className="sticker-badge bg-zinc-800 text-white border-zinc-700 font-bold">Event Ended</span>;
       case 'rejected': return <span className="sticker-badge bg-destructive/10 text-destructive border-destructive/20">Rejected</span>;
       case 'needs_changes': return <span className="sticker-badge bg-orange-500/10 text-orange-600 border-orange-500/20">Needs Changes</span>;
       default: return <span className="sticker-badge bg-amber-500/10 text-amber-600 border-amber-500/20">Pending</span>;
@@ -161,7 +171,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
           )}
         </div>
         <div className="flex flex-col md:flex-row gap-2 items-center shrink-0">
-          {(status === 'approved' || status === 'filling_fast' || status === 'housefull') && (
+          {(status === 'approved' || status === 'filling_fast' || status === 'housefull' || status === 'ended') && (
             <div className="min-w-[140px]" onClick={e => e.stopPropagation()}>
               <Select
                 value={status}
@@ -178,13 +188,28 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
                       toast.success(d.message);
                       if (onStatusUpdated) onStatusUpdated();
                       
-                      // Prompt for broadcast if status was changed to something exciting
+                      // Prompt for broadcast if status was changed
                       if (newStatus === 'filling_fast' || newStatus === 'housefull') {
                         toast("Update attendees?", {
                           description: `Notify your RSVPs that the event is ${newStatus === 'filling_fast' ? 'Filling Fast' : 'Sold Out'}`,
                           action: {
                             label: "Broadcast",
-                            onClick: () => setInAppBroadcastOpen(true)
+                            onClick: () => {
+                              setBroadcastInitialType("general_update");
+                              setInAppBroadcastOpen(true);
+                            }
+                          },
+                          duration: 8000
+                        });
+                      } else if (newStatus === 'ended') {
+                        toast("Event Concluded! ⭐", {
+                          description: "Request star ratings from attendees (24h window active).",
+                          action: {
+                            label: "Request Ratings",
+                            onClick: () => {
+                              setBroadcastInitialType("rating_request");
+                              setInAppBroadcastOpen(true);
+                            }
                           },
                           duration: 8000
                         });
@@ -204,13 +229,30 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
                   <SelectItem value="approved" className="text-[10px] font-bold uppercase tracking-widest text-primary">Tickets Live</SelectItem>
                   <SelectItem value="filling_fast" className="text-[10px] font-bold uppercase tracking-widest text-orange-600">Filling Fast</SelectItem>
                   <SelectItem value="housefull" className="text-[10px] font-bold uppercase tracking-widest text-red-600">Sold Out</SelectItem>
+                  <SelectItem value="ended" className="text-[10px] font-bold uppercase tracking-widest text-zinc-800">Event Ended</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           )}
-          {(status === 'approved' || status === 'filling_fast' || status === 'housefull') && (
+
+          {/* 24-Hour Rating Request Button */}
+          {isWithin24hRatingWindow && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setBroadcastInitialType("rating_request");
+                setInAppBroadcastOpen(true);
+              }}
+              className="ringer-button bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black text-[10px] flex items-center gap-1.5 font-black shadow-md shadow-amber-500/25 animate-pulse"
+              title="Request star ratings from attendees within 24h of event completion"
+            >
+              ⭐ REQUEST RATINGS ({hoursLeftInWindow}h left)
+            </button>
+          )}
+
+          {(status === 'approved' || status === 'filling_fast' || status === 'housefull' || status === 'ended') && (
             <>
-              <button onClick={(e) => { e.stopPropagation(); setInAppBroadcastOpen(true); }} className="ringer-button bg-rose-600 text-white hover:bg-rose-700 text-[10px] flex items-center gap-1.5 font-black shadow-xs">
+              <button onClick={(e) => { e.stopPropagation(); setBroadcastInitialType("general_update"); setInAppBroadcastOpen(true); }} className="ringer-button bg-rose-600 text-white hover:bg-rose-700 text-[10px] flex items-center gap-1.5 font-black shadow-xs">
                 <Radio className="h-3 w-3 animate-pulse" /> BROADCAST
               </button>
               <button onClick={(e) => { e.stopPropagation(); setWhatsappInviteOpen(true); }} className="ringer-button bg-emerald-600 text-white hover:bg-emerald-700 text-[10px] flex items-center gap-1.5 font-black shadow-xs">
@@ -229,7 +271,7 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
               ✏️ EDIT & RESUBMIT
             </button>
           )}
-          {(status === 'approved' || status === 'filling_fast' || status === 'housefull' || !status) && (
+          {(status === 'approved' || status === 'filling_fast' || status === 'housefull' || status === 'ended' || !status) && (
             <button onClick={(e) => { e.stopPropagation(); loadRsvps(); }} className="ringer-button border border-black/5 hover:bg-black/5 text-black text-[10px]">
               {open ? "HIDE GUESTLIST" : "VIEW GUESTLIST"}
             </button>
@@ -469,6 +511,9 @@ function EventRsvpList({ eventId, title, status, dateStr, organizerEmail, adminC
         eventId={eventId}
         eventTitle={title}
         organizerEmail={organizerEmail}
+        eventDate={dateStr}
+        eventEndTime={endDateTime}
+        initialType={broadcastInitialType}
       />
 
       {/* WhatsApp Group Invite Modal */}
@@ -965,7 +1010,7 @@ export default function OrganizerDashboard() {
               ) : (
                 <div className="space-y-4">
                   {myEvents.map(ev => (
-                    <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} dateStr={ev.date_time} organizerEmail={session?.user?.email || ""} adminComment={ev.admin_comment} whatsappGroupLink={ev.whatsapp_group_link} onEdit={() => handleEditInit(ev)} onStatusUpdated={() => loadMyEvents()} />
+                    <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} dateStr={ev.date_time} endDateTime={ev.end_time} organizerEmail={session?.user?.email || ""} adminComment={ev.admin_comment} whatsappGroupLink={ev.whatsapp_group_link} onEdit={() => handleEditInit(ev)} onStatusUpdated={() => loadMyEvents()} />
                   ))}
                 </div>
               )}

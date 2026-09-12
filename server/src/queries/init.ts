@@ -218,6 +218,28 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE news_articles ADD COLUMN IF NOT EXISTS image_public_id VARCHAR(255)`);
 
 
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS average_rating NUMERIC(3,1)`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS ratings_count INTEGER DEFAULT 0`);
+
+  // 11b. Create Event Ratings table (Event & Organizer Star Ratings)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS event_ratings (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+      organizer_email VARCHAR(255) NOT NULL REFERENCES admins(email) ON DELETE CASCADE,
+      user_email VARCHAR(255) NOT NULL,
+      event_rating NUMERIC(2,1) NOT NULL CHECK (event_rating >= 1 AND event_rating <= 5),
+      organizer_rating NUMERIC(2,1) NOT NULL CHECK (organizer_rating >= 1 AND organizer_rating <= 5),
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(event_id, user_email)
+    );
+  `).catch((err) => {
+    console.error('Failed to create event_ratings table:', err.message);
+  });
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_event_ratings_event_id ON event_ratings (event_id)`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_event_ratings_organizer_email ON event_ratings (organizer_email)`).catch(() => {});
+
   // Migration safeguard for organizer_crm_notes table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS organizer_crm_notes (

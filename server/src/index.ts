@@ -30,6 +30,7 @@ import { sendApplyOtpHandler, verifyApplyOtpHandler, submitApplicationHandler } 
 import { initializeDatabaseSchema } from './queries/init';
 import { getNewsArticlesHandler, getLatestNewsArticlesHandler, getSingleNewsArticleHandler, adminCreateNewsArticleHandler, adminUpdateNewsArticleArticleHandler, adminDeleteNewsArticleHandler } from './news';
 import { uploadImageHandler } from './upload';
+import { submitRatingHandler, getEventRatingHandler, getOrganizerRatingHandler } from './ratings';
 import {
   getAudienceEstimateHandler,
   adminSendBroadcastHandler,
@@ -226,6 +227,11 @@ app.get('/api/events', (req, res) => getEventsHandler(req, res, pool));
 app.get('/api/events/:id', (req, res) => getSingleEventHandler(req, res, pool));
 app.post('/api/events/:id/rsvp', (req, res) => rsvpEventHandler(req, res, pool));
 app.get('/api/events/:id/rsvp/check', (req, res) => checkRsvpHandler(req, res, pool));
+
+// Ratings API (Event & Organizer Star Ratings)
+app.post('/api/events/:id/ratings', (req, res) => submitRatingHandler(req, res, pool));
+app.get('/api/events/:id/ratings', (req, res) => getEventRatingHandler(req, res, pool));
+app.get('/api/organizers/:email/ratings', (req, res) => getOrganizerRatingHandler(req, res, pool));
 
 // Web User Preferences API (Tier 1 + Tier 2 linking)
 app.get('/api/user', (req, res) => getWebUserHandler(req, res, pool));

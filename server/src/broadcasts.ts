@@ -26,7 +26,8 @@ const VALID_MESSAGE_TYPES = [
   'agenda_shift',
   'event_rescheduled',
   'event_cancellation',
-  'whatsapp_group_invite'
+  'whatsapp_group_invite',
+  'rating_request'
 ] as const;
 
 const VALID_SCOPES = ['global', 'city', 'event', 'category'] as const;
@@ -184,6 +185,27 @@ export async function organizerSendEventBroadcastHandler(req: Request, res: Resp
       return res.status(403).json({ success: false, error: 'Forbidden: You are not the organizer of this event' });
     }
 
+    // 24-Hour window validation for post-event rating requests
+    if (type === 'rating_request') {
+      const eventEndTime = event.end_time ? new Date(event.end_time).getTime() : new Date(event.date_time).getTime();
+      const now = Date.now();
+      const twentyFourHoursMs = 24 * 60 * 60 * 1000;
+
+      if (now < eventEndTime) {
+        return res.status(400).json({
+          success: false,
+          error: 'Rating requests can only be sent once the event has reached its end date/time.'
+        });
+      }
+
+      if (now > eventEndTime + twentyFourHoursMs) {
+        return res.status(400).json({
+          success: false,
+          error: 'Rating requests can only be sent within 24 hours of the event end date/time.'
+        });
+      }
+    }
+
     const input: CreateBroadcastInput = {
       title: title.trim(),
       message: message.trim(),
@@ -195,7 +217,12 @@ export async function organizerSendEventBroadcastHandler(req: Request, res: Resp
       link: `/event/${id}`,
       metadata: {
         ...(metadata || {}),
-        event_title: event.title
+        event_id: id,
+        event_title: event.title,
+        organizer_email: event.organizer_email,
+        organizer_name: event.organizer_name || 'VibeCheck Organizer',
+        organizer_image: event.organizer_image || null,
+        organizer_rating: event.organizer_rating ? Number(event.organizer_rating) : null,
       }
     };
 

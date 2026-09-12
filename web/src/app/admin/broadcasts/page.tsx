@@ -82,6 +82,10 @@ const TEMPLATES: Record<BroadcastType, { title: string; body: string }> = {
     title: "Official WhatsApp Group Invite",
     body: "Join our official attendee WhatsApp group to connect with fellow guests and receive live announcements!",
   },
+  rating_request: {
+    title: "⭐ How was the vibe? Rate your experience!",
+    body: "Thank you for attending! We'd love to know how your experience was. Please take a moment to rate the event & organizer, and follow for future happenings.",
+  },
 };
 
 export default function AdminBroadcastsPage() {

@@ -10,7 +10,7 @@ export interface BroadcastTargetParams {
 export interface CreateBroadcastInput {
   title: string;
   message: string;
-  type: 'general_update' | 'event_reminder' | 'emergency_alert' | 'agenda_shift' | 'event_rescheduled' | 'event_cancellation' | 'whatsapp_group_invite';
+  type: 'general_update' | 'event_reminder' | 'emergency_alert' | 'agenda_shift' | 'event_rescheduled' | 'event_cancellation' | 'whatsapp_group_invite' | 'rating_request';
   scope: 'global' | 'city' | 'event' | 'category';
   target_city?: string | null;
   target_event_id?: string | null;
