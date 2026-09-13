@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSession, signIn } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +48,7 @@ type VibeEvent = {
 function DashboardContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { currentCity, events, isLoadingEvents: loading, selectedCategory, refreshEvents } = useCity();
   const { isVibrant } = useTheme();
   const { t, getCategoryLabel } = useTranslation();
@@ -106,6 +107,8 @@ function DashboardContent() {
   useEffect(() => {
     if (searchParams?.get('view') === 'calendar') {
       setForceCalendarOpen(true);
+    } else {
+      setForceCalendarOpen(false);
     }
   }, [searchParams]);
 
@@ -372,7 +375,10 @@ function DashboardContent() {
       {/* Calendar Toggle Button (FAB) when feed is visible */}
       {!showCalendarView && !selectedDate && !isCategoryEmpty && (
         <button
-          onClick={() => setForceCalendarOpen(true)}
+          onClick={() => {
+            setForceCalendarOpen(true);
+            router.push('/dashboard?view=calendar');
+          }}
           className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-black text-white h-14 w-14 hover:w-48 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:bg-primary hover:text-black hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out border border-white/20 group overflow-hidden"
           title="View Calendar"
         >
@@ -392,7 +398,11 @@ function DashboardContent() {
         <section className="flex flex-col items-center justify-center space-y-4 md:space-y-5 animate-in fade-in duration-500 w-full mt-2 md:mt-4 relative max-w-6xl mx-auto">
           {!isCategoryEmpty && (
             <button 
-              onClick={() => setForceCalendarOpen(false)}
+              onClick={() => {
+                setForceCalendarOpen(false);
+                setSelectedDate(undefined);
+                router.push('/dashboard');
+              }}
               className="self-start flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-black transition-colors bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 md:px-4 md:py-2 rounded-full md:absolute md:top-0 md:left-0 z-10 md:-mt-2"
             >
               <ChevronLeft className="h-3 w-3 md:h-4 md:w-4" />
@@ -657,6 +667,7 @@ function DashboardContent() {
             onClick={() => {
               setSelectedDate(undefined);
               setForceCalendarOpen(true);
+              router.push('/dashboard?view=calendar');
             }}
             className="flex items-center gap-2 text-xs font-black uppercase tracking-widest bg-zinc-100 hover:bg-zinc-200 active:scale-95 text-black px-4 py-2 rounded-full transition-all"
           >
