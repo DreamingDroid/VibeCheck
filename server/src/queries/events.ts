@@ -243,14 +243,17 @@ export async function insertEventRSVPEmail(pool: Pool, eventId: string, email: s
     const status = isPaid ? 'pending' : 'confirmed';
     const paymentStatus = isPaid ? 'unpaid' : 'paid';
     const passCode = !isPaid ? `VB-${Math.floor(100000 + Math.random() * 900000)}` : null;
+    const qrToken = 'vc_pass_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
     const { rows } = await pool.query(`
-      INSERT INTO event_rsvps (event_id, user_email, phone_number, status, payment_status, pass_code)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO event_rsvps (event_id, user_email, phone_number, status, payment_status, pass_code, qr_token, checkin_status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 'issued')
       ON CONFLICT (event_id, user_email) 
-      DO UPDATE SET status = EXCLUDED.status, payment_status = EXCLUDED.payment_status
-      RETURNING id, event_id, user_email, phone_number, status, payment_status, pass_code;
-    `, [eventId, email, phoneNumber || null, status, paymentStatus, passCode]);
+      DO UPDATE SET status = EXCLUDED.status, payment_status = EXCLUDED.payment_status,
+                    qr_token = COALESCE(event_rsvps.qr_token, EXCLUDED.qr_token),
+                    pass_code = COALESCE(event_rsvps.pass_code, EXCLUDED.pass_code)
+      RETURNING id, event_id, user_email, phone_number, status, payment_status, pass_code, qr_token, checkin_status;
+    `, [eventId, email, phoneNumber || null, status, paymentStatus, passCode, qrToken]);
 
     // Mark invite as claimed if exists
     await pool.query(
@@ -263,16 +266,18 @@ export async function insertEventRSVPEmail(pool: Pool, eventId: string, email: s
 
 export async function checkEventRSVPEmail(pool: Pool, eventId: string, email: string) {
     const { rows } = await pool.query(`
-      SELECT id, status, payment_status, pass_code FROM event_rsvps WHERE event_id = $1 AND user_email = $2
+      SELECT id, status, payment_status, pass_code, qr_token, checkin_status FROM event_rsvps WHERE event_id = $1 AND user_email = $2
     `, [eventId, email]);
     if (rows.length === 0) {
-      return { rsvped: false, status: null, payment_status: null, pass_code: null };
+      return { rsvped: false, status: null, payment_status: null, pass_code: null, qr_token: null, checkin_status: null };
     }
     return {
       rsvped: true,
       status: rows[0].status || 'confirmed',
       payment_status: rows[0].payment_status || 'unpaid',
-      pass_code: rows[0].pass_code
+      pass_code: rows[0].pass_code,
+      qr_token: rows[0].qr_token,
+      checkin_status: rows[0].checkin_status
     };
 }
 

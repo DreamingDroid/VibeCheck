@@ -82,7 +82,7 @@ function isPublicRoute(method: string, endpointPath: string): boolean {
     }
   }
 
-  // Public OTP / Application / RSVP / Ratings submission endpoints
+  // Public OTP / Application / RSVP / Ratings / Telegram webhook endpoints
   if (method === "POST") {
     if (
       normalizedPath.startsWith("/api/apply/send-otp") ||
@@ -90,6 +90,9 @@ function isPublicRoute(method: string, endpointPath: string): boolean {
       normalizedPath.startsWith("/api/apply/submit") ||
       normalizedPath.startsWith("/api/verify/send-code") ||
       normalizedPath.startsWith("/api/verify/confirm-code") ||
+      normalizedPath.startsWith("/api/telegram/webhook") ||
+      normalizedPath.startsWith("/api/passes/verify") ||
+      normalizedPath.startsWith("/api/passes/telegram-link") ||
       normalizedPath.includes("/rsvp") ||
       normalizedPath.includes("/ratings")
     ) {
@@ -101,18 +104,21 @@ function isPublicRoute(method: string, endpointPath: string): boolean {
 }
 
 async function handleProxy(req: NextRequest, { params }: { params: { path: string[] } }) {
+  // Reconstruct target endpoint
+  const rawSegments = params.path || [];
+  const cleanPath = rawSegments[0] === "api" ? rawSegments.slice(1).join("/") : rawSegments.join("/");
+  const targetEndpoint = `/api/${cleanPath}`;
+
+  // Allow Telegram Webhook and public API endpoints without browser CSRF check
+  const isTelegramWebhook = targetEndpoint.toLowerCase().startsWith("/api/telegram/webhook");
+
   // 1. Origin / CSRF Check
-  if (!isAllowedOrigin(req)) {
+  if (!isTelegramWebhook && !isAllowedOrigin(req)) {
     return NextResponse.json(
       { success: false, error: "Forbidden: Request origin not allowed" },
       { status: 403 }
     );
   }
-
-  // 2. Reconstruct clean target endpoint
-  const rawSegments = params.path || [];
-  const cleanPath = rawSegments[0] === "api" ? rawSegments.slice(1).join("/") : rawSegments.join("/");
-  const targetEndpoint = `/api/${cleanPath}`;
 
   // 3. Selective Authentication Check
   const method = req.method.toUpperCase();

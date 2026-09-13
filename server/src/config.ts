@@ -53,6 +53,12 @@ export const config = {
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',
 
+  // Telegram Settings
+  TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '',
+  TELEGRAM_BOT_USERNAME: process.env.TELEGRAM_BOT_USERNAME || 'VibeCheckSpaceBot',
+  TELEGRAM_WEBHOOK_SECRET: process.env.TELEGRAM_WEBHOOK_SECRET || 'vibecheck_telegram_secret',
+  QR_SIGNING_SECRET: process.env.QR_SIGNING_SECRET || 'vibecheck_qr_secure_key_2026',
+
   // Security / Smart Proxy Token
   PRIVATE_BACKEND_TOKEN: process.env.PRIVATE_BACKEND_TOKEN || ''
 };

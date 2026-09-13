@@ -11,7 +11,7 @@ import { useCity } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useTranslation } from "@/context/LanguageContext";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
-import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock, Send } from "lucide-react";
 import { toast } from "sonner";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
@@ -166,18 +166,13 @@ function DashboardContent() {
     };
   }, [dashboardNews.length, currentNewsIndex, isTickerHovered]);
 
+  const handleJoinTelegram = () => {
+    const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'VibeCheckSpaceBot';
+    window.open(`https://t.me/${botUsername}?start=dashboard`, '_blank');
+  };
+
   const handleJoinWhatsApp = () => {
-    if (!session?.user?.email) {
-      signIn("google");
-      return;
-    }
-    if (!userHasPhone) {
-      setShowPhoneModal(true);
-      return;
-    }
-    const text = `VibeCheck`;
-    const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
+    handleJoinTelegram();
   };
 
   const handleSharePlatform = async () => {
@@ -945,9 +940,15 @@ function DashboardContent() {
                Join our community over 5,000+ vibe-seekers.
              </p>
            </div>
-           <div className="flex gap-4">
-              <button onClick={handleJoinWhatsApp} className="ringer-button bg-primary text-black active:scale-95 transition-transform">PING VIBECHECK</button>
-              <button onClick={handleSharePlatform} className="ringer-button border border-white/20 hover:bg-white/10 active:scale-95 transition-transform">SHARE PLATFORM</button>
+           <div className="flex flex-wrap gap-4 items-center justify-center md:justify-start">
+             <button 
+               onClick={handleJoinTelegram} 
+               className="flex items-center gap-2 bg-[#229ED9] hover:bg-[#1d8dc3] text-white font-black px-6 py-3.5 rounded-full tracking-wide uppercase text-sm shadow-lg shadow-[#229ED9]/25 hover:shadow-[#229ED9]/40 active:scale-95 transition-all"
+             >
+               <Send className="h-4 w-4 fill-white -rotate-12" />
+               <span>PING VIBECHECK</span>
+             </button>
+             <button onClick={handleSharePlatform} className="ringer-button border border-white/20 hover:bg-white/10 active:scale-95 transition-transform">SHARE PLATFORM</button>
            </div>
         </section>
       )}

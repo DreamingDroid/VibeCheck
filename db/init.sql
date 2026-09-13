@@ -68,9 +68,14 @@ CREATE TABLE IF NOT EXISTS web_users (
     city VARCHAR(100),                           -- user's city for geo-filtering
     profession VARCHAR(100),
     age_group VARCHAR(50),
+    telegram_chat_id BIGINT UNIQUE,
+    telegram_username VARCHAR(255),
+    telegram_linked_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_web_users_telegram_chat_id ON web_users(telegram_chat_id);
 
 -- 3. Admins & Organizers
 CREATE TABLE IF NOT EXISTS admins (
@@ -142,9 +147,17 @@ CREATE TABLE IF NOT EXISTS event_rsvps (
     status VARCHAR(50) DEFAULT 'confirmed',      -- pending | confirmed | cancelled
     payment_status VARCHAR(50) DEFAULT 'unpaid', -- unpaid | paid
     pass_code VARCHAR(50),                       -- VB-XXXXXX
+    qr_token VARCHAR(255) UNIQUE,
+    checkin_status VARCHAR(50) DEFAULT 'unclaimed', -- unclaimed | issued | checked_in
+    checked_in_at TIMESTAMP WITH TIME ZONE,
+    checked_in_by VARCHAR(255),
+    telegram_message_id BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(event_id, user_email)
 );
+
+CREATE INDEX IF NOT EXISTS idx_event_rsvps_qr_token ON event_rsvps(qr_token);
+CREATE INDEX IF NOT EXISTS idx_event_rsvps_checkin ON event_rsvps(event_id, checkin_status);
 
 -- 6b. Event Invites (Guest List for Invite-Only / VIP Events)
 CREATE TABLE IF NOT EXISTS event_invites (
@@ -161,6 +174,20 @@ CREATE TABLE IF NOT EXISTS event_invites (
 
 CREATE INDEX IF NOT EXISTS idx_event_invites_user ON event_invites (user_email);
 CREATE INDEX IF NOT EXISTS idx_event_invites_event ON event_invites (event_id);
+
+-- 6c. Gate Staff Scanner PINs for Bouncers (Temporary Staff Access)
+CREATE TABLE IF NOT EXISTS event_scanner_pins (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    pin_code VARCHAR(10) NOT NULL,
+    gate_name VARCHAR(100) DEFAULT 'Main Gate',
+    created_by VARCHAR(255) NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX IF NOT EXISTS idx_scanner_pins_event ON event_scanner_pins(event_id, pin_code);
 
 -- 7. Cities (multi-city support)
 CREATE TABLE IF NOT EXISTS cities (

@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
-import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock } from "lucide-react";
+import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import OrganizerInsightsDashboard from "@/components/OrganizerInsightsDashboard";
@@ -86,6 +86,27 @@ function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateSt
           setBroadcastStats(d);
         }
       });
+  };
+
+  const copyBouncerScannerLink = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/organizer/events/${eventId}/scanner-pin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizer_email: organizerEmail, gate_name: "Gate 1" })
+      });
+      const data = await res.json();
+      if (data.success && data.scanner_url) {
+        await navigator.clipboard.writeText(data.scanner_url);
+        toast.success(`Gate Scanner Link & PIN (${data.pin_code}) copied to clipboard! Share with your door staff.`);
+      } else {
+        toast.error("Failed to generate scanner PIN");
+      }
+    } catch (err) {
+      toast.error("Error creating scanner link");
+    }
   };
 
   const handlePayAndSend = () => {
@@ -255,8 +276,21 @@ function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateSt
             </button>
           )}
 
-          {(status === 'approved' || status === 'filling_fast' || status === 'housefull' || status === 'ended') && (
-            <>
+              <Link
+                href={`/scanner/${eventId}`}
+                target="_blank"
+                onClick={(e) => e.stopPropagation()}
+                className="ringer-button bg-purple-600 hover:bg-purple-700 text-white text-[10px] flex items-center gap-1.5 font-black shadow-xs"
+              >
+                <QrCode className="h-3 w-3" /> GATE SCANNER
+              </Link>
+              <button
+                onClick={copyBouncerScannerLink}
+                className="ringer-button bg-zinc-800 hover:bg-zinc-900 text-white text-[10px] flex items-center gap-1.5 font-black shadow-xs"
+                title="Copy 4-digit PIN link for bouncers & door staff"
+              >
+                🔑 BOUNCER PIN
+              </button>
               <button onClick={(e) => { e.stopPropagation(); setBroadcastInitialType("general_update"); setInAppBroadcastOpen(true); }} className="ringer-button bg-rose-600 text-white hover:bg-rose-700 text-[10px] flex items-center gap-1.5 font-black shadow-xs">
                 <Radio className="h-3 w-3 animate-pulse" /> BROADCAST
               </button>
@@ -269,8 +303,6 @@ function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateSt
               <button onClick={openBroadcast} className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2">
                 📢 WHATSAPP UPDATE
               </button>
-            </>
-          )}
           {status === 'needs_changes' && onEdit && (
             <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="ringer-button bg-orange-500 text-white text-[10px] flex items-center gap-2">
               ✏️ EDIT & RESUBMIT

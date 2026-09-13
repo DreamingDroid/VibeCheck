@@ -46,6 +46,15 @@ import {
   unregisterFcmTokenHandler
 } from './broadcasts';
 import { initializeFirebaseAdmin } from './firebaseAdmin';
+import { handleTelegramWebhook } from './telegram';
+import {
+  verifyPassHandler,
+  searchAttendeesHandler,
+  manualCheckInHandler,
+  getAttendanceStatsHandler,
+  createScannerPinHandler,
+  getTelegramPassLinkHandler
+} from './passes';
 import { config } from './config';
 
 import rateLimit from 'express-rate-limit';
@@ -361,6 +370,17 @@ app.post('/api/notifications/fcm/unregister', (req, res) => unregisterFcmTokenHa
 // Verification API
 app.post('/api/verify/send-code', (req, res) => sendVerificationCodeHandler(req, res, pool));
 app.post('/api/verify/confirm-code', (req, res) => verifyPhoneNumberHandler(req, res, pool));
+
+// Telegram Webhook API
+app.post('/api/telegram/webhook', (req, res) => handleTelegramWebhook(req, res, pool));
+
+// Pass & Gate Scanner API
+app.post('/api/passes/verify', (req, res) => verifyPassHandler(req, res, pool));
+app.get('/api/passes/attendees', (req, res) => searchAttendeesHandler(req, res, pool));
+app.post('/api/passes/manual-checkin', (req, res) => manualCheckInHandler(req, res, pool));
+app.post('/api/passes/telegram-link', (req, res) => getTelegramPassLinkHandler(req, res, pool));
+app.get('/api/organizer/events/:id/attendance', (req, res) => getAttendanceStatsHandler(req, res, pool));
+app.post('/api/organizer/events/:id/scanner-pin', (req, res) => createScannerPinHandler(req, res, pool));
 
 // ── Dev-only: manually trigger the AI Matchmaker for testing ─────────────────
 app.post('/admin/trigger-cron', async (req, res) => {

@@ -11,7 +11,7 @@ import { OrganizerDetailsModal } from "@/components/OrganizerDetailsModal";
 import { EventRatingModal } from "@/components/EventRatingModal";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
 import { useTheme } from "@/context/ThemeContext";
-import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink, Send } from "lucide-react";
 import { toast } from "sonner";
 
 interface EventDetailsClientProps {
@@ -208,6 +208,31 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
     const text = `Check out this vibe: ${event.title}\n\n${window.location.href}`;
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
     window.open(whatsappUrl, '_blank');
+  };
+
+  const handleGetTelegramPass = async () => {
+    if (!event) return;
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${baseUrl}/api/passes/telegram-link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_id: event.id,
+          user_email: session?.user?.email
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.deep_link) {
+        window.open(data.deep_link, '_blank');
+      } else {
+        const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'VibeCheckSpaceBot';
+        window.open(`https://t.me/${botUsername}?start=event_${event.id}`, '_blank');
+      }
+    } catch (e) {
+      const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'VibeCheckSpaceBot';
+      window.open(`https://t.me/${botUsername}?start=event_${event.id}`, '_blank');
+    }
   };
 
   if (loading) return (
@@ -507,6 +532,14 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                       className="text-xs font-black uppercase tracking-wider text-black underline underline-offset-4 hover:text-primary transition-colors block pt-1 cursor-pointer"
                     >
                       Open Confirmed Pass →
+                    </button>
+
+                    <button
+                      onClick={handleGetTelegramPass}
+                      className="w-full mt-2 py-2.5 px-4 bg-[#229ED9] hover:bg-[#1d8dc3] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-[#229ED9]/20 active:scale-95"
+                    >
+                      <Send className="h-3.5 w-3.5 fill-white" />
+                      <span>Get Pass on Telegram</span>
                     </button>
                   </div>
                 )
