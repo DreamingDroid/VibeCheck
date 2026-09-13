@@ -9,7 +9,7 @@ import {
   ChevronDown, MapPin, Search, Music, Mic2, Tv,
   Trophy, Palette, BookOpen, Compass, Heart,
   Activity, Wine, Smile, Briefcase, Sparkles, Bell,
-  SunMoon, Menu, X, CheckCircle2, AlertCircle, Clock, ExternalLink, Calendar, User,
+  SunMoon, X, CheckCircle2, AlertCircle, Clock, ExternalLink, Calendar, User,
   Sliders, LogOut, Shield, Newspaper
 } from "lucide-react"
 import { useTheme } from "@/context/ThemeContext"
@@ -229,7 +229,6 @@ export function GlobalHeader() {
   const { data: session } = useSession()
   const { theme, toggleTheme, isVibrant } = useTheme()
   const [isSigningOut, setIsSigningOut] = useState(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const {
     currentCity, setCity, supportedCities, isLoading,
     selectedCategory, setSelectedCategory, activeCategories, events
@@ -281,19 +280,6 @@ export function GlobalHeader() {
     }
   }, [])
 
-  useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = "hidden"
-      document.documentElement.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = ""
-      document.documentElement.style.overflow = ""
-    }
-    return () => {
-      document.body.style.overflow = ""
-      document.documentElement.style.overflow = ""
-    }
-  }, [isMobileMenuOpen])
 
   const fetchUnreadCount = () => {
     if (!session?.user?.email) return;
@@ -1106,14 +1092,6 @@ export function GlobalHeader() {
                 {t("nav.join_vibe")}
               </button>
             )}
-
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 rounded-xl bg-zinc-100 hover:bg-black hover:text-white transition-colors flex items-center justify-center shrink-0"
-              aria-label="Toggle menu"
-            >
-              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
           </div>
         </div>
 
@@ -1143,136 +1121,7 @@ export function GlobalHeader() {
         )}
       </header>
 
-      {/* Mobile Menu Drawer */}
-      {isMobileMenuOpen && (
-        <>
-          <div className={`fixed inset-0 ${pathname === "/dashboard" && events.length > 0 ? "top-[121px]" : "top-[73px]"} z-40 bg-black/40 backdrop-blur-sm`} onClick={() => setIsMobileMenuOpen(false)} />
-          <div className={`fixed ${pathname === "/dashboard" && events.length > 0 ? "top-[121px]" : "top-[73px]"} left-0 right-0 z-50 bg-white border-b border-black/5 shadow-2xl p-6 flex flex-col gap-6 animate-in slide-in-from-top duration-300 overflow-y-auto ${pathname === "/dashboard" && events.length > 0 ? "max-h-[calc(100vh-121px)]" : "max-h-[calc(100vh-73px)]"} no-scrollbar`}>
-            {/* Search Bar in Mobile Menu */}
-            <div className="relative w-full">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-zinc-400" />
-              </div>
-              <input
-                type="text"
-                placeholder={t("nav.search_placeholder")}
-                className="block w-full pl-11 pr-4 py-3 bg-zinc-100/50 border-none rounded-full text-xs font-bold focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all placeholder:text-zinc-500 text-black"
-              />
-            </div>
 
-            {/* Mobile Language Switcher (if Netherlands / multiple languages) */}
-            {hasMultipleLanguages && (
-              <div className="flex items-center justify-between bg-zinc-50 p-3.5 rounded-2xl border border-black/5">
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Language / Taal</span>
-                  <span className="text-xs font-bold text-black">{ALL_LANGUAGES[language]?.nativeName}</span>
-                </div>
-                <div className="flex items-center gap-1 bg-zinc-200/60 p-1 rounded-xl">
-                  {availableLanguages.map((langOpt) => (
-                    <button
-                      key={langOpt.code}
-                      onClick={() => setLanguage(langOpt.code)}
-                      className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
-                        language === langOpt.code ? "bg-black text-white shadow-xs" : "text-zinc-600 hover:text-black"
-                      }`}
-                    >
-                      {langOpt.flag} {langOpt.code.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Navigation links */}
-            <nav className="flex flex-col gap-3">
-              {/* Local Currents always visible on Mobile */}
-              <Link href="/local-currents" onClick={() => setIsMobileMenuOpen(false)}>
-                <div className="w-full text-left px-5 py-4 rounded-2xl bg-zinc-50 hover:bg-black hover:text-white transition-all text-xs font-black uppercase tracking-widest">
-                  {t("nav.local_currents")}
-                </div>
-              </Link>
-
-              {session ? (
-                <>
-                  <Link href="/preferences" onClick={() => setIsMobileMenuOpen(false)}>
-                    <div className="w-full text-left px-5 py-4 rounded-2xl bg-zinc-50 hover:bg-black hover:text-white transition-all text-xs font-black uppercase tracking-widest">
-                      {t("nav.preferences")}
-                    </div>
-                  </Link>
-
-                  {isOrganizer && organizerStatus === 'approved' ? (
-                    <Link href="/organizer" onClick={() => setIsMobileMenuOpen(false)}>
-                      <div className="w-full text-left px-5 py-4 rounded-2xl bg-primary/10 text-primary hover:bg-primary hover:text-black transition-all text-xs font-black uppercase tracking-widest">
-                        {t("nav.organizer_hub")}
-                      </div>
-                    </Link>
-                  ) : isOrganizer && organizerStatus === 'pending_approval' ? (
-                    <div
-                      onClick={() => { setIsMobileMenuOpen(false); handleOrganizerStatusClick(); }}
-                      className="w-full text-left px-5 py-4 rounded-2xl bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-xs font-black uppercase tracking-widest flex items-center justify-between cursor-pointer hover:bg-amber-500/20 transition-all"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-amber-500 animate-pulse shrink-0" />
-                        <span>{t("nav.approval_pending")}</span>
-                      </div>
-                      <span className="text-[10px] bg-amber-500 text-white font-bold px-2.5 py-0.5 rounded-full uppercase">Review</span>
-                    </div>
-                  ) : isOrganizer && organizerStatus === 'rejected' ? (
-                    <div
-                      onClick={() => { setIsMobileMenuOpen(false); handleOrganizerStatusClick(); }}
-                      className="w-full text-left px-5 py-4 rounded-2xl bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20 text-xs font-black uppercase tracking-widest flex items-center justify-between cursor-pointer hover:bg-red-500/20 transition-all"
-                    >
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                        <span>{t("nav.rejected")}</span>
-                      </div>
-                      <span className="text-[10px] bg-red-500 text-white font-bold px-2.5 py-0.5 rounded-full uppercase">Reason</span>
-                    </div>
-                  ) : (
-                    <Link href="/organizer/apply" onClick={() => setIsMobileMenuOpen(false)}>
-                      <div className="w-full text-left px-5 py-4 rounded-2xl bg-zinc-50 hover:bg-black hover:text-white transition-all text-xs font-black uppercase tracking-widest">
-                        {t("nav.become_organizer")}
-                      </div>
-                    </Link>
-                  )}
-
-                  {isAdmin && (
-                    <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)}>
-                      <div className="w-full text-left px-5 py-4 rounded-2xl bg-black text-white hover:bg-zinc-800 transition-all text-xs font-black uppercase tracking-widest">
-                        {t("nav.admin")}
-                      </div>
-                    </Link>
-                  )}
-
-                  <div className="w-full h-[1px] bg-black/5 my-2"></div>
-
-                  <div className="flex items-center justify-between bg-zinc-100 p-4 rounded-2xl mt-2">
-                    <div className="flex flex-col min-w-0 pr-3">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">{t("nav.signed_in_as")}</p>
-                      <p className="text-xs font-bold text-black mt-0.5 truncate">{session.user?.name}</p>
-                    </div>
-
-                    <button
-                      onClick={() => { handleSignOut(); setIsMobileMenuOpen(false); }}
-                      disabled={isSigningOut}
-                      className="shrink-0 px-4 py-2.5 rounded-xl bg-black text-white hover:bg-zinc-800 transition-all text-[10px] font-black uppercase tracking-widest"
-                    >
-                      {isSigningOut ? "..." : t("nav.disconnect")}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <button
-                  onClick={() => { signIn("google"); setIsMobileMenuOpen(false); }}
-                  className="w-full text-center py-4 rounded-2xl bg-primary text-black font-black uppercase tracking-widest text-xs hover:bg-primary/90 transition-all shadow-md"
-                >
-                  {t("nav.join_vibe")}
-                </button>
-              )}
-            </nav>
-          </div>
-        </>
-      )}
 
       {/* Themed Notification Pop-up Modal */}
       {selectedNotification && (() => {

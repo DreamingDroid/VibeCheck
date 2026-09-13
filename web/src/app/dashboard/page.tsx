@@ -679,87 +679,195 @@ function DashboardContent() {
 
       {/* Exclusive VIP Invitations Section */}
       {vipInvites.length > 0 && !showCalendarView && (
-        <section className="relative overflow-hidden rounded-[24px] md:rounded-[36px] bg-gradient-to-br from-zinc-950 via-zinc-900 to-amber-950/60 p-6 md:p-8 border-2 border-amber-400/30 shadow-[0_10px_35px_-5px_rgba(245,158,11,0.2)] animate-in fade-in duration-500">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2" />
-          
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="sticker-badge bg-gradient-to-r from-amber-400 to-yellow-300 text-black border-none font-black text-[10px] uppercase py-0.5 px-2.5 shadow-sm">
-                  ✨ Exclusive Access
-                </span>
-                <span className="text-amber-400/80 text-xs font-bold uppercase tracking-widest">
-                  VIP Guest List
-                </span>
-              </div>
-              <h3 className="text-2xl md:text-3xl font-black italic tracking-tighter uppercase text-white">
-                You're On The VIP List ({vipInvites.length})
-              </h3>
-              <p className="text-zinc-400 text-xs md:text-sm max-w-xl">
-                The host has personally invited you to these exclusive, private events. Click to view details and secure your access pass.
-              </p>
-            </div>
-          </div>
+        vipInvites.length === 1 ? (
+          (() => {
+            const vip = vipInvites[0];
+            const formattedDate = new Date(vip.date_time).toLocaleDateString(undefined, {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            });
+            const timeStr = new Date(vip.date_time).toLocaleTimeString(undefined, {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-6 relative z-10">
-            {vipInvites.map((vip) => {
-              const formattedDate = new Date(vip.date_time).toLocaleDateString(undefined, {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              });
-              const timeStr = new Date(vip.date_time).toLocaleTimeString(undefined, {
-                hour: "2-digit",
-                minute: "2-digit",
-              });
+            return (
+              <section className="relative overflow-hidden rounded-[24px] md:rounded-[36px] bg-gradient-to-br from-zinc-950 via-zinc-900 to-amber-950/70 border-2 border-amber-400/40 shadow-[0_12px_40px_-5px_rgba(245,158,11,0.25)] animate-in fade-in duration-500 group">
+                {/* Ambient glow & VIP watermark */}
+                <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-amber-600/10 rounded-full blur-3xl pointer-events-none translate-y-1/2 -translate-x-1/2" />
+                <div className="absolute right-6 bottom-2 text-white/[0.03] font-black text-8xl md:text-9xl uppercase italic tracking-tighter select-none pointer-events-none">
+                  VIP
+                </div>
 
-              return (
-                <div
-                  key={vip.id}
-                  className="group relative bg-zinc-900/90 hover:bg-zinc-800/90 border border-amber-400/20 hover:border-amber-400/50 rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all duration-300 hover:shadow-[0_8px_25px_-5px_rgba(245,158,11,0.25)] hover:-translate-y-0.5"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                        {vip.category || 'VIP Experience'}
-                      </span>
-                      <span className="text-[10px] font-bold text-zinc-400 flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-amber-400" />
-                        {timeStr}
-                      </span>
+                <div className="relative z-10 flex flex-col lg:flex-row items-stretch">
+                  {/* Left Column: VIP Announcement & Invitation Info */}
+                  <div className="flex-1 p-6 md:p-8 flex flex-col justify-between gap-6 border-b lg:border-b-0 lg:border-r border-amber-400/20">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="sticker-badge bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-300 text-black border-none font-black text-[10px] uppercase py-0.5 px-3 shadow-md flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-black" />
+                          Exclusive Access
+                        </span>
+                        <span className="text-amber-400 text-xs font-black uppercase tracking-widest flex items-center gap-1">
+                          VIP Guest List
+                        </span>
+                      </div>
+
+                      <h3 className="text-2xl sm:text-3xl md:text-4xl font-black italic tracking-tighter uppercase text-white leading-tight">
+                        You're On The VIP List
+                      </h3>
+
+                      <p className="text-zinc-300 text-xs sm:text-sm font-medium leading-relaxed max-w-xl">
+                        {vip.organizer_name
+                          ? `${vip.organizer_name} has personally reserved an exclusive invitation for you.`
+                          : "The host has personally invited you to this exclusive, private event."}{" "}
+                        Click to view details and secure your access pass.
+                      </p>
                     </div>
 
-                    <h4 className="text-base font-black text-white group-hover:text-amber-300 transition-colors line-clamp-1 uppercase italic tracking-tight">
-                      {vip.title}
-                    </h4>
-
-                    <p className="text-xs text-zinc-400 line-clamp-2">
-                      {vip.description}
-                    </p>
-
-                    <div className="flex items-center gap-1.5 text-xs text-zinc-400 pt-1">
-                      <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <span className="truncate">{vip.location}</span>
+                    {/* Quick Meta Badges */}
+                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap pt-1">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-400/10 border border-amber-400/20 px-3 py-1.5 rounded-xl">
+                        <span>📅</span>
+                        <span>{formattedDate}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-400/10 border border-amber-400/20 px-3 py-1.5 rounded-xl">
+                        <Clock className="w-3.5 h-3.5 text-amber-400" />
+                        <span>{timeStr}</span>
+                      </div>
+                      {vip.location && (
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-300 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl max-w-full truncate">
+                          <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span className="truncate">{vip.location}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-white/5 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-amber-300/80">
-                      📅 {formattedDate}
-                    </span>
-                    <Link
-                      href={`/event/${vip.id}`}
-                      className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-black px-3.5 py-1.5 rounded-xl transition-all shadow-sm active:scale-95"
-                    >
-                      <span>Claim Pass</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                  {/* Right Column: Ticket Card Stub with Direct Action */}
+                  <div className="w-full lg:w-[400px] xl:w-[440px] bg-zinc-950/70 p-6 md:p-8 flex flex-col justify-between gap-5 relative">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                          {vip.category || 'VIP Experience'}
+                        </span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-amber-400/80">
+                          {vip.is_paid ? 'Paid Entry' : 'Complimentary'}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="text-xl sm:text-2xl font-black text-white group-hover:text-amber-300 transition-colors uppercase italic tracking-tight line-clamp-2">
+                          {vip.title}
+                        </h4>
+                        {vip.description && (
+                          <p className="text-xs text-zinc-400 line-clamp-2 mt-1.5 leading-relaxed">
+                            {vip.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <Link
+                        href={`/event/${vip.id}`}
+                        className="w-full inline-flex items-center justify-center gap-2 text-sm font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-black py-3.5 px-6 rounded-2xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)] hover:shadow-[0_6px_25px_rgba(245,158,11,0.45)] hover:scale-[1.02] active:scale-95"
+                      >
+                        <span>{vip.rsvp_status === 'going' ? 'View Your VIP Pass' : 'Claim VIP Pass'}</span>
+                        <ArrowRight className="w-4 h-4 text-black" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </section>
+              </section>
+            );
+          })()
+        ) : (
+          /* Multiple VIP Invites (2+) */
+          <section className="relative overflow-hidden rounded-[24px] md:rounded-[36px] bg-gradient-to-br from-zinc-950 via-zinc-900 to-amber-950/60 p-6 md:p-8 border-2 border-amber-400/30 shadow-[0_10px_35px_-5px_rgba(245,158,11,0.2)] animate-in fade-in duration-500">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2" />
+            
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="sticker-badge bg-gradient-to-r from-amber-400 to-yellow-300 text-black border-none font-black text-[10px] uppercase py-0.5 px-2.5 shadow-sm">
+                    ✨ Exclusive Access
+                  </span>
+                  <span className="text-amber-400/80 text-xs font-bold uppercase tracking-widest">
+                    VIP Guest List
+                  </span>
+                </div>
+                <h3 className="text-2xl md:text-3xl font-black italic tracking-tighter uppercase text-white">
+                  You're On The VIP List ({vipInvites.length})
+                </h3>
+                <p className="text-zinc-400 text-xs md:text-sm max-w-xl">
+                  The host has personally invited you to these exclusive, private events. Click to view details and secure your access pass.
+                </p>
+              </div>
+            </div>
+
+            <div className={`grid grid-cols-1 ${vipInvites.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'} gap-4 pt-6 relative z-10`}>
+              {vipInvites.map((vip) => {
+                const formattedDate = new Date(vip.date_time).toLocaleDateString(undefined, {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                });
+                const timeStr = new Date(vip.date_time).toLocaleTimeString(undefined, {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+
+                return (
+                  <div
+                    key={vip.id}
+                    className="group relative bg-zinc-900/90 hover:bg-zinc-800/90 border border-amber-400/20 hover:border-amber-400/50 rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all duration-300 hover:shadow-[0_8px_25px_-5px_rgba(245,158,11,0.25)] hover:-translate-y-0.5"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                          {vip.category || 'VIP Experience'}
+                        </span>
+                        <span className="text-[10px] font-bold text-zinc-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-amber-400" />
+                          {timeStr}
+                        </span>
+                      </div>
+
+                      <h4 className="text-base font-black text-white group-hover:text-amber-300 transition-colors line-clamp-1 uppercase italic tracking-tight">
+                        {vip.title}
+                      </h4>
+
+                      <p className="text-xs text-zinc-400 line-clamp-2">
+                        {vip.description}
+                      </p>
+
+                      <div className="flex items-center gap-1.5 text-xs text-zinc-400 pt-1">
+                        <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span className="truncate">{vip.location}</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-white/5 flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-amber-300/80">
+                        📅 {formattedDate}
+                      </span>
+                      <Link
+                        href={`/event/${vip.id}`}
+                        className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-black px-3.5 py-1.5 rounded-xl transition-all shadow-sm active:scale-95"
+                      >
+                        <span>{vip.rsvp_status === 'going' ? 'View Pass' : 'Claim Pass'}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )
       )}
 
       {/* Editorial Hero Section */}
