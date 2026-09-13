@@ -17,12 +17,12 @@ async function setupWebhook() {
   try {
     // 1. Get Bot Info
     const meRes = await fetch(`https://api.telegram.org/bot${token}/getMe`);
-    const meData = await meRes.json();
+    const meData = (await meRes.json()) as { ok: boolean; result?: { username?: string; first_name?: string }; description?: string };
     if (!meData.ok) {
       console.error('❌ Failed to connect to Telegram with this token:', meData);
       process.exit(1);
     }
-    console.log(`✅ Connected successfully to Bot: @${meData.result.username} (${meData.result.first_name})`);
+    console.log(`✅ Connected successfully to Bot: @${meData.result?.username} (${meData.result?.first_name})`);
 
     // 2. Set Webhook
     const setRes = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
@@ -33,7 +33,7 @@ async function setupWebhook() {
         allowed_updates: ['message', 'callback_query']
       })
     });
-    const setData = await setRes.json();
+    const setData = (await setRes.json()) as { ok: boolean; description?: string };
     if (setData.ok) {
       console.log(`✅ Webhook registered successfully!`);
       console.log(`Status: ${setData.description}`);
@@ -43,7 +43,7 @@ async function setupWebhook() {
 
     // 3. Check Webhook Info
     const infoRes = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`);
-    const infoData = await infoRes.json();
+    const infoData = (await infoRes.json()) as { ok: boolean; result?: unknown; description?: string };
     console.log('\n📡 Current Webhook Info:', JSON.stringify(infoData.result, null, 2));
 
   } catch (err) {
