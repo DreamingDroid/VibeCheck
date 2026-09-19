@@ -116,6 +116,8 @@ CREATE TABLE IF NOT EXISTS events (
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     date_time TIMESTAMP WITH TIME ZONE,
+    end_time TIMESTAMP WITH TIME ZONE,
+    timings TEXT,
     location VARCHAR(255),
     city VARCHAR(100),                           -- explicit city for global/multi-city support
     age_group int4range,                         -- PostgreSQL range type [min, max]
@@ -129,7 +131,11 @@ CREATE TABLE IF NOT EXISTS events (
     participant_limit INTEGER,                   -- max number of allowed participants
     is_paid BOOLEAN DEFAULT false,               -- whether event is free or paid
     visibility event_visibility DEFAULT 'public', -- public | invite_only
+    image_url VARCHAR(1000),
+    image_public_id VARCHAR(255),
     whatsapp_group_link TEXT,                    -- WhatsApp group invite link for RSVP'd attendees
+    average_rating NUMERIC(3,1),
+    ratings_count INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

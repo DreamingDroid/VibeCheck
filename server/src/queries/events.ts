@@ -289,11 +289,16 @@ export async function getEventByOrganizer(pool: Pool, eventId: string) {
 export async function createOrganizerEvent(pool: Pool, data: any) {
     const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, organizer_email, participant_limit, is_paid, visibility, image_url, image_public_id } = data;
     const validVisibility = visibility === 'invite_only' ? 'invite_only' : 'public';
+    const validCategories = ['Sports', 'Arts', 'Education', 'Spiritual', 'Music', 'Food', 'Wellness', 'Indie', 'Techno', 'General'];
+    const safeCategory = category && validCategories.includes(category) ? category : 'General';
+    const safeLimit = participant_limit !== undefined && participant_limit !== null && participant_limit !== '' ? parseInt(participant_limit, 10) : (data.participantLimit !== undefined && data.participantLimit !== null && data.participantLimit !== '' ? parseInt(data.participantLimit, 10) : null);
+    const safeIsPaid = Boolean(is_paid ?? data.isPaid ?? false);
+
     const { rows } = await pool.query(
       `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, status, organizer_email, participant_limit, is_paid, visibility, image_url, image_public_id)
        VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending', $13, $14, $15, $16::event_visibility, $17, $18)
        RETURNING id, title, status, visibility, image_url, image_public_id, whatsapp_group_link`,
-      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, organizer_email, participant_limit || null, is_paid || false, validVisibility, image_url || null, image_public_id || null]
+      [title, description, safeCategory, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, organizer_email, isNaN(safeLimit as number) ? null : safeLimit, safeIsPaid, validVisibility, image_url || null, image_public_id || null]
     );
     return rows[0];
 }

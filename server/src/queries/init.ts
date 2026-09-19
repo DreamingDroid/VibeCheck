@@ -90,6 +90,8 @@ export async function initializeDatabaseSchema(pool: Pool) {
       title VARCHAR(255) NOT NULL,
       description TEXT NOT NULL,
       date_time TIMESTAMP WITH TIME ZONE,
+      end_time TIMESTAMP WITH TIME ZONE,
+      timings TEXT,
       location VARCHAR(255),
       city VARCHAR(100),
       age_group int4range,
@@ -196,6 +198,9 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS rating NUMERIC(3,1) DEFAULT 4.5`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_email TEXT`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS end_time TIMESTAMP WITH TIME ZONE`).catch(() => {});
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS timings TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS google_maps_link TEXT`).catch(() => {});
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_history JSONB DEFAULT '[]'::jsonb`);
   await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
   await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS profession VARCHAR(100)`);
