@@ -312,9 +312,8 @@ export async function getEventsByOrganizerEmail(pool: Pool, email: string) {
 
 export async function getOrganizerEventRSVPs(pool: Pool, eventId: string) {
     const { rows } = await pool.query(
-      `SELECT er.id, er.user_email, er.phone_number, er.status, er.payment_status, er.pass_code, er.created_at, 
-              COALESCE(u.name, 'Anonymous Guest') as name,
-              COALESCE(er.phone_number, u.phone_number, 'Not provided') as contact_phone
+      `SELECT er.id, er.user_email, er.status, er.payment_status, er.pass_code, er.created_at, 
+              COALESCE(u.name, 'Anonymous Guest') as name
        FROM event_rsvps er 
        LEFT JOIN web_users u ON er.user_email = u.email 
        WHERE er.event_id = $1 

@@ -351,7 +351,7 @@ export function GlobalHeader() {
           navigator.serviceWorker
             .register(swUrl)
             .then((registration) => {
-              registration.update().catch(() => {});
+              registration.update().catch(() => { });
               return registerFcmForUser({
                 email: userEmail,
                 city: currentCity,
@@ -529,7 +529,7 @@ export function GlobalHeader() {
           {/* Logo & City */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-1.5 sm:gap-2">
-              <img src="/logo.png" alt="VibeCheck Space Logo" className="h-5 w-5 sm:h-6 sm:w-6 rounded-lg shrink-0 object-contain" />
+              <img src="/logo.png" alt="VibeCheck Space Logo" className="h-7 w-7 sm:h-[30px] sm:w-[30px] rounded-lg shrink-0 object-contain" />
               <div className="flex flex-col items-end leading-none">
                 <span className="text-lg sm:text-xl vibecheck_font_style leading-none">VIBECHECK</span>
                 <span className="text-xs sm:text-[13px] vibecheck_font_style not-italic -skew-x-[13.5deg] text-primary leading-none tracking-tight inline-block origin-right scale-x-[1.25] scale-y-[0.82] pr-0 -mt-1 sm:-mt-1.5">SPACE</span>
@@ -561,8 +561,8 @@ export function GlobalHeader() {
                             setShowCityMenu(false);
                           }}
                           className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${cityObj.name === currentCity
-                              ? 'bg-primary/10 text-primary'
-                              : 'text-zinc-500 hover:bg-black/5 hover:text-black'
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-zinc-500 hover:bg-black/5 hover:text-black'
                             }`}
                         >
                           {cityObj.name}
@@ -599,11 +599,10 @@ export function GlobalHeader() {
                               setLanguage(langOpt.code);
                               setShowLangMenu(false);
                             }}
-                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                              langOpt.code === language
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-colors ${langOpt.code === language
                                 ? 'bg-primary/10 text-primary'
                                 : 'text-zinc-500 hover:bg-black/5 hover:text-black'
-                            }`}
+                              }`}
                           >
                             <span className="flex items-center gap-2">
                               <span>{langOpt.flag}</span>
@@ -737,8 +736,8 @@ export function GlobalHeader() {
                                 key={tab}
                                 onClick={() => setNotificationFilter(tab)}
                                 className={`flex-1 py-1 rounded-lg uppercase tracking-wider transition-all ${notificationFilter === tab
-                                    ? "bg-white text-black shadow-xs font-black"
-                                    : "text-zinc-500 hover:text-black"
+                                  ? "bg-white text-black shadow-xs font-black"
+                                  : "text-zinc-500 hover:text-black"
                                   }`}
                               >
                                 {tab === "all" ? t("nav.filter_all") : tab === "unread" ? t("nav.filter_unread") : t("nav.filter_alerts")}
@@ -803,8 +802,8 @@ export function GlobalHeader() {
                                     key={notif.id}
                                     onClick={() => handleNotificationClick(notif)}
                                     className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative flex items-start gap-3 group hover:scale-[1.01] ${notif.is_read
-                                        ? "bg-zinc-50/50 border-black/5 hover:bg-zinc-100/60 opacity-80"
-                                        : `${typeCfg.cardBg} border-black/10 hover:border-black/20 shadow-xs`
+                                      ? "bg-zinc-50/50 border-black/5 hover:bg-zinc-100/60 opacity-80"
+                                      : `${typeCfg.cardBg} border-black/10 hover:border-black/20 shadow-xs`
                                       } ${notif.type === "emergency_alert" && !notif.is_read
                                         ? "border-red-300 ring-1 ring-red-400/30"
                                         : ""
@@ -858,9 +857,8 @@ export function GlobalHeader() {
                       aria-label="Account Menu"
                       title={session.user?.name || "Account"}
                     >
-                      <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full border overflow-hidden bg-zinc-100 flex items-center justify-center transition-all shadow-xs ${
-                        showProfileMenu ? 'ring-2 ring-black border-black' : 'border-black/10 hover:ring-2 hover:ring-black'
-                      }`}>
+                      <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full border overflow-hidden bg-zinc-100 flex items-center justify-center transition-all shadow-xs ${showProfileMenu ? 'ring-2 ring-black border-black' : 'border-black/10 hover:ring-2 hover:ring-black'
+                        }`}>
                         {session.user?.image && !avatarImgError ? (
                           <img
                             src={session.user.image}
@@ -1108,8 +1106,8 @@ export function GlobalHeader() {
                   key={cat.name}
                   onClick={() => setSelectedCategory(cat.name)}
                   className={`sticker-badge flex items-center gap-1.5 whitespace-nowrap h-8 px-4 transition-all snap-start ${isActive
-                      ? (isVibrant ? vibrantActiveClass : 'bg-black text-white border-transparent')
-                      : 'bg-white hover:bg-zinc-100 text-zinc-600 hover:text-black border-black/10'
+                    ? (isVibrant ? vibrantActiveClass : 'bg-black text-white border-transparent')
+                    : 'bg-white hover:bg-zinc-100 text-zinc-600 hover:text-black border-black/10'
                     }`}
                 >
                   {cat.icon}

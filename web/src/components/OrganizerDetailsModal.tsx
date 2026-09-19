@@ -12,12 +12,13 @@ import {
   Share2, 
   Check, 
   ExternalLink, 
-  MessageCircle, 
+  Send, 
   X, 
   Globe, 
   MapPin,
   CalendarCheck2
 } from "lucide-react";
+import { formatTelegramLink } from "@/lib/telegramGroup";
 import { toast } from "sonner";
 
 interface OrganizerDetailsModalProps {
@@ -173,7 +174,7 @@ export function OrganizerDetailsModal({
         </button>
 
         {/* Scrollable Container (Banner + Body unified) */}
-        <div className="overflow-y-auto flex-1 custom-scrollbar">
+        <div className="overflow-y-auto flex-1 no-scrollbar">
           {/* Hero Header Banner - Lively Emerald / Teal Gradient */}
           <div className="relative bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white px-6 pt-6 pb-12 overflow-hidden h-24">
             {/* Vibrant Ambient Glow Orbs */}
@@ -297,13 +298,13 @@ export function OrganizerDetailsModal({
 
               {event?.whatsapp_group_link && (
                 <a
-                  href={event.whatsapp_group_link}
+                  href={formatTelegramLink(event.whatsapp_group_link)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  title="Join Organizer WhatsApp Group"
-                  className="h-12 w-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition-all active:scale-95 shadow-md shadow-emerald-600/20 cursor-pointer shrink-0"
+                  title="Join Organizer Telegram Group"
+                  className="h-12 w-12 rounded-2xl bg-[#229ED9] hover:bg-[#1d8dc3] text-white flex items-center justify-center transition-all active:scale-95 shadow-md shadow-[#229ED9]/20 cursor-pointer shrink-0"
                 >
-                  <MessageCircle className="h-4 w-4" />
+                  <Send className="h-4 w-4 fill-white" />
                 </a>
               )}
             </div>

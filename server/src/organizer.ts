@@ -539,15 +539,15 @@ export async function organizerUpdateWhatsAppGroupLinkHandler(req: Request, res:
       return res.status(404).json({ success: false, error: 'Event not found or unauthorized' });
     }
 
-    res.json({ success: true, data: updated, message: 'WhatsApp group invite link updated successfully.' });
+    res.json({ success: true, data: updated, message: 'Telegram group invite link updated successfully.' });
   } catch (error) {
-    console.error('Update WhatsApp group link error:', error);
+    console.error('Update Telegram group link error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
 /**
- * Dispatch WhatsApp Group Invite Notification to all RSVP'd Attendees
+ * Dispatch Telegram Group Invite Notification to all RSVP'd Attendees
  * POST /api/organizer/events/:id/whatsapp-group-invite
  */
 export async function organizerSendWhatsAppGroupInviteHandler(req: Request, res: Response, pool: Pool) {
@@ -568,7 +568,7 @@ export async function organizerSendWhatsAppGroupInviteHandler(req: Request, res:
 
     const linkToUse = (whatsapp_group_link || event.whatsapp_group_link || '').trim();
     if (!linkToUse) {
-      return res.status(400).json({ success: false, error: 'Please provide a valid WhatsApp group invite link.' });
+      return res.status(400).json({ success: false, error: 'Please provide a valid Telegram group invite link.' });
     }
 
     // Persist new link if updated
@@ -576,8 +576,8 @@ export async function organizerSendWhatsAppGroupInviteHandler(req: Request, res:
       await updateEventWhatsAppGroupLink(pool, id as string, organizer_email, linkToUse);
     }
 
-    const title = `💬 WhatsApp Group Invite: ${event.title}`;
-    const defaultMsg = `Join the official attendee WhatsApp group for "${event.title}" to chat with the organizer and fellow guests!`;
+    const title = `✈️ Telegram Group Invite: ${event.title}`;
+    const defaultMsg = `Join the official attendee Telegram group for "${event.title}" to chat with the organizer and fellow guests!`;
     const message = custom_message && custom_message.trim() ? custom_message.trim() : defaultMsg;
 
     const input: CreateBroadcastInput = {
@@ -613,7 +613,7 @@ export async function organizerSendWhatsAppGroupInviteHandler(req: Request, res:
         whatsapp_group_link: linkToUse,
         action: 'join_whatsapp_group'
       }
-    }).catch(err => console.error('[FCM WhatsApp Invite Broadcast Error]:', err));
+    }).catch(err => console.error('[FCM Telegram Invite Broadcast Error]:', err));
 
     // Optional email dispatch via Resend
     if (config.RESEND_API_KEY && config.RESEND_API_KEY !== 're_dummy_key_123' && result.recipientCount > 0) {

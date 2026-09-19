@@ -5,8 +5,9 @@ import {
   X, CheckCircle2, Calendar, MapPin, Phone, 
   ExternalLink, Sparkles, Clock, Check, 
   AlertCircle, Share2, CalendarPlus, Backpack,
-  Compass, ShieldCheck, Ticket
+  Compass, ShieldCheck, Ticket, Send
 } from "lucide-react";
+import { formatTelegramLink } from "@/lib/telegramGroup";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface ScheduleItem {
@@ -365,28 +366,29 @@ export function AttendeeBriefingModal({
             </div>
           )}
 
-          {/* 5. Official Attendee WhatsApp Group */}
+          {/* 5. Official Attendee Telegram Group */}
           {event.whatsapp_group_link && (
-            <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl shadow-xs space-y-3">
+            <div className="bg-sky-50 border border-sky-200 p-5 rounded-2xl shadow-xs space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-800 flex items-center gap-1.5">
-                  <span>💬</span>
-                  <span>Official Attendee WhatsApp Group</span>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#229ED9] flex items-center gap-1.5">
+                  <Send className="h-3.5 w-3.5 fill-[#229ED9]" />
+                  <span>Official Attendee Telegram Group</span>
                 </h4>
-                <span className="text-[9px] font-black uppercase bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full">
+                <span className="text-[9px] font-black uppercase bg-sky-200 text-sky-900 px-2 py-0.5 rounded-full">
                   Community Chat
                 </span>
               </div>
-              <p className="text-xs text-emerald-950 font-bold leading-snug">
-                Join the official group chat to connect with the organizer, coordinate with other attendees, and get real-time announcements.
+              <p className="text-xs text-sky-950 font-bold leading-snug">
+                Join the official Telegram group to connect with the organizer, coordinate with other attendees, and get real-time announcements.
               </p>
               <a
-                href={event.whatsapp_group_link}
+                href={formatTelegramLink(event.whatsapp_group_link)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-600/20 active:scale-95"
+                className="w-full py-2.5 px-4 bg-[#229ED9] hover:bg-[#1d8dc3] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-[#229ED9]/20 active:scale-95"
               >
-                <span>Join Official WhatsApp Group</span>
+                <Send className="h-3.5 w-3.5 fill-white" />
+                <span>Join Official Telegram Group</span>
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
             </div>

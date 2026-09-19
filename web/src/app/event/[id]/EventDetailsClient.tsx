@@ -9,9 +9,11 @@ import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
 import { AttendeeBriefingModal } from "@/components/AttendeeBriefingModal";
 import { OrganizerDetailsModal } from "@/components/OrganizerDetailsModal";
 import { EventRatingModal } from "@/components/EventRatingModal";
+import { JoinTelegramPromptModal } from "@/components/JoinTelegramPromptModal";
+import { formatTelegramLink } from "@/lib/telegramGroup";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
 import { useTheme } from "@/context/ThemeContext";
-import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, MessageCircle, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink, Send } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink, Send } from "lucide-react";
 import { toast } from "sonner";
 
 interface EventDetailsClientProps {
@@ -33,6 +35,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showOrganizerModal, setShowOrganizerModal] = useState(false);
   const [showBriefingModal, setShowBriefingModal] = useState(false);
+  const [showTelegramPromptModal, setShowTelegramPromptModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [hasRated, setHasRated] = useState(false);
   const [userRating, setUserRating] = useState<any>(null);
@@ -157,17 +160,24 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         const resolvedStatus = data.rsvp_status || (event?.is_paid ? 'pending' : 'confirmed');
         setRsvpStatus(resolvedStatus);
         setPassCode(data.pass_code || null);
-        setShowBriefingModal(true);
         if (event?.is_paid) {
           toast.success("Registration received! Pass pending payment with organizer.");
         } else {
           toast.success("RSVP confirmed! Free pass issued.");
         }
-        // Refresh event data to update rsvp_count
+        // Refresh event data to update rsvp_count and group link
         const refreshedEventRes = await fetch(`${baseUrl}/api/events/${eventId}`);
         const refreshedEvent = await refreshedEventRes.json();
+        const latestEvent = refreshedEvent.success ? refreshedEvent.data : event;
         if (refreshedEvent.success) {
           setEvent(refreshedEvent.data);
+        }
+
+        // If Telegram group link exists, prompt attendee to join, otherwise open briefing pass
+        if (latestEvent?.whatsapp_group_link) {
+          setShowTelegramPromptModal(true);
+        } else {
+          setShowBriefingModal(true);
         }
       } else {
         toast.error(data.error || "RSVP failed");
@@ -201,13 +211,6 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     toast.success("Vibe link copied to clipboard!");
-  };
-
-  const handleWhatsappShare = () => {
-    if (!event) return;
-    const text = `Check out this vibe: ${event.title}\n\n${window.location.href}`;
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-    window.open(whatsappUrl, '_blank');
   };
 
   const handleGetTelegramPass = async () => {
@@ -545,28 +548,29 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                 )
               )}
 
-              {/* Official Attendee WhatsApp Group */}
+              {/* Official Attendee Telegram Group (RSVP'd Card) */}
               {rsvped && event.whatsapp_group_link && (
-                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2.5">
+                <div className="p-4 rounded-2xl bg-sky-50 border border-sky-200 space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-700">
-                      <span>💬</span>
-                      <span>Attendee Group</span>
+                    <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#229ED9]">
+                      <Send className="h-3 w-3 fill-[#229ED9]" />
+                      <span>Attendee Telegram Group</span>
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-200/60 text-emerald-800">
+                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-200/60 text-sky-900">
                       Active
                     </span>
                   </div>
-                  <p className="text-xs text-emerald-950 font-bold leading-snug">
+                  <p className="text-xs text-sky-950 font-bold leading-snug">
                     Connect and chat with the organizer and fellow attendees!
                   </p>
                   <a
-                    href={event.whatsapp_group_link}
+                    href={formatTelegramLink(event.whatsapp_group_link)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-600/20 active:scale-95"
+                    className="w-full py-2.5 px-4 bg-[#229ED9] hover:bg-[#1d8dc3] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-[#229ED9]/20 active:scale-95"
                   >
-                    <span>Join WhatsApp Group</span>
+                    <Send className="h-3.5 w-3.5 fill-white" />
+                    <span>Join Official Telegram Group</span>
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 </div>
@@ -625,29 +629,43 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               )}
            </div>
 
+           {/* Evident 'Join Telegram Group' Action Button (Only visible if Telegram link is configured) */}
+           {event.whatsapp_group_link && (
+             <div className="pt-6 sm:pt-8 border-t border-black/5 flex flex-col gap-2">
+                <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Community Group</div>
+                <button
+                  onClick={() => {
+                    if (!rsvped) {
+                      toast.info("Please RSVP to this event first to join the official attendee Telegram group!");
+                      return;
+                    }
+                    window.open(formatTelegramLink(event.whatsapp_group_link!), '_blank');
+                  }}
+                  className="w-full py-3.5 px-4 bg-[#229ED9] hover:bg-[#1d8dc3] text-white rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-[#229ED9]/25 active:scale-95 cursor-pointer"
+                >
+                  <Send className="h-4 w-4 fill-white" />
+                  <span>Join Telegram Group</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </button>
+             </div>
+           )}
+
            <div className="pt-6 sm:pt-8 border-t border-black/5 flex flex-col gap-4">
               <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Share This Vibe</div>
               <div className="flex gap-2">
                  <button 
                    onClick={handleCopyLink} 
                    title="Copy Link"
-                   className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-zinc-50"
+                   className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-zinc-50 cursor-pointer"
                  >
                    <Link2 className="h-4 w-4 text-black" />
                  </button>
                  <button 
                    onClick={handleShare} 
                    title="System Share"
-                   className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-zinc-50"
+                   className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-zinc-50 cursor-pointer"
                  >
                    <Share2 className="h-4 w-4 text-black" />
-                 </button>
-                 <button 
-                   onClick={handleWhatsappShare} 
-                   title="Share on WhatsApp"
-                   className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-zinc-50"
-                 >
-                   <MessageCircle className="h-4 w-4 text-black" />
                  </button>
               </div>
            </div>
@@ -671,6 +689,19 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         onDownloadICS={handleDownloadICS}
         onShare={handleShare}
       />
+
+      {/* Post-RSVP Telegram Group Prompt Modal */}
+      {event?.whatsapp_group_link && (
+        <JoinTelegramPromptModal
+          isOpen={showTelegramPromptModal}
+          onClose={() => {
+            setShowTelegramPromptModal(false);
+            setShowBriefingModal(true);
+          }}
+          eventTitle={event.title}
+          telegramGroupLink={event.whatsapp_group_link}
+        />
+      )}
 
       <EventRatingModal
         isOpen={showRatingModal}

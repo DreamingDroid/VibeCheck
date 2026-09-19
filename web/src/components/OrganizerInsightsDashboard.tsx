@@ -112,44 +112,44 @@ export default function OrganizerInsightsDashboard({ organizerEmail }: { organiz
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
       
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-zinc-50 p-6 rounded-[24px] border border-black/5 hover:border-black/10 transition-colors shadow-sm">
-          <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-2">Total RSVP volume</p>
-          <p className="text-3xl font-black italic text-black">{aggregates.totalRsvps}</p>
-          <p className="text-[9px] text-zinc-400 mt-1 font-semibold">Across all your events</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+        <div className="bg-zinc-50 p-3.5 sm:p-4 rounded-2xl border border-black/5 hover:border-black/10 transition-colors shadow-xs">
+          <p className="text-[9px] sm:text-[10px] text-zinc-400 font-black uppercase tracking-wider mb-1">Total RSVP volume</p>
+          <p className="text-2xl sm:text-3xl font-black italic text-black leading-none">{aggregates.totalRsvps}</p>
+          <p className="text-[8px] sm:text-[9px] text-zinc-400 mt-1 font-semibold">Across all your events</p>
         </div>
 
-        <div className="bg-zinc-50 p-6 rounded-[24px] border border-black/5 hover:border-black/10 transition-colors shadow-sm">
-          <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-2">Active Followers</p>
-          <p className="text-3xl font-black italic text-primary">{aggregates.totalFollowers}</p>
-          <p className="text-[9px] text-zinc-400 mt-1 font-semibold">Direct community reach</p>
+        <div className="bg-zinc-50 p-3.5 sm:p-4 rounded-2xl border border-black/5 hover:border-black/10 transition-colors shadow-xs">
+          <p className="text-[9px] sm:text-[10px] text-zinc-400 font-black uppercase tracking-wider mb-1">Active Followers</p>
+          <p className="text-2xl sm:text-3xl font-black italic text-primary leading-none">{aggregates.totalFollowers}</p>
+          <p className="text-[8px] sm:text-[9px] text-zinc-400 mt-1 font-semibold">Direct community reach</p>
         </div>
 
-        <div className="bg-zinc-50 p-6 rounded-[24px] border border-black/5 hover:border-black/10 transition-colors shadow-sm">
-          <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-2">Super Fan Count</p>
-          <p className="text-3xl font-black italic text-[#EAB308]">{aggregates.superfans}</p>
-          <p className="text-[9px] text-zinc-400 mt-1 font-semibold">Attendees with 2+ RSVPs</p>
+        <div className="bg-zinc-50 p-3.5 sm:p-4 rounded-2xl border border-black/5 hover:border-black/10 transition-colors shadow-xs">
+          <p className="text-[9px] sm:text-[10px] text-zinc-400 font-black uppercase tracking-wider mb-1">Super Fan Count</p>
+          <p className="text-2xl sm:text-3xl font-black italic text-[#EAB308] leading-none">{aggregates.superfans}</p>
+          <p className="text-[8px] sm:text-[9px] text-zinc-400 mt-1 font-semibold">Attendees with 2+ RSVPs</p>
         </div>
 
-        <div className="bg-zinc-50 p-6 rounded-[24px] border border-black/5 hover:border-black/10 transition-colors shadow-sm">
-          <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-2">Outreach Conversion</p>
-          <p className="text-3xl font-black italic text-[#22C55E]">{broadcastStats.conversionRate}%</p>
-          <p className="text-[9px] text-zinc-400 mt-1 font-semibold">{broadcastStats.conversions} conversions from blasts</p>
+        <div className="bg-zinc-50 p-3.5 sm:p-4 rounded-2xl border border-black/5 hover:border-black/10 transition-colors shadow-xs">
+          <p className="text-[9px] sm:text-[10px] text-zinc-400 font-black uppercase tracking-wider mb-1">Outreach Conversion</p>
+          <p className="text-2xl sm:text-3xl font-black italic text-[#22C55E] leading-none">{broadcastStats.conversionRate}%</p>
+          <p className="text-[8px] sm:text-[9px] text-zinc-400 mt-1 font-semibold">{broadcastStats.conversions} conversions from blasts</p>
         </div>
       </div>
 
       {/* Primary Insights Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 sm:gap-5">
         
         {/* Venue insights */}
-        <div className="ringer-card p-6 sm:p-8">
-          <h3 className="text-lg font-black uppercase tracking-wider mb-2">Venue & Locality Popularity</h3>
-          <p className="text-xs text-zinc-400 mb-6 font-semibold">Which venues attract the highest density of RSVPs?</p>
+        <div className="ringer-card p-4 sm:p-5 rounded-2xl">
+          <h3 className="text-sm sm:text-base font-black uppercase tracking-wider mb-0.5">Venue & Locality Popularity</h3>
+          <p className="text-[10px] sm:text-xs text-zinc-400 mb-3 font-semibold">Which venues attract the highest density of RSVPs?</p>
           
-          <div className="h-64">
+          <div className="h-48 sm:h-52">
             {venueInsights.length === 0 ? (
               <div className="h-full flex items-center justify-center text-zinc-300 text-xs uppercase tracking-wider font-bold">
                 No venue records detected
@@ -159,24 +159,24 @@ export default function OrganizerInsightsDashboard({ organizerEmail }: { organiz
                 <BarChart
                   data={venueInsights}
                   layout="vertical"
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  margin={{ top: 0, right: 15, left: 10, bottom: 0 }}
                 >
-                  <XAxis type="number" stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
+                  <XAxis type="number" stroke="#888888" fontSize={9} tickLine={false} axisLine={false} />
                   <YAxis 
                     dataKey="name" 
                     type="category" 
                     stroke="#888888" 
-                    fontSize={10} 
+                    fontSize={9} 
                     tickLine={false} 
                     axisLine={false}
-                    width={100}
+                    width={90}
                   />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: "#18181B", borderRadius: "12px", border: "none" }}
-                    labelStyle={{ color: "#FFFFFF", fontWeight: "bold", fontSize: "11px" }}
-                    itemStyle={{ color: "#C1FF00", fontSize: "11px" }}
+                    contentStyle={{ backgroundColor: "#18181B", borderRadius: "10px", border: "none", padding: "6px 10px" }}
+                    labelStyle={{ color: "#FFFFFF", fontWeight: "bold", fontSize: "10px" }}
+                    itemStyle={{ color: "#C1FF00", fontSize: "10px" }}
                   />
-                  <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+                  <Bar dataKey="value" radius={[0, 6, 6, 0]}>
                     {venueInsights.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={index === 0 ? "#C1FF00" : "#18181B"} />
                     ))}
@@ -188,11 +188,11 @@ export default function OrganizerInsightsDashboard({ organizerEmail }: { organiz
         </div>
 
         {/* Audience Cohort Freshness */}
-        <div className="ringer-card p-6 sm:p-8">
-          <h3 className="text-lg font-black uppercase tracking-wider mb-2">Audience Retention & Freshness</h3>
-          <p className="text-xs text-zinc-400 mb-6 font-semibold">Breakdown of first-time attendees versus repeating superfans.</p>
+        <div className="ringer-card p-4 sm:p-5 rounded-2xl">
+          <h3 className="text-sm sm:text-base font-black uppercase tracking-wider mb-0.5">Audience Retention & Freshness</h3>
+          <p className="text-[10px] sm:text-xs text-zinc-400 mb-3 font-semibold">Breakdown of first-time attendees versus repeating superfans.</p>
 
-          <div className="h-64 flex flex-col sm:flex-row items-center justify-center">
+          <div className="h-48 sm:h-52 flex flex-col sm:flex-row items-center justify-center">
             {freshnessInsights.length === 0 ? (
               <div className="h-full flex items-center justify-center text-zinc-300 text-xs uppercase tracking-wider font-bold">
                 No attendee cohorts found
@@ -206,9 +206,9 @@ export default function OrganizerInsightsDashboard({ organizerEmail }: { organiz
                         data={freshnessInsights}
                         cx="50%"
                         cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
-                        paddingAngle={4}
+                        innerRadius={42}
+                        outerRadius={68}
+                        paddingAngle={3}
                         dataKey="value"
                       >
                         {freshnessInsights.map((entry, index) => (
@@ -216,22 +216,22 @@ export default function OrganizerInsightsDashboard({ organizerEmail }: { organiz
                         ))}
                       </Pie>
                       <Tooltip 
-                        contentStyle={{ backgroundColor: "#18181B", borderRadius: "12px", border: "none" }}
-                        itemStyle={{ color: "#FFFFFF", fontSize: "11px" }}
+                        contentStyle={{ backgroundColor: "#18181B", borderRadius: "10px", border: "none", padding: "6px 10px" }}
+                        itemStyle={{ color: "#FFFFFF", fontSize: "10px" }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="w-full sm:w-1/2 flex flex-col gap-3 justify-center pl-4 mt-4 sm:mt-0">
+                <div className="w-full sm:w-1/2 flex flex-col gap-2.5 justify-center pl-2 sm:pl-4 mt-2 sm:mt-0">
                   {freshnessInsights.map((item, index) => (
                     <div key={item.name} className="flex items-center gap-2">
                       <span 
-                        className="w-3 h-3 rounded-full shrink-0" 
+                        className="w-2.5 h-2.5 rounded-full shrink-0" 
                         style={{ backgroundColor: COLORS[index % COLORS.length] }} 
                       />
                       <div className="flex justify-between w-full text-xs font-semibold">
-                        <span className="text-zinc-600">{item.name}</span>
-                        <span className="text-black font-black font-mono">{item.value}</span>
+                        <span className="text-zinc-600 text-[11px]">{item.name}</span>
+                        <span className="text-black font-black font-mono text-xs">{item.value}</span>
                       </div>
                     </div>
                   ))}
@@ -244,15 +244,30 @@ export default function OrganizerInsightsDashboard({ organizerEmail }: { organiz
       </div>
 
       {/* Scheduling Heat Grid */}
-      <div className="ringer-card p-6 sm:p-10">
-        <h3 className="text-lg font-black uppercase tracking-wider mb-2">Event Scheduling Heat Grid</h3>
-        <p className="text-xs text-zinc-400 mb-6 font-semibold">Identify which days of the week and times of day drive optimal RSVP density.</p>
+      <div className="ringer-card p-4 sm:p-5 rounded-2xl">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-2">
+          <div>
+            <h3 className="text-sm sm:text-base font-black uppercase tracking-wider">Event Scheduling Heat Grid</h3>
+            <p className="text-[10px] sm:text-xs text-zinc-400 font-semibold">Identify which days of the week and times of day drive optimal RSVP density.</p>
+          </div>
+          {/* Legend */}
+          <div className="flex gap-2 sm:gap-3 items-center text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-zinc-400 shrink-0">
+            <span>Low</span>
+            <div className="flex gap-1">
+              <div className="w-3.5 h-3.5 rounded bg-zinc-50 border border-black/5" />
+              <div className="w-3.5 h-3.5 rounded bg-[#C1FF00]/30" />
+              <div className="w-3.5 h-3.5 rounded bg-[#C1FF00]/60" />
+              <div className="w-3.5 h-3.5 rounded bg-[#C1FF00]" />
+            </div>
+            <span>Peak</span>
+          </div>
+        </div>
 
         <div className="overflow-x-auto">
-          <div className="min-w-[640px] space-y-4">
+          <div className="w-full min-w-[440px] sm:min-w-full space-y-1.5 sm:space-y-2 pt-2">
             
             {/* Grid Header Days */}
-            <div className="grid grid-cols-8 gap-2 text-center text-[10px] font-black uppercase tracking-wider text-zinc-400">
+            <div className="grid grid-cols-8 gap-1.5 sm:gap-2 text-center text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-zinc-400">
               <div>Slot / Day</div>
               {DAYS.map(day => (
                 <div key={day}>{day.substring(0, 3)}</div>
@@ -261,10 +276,10 @@ export default function OrganizerInsightsDashboard({ organizerEmail }: { organiz
 
             {/* Time Slot Rows */}
             {TIME_SLOTS.map(slot => (
-              <div key={slot} className="grid grid-cols-8 gap-2 items-center">
+              <div key={slot} className="grid grid-cols-8 gap-1.5 sm:gap-2 items-center">
                 
                 {/* Y-Axis Label */}
-                <div className="text-[10px] font-black uppercase tracking-wider text-zinc-500 text-left pl-2">
+                <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-zinc-500 text-left pl-1 sm:pl-2">
                   {slot}
                 </div>
 
@@ -277,7 +292,7 @@ export default function OrganizerInsightsDashboard({ organizerEmail }: { organiz
                   return (
                     <div
                       key={`${dayIdx}-${slot}`}
-                      className="group relative h-16 rounded-xl flex flex-col items-center justify-center border transition-all duration-300"
+                      className="group relative h-9 sm:h-11 rounded-lg flex flex-col items-center justify-center border transition-all duration-300"
                       style={{
                         backgroundColor: rsvpsCount > 0 
                           ? `rgba(193, 255, 0, ${0.15 + intensity * 0.85})` 
@@ -287,17 +302,18 @@ export default function OrganizerInsightsDashboard({ organizerEmail }: { organiz
                           : "rgba(0, 0, 0, 0.03)"
                       }}
                     >
-                      <span className={`text-xs font-mono font-black ${rsvpsCount > 0 ? "text-black" : "text-zinc-300"}`}>
+                      <span className={`text-[11px] sm:text-xs font-mono font-black ${rsvpsCount > 0 ? "text-black" : "text-zinc-300"}`}>
                         {rsvpsCount}
                       </span>
-                      {rsvpsCount > 0 && (
-                        <span className="text-[8px] text-zinc-500 font-bold opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-1">
-                          RSVPs
-                        </span>
-                      )}
                       
                       {/* Tooltip on hover */}
-                      <div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] py-1 px-2 rounded-md font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md z-10">
+                      <div className={`pointer-events-none absolute -top-8 bg-black text-white text-[9px] py-1 px-2 rounded-md font-bold whitespace-nowrap shadow-md z-10 hidden group-hover:block ${
+                        dayIdx >= 5 
+                          ? "right-0" 
+                          : dayIdx <= 1 
+                            ? "left-0" 
+                            : "left-1/2 -translate-x-1/2"
+                      }`}>
                         {rsvpsCount} RSVPs on {day} {slot}s
                       </div>
                     </div>
@@ -307,18 +323,6 @@ export default function OrganizerInsightsDashboard({ organizerEmail }: { organiz
             ))}
             
           </div>
-        </div>
-
-        {/* Legend */}
-        <div className="flex gap-4 mt-6 items-center text-[10px] font-black uppercase tracking-wider text-zinc-400 justify-end">
-          <span>Low Density</span>
-          <div className="flex gap-1">
-            <div className="w-4 h-4 rounded bg-zinc-50 border border-black/5" />
-            <div className="w-4 h-4 rounded bg-[#C1FF00]/30" />
-            <div className="w-4 h-4 rounded bg-[#C1FF00]/60" />
-            <div className="w-4 h-4 rounded bg-[#C1FF00]" />
-          </div>
-          <span>Peak Density</span>
         </div>
 
       </div>

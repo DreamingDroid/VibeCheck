@@ -5,7 +5,7 @@ export interface CrmContact {
   is_follower: boolean;
   is_attendee: boolean;
   name: string | null;
-  phone_number: string | null;
+  has_phone: boolean;
   city: string | null;
   rsvp_count: number;
   last_rsvp_date: string | null;
@@ -51,7 +51,7 @@ export async function getOrganizerCrmContacts(pool: Pool, organizerEmail: string
         c.is_follower,
         c.is_attendee,
         u.name,
-        u.phone_number,
+        (u.phone_number IS NOT NULL AND u.phone_number != '') as has_phone,
         u.city,
         COALESCE(s.rsvp_count, 0) as rsvp_count,
         s.last_rsvp_date,

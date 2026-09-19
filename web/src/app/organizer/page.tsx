@@ -13,12 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
-import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode } from "lucide-react";
+import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode, Send, Calendar, Clock, MapPin, Users, ChevronDown, ChevronUp, Key, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import OrganizerInsightsDashboard from "@/components/OrganizerInsightsDashboard";
 import { OrganizerEventBroadcastModal } from "@/components/OrganizerEventBroadcastModal";
-import { OrganizerWhatsAppInviteModal } from "@/components/OrganizerWhatsAppInviteModal";
+import { OrganizerTelegramInviteModal } from "@/components/OrganizerTelegramInviteModal";
 import { BroadcastType } from "@/types/broadcast";
 const CATEGORIES = ["Sports", "Arts", "Education", "Spiritual", "Music", "Food", "Wellness", "Indie", "Techno", "General"];
 
@@ -30,7 +30,7 @@ const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
   return `${displayHour}:${min} ${ampm}`;
 });
 
-function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateStr, endDateTime, organizerEmail, adminComment, whatsappGroupLink, onEdit, onStatusUpdated }: { eventId: string, title: string, status: string, visibility?: string, inviteCount?: number, dateStr: string, endDateTime?: string, organizerEmail: string, adminComment?: string, whatsappGroupLink?: string, onEdit?: () => void, onStatusUpdated?: () => void }) {
+function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateStr, endDateTime, organizerEmail, adminComment, whatsappGroupLink, category, city, location, onEdit, onStatusUpdated }: { eventId: string, title: string, status: string, visibility?: string, inviteCount?: number, dateStr: string, endDateTime?: string, organizerEmail: string, adminComment?: string, whatsappGroupLink?: string, category?: string, city?: string, location?: string, onEdit?: () => void, onStatusUpdated?: () => void }) {
   const [rsvps, setRsvps] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -173,32 +173,76 @@ function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateSt
     }
   };
 
+  const eventDateObj = new Date(dateStr);
+  const formattedDate = !isNaN(eventDateObj.getTime()) 
+    ? eventDateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+    : dateStr;
+  const formattedTime = !isNaN(eventDateObj.getTime())
+    ? eventDateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    : '';
+
   return (
-    <div className="ringer-card overflow-hidden group mb-4">
-      <div className="flex flex-col md:flex-row justify-between md:items-center p-6 bg-white cursor-pointer hover:bg-zinc-50 transition-colors gap-4" onClick={() => loadRsvps()}>
-        <div className="flex flex-col">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-black font-black uppercase tracking-tighter italic text-xl">{title}</span>
+    <div className="ringer-card overflow-hidden group mb-3.5 bg-white border border-black/5 hover:border-black/15 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+      {/* Top Header & Core Controls */}
+      <div 
+        className="p-4 sm:p-5 flex flex-col md:flex-row justify-between md:items-center gap-3.5 cursor-pointer hover:bg-zinc-50/70 transition-colors"
+        onClick={() => loadRsvps()}
+      >
+        {/* Left Side: Event Details */}
+        <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            {category && (
+              <span className="sticker-badge bg-zinc-100 text-zinc-700 border-zinc-200 text-[8px] font-black tracking-widest uppercase">
+                {category}
+              </span>
+            )}
+            <h3 className="text-black font-black uppercase tracking-tighter italic text-base sm:text-xl truncate leading-tight">
+              {title}
+            </h3>
             {getStatusBadge(status)}
             {visibility === 'invite_only' && (
-              <span className="sticker-badge bg-amber-500/15 text-amber-900 border-amber-300 font-black flex items-center gap-1">
-                <Lock className="h-3 w-3" /> VIP Invite-Only {inviteCount !== undefined ? `(${inviteCount} Invited)` : ''}
+              <span className="sticker-badge bg-amber-500/15 text-amber-900 border-amber-300 font-black flex items-center gap-1 text-[9px]">
+                <Lock className="h-2.5 w-2.5" /> VIP Invite-Only {inviteCount !== undefined ? `(${inviteCount})` : ''}
               </span>
             )}
           </div>
-          <span className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mt-1">
-            {new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-          </span>
+
+          {/* Metadata Sub-bar */}
+          <div className="flex items-center gap-3 sm:gap-4 flex-wrap text-zinc-500 text-[10px] sm:text-[11px] font-bold">
+            <span className="flex items-center gap-1.5 text-zinc-600">
+              <Calendar className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+              <span className="uppercase font-black tracking-wider text-[10px]">{formattedDate}</span>
+              {formattedTime && (
+                <>
+                  <span className="text-zinc-300">•</span>
+                  <Clock className="h-3 w-3 text-zinc-400 shrink-0" />
+                  <span className="uppercase font-black tracking-wider text-[10px]">{formattedTime}</span>
+                </>
+              )}
+            </span>
+
+            {(city || location) && (
+              <span className="flex items-center gap-1 text-zinc-400">
+                <MapPin className="h-3 w-3 text-zinc-400 shrink-0" />
+                <span className="uppercase font-bold tracking-wider text-[10px]">
+                  {[location, city].filter(Boolean).join(", ")}
+                </span>
+              </span>
+            )}
+          </div>
+
           {adminComment && (status === 'rejected' || status === 'needs_changes') && (
-            <div className="mt-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-xl max-w-xl">
-              <span className="font-bold uppercase tracking-widest text-[9px] block mb-1">Admin Feedback:</span>
+            <div className="mt-2 bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-2xl max-w-xl">
+              <span className="font-bold uppercase tracking-widest text-[9px] block mb-0.5">Admin Feedback:</span>
               {adminComment}
             </div>
           )}
         </div>
-        <div className="flex flex-col md:flex-row gap-2 items-center shrink-0">
+
+        {/* Right Side: Status Select & Guestlist Toggle */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0" onClick={e => e.stopPropagation()}>
           {(status === 'approved' || status === 'filling_fast' || status === 'housefull' || status === 'ended') && (
-            <div className="min-w-[140px]" onClick={e => e.stopPropagation()}>
+            <div className="min-w-[130px]">
               <Select
                 value={status}
                 onValueChange={async (newStatus) => {
@@ -248,108 +292,141 @@ function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateSt
                   }
                 }}
               >
-                <SelectTrigger className="h-8 text-[10px] font-black uppercase tracking-widest border-black/10 bg-white">
+                <SelectTrigger className="h-8 text-[10px] font-black uppercase tracking-wider border-black/10 bg-zinc-50 hover:bg-zinc-100 rounded-full px-3">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="approved" className="text-[10px] font-bold uppercase tracking-widest text-primary">Tickets Live</SelectItem>
-                  <SelectItem value="filling_fast" className="text-[10px] font-bold uppercase tracking-widest text-orange-600">Filling Fast</SelectItem>
-                  <SelectItem value="housefull" className="text-[10px] font-bold uppercase tracking-widest text-red-600">Sold Out</SelectItem>
-                  <SelectItem value="ended" className="text-[10px] font-bold uppercase tracking-widest text-zinc-800">Event Ended</SelectItem>
+                <SelectContent className="bg-white border-black/5 rounded-2xl shadow-xl p-1 z-50">
+                  <SelectItem value="approved" className="text-[10px] font-bold uppercase tracking-wider text-primary rounded-xl">Tickets Live</SelectItem>
+                  <SelectItem value="filling_fast" className="text-[10px] font-bold uppercase tracking-wider text-orange-600 rounded-xl">Filling Fast</SelectItem>
+                  <SelectItem value="housefull" className="text-[10px] font-bold uppercase tracking-wider text-red-600 rounded-xl">Sold Out</SelectItem>
+                  <SelectItem value="ended" className="text-[10px] font-bold uppercase tracking-wider text-zinc-800 rounded-xl">Event Ended</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           )}
 
-          {/* 24-Hour Rating Request Button */}
-          {isWithin24hRatingWindow && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setBroadcastInitialType("rating_request");
-                setInAppBroadcastOpen(true);
-              }}
-              className="ringer-button bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black text-[10px] flex items-center gap-1.5 font-black shadow-md shadow-amber-500/25 animate-pulse"
-              title="Request star ratings from attendees within 24h of event completion"
+          {status === 'needs_changes' && onEdit && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onEdit(); }} 
+              className="ringer-button py-1.5 px-3.5 bg-orange-500 hover:bg-orange-600 text-white text-[10px] flex items-center gap-1 font-black shadow-xs"
             >
-              ⭐ REQUEST RATINGS ({hoursLeftInWindow}h left)
+              ✏️ EDIT
             </button>
           )}
 
-              <Link
-                href={`/scanner/${eventId}`}
-                target="_blank"
-                onClick={(e) => e.stopPropagation()}
-                className="ringer-button bg-purple-600 hover:bg-purple-700 text-white text-[10px] flex items-center gap-1.5 font-black shadow-xs"
-              >
-                <QrCode className="h-3 w-3" /> GATE SCANNER
-              </Link>
-              <button
-                onClick={copyBouncerScannerLink}
-                className="ringer-button bg-zinc-800 hover:bg-zinc-900 text-white text-[10px] flex items-center gap-1.5 font-black shadow-xs"
-                title="Copy 4-digit PIN link for bouncers & door staff"
-              >
-                🔑 BOUNCER PIN
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); setBroadcastInitialType("general_update"); setInAppBroadcastOpen(true); }} className="ringer-button bg-rose-600 text-white hover:bg-rose-700 text-[10px] flex items-center gap-1.5 font-black shadow-xs">
-                <Radio className="h-3 w-3 animate-pulse" /> BROADCAST
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); setWhatsappInviteOpen(true); }} className="ringer-button bg-emerald-600 text-white hover:bg-emerald-700 text-[10px] flex items-center gap-1.5 font-black shadow-xs">
-                💬 GROUP CHAT INVITE
-              </button>
-              <button onClick={openPromoKit} className="ringer-button bg-black text-white hover:bg-zinc-800 text-[10px] flex items-center gap-2">
-                ✨ AI PROMO KIT
-              </button>
-              <button onClick={openBroadcast} className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2">
-                📢 WHATSAPP UPDATE
-              </button>
-          {status === 'needs_changes' && onEdit && (
-            <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="ringer-button bg-orange-500 text-white text-[10px] flex items-center gap-2">
-              ✏️ EDIT & RESUBMIT
-            </button>
-          )}
+          {/* Primary Guestlist Button */}
           {(status === 'approved' || status === 'filling_fast' || status === 'housefull' || status === 'ended' || !status) && (
-            <button onClick={(e) => { e.stopPropagation(); loadRsvps(); }} className="ringer-button border border-black/5 hover:bg-black/5 text-black text-[10px]">
-              {open ? "HIDE GUESTLIST" : "VIEW GUESTLIST"}
+            <button 
+              onClick={(e) => { e.stopPropagation(); loadRsvps(); }} 
+              className={`ringer-button py-1.5 px-3.5 sm:px-4 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-xs ${
+                open ? 'bg-black text-white' : 'bg-zinc-100 hover:bg-zinc-200 text-black border border-black/5'
+              }`}
+            >
+              <Users className="h-3 w-3" />
+              <span>{open ? "Hide Guestlist" : "Guestlist"}</span>
+              {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
           )}
         </div>
       </div>
+
+      {/* Action Toolbar Strip (Sub-dock) */}
+      <div 
+        className="px-4 py-2.5 sm:px-5 sm:py-3 bg-zinc-50/80 border-t border-black/5 flex flex-wrap items-center justify-between gap-2.5"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Operations & Marketing Action Chips */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          {/* Operations / Check-in */}
+          <Link
+            href={`/scanner/${eventId}`}
+            target="_blank"
+            className="ringer-button py-1 px-2.5 sm:px-3 bg-purple-600 hover:bg-purple-700 text-white text-[9px] sm:text-[10px] flex items-center gap-1.5 font-black shadow-xs"
+            title="Open live ticket scanner"
+          >
+            <QrCode className="h-3 w-3" /> SCANNER
+          </Link>
+          <button
+            onClick={copyBouncerScannerLink}
+            className="ringer-button py-1 px-2.5 sm:px-3 bg-zinc-800 hover:bg-zinc-900 text-white text-[9px] sm:text-[10px] flex items-center gap-1.5 font-black shadow-xs"
+            title="Copy 4-digit PIN link for bouncers & door staff"
+          >
+            <Key className="h-3 w-3" /> PIN
+          </button>
+
+          {/* Divider */}
+          <div className="h-4 w-[1px] bg-zinc-300 mx-0.5 hidden sm:block"></div>
+
+          {/* Outreach / Marketing */}
+          <button 
+            onClick={() => { setBroadcastInitialType("general_update"); setInAppBroadcastOpen(true); }} 
+            className="ringer-button py-1 px-2.5 sm:px-3 bg-rose-600 hover:bg-rose-700 text-white text-[9px] sm:text-[10px] flex items-center gap-1.5 font-black shadow-xs"
+          >
+            <Radio className="h-3 w-3 animate-pulse" /> BROADCAST
+          </button>
+          <button 
+            onClick={() => setWhatsappInviteOpen(true)} 
+            className="ringer-button py-1 px-2.5 sm:px-3 bg-[#229ED9] hover:bg-[#1d8dc3] text-white text-[9px] sm:text-[10px] flex items-center gap-1.5 font-black shadow-xs"
+          >
+            <Send className="h-3 w-3" /> TELEGRAM
+          </button>
+          <button 
+            onClick={openPromoKit} 
+            className="ringer-button py-1 px-2.5 sm:px-3 bg-black hover:bg-zinc-800 text-white text-[9px] sm:text-[10px] flex items-center gap-1.5 font-black shadow-xs"
+          >
+            <Sparkles className="h-3 w-3 text-[#C1FF00]" /> PROMO
+          </button>
+        </div>
+
+        {/* 24-Hour Rating Request Button */}
+        {isWithin24hRatingWindow && (
+          <button
+            onClick={() => {
+              setBroadcastInitialType("rating_request");
+              setInAppBroadcastOpen(true);
+            }}
+            className="ringer-button py-1 px-3 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black text-[9px] sm:text-[10px] flex items-center gap-1 font-black shadow-md shadow-amber-500/25 animate-pulse"
+            title="Request star ratings from attendees within 24h of event completion"
+          >
+            ⭐ REQUEST RATINGS ({hoursLeftInWindow}h left)
+          </button>
+        )}
+      </div>
       {open && (
         <div className="p-0 border-t border-black/5 bg-zinc-50/50">
           {loading ? (
-            <p className="p-8 text-zinc-400 text-xs font-black uppercase tracking-[0.2em] text-center animate-pulse">Gathering the crowd...</p>
+            <p className="p-6 text-zinc-400 text-xs font-black uppercase tracking-[0.2em] text-center animate-pulse">Gathering the crowd...</p>
           ) : rsvps.length === 0 ? (
-            <p className="p-8 text-zinc-400 text-xs font-bold text-center italic">The vibes are quiet. No RSVPs received yet.</p>
+            <p className="p-6 text-zinc-400 text-xs font-bold text-center italic">The vibes are quiet. No RSVPs received yet.</p>
           ) : (
-            <div className="p-6">
+            <div className="p-4 sm:p-5">
               {analytics && (
-                <div className="mb-8">
-                  <h4 className="text-black font-black uppercase tracking-tighter italic mb-4">Performance Metrics</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-white p-4 rounded-2xl border border-black/5">
-                      <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Total RSVPs</p>
-                      <p className="text-2xl font-black">{analytics.totalRsvps}</p>
+                <div className="mb-6">
+                  <h4 className="text-black font-black uppercase tracking-tighter italic mb-3 text-sm">Performance Metrics</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 mb-4">
+                    <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-black/5">
+                      <p className="text-[9px] text-zinc-400 font-black uppercase tracking-wider mb-0.5">Total RSVPs</p>
+                      <p className="text-xl font-black">{analytics.totalRsvps}</p>
                     </div>
-                    <div className="bg-white p-4 rounded-2xl border border-black/5">
-                      <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Peak Day</p>
-                      <p className="text-2xl font-black text-primary">
+                    <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-black/5">
+                      <p className="text-[9px] text-zinc-400 font-black uppercase tracking-wider mb-0.5">Peak Day</p>
+                      <p className="text-xl font-black text-primary">
                         {analytics.timeline && analytics.timeline.length > 0
                           ? [...analytics.timeline].sort((a, b) => b.count - a.count)[0].count
                           : 0}
                       </p>
                     </div>
-                    <div className="bg-white p-4 rounded-2xl border border-black/5 col-span-2 md:col-span-1">
-                      <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-1">Avg Velocity</p>
-                      <div className="flex items-end gap-2">
-                        <p className="text-2xl font-black">{analytics.avgVelocity}/day</p>
+                    <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-black/5 col-span-2 md:col-span-1">
+                      <p className="text-[9px] text-zinc-400 font-black uppercase tracking-wider mb-0.5">Avg Velocity</p>
+                      <div className="flex items-end gap-1.5">
+                        <p className="text-xl font-black">{analytics.avgVelocity}/day</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white p-6 rounded-3xl border border-black/5 mb-8">
-                    <h5 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-6">Vibe Velocity (RSVPs over time)</h5>
-                    <div className="h-[200px] w-full">
+                  <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-black/5 mb-6">
+                    <h5 className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-3">Vibe Velocity (RSVPs over time)</h5>
+                    <div className="h-[150px] sm:h-[180px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={analytics.timeline}>
                           <defs>
@@ -362,21 +439,21 @@ function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateSt
                             dataKey="date"
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fontSize: 10, fill: '#a1a1aa' }}
-                            dy={10}
+                            tick={{ fontSize: 9, fill: '#a1a1aa' }}
+                            dy={5}
                             tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                           />
                           <Tooltip
-                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.1)' }}
-                            labelStyle={{ color: '#a1a1aa', fontSize: '10px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.1em' }}
-                            itemStyle={{ color: '#000', fontWeight: 900 }}
+                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.1)', padding: '6px 10px' }}
+                            labelStyle={{ color: '#a1a1aa', fontSize: '9px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.1em' }}
+                            itemStyle={{ color: '#000', fontWeight: 900, fontSize: '11px' }}
                             labelFormatter={(label) => new Date(label as string).toLocaleDateString()}
                           />
                           <Area
                             type="monotone"
                             dataKey="count"
                             stroke="#C1FF00"
-                            strokeWidth={4}
+                            strokeWidth={3}
                             fillOpacity={1}
                             fill="url(#colorVibe)"
                           />
@@ -387,32 +464,34 @@ function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateSt
                 </div>
               )}
 
-              <h4 className="text-black font-black uppercase tracking-tighter italic mb-4">Guestlist ({rsvps.length})</h4>
-              <ul className="divide-y divide-black/5 bg-white rounded-3xl border border-black/5 overflow-hidden">
+              <h4 className="text-black font-black uppercase tracking-tighter italic mb-3 text-sm">Guestlist ({rsvps.length})</h4>
+              <ul className="divide-y divide-black/5 bg-white rounded-2xl border border-black/5 overflow-hidden">
                 {rsvps.map((r, i) => (
-                  <li key={i} className="text-sm p-4 px-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 hover:bg-zinc-50 transition-colors">
+                  <li key={i} className="text-xs p-2.5 px-3.5 sm:px-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 hover:bg-zinc-50 transition-colors">
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-black font-bold">
                           {r.name || 'Anonymous Guest'}
                         </span>
                         {r.status === 'confirmed' ? (
-                          <span className="sticker-badge bg-primary/10 text-primary border-primary/20 text-[9px] font-black">
+                          <span className="sticker-badge bg-primary/10 text-primary border-primary/20 text-[8px] font-black">
                             ✓ Pass Issued {r.pass_code ? `(#${r.pass_code})` : ''}
                           </span>
                         ) : (
-                          <span className="sticker-badge bg-amber-500/10 text-amber-600 border-amber-500/20 text-[9px] font-black">
+                          <span className="sticker-badge bg-amber-500/10 text-amber-600 border-amber-500/20 text-[8px] font-black">
                             ⏳ Pending Payment
                           </span>
                         )}
                       </div>
-                      <span className="text-zinc-400 text-[10px] font-medium mt-0.5">
-                        {r.user_email ? r.user_email : ''} {r.contact_phone && r.contact_phone !== 'Not provided' ? `• 📞 ${r.contact_phone}` : ''}
-                      </span>
+                      {r.user_email && (
+                        <span className="text-zinc-400 text-[9px] font-medium mt-0.5">
+                          {r.user_email}
+                        </span>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <span className="text-zinc-300 text-[10px] font-black uppercase tracking-widest">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-zinc-400 text-[9px] font-black uppercase tracking-wider">
                         {new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </span>
                       
@@ -438,7 +517,7 @@ function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateSt
                               toast.error("Error issuing pass");
                             }
                           }}
-                          className="ringer-button bg-primary text-black hover:bg-primary/90 text-[10px] font-black uppercase py-1.5 px-3.5 rounded-full cursor-pointer shadow-xs"
+                          className="ringer-button bg-primary text-black hover:bg-primary/90 text-[9px] font-black uppercase py-1 px-3 rounded-full cursor-pointer shadow-xs"
                         >
                           Mark Paid &amp; Issue Pass
                         </button>
@@ -553,8 +632,8 @@ function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateSt
         initialType={broadcastInitialType}
       />
 
-      {/* WhatsApp Group Invite Modal */}
-      <OrganizerWhatsAppInviteModal
+      {/* Telegram Group Invite Modal */}
+      <OrganizerTelegramInviteModal
         isOpen={whatsappInviteOpen}
         onClose={() => setWhatsappInviteOpen(false)}
         eventId={eventId}
@@ -698,10 +777,10 @@ export default function OrganizerDashboard() {
       const q = searchQuery.toLowerCase();
       const nameMatch = (c.name || '').toLowerCase().includes(q);
       const emailMatch = (c.email || '').toLowerCase().includes(q);
-      const phoneMatch = (c.phone_number || '').toLowerCase().includes(q);
+      const cityMatch = (c.city || '').toLowerCase().includes(q);
       const notesMatch = (c.notes || '').toLowerCase().includes(q);
       const tagsMatch = getTagsArray(c.tags).some(t => t.toLowerCase().includes(q));
-      if (!nameMatch && !emailMatch && !phoneMatch && !notesMatch && !tagsMatch) {
+      if (!nameMatch && !emailMatch && !cityMatch && !notesMatch && !tagsMatch) {
         return false;
       }
     }
@@ -746,11 +825,10 @@ export default function OrganizerDashboard() {
       toast.error("No contacts to export");
       return;
     }
-    const headers = ["Name", "Email", "Phone", "City", "Follower", "Attendee", "RSVPs Count", "RSVP'd Events", "Notes", "Tags"];
+    const headers = ["Name", "Email", "City", "Follower", "Attendee", "RSVPs Count", "RSVP'd Events", "Notes", "Tags"];
     const rows = filteredContacts.map(c => [
       c.name || "Anonymous",
       c.email,
-      c.phone_number || "",
       c.city || "",
       c.is_follower ? "Yes" : "No",
       c.is_attendee ? "Yes" : "No",
@@ -1010,38 +1088,38 @@ export default function OrganizerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-black p-4 sm:p-8 animate-in fade-in duration-700">
-      <div className="max-w-7xl mx-auto space-y-12 mt-4">
+    <div className="min-h-screen bg-background text-black p-3 sm:p-6 animate-in fade-in duration-700">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 mt-1 sm:mt-2">
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-black/5 pb-12 gap-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-black/5 pb-3.5 sm:pb-4 gap-3 sm:gap-4">
           <div>
-            <h1 className="text-3xl sm:text-5xl font-black italic tracking-tighter uppercase leading-[0.9]">
+            <h1 className="text-2xl sm:text-4xl font-black italic tracking-tighter uppercase leading-none">
               The Control Room
             </h1>
-            <p className="text-zinc-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Deploy and manage your local vibes</p>
+            <p className="text-zinc-400 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] mt-1">Deploy and manage your local vibes</p>
           </div>
           <Link href="/dashboard">
-            <button className="ringer-button border border-black/5 hover:bg-black/5 text-black text-[10px]">
+            <button className="ringer-button border border-black/5 hover:bg-black/5 text-black text-[9px] sm:text-[10px] py-1.5 px-3">
               EXIT TO PORTAL
             </button>
           </Link>
         </div>
 
-        <div className="flex gap-4 border-b border-black/5 pb-6">
+        <div className="flex gap-3 sm:gap-6 border-b border-black/5 pb-2.5 sm:pb-3 overflow-x-auto scrollbar-none">
           <button
-            className={`text-xs font-black uppercase tracking-widest pb-2 border-b-2 ${activeTab === 'events' ? 'border-primary text-black' : 'border-transparent text-zinc-400 hover:text-black'}`}
+            className={`text-[11px] sm:text-xs font-black uppercase tracking-wider pb-1.5 border-b-2 whitespace-nowrap transition-colors ${activeTab === 'events' ? 'border-primary text-black' : 'border-transparent text-zinc-400 hover:text-black'}`}
             onClick={() => setActiveTab('events')}
           >
             Manage Events
           </button>
           <button
-            className={`text-xs font-black uppercase tracking-widest pb-2 border-b-2 ${activeTab === 'crm' ? 'border-primary text-black' : 'border-transparent text-zinc-400 hover:text-black'}`}
+            className={`text-[11px] sm:text-xs font-black uppercase tracking-wider pb-1.5 border-b-2 whitespace-nowrap transition-colors ${activeTab === 'crm' ? 'border-primary text-black' : 'border-transparent text-zinc-400 hover:text-black'}`}
             onClick={() => setActiveTab('crm')}
           >
             Community CRM ({contacts.length})
           </button>
           <button
-            className={`text-xs font-black uppercase tracking-widest pb-2 border-b-2 ${activeTab === 'insights' ? 'border-primary text-black' : 'border-transparent text-zinc-400 hover:text-black'}`}
+            className={`text-[11px] sm:text-xs font-black uppercase tracking-wider pb-1.5 border-b-2 whitespace-nowrap transition-colors ${activeTab === 'insights' ? 'border-primary text-black' : 'border-transparent text-zinc-400 hover:text-black'}`}
             onClick={() => setActiveTab('insights')}
           >
             Insights & Analytics
@@ -1049,18 +1127,41 @@ export default function OrganizerDashboard() {
         </div>
 
         {activeTab === 'events' && (
-          <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
             {/* My Events */}
-            <div className="space-y-8">
-              <h2 className="text-4xl vibecheck_font_style leading-none">Deployment Log</h2>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl sm:text-3xl vibecheck_font_style leading-none">Deployment Log</h2>
+                <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-zinc-400 bg-zinc-100 px-3 py-1 rounded-full border border-black/5">
+                  {myEvents.length} {myEvents.length === 1 ? 'Vibe' : 'Vibes'}
+                </span>
+              </div>
               {myEvents.length === 0 ? (
-                <div className="text-center py-20 text-zinc-300 ringer-card border-dashed">
-                  <p className="text-[10px] font-black uppercase tracking-widest">No active vibes detected.</p>
+                <div className="text-center py-16 text-zinc-400 ringer-card border-dashed p-8">
+                  <p className="text-xs font-black uppercase tracking-widest mb-1 text-black">No active vibes detected.</p>
+                  <p className="text-[11px] text-zinc-400 font-medium">Deploy your next event experience using the green action button.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {myEvents.map(ev => (
-                    <EventRsvpList key={ev.id} eventId={ev.id} title={ev.title} status={ev.status} visibility={ev.visibility} inviteCount={ev.invite_count} dateStr={ev.date_time} endDateTime={ev.end_time} organizerEmail={session?.user?.email || ""} adminComment={ev.admin_comment} whatsappGroupLink={ev.whatsapp_group_link} onEdit={() => handleEditInit(ev)} onStatusUpdated={() => loadMyEvents()} />
+                    <EventRsvpList 
+                      key={ev.id} 
+                      eventId={ev.id} 
+                      title={ev.title} 
+                      category={ev.category}
+                      city={ev.city}
+                      location={ev.location}
+                      status={ev.status} 
+                      visibility={ev.visibility} 
+                      inviteCount={ev.invite_count} 
+                      dateStr={ev.date_time} 
+                      endDateTime={ev.end_time} 
+                      organizerEmail={session?.user?.email || ""} 
+                      adminComment={ev.admin_comment} 
+                      whatsappGroupLink={ev.whatsapp_group_link} 
+                      onEdit={() => handleEditInit(ev)} 
+                      onStatusUpdated={() => loadMyEvents()} 
+                    />
                   ))}
                 </div>
               )}
@@ -1069,44 +1170,44 @@ export default function OrganizerDashboard() {
         )}
 
         {activeTab === 'crm' && (
-          <div className="ringer-card p-6 sm:p-10">
-            <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-6">Your Community CRM</h2>
+          <div className="ringer-card p-4 sm:p-6">
+            <h2 className="text-2xl sm:text-3xl font-black italic tracking-tighter uppercase leading-none mb-3 sm:mb-4">Your Community CRM</h2>
             
             {/* Metrics Strip */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <div className="bg-zinc-50 p-6 rounded-[24px] border border-black/5 hover:border-black/10 transition-colors shadow-sm">
-                <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-2">Total Contacts</p>
-                <p className="text-3xl font-black italic text-black">{contacts.length}</p>
-                <p className="text-[9px] text-zinc-400 mt-1 font-semibold">Followers & attendees</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3.5 mb-4 sm:mb-5">
+              <div className="bg-zinc-50 p-3.5 sm:p-4 rounded-2xl border border-black/5 hover:border-black/10 transition-colors shadow-xs">
+                <p className="text-[9px] sm:text-[10px] text-zinc-400 font-black uppercase tracking-wider mb-1">Total Contacts</p>
+                <p className="text-2xl sm:text-3xl font-black italic text-black leading-none">{contacts.length}</p>
+                <p className="text-[8px] sm:text-[9px] text-zinc-400 mt-1 font-semibold">Followers & attendees</p>
               </div>
-              <div className="bg-zinc-50 p-6 rounded-[24px] border border-black/5 hover:border-black/10 transition-colors shadow-sm">
-                <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-2">Active Followers</p>
-                <p className="text-3xl font-black italic text-primary">{contacts.filter(c => c.is_follower).length}</p>
-                <p className="text-[9px] text-zinc-400 mt-1 font-semibold">Direct audience</p>
+              <div className="bg-zinc-50 p-3.5 sm:p-4 rounded-2xl border border-black/5 hover:border-black/10 transition-colors shadow-xs">
+                <p className="text-[9px] sm:text-[10px] text-zinc-400 font-black uppercase tracking-wider mb-1">Active Followers</p>
+                <p className="text-2xl sm:text-3xl font-black italic text-primary leading-none">{contacts.filter(c => c.is_follower).length}</p>
+                <p className="text-[8px] sm:text-[9px] text-zinc-400 mt-1 font-semibold">Direct audience</p>
               </div>
-              <div className="bg-zinc-50 p-6 rounded-[24px] border border-black/5 hover:border-black/10 transition-colors shadow-sm">
-                <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-2">Repeat Attendees</p>
-                <p className="text-3xl font-black italic text-[#EAB308]">{contacts.filter(c => c.rsvp_count >= 2).length}</p>
-                <p className="text-[9px] text-zinc-400 mt-1 font-semibold">RSVP'd 2+ times</p>
+              <div className="bg-zinc-50 p-3.5 sm:p-4 rounded-2xl border border-black/5 hover:border-black/10 transition-colors shadow-xs">
+                <p className="text-[9px] sm:text-[10px] text-zinc-400 font-black uppercase tracking-wider mb-1">Repeat Attendees</p>
+                <p className="text-2xl sm:text-3xl font-black italic text-[#EAB308] leading-none">{contacts.filter(c => c.rsvp_count >= 2).length}</p>
+                <p className="text-[8px] sm:text-[9px] text-zinc-400 mt-1 font-semibold">RSVP'd 2+ times</p>
               </div>
-              <div className="bg-zinc-50 p-6 rounded-[24px] border border-black/5 hover:border-black/10 transition-colors shadow-sm">
-                <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mb-2">WhatsApp Reach</p>
-                <p className="text-3xl font-black italic text-[#22C55E]">{contacts.filter(c => c.phone_number).length}</p>
-                <p className="text-[9px] text-zinc-400 mt-1 font-semibold">With active phone numbers</p>
+              <div className="bg-zinc-50 p-3.5 sm:p-4 rounded-2xl border border-black/5 hover:border-black/10 transition-colors shadow-xs">
+                <p className="text-[9px] sm:text-[10px] text-zinc-400 font-black uppercase tracking-wider mb-1">WhatsApp Reach</p>
+                <p className="text-2xl sm:text-3xl font-black italic text-[#22C55E] leading-none">{contacts.filter(c => c.has_phone).length}</p>
+                <p className="text-[8px] sm:text-[9px] text-zinc-400 mt-1 font-semibold">With active WhatsApp reach</p>
               </div>
             </div>
 
             {/* Search, Filter & Actions Bar */}
-            <div className="flex flex-col xl:flex-row gap-4 mb-6 justify-between items-stretch xl:items-center">
-              <div className="flex flex-col sm:flex-row gap-3 flex-1">
+            <div className="flex flex-col xl:flex-row gap-2.5 sm:gap-3 mb-4 justify-between items-stretch xl:items-center">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 flex-1">
                 <Input
-                  placeholder="Search name, email, phone, notes, tags..."
+                  placeholder="Search name, email, city, notes, tags..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold flex-1"
+                  className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold flex-1 h-9"
                 />
                 <Select value={segmentFilter} onValueChange={(v: any) => setSegmentFilter(v)}>
-                  <SelectTrigger className="w-full sm:w-[180px] bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold text-black">
+                  <SelectTrigger className="w-full sm:w-[170px] bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold text-black h-9">
                     <SelectValue>
                       {segmentFilter === 'all' ? 'All Segments' : segmentFilter === 'followers' ? 'Followers Only' : 'Attendees Only'}
                     </SelectValue>
@@ -1119,9 +1220,9 @@ export default function OrganizerDashboard() {
                 </Select>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <Select value={tagFilter} onValueChange={(val) => setTagFilter(val || "all")}>
-                  <SelectTrigger className="w-full sm:w-[150px] bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold text-black">
+                  <SelectTrigger className="w-full sm:w-[140px] bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold text-black h-9">
                     <SelectValue>
                       {tagFilter === 'all' ? 'All Tags' : tagFilter}
                     </SelectValue>
@@ -1135,7 +1236,7 @@ export default function OrganizerDashboard() {
                 </Select>
 
                 <Select value={eventFilter} onValueChange={(val) => setEventFilter(val || "all")}>
-                  <SelectTrigger className="w-full sm:w-[180px] bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold text-black">
+                  <SelectTrigger className="w-full sm:w-[170px] bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold text-black h-9">
                     <SelectValue>
                       {eventFilter === 'all' ? 'All Events' : eventFilter}
                     </SelectValue>
@@ -1151,15 +1252,15 @@ export default function OrganizerDashboard() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleExportCsv}
-                    className="ringer-button border border-black/10 hover:bg-zinc-100 text-[10px] flex items-center gap-2 whitespace-nowrap"
+                    className="ringer-button border border-black/10 hover:bg-zinc-100 text-[9px] sm:text-[10px] flex items-center gap-1.5 whitespace-nowrap py-1 px-3"
                     title="Export CSV"
                   >
-                    📋 EXPORT CSV
+                    📋 CSV
                   </button>
                   <button
                     onClick={openCrmBroadcast}
                     disabled={selectedEmails.length === 0}
-                    className="ringer-button bg-primary text-black disabled:opacity-40 text-[10px] flex items-center gap-2 whitespace-nowrap"
+                    className="ringer-button bg-primary text-black disabled:opacity-40 text-[9px] sm:text-[10px] flex items-center gap-1.5 whitespace-nowrap py-1 px-3"
                   >
                     📢 BROADCAST ({selectedEmails.length})
                   </button>
@@ -1168,30 +1269,30 @@ export default function OrganizerDashboard() {
             </div>
 
             {crmLoading ? (
-              <p className="p-12 text-zinc-400 text-xs font-black uppercase tracking-[0.2em] text-center animate-pulse">Synchronizing CRM contacts...</p>
+              <p className="p-8 text-zinc-400 text-xs font-black uppercase tracking-[0.2em] text-center animate-pulse">Synchronizing CRM contacts...</p>
             ) : filteredContacts.length === 0 ? (
-              <div className="p-12 text-center text-zinc-400 font-bold italic text-sm">
+              <div className="p-8 text-center text-zinc-400 font-bold italic text-sm">
                 No contacts found matching your filters.
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                  <thead className="text-[10px] font-black uppercase tracking-widest text-zinc-400 border-b border-black/5">
+                  <thead className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-zinc-400 border-b border-black/5">
                     <tr>
-                      <th className="px-4 py-3 w-[40px]">
+                      <th className="px-3.5 py-2.5 w-[36px]">
                         <input
                           type="checkbox"
                           checked={isAllFilteredSelected}
                           onChange={toggleSelectAllFiltered}
-                          className="rounded border-zinc-300 text-black focus:ring-black cursor-pointer h-4 w-4"
+                          className="rounded border-zinc-300 text-black focus:ring-black cursor-pointer h-3.5 w-3.5"
                         />
                       </th>
-                      <th className="px-4 py-3">Contact</th>
-                      <th className="px-4 py-3">Segment</th>
-                      <th className="px-4 py-3">Phone / City</th>
-                      <th className="px-4 py-3">Stats</th>
-                      <th className="px-4 py-3">Tags & Notes</th>
-                      <th className="px-4 py-3 text-right">Action</th>
+                      <th className="px-3.5 py-2.5">Contact</th>
+                      <th className="px-3.5 py-2.5">Segment</th>
+                      <th className="px-3.5 py-2.5">City / Location</th>
+                      <th className="px-3.5 py-2.5">Stats</th>
+                      <th className="px-3.5 py-2.5">Tags & Notes</th>
+                      <th className="px-3.5 py-2.5 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1201,73 +1302,73 @@ export default function OrganizerDashboard() {
                       
                       let badge = null;
                       if (c.is_follower && c.is_attendee) {
-                        badge = <span className="sticker-badge bg-black text-[#C1FF00] border-black text-[9px] font-bold whitespace-nowrap">Follower & Attendee</span>;
+                        badge = <span className="sticker-badge bg-black text-[#C1FF00] border-black text-[8px] font-bold whitespace-nowrap">Follower & Attendee</span>;
                       } else if (c.is_follower) {
-                        badge = <span className="sticker-badge bg-[#C1FF00]/15 text-black border-[#C1FF00]/30 text-[9px] font-bold whitespace-nowrap">Follower</span>;
+                        badge = <span className="sticker-badge bg-[#C1FF00]/15 text-black border-[#C1FF00]/30 text-[8px] font-bold whitespace-nowrap">Follower</span>;
                       } else {
-                        badge = <span className="sticker-badge bg-zinc-100 text-zinc-800 border-zinc-200 text-[9px] font-bold whitespace-nowrap">Attendee</span>;
+                        badge = <span className="sticker-badge bg-zinc-100 text-zinc-800 border-zinc-200 text-[8px] font-bold whitespace-nowrap">Attendee</span>;
                       }
 
                       return (
                         <tr key={i} className="border-b border-black/5 last:border-0 hover:bg-zinc-50 transition-colors">
-                          <td className="px-4 py-4">
+                          <td className="px-3.5 py-2.5 sm:py-3">
                             <input
                               type="checkbox"
                               checked={selectedEmails.includes(c.email)}
                               onChange={() => toggleSelectEmail(c.email)}
-                              className="rounded border-zinc-300 text-black focus:ring-black cursor-pointer h-4 w-4"
+                              className="rounded border-zinc-300 text-black focus:ring-black cursor-pointer h-3.5 w-3.5"
                             />
                           </td>
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#C1FF00]/25 to-zinc-200/25 flex items-center justify-center font-black italic text-xs border border-black/5 text-zinc-800">
+                          <td className="px-3.5 py-2.5 sm:py-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#C1FF00]/25 to-zinc-200/25 flex items-center justify-center font-black italic text-xs border border-black/5 text-zinc-800 shrink-0">
                                 {initial}
                               </div>
                               <div className="flex flex-col">
-                                <span className="font-bold text-black text-sm">{c.name || 'Anonymous User'}</span>
-                                <span className="text-zinc-400 text-[10px] font-medium">{c.email}</span>
+                                <span className="font-bold text-black text-xs sm:text-sm">{c.name || 'Anonymous User'}</span>
+                                <span className="text-zinc-400 text-[9px] font-medium">{c.email}</span>
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4">{badge}</td>
-                          <td className="px-4 py-4">
-                            <div className="flex flex-col">
-                              <span className="text-zinc-800 font-bold text-xs">{c.phone_number || <span className="text-zinc-300 italic font-medium">No Phone</span>}</span>
-                              <span className="text-zinc-400 text-[10px] font-black uppercase tracking-wider">{c.city || 'Unknown'}</span>
+                          <td className="px-3.5 py-2.5 sm:py-3">{badge}</td>
+                          <td className="px-3.5 py-2.5 sm:py-3">
+                            <div className="flex items-center gap-1.5">
+                              <MapPin className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                              <span className="text-zinc-700 font-bold text-xs uppercase tracking-wider">{c.city || 'Unknown'}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="px-3.5 py-2.5 sm:py-3">
                             <div className="flex flex-col">
-                              <span className="text-black font-black text-sm">{c.rsvp_count} <span className="text-[10px] text-zinc-400 font-normal lowercase">rsvps</span></span>
+                              <span className="text-black font-black text-xs sm:text-sm">{c.rsvp_count} <span className="text-[9px] text-zinc-400 font-normal lowercase">rsvps</span></span>
                               {c.last_rsvp_date && (
-                                <span className="text-zinc-400 text-[9px] font-bold">Last: {new Date(c.last_rsvp_date).toLocaleDateString()}</span>
+                                <span className="text-zinc-400 text-[8px] font-bold">Last: {new Date(c.last_rsvp_date).toLocaleDateString()}</span>
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-4 max-w-[200px]">
-                            <div className="flex flex-col gap-1">
+                          <td className="px-3.5 py-2.5 sm:py-3 max-w-[180px]">
+                            <div className="flex flex-col gap-0.5">
                               {tags.length > 0 && (
                                 <div className="flex flex-wrap gap-1">
                                   {tags.map(t => (
-                                    <span key={t} className="px-1.5 py-0.5 rounded-md bg-zinc-100 text-zinc-600 border border-zinc-200 text-[8px] font-extrabold uppercase tracking-wide">{t}</span>
+                                    <span key={t} className="px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200 text-[8px] font-extrabold uppercase tracking-wide">{t}</span>
                                   ))}
                                 </div>
                               )}
                               {c.notes ? (
-                                <span className="text-zinc-600 text-xs truncate font-medium block" title={c.notes}>{c.notes}</span>
+                                <span className="text-zinc-600 text-[11px] truncate font-medium block" title={c.notes}>{c.notes}</span>
                               ) : (
-                                <span className="text-zinc-300 text-xs italic block">No notes</span>
+                                <span className="text-zinc-300 text-[10px] italic block">No notes</span>
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-right">
+                          <td className="px-3.5 py-2.5 sm:py-3 text-right">
                             <button
                               onClick={() => {
                                 setEditingContact(c);
                                 setEditedNotes(c.notes || '');
                                 setEditedTags(tags);
                               }}
-                              className="ringer-button border border-black/5 hover:bg-zinc-100 p-1.5 px-3 text-[9px]"
+                              className="ringer-button border border-black/5 hover:bg-zinc-100 p-1 px-2.5 text-[9px]"
                             >
                               ✏️ NOTES
                             </button>
@@ -1566,8 +1667,8 @@ export default function OrganizerDashboard() {
                   </div>
 
                   <div className="space-y-1">
-                    <Input name="whatsapp_group_link" placeholder="WhatsApp Group Invite Link / URL (Optional, e.g. https://chat.whatsapp.com/...)" value={formData.whatsapp_group_link} onChange={e => setFormData({ ...formData, whatsapp_group_link: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
-                    <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Optional WhatsApp group invite for confirmed attendees to chat and coordinate.</p>
+                    <Input name="whatsapp_group_link" placeholder="Telegram Group Invite Link / URL (Optional, e.g. https://t.me/your_group)" value={formData.whatsapp_group_link} onChange={e => setFormData({ ...formData, whatsapp_group_link: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
+                    <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Optional Telegram group invite for confirmed attendees to chat and coordinate.</p>
                   </div>
 
                   <div className="space-y-1">
@@ -1694,11 +1795,11 @@ export default function OrganizerDashboard() {
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">WhatsApp Reachable</span>
-                <span className="font-black text-[#22C55E]">{contacts.filter(c => selectedEmails.includes(c.email) && c.phone_number).length} of {selectedEmails.length}</span>
+                <span className="font-black text-[#22C55E]">{contacts.filter(c => selectedEmails.includes(c.email) && c.has_phone).length} of {selectedEmails.length}</span>
               </div>
               <div className="flex justify-between items-center pt-4 border-t border-black/5">
                 <span className="text-[11px] font-black uppercase tracking-widest text-black">Total Investment (₹2/msg)</span>
-                <span className="font-black text-primary text-xl">₹{contacts.filter(c => selectedEmails.includes(c.email) && c.phone_number).length * 2}</span>
+                <span className="font-black text-primary text-xl">₹{contacts.filter(c => selectedEmails.includes(c.email) && c.has_phone).length * 2}</span>
               </div>
             </div>
 
