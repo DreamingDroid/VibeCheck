@@ -104,7 +104,7 @@ const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
 
     // Dashboard
     "dash.whats_happening": "What's happening in {city}",
-    "dash.share_platform": "Share Platform",
+    "dash.share_platform": "Share",
     "dash.join_whatsapp": "Join WhatsApp Community",
     "dash.view_calendar": "Calendar View",
     "dash.view_list": "List View",
@@ -199,7 +199,7 @@ const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
 
     // Dashboard
     "dash.whats_happening": "Wat gebeurt er in {city}",
-    "dash.share_platform": "Platform Delen",
+    "dash.share_platform": "Delen",
     "dash.join_whatsapp": "Word lid van de WhatsApp Community",
     "dash.view_calendar": "Kalenderweergave",
     "dash.view_list": "Lijstweergave",

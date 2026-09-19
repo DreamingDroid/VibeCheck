@@ -57,6 +57,7 @@ function DashboardContent() {
   const [following, setFollowing] = useState<string[]>([]);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [userHasPhone, setUserHasPhone] = useState(false);
+  const [userHasTelegram, setUserHasTelegram] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [forceCalendarOpen, setForceCalendarOpen] = useState(false);
   const [calendarViewMode, setCalendarViewMode] = useState<'month' | 'week'>('month');
@@ -89,6 +90,16 @@ function DashboardContent() {
     await refreshEvents();
     if (session?.user?.email) {
       fetchVipInvites(session.user.email);
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      fetch(`${baseUrl}/api/user?email=${encodeURIComponent(session.user.email)}`)
+        .then(r => r.json())
+        .then(res => {
+          if (res.success && res.data) {
+            setUserHasPhone(Boolean(res.data.phone_number));
+            setUserHasTelegram(Boolean(res.data.telegram_chat_id));
+          }
+        })
+        .catch(() => {});
     }
     if (currentCity) {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -118,13 +129,20 @@ function DashboardContent() {
       fetch(`${baseUrl}/api/user?email=${encodeURIComponent(session.user.email)}`)
         .then(r => r.json())
         .then(res => {
-          if (res.success && res.data && res.data.phone_number) {
-            setUserHasPhone(true);
+          if (res.success && res.data) {
+            setUserHasPhone(Boolean(res.data.phone_number));
+            setUserHasTelegram(Boolean(res.data.telegram_chat_id));
+          } else {
+            setUserHasPhone(false);
+            setUserHasTelegram(false);
           }
         })
         .catch(err => console.error("Could not fetch user preferences", err));
 
       fetchVipInvites(session.user.email);
+    } else {
+      setUserHasPhone(false);
+      setUserHasTelegram(false);
     }
   }, [session]);
 
@@ -264,20 +282,6 @@ function DashboardContent() {
   useEffect(() => {
     if (session?.user?.email) {
       fetchFollowing();
-      
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      fetch(`${baseUrl}/api/user?email=${encodeURIComponent(session.user.email)}`)
-        .then(r => r.json())
-        .then(res => {
-          if (res.success && res.data?.phone_number) {
-            setUserHasPhone(true);
-          } else {
-            setUserHasPhone(false);
-          }
-        })
-        .catch(err => console.error("Failed to check user phone verification:", err));
-    } else {
-      setUserHasPhone(false);
     }
   }, [session]);
 
@@ -1039,8 +1043,8 @@ function DashboardContent() {
       </section>
       )}
 
-      {/* Discovery Sidebar Style Section - Hidden if user already verified phone */}
-      {!userHasPhone && (
+      {/* Discovery Banner - Hidden if user already accepted Telegram bot */}
+      {!userHasTelegram && (
         <section className={`p-6 sm:p-12 rounded-[24px] sm:rounded-[40px] flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 relative overflow-hidden ${
           isVibrant 
             ? 'bg-gradient-to-br from-zinc-900 via-purple-950 to-zinc-900 text-white' 
@@ -1070,7 +1074,13 @@ function DashboardContent() {
                <Send className="h-4 w-4 fill-white -rotate-12" />
                <span>PING VIBECHECK</span>
              </button>
-             <button onClick={handleSharePlatform} className="ringer-button border border-white/20 hover:bg-white/10 active:scale-95 transition-transform">SHARE PLATFORM</button>
+             <button 
+               onClick={handleSharePlatform} 
+               className="ringer-button flex items-center gap-2 border border-white/20 hover:bg-white/10 active:scale-95 transition-transform"
+             >
+               <Share2 className="h-4 w-4" />
+               <span>SHARE</span>
+             </button>
            </div>
         </section>
       )}

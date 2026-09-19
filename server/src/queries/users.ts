@@ -2,7 +2,7 @@ import { Pool } from 'pg';
 
 export async function getWebUserByEmail(pool: Pool, email: string) {
   const { rows } = await pool.query(
-    `SELECT email, name, categories, phone_number, city, profession, age_group, language, image_url FROM web_users WHERE email = $1`,
+    `SELECT email, name, categories, phone_number, city, profession, age_group, language, image_url, telegram_chat_id, telegram_username FROM web_users WHERE email = $1`,
     [email]
   );
   return rows[0] || null;
