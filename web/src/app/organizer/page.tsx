@@ -30,8 +30,10 @@ const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
   return `${displayHour}:${min} ${ampm}`;
 });
 
-function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateStr, endDateTime, organizerEmail, adminComment, whatsappGroupLink, category, city, location, onEdit, onStatusUpdated }: { eventId: string, title: string, status: string, visibility?: string, inviteCount?: number, dateStr: string, endDateTime?: string, organizerEmail: string, adminComment?: string, whatsappGroupLink?: string, category?: string, city?: string, location?: string, onEdit?: () => void, onStatusUpdated?: () => void }) {
+function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateStr, endDateTime, organizerEmail, adminComment, whatsappGroupLink, category, city, location, isPaid, onEdit, onStatusUpdated }: { eventId: string, title: string, status: string, visibility?: string, inviteCount?: number, dateStr: string, endDateTime?: string, organizerEmail: string, adminComment?: string, whatsappGroupLink?: string, category?: string, city?: string, location?: string, isPaid?: boolean, onEdit?: () => void, onStatusUpdated?: () => void }) {
   const [rsvps, setRsvps] = useState<any[]>([]);
+  const [selectedRsvpIds, setSelectedRsvpIds] = useState<number[]>([]);
+  const [issuingBulk, setIssuingBulk] = useState(false);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -464,33 +466,137 @@ function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateSt
                 </div>
               )}
 
-              <h4 className="text-black font-black uppercase tracking-tighter italic mb-3 text-sm">Guestlist ({rsvps.length})</h4>
+              {/* Guestlist & Pass Issuance Section */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-black font-black uppercase tracking-tighter italic text-sm">
+                    Guestlist ({rsvps.length})
+                  </h4>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                    • {rsvps.filter(r => r.status === 'confirmed').length} Confirmed • {rsvps.filter(r => r.status === 'pending').length} Pending
+                  </span>
+                </div>
+
+                {rsvps.filter(r => r.status === 'pending').length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const pendingIds = rsvps.filter(r => r.status === 'pending').map(r => r.id);
+                        if (selectedRsvpIds.length === pendingIds.length && pendingIds.length > 0) {
+                          setSelectedRsvpIds([]);
+                        } else {
+                          setSelectedRsvpIds(pendingIds);
+                        }
+                      }}
+                      className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border border-black/10 bg-white hover:bg-zinc-100 text-zinc-700 transition-colors cursor-pointer"
+                    >
+                      {selectedRsvpIds.length === rsvps.filter(r => r.status === 'pending').length && selectedRsvpIds.length > 0
+                        ? "Deselect All"
+                        : `Select All Pending (${rsvps.filter(r => r.status === 'pending').length})`}
+                    </button>
+
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const pendingIds = rsvps.filter(r => r.status === 'pending').map(r => r.id);
+                        const targetIds = selectedRsvpIds.length > 0 ? selectedRsvpIds : pendingIds;
+                        if (targetIds.length === 0) return;
+                        
+                        setIssuingBulk(true);
+                        try {
+                          const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+                          const res = await fetch(`${baseUrl}/api/organizer/events/${eventId}/rsvps/bulk-issue-pass`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ email: organizerEmail, rsvpIds: targetIds })
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            toast.success(data.message || `Issued ${data.count} passes!`);
+                            const issuedMap = new Map((data.data || []).map((p: any) => [p.id, p]));
+                            setRsvps(prev => prev.map(item => {
+                              if (issuedMap.has(item.id)) {
+                                const updated = issuedMap.get(item.id) as any;
+                                return { ...item, status: 'confirmed', payment_status: updated?.payment_status || 'paid', pass_code: updated?.pass_code };
+                              }
+                              return item;
+                            }));
+                            setSelectedRsvpIds([]);
+                          } else {
+                            toast.error(data.error || "Failed to issue passes in bulk");
+                          }
+                        } catch (err) {
+                          toast.error("Error issuing passes in bulk");
+                        } finally {
+                          setIssuingBulk(false);
+                        }
+                      }}
+                      disabled={issuingBulk}
+                      className={cn(
+                        "text-[10px] font-black uppercase py-1 px-3.5 rounded-full cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5 transition-transform active:scale-95",
+                        selectedRsvpIds.length > 0 
+                          ? "bg-primary text-black hover:bg-primary/90" 
+                          : "bg-black text-white hover:bg-zinc-800"
+                      )}
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      <span>
+                        {issuingBulk ? "Issuing..." : selectedRsvpIds.length > 0 
+                          ? `Issue Passes (${selectedRsvpIds.length})` 
+                          : `Issue All Pending (${rsvps.filter(r => r.status === 'pending').length})`}
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <ul className="divide-y divide-black/5 bg-white rounded-2xl border border-black/5 overflow-hidden">
                 {rsvps.map((r, i) => (
                   <li key={i} className="text-xs p-2.5 px-3.5 sm:px-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 hover:bg-zinc-50 transition-colors">
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-black font-bold">
-                          {r.name || 'Anonymous Guest'}
-                        </span>
-                        {r.status === 'confirmed' ? (
-                          <span className="sticker-badge bg-primary/10 text-primary border-primary/20 text-[8px] font-black">
-                            ✓ Pass Issued {r.pass_code ? `(#${r.pass_code})` : ''}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {r.status === 'pending' && (
+                        <input
+                          type="checkbox"
+                          checked={selectedRsvpIds.includes(r.id)}
+                          onChange={() => {
+                            setSelectedRsvpIds(prev => 
+                              prev.includes(r.id) ? prev.filter(id => id !== r.id) : [...prev, r.id]
+                            );
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="rounded border-zinc-300 text-black accent-black focus:ring-black h-4 w-4 cursor-pointer shrink-0"
+                        />
+                      )}
+                      
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-black font-bold truncate">
+                            {r.name || 'Anonymous Guest'}
                           </span>
-                        ) : (
-                          <span className="sticker-badge bg-amber-500/10 text-amber-600 border-amber-500/20 text-[8px] font-black">
-                            ⏳ Pending Payment
+                          {r.status === 'confirmed' ? (
+                            <span className="sticker-badge bg-primary/10 text-primary border-primary/20 text-[8px] font-black">
+                              ✓ Pass Issued {r.pass_code ? `(#${r.pass_code})` : ''}
+                            </span>
+                          ) : isPaid ? (
+                            <span className="sticker-badge bg-amber-500/10 text-amber-600 border-amber-500/20 text-[8px] font-black">
+                              ⏳ Pending Payment
+                            </span>
+                          ) : (
+                            <span className="sticker-badge bg-amber-500/10 text-amber-700 border-amber-500/20 text-[8px] font-black">
+                              ⏳ Awaiting Confirmation
+                            </span>
+                          )}
+                        </div>
+                        {r.user_email && (
+                          <span className="text-zinc-400 text-[9px] font-medium mt-0.5 truncate">
+                            {r.user_email}
                           </span>
                         )}
                       </div>
-                      {r.user_email && (
-                        <span className="text-zinc-400 text-[9px] font-medium mt-0.5">
-                          {r.user_email}
-                        </span>
-                      )}
                     </div>
 
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto">
                       <span className="text-zinc-400 text-[9px] font-black uppercase tracking-wider">
                         {new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </span>
@@ -509,7 +615,8 @@ function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateSt
                               const data = await res.json();
                               if (data.success) {
                                 toast.success(data.message || "Attendee pass issued!");
-                                setRsvps(prev => prev.map(item => item.id === r.id ? { ...item, status: 'confirmed', payment_status: 'paid', pass_code: data.data?.pass_code } : item));
+                                setRsvps(prev => prev.map(item => item.id === r.id ? { ...item, status: 'confirmed', payment_status: data.data?.payment_status || 'paid', pass_code: data.data?.pass_code } : item));
+                                setSelectedRsvpIds(prev => prev.filter(id => id !== r.id));
                               } else {
                                 toast.error(data.error || "Failed to issue pass");
                               }
@@ -517,9 +624,9 @@ function EventRsvpList({ eventId, title, status, visibility, inviteCount, dateSt
                               toast.error("Error issuing pass");
                             }
                           }}
-                          className="ringer-button bg-primary text-black hover:bg-primary/90 text-[9px] font-black uppercase py-1 px-3 rounded-full cursor-pointer shadow-xs"
+                          className="ringer-button bg-primary text-black hover:bg-primary/90 text-[9px] font-black uppercase py-1 px-3 rounded-full cursor-pointer shadow-xs whitespace-nowrap"
                         >
-                          Mark Paid &amp; Issue Pass
+                          {isPaid ? "Mark Paid & Issue Pass" : "Approve & Issue Pass"}
                         </button>
                       )}
                     </div>
@@ -1159,6 +1266,7 @@ export default function OrganizerDashboard() {
                       organizerEmail={session?.user?.email || ""} 
                       adminComment={ev.admin_comment} 
                       whatsappGroupLink={ev.whatsapp_group_link} 
+                      isPaid={ev.is_paid}
                       onEdit={() => handleEditInit(ev)} 
                       onStatusUpdated={() => loadMyEvents()} 
                     />

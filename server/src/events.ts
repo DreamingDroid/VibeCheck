@@ -92,7 +92,9 @@ export async function rsvpEventHandler(req: Request, res: Response, pool: Pool) 
 
     return res.json({
       success: true,
-      message: event.is_paid ? 'Registration received. Pass pending payment.' : 'RSVP confirmed. Pass issued.',
+      message: event.is_paid 
+        ? 'Registration received. Pass pending payment.' 
+        : 'RSVP registered. Pass pending organizer confirmation.',
       rsvp_status: rsvp.status,
       payment_status: rsvp.payment_status,
       pass_code: rsvp.pass_code

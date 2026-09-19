@@ -10,7 +10,7 @@ import {
   verifyStaffScannerPin,
   createOrGetScannerPin
 } from './queries/passes';
-import { editTelegramMessageCaption } from './telegram';
+import { editTelegramMessageText } from './telegram';
 import { config } from './config';
 
 /**
@@ -53,18 +53,42 @@ export async function verifyPassHandler(req: Request, res: Response, pool: Pool)
 
     const pass = checkinResult.pass!;
 
-    // Live update Telegram pass caption if user received pass via Telegram
+    // Live update Telegram pass message if user received pass via Telegram
     if (pass.telegram_chat_id && pass.telegram_message_id) {
-      const updatedCaption = `🎟️ <b>VIBECHECK OFFICIAL PASS</b>\n\n` +
-        `⚡ <b>${pass.event_title || 'Exclusive Vibe'}</b>\n` +
-        `👤 <b>Attendee:</b> ${pass.attendee_name || 'VIP Guest'}\n` +
-        `📅 <b>When:</b> ${pass.event_date ? new Date(pass.event_date).toLocaleString('en-IN') : 'Date TBA'}\n` +
-        `📍 <b>Venue:</b> ${pass.location || 'Vizag'}\n` +
+      const dateFormatted = pass.event_date
+        ? new Date(pass.event_date).toLocaleDateString('en-IN', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        : 'Date TBA';
+
+      const updatedText = `🎫 <b>ENTRY PASS</b>\n\n` +
+        `<blockquote>\n` +
+        `<b>⚡ ${pass.event_title || 'Exclusive Vibe'}</b>\n` +
+        `👤 <b>Guest:</b> ${pass.attendee_name || 'VIP Guest'}\n` +
+        `📅 <b>When:</b> ${dateFormatted}\n` +
+        `📍 <b>Where:</b> ${pass.location || 'Vizag'}${pass.city ? `, ${pass.city}` : ''}\n` +
+        `</blockquote>\n\n` +
         `🔢 <b>Pass Code:</b> <code>${pass.pass_code}</code>\n` +
         `🏷️ <b>Status:</b> ✅ <b>CHECKED-IN</b> at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} (${checkerIdentity})\n\n` +
         `<i>Enjoy the vibe! 🎉</i>`;
 
-      editTelegramMessageCaption(pass.telegram_chat_id, pass.telegram_message_id, updatedCaption).catch(err => {
+      const buttonRow: any[] = [];
+      if (pass.location) {
+        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pass.location}, ${pass.city || 'Vizag'}`)}`;
+        buttonRow.push({ text: '📍 Open in Google Maps', url: mapsUrl });
+      }
+      buttonRow.push({ text: '🌐 View on VibeCheck', url: `${config.WEB_APP_URL}/event/${pass.event_id}` });
+
+      const inlineKeyboard = {
+        inline_keyboard: [buttonRow]
+      };
+
+      editTelegramMessageText(pass.telegram_chat_id, pass.telegram_message_id, updatedText, inlineKeyboard).catch(err => {
         console.error('[Passes] Error updating live Telegram status:', err);
       });
     }

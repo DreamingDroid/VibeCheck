@@ -2,8 +2,8 @@ import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { Resend } from 'resend';
 import { sendWhatsAppMessage } from './whatsapp';
-import { sendTelegramMessage } from './telegram';
-import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull, updateEventStatusByOrganizer, issueOrganizerEventPass, cancelOrganizerEventRSVP, updateEventWhatsAppGroupLink, getEventById, addEventInvites, getEventInvites } from './queries/events';
+import { sendTelegramMessage, sendTelegramEventPass } from './telegram';
+import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull, updateEventStatusByOrganizer, issueOrganizerEventPass, issueBulkOrganizerEventPasses, cancelOrganizerEventRSVP, updateEventWhatsAppGroupLink, getEventById, addEventInvites, getEventInvites } from './queries/events';
 import { createBroadcastAndDispatch, getAudienceRecipientEmails, CreateBroadcastInput } from './queries/broadcasts';
 import { sendFcmTopicBroadcast, sanitizeTopicName } from './firebaseAdmin';
 import { getSystemSetting, getOrganizerDashboardAnalytics } from './queries/analytics';
@@ -487,9 +487,51 @@ export async function organizerIssuePassHandler(req: Request, res: Response, poo
       return res.status(404).json({ success: false, error: 'RSVP not found' });
     }
 
+    // Async notify via Telegram if attendee has linked Telegram
+    if (updated.telegram_chat_id) {
+      sendTelegramEventPass(pool, Number(updated.telegram_chat_id), updated).catch(err => {
+        console.error('[IssuePass] Error delivering telegram pass:', err);
+      });
+    }
+
     res.json({ success: true, data: updated, message: 'Attendee pass issued successfully!' });
   } catch (error) {
     console.error('Issue pass error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function organizerBulkIssuePassesHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  const { email, rsvpIds } = req.body;
+
+  if (!email) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+  try {
+    const eventCheck = await getEventByOrganizer(pool, id as string);
+    if (!eventCheck || eventCheck.organizer_email !== email) {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
+
+    const issuedPasses = await issueBulkOrganizerEventPasses(pool, id as string, rsvpIds);
+
+    // Async dispatch Telegram pass cards to linked users
+    for (const pass of issuedPasses) {
+      if (pass.telegram_chat_id) {
+        sendTelegramEventPass(pool, Number(pass.telegram_chat_id), pass).catch(err => {
+          console.error('[BulkPass] Error delivering telegram pass:', err);
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      count: issuedPasses.length,
+      data: issuedPasses,
+      message: `Successfully issued ${issuedPasses.length} attendee pass(es)!`
+    });
+  } catch (error) {
+    console.error('Bulk issue passes error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

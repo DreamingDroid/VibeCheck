@@ -63,7 +63,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         .then(d => {
           if (d.success && d.rsvped) {
             setRsvped(true);
-            setRsvpStatus(d.rsvp_status || (event?.is_paid ? 'pending' : 'confirmed'));
+            setRsvpStatus(d.rsvp_status || 'pending');
             setPassCode(d.pass_code || null);
           }
         })
@@ -157,13 +157,13 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
       const data = await res.json();
       if (data.success) {
         setRsvped(true);
-        const resolvedStatus = data.rsvp_status || (event?.is_paid ? 'pending' : 'confirmed');
+        const resolvedStatus = data.rsvp_status || 'pending';
         setRsvpStatus(resolvedStatus);
         setPassCode(data.pass_code || null);
         if (event?.is_paid) {
           toast.success("Registration received! Pass pending payment with organizer.");
         } else {
-          toast.success("RSVP confirmed! Free pass issued.");
+          toast.success("RSVP registered! Pass pending organizer confirmation.");
         }
         // Refresh event data to update rsvp_count and group link
         const refreshedEventRes = await fetch(`${baseUrl}/api/events/${eventId}`);

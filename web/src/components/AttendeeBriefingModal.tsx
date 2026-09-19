@@ -88,7 +88,9 @@ export function AttendeeBriefingModal({
 
   const guide: AttendeeGuideData = event.attendee_guide || DEFAULT_ATTENDEE_GUIDE;
   const isPaid = !!event.is_paid;
-  const isPendingPayment = isPaid && rsvpStatus === 'pending';
+  const isPending = rsvpStatus === 'pending';
+  const isPendingPayment = isPaid && isPending;
+  const isPendingApproval = !isPaid && isPending;
 
   const toggleCheck = (index: number) => {
     setCheckedItems((prev) => ({
@@ -122,13 +124,13 @@ export function AttendeeBriefingModal({
         
         {/* Pass Header Banner */}
         <div className={`p-6 sm:p-8 relative overflow-hidden shrink-0 text-white ${
-          isPendingPayment 
+          isPending
             ? "bg-gradient-to-br from-amber-950 via-zinc-900 to-black" 
             : "bg-gradient-to-br from-zinc-900 via-black to-zinc-950"
         }`}>
           {/* Subtle glow effect */}
           <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20 ${
-            isPendingPayment ? "bg-amber-500/20" : "bg-primary/20"
+            isPending ? "bg-amber-500/20" : "bg-primary/20"
           }`} />
           
           <div className="flex items-start justify-between relative z-10">
@@ -138,6 +140,11 @@ export function AttendeeBriefingModal({
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest shadow-sm">
                     <Clock className="h-3.5 w-3.5" />
                     <span>REGISTRATION RECEIVED • PASS PENDING PAYMENT</span>
+                  </div>
+                ) : isPendingApproval ? (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400 text-black text-[10px] font-black uppercase tracking-widest shadow-sm">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>RSVP RECORDED • AWAITING ORGANIZER CONFIRMATION</span>
                   </div>
                 ) : (
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary text-black text-[10px] font-black uppercase tracking-widest shadow-sm">
@@ -211,6 +218,23 @@ export function AttendeeBriefingModal({
                   <Phone className="h-3.5 w-3.5 text-zinc-600" />
                   <span>Call {primaryContact.name} ({primaryContact.phone})</span>
                 </a>
+              </div>
+            </div>
+          )}
+
+          {/* Pending Approval Callout Box for Free Events */}
+          {isPendingApproval && (
+            <div className="bg-amber-50/80 border-2 border-amber-200 p-5 sm:p-6 rounded-3xl space-y-2 shadow-xs">
+              <div className="flex items-start gap-3">
+                <Clock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h3 className="text-sm font-black uppercase tracking-wider text-amber-950">
+                    RSVP Registered • Awaiting Organizer Confirmation
+                  </h3>
+                  <p className="text-xs font-medium text-amber-800 leading-relaxed">
+                    Your spot request has been sent to the organizer. Once the organizer reviews and issues your attendee pass, your official pass code and entry pass will be unlocked here!
+                  </p>
+                </div>
               </div>
             </div>
           )}

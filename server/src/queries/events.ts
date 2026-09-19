@@ -240,9 +240,9 @@ export async function getUserVipInvites(pool: Pool, email: string) {
 }
 
 export async function insertEventRSVPEmail(pool: Pool, eventId: string, email: string, isPaid: boolean = false, phoneNumber?: string) {
-    const status = isPaid ? 'pending' : 'confirmed';
-    const paymentStatus = isPaid ? 'unpaid' : 'paid';
-    const passCode = !isPaid ? `VB-${Math.floor(100000 + Math.random() * 900000)}` : null;
+    const status = 'pending';
+    const paymentStatus = isPaid ? 'unpaid' : 'free';
+    const passCode = null;
     const qrToken = 'vc_pass_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
     const { rows } = await pool.query(`
@@ -251,7 +251,7 @@ export async function insertEventRSVPEmail(pool: Pool, eventId: string, email: s
       ON CONFLICT (event_id, user_email) 
       DO UPDATE SET status = EXCLUDED.status, payment_status = EXCLUDED.payment_status,
                     qr_token = COALESCE(event_rsvps.qr_token, EXCLUDED.qr_token),
-                    pass_code = COALESCE(event_rsvps.pass_code, EXCLUDED.pass_code)
+                    pass_code = event_rsvps.pass_code
       RETURNING id, event_id, user_email, phone_number, status, payment_status, pass_code, qr_token, checkin_status;
     `, [eventId, email, phoneNumber || null, status, paymentStatus, passCode, qrToken]);
 
@@ -273,7 +273,7 @@ export async function checkEventRSVPEmail(pool: Pool, eventId: string, email: st
     }
     return {
       rsvped: true,
-      status: rows[0].status || 'confirmed',
+      status: rows[0].status || 'pending',
       payment_status: rows[0].payment_status || 'unpaid',
       pass_code: rows[0].pass_code,
       qr_token: rows[0].qr_token,
@@ -325,14 +325,70 @@ export async function getOrganizerEventRSVPs(pool: Pool, eventId: string) {
 
 export async function issueOrganizerEventPass(pool: Pool, eventId: string, rsvpId: string | number) {
     const passCode = `VB-${Math.floor(100000 + Math.random() * 900000)}`;
+    const qrToken = 'vc_pass_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     const { rows } = await pool.query(
       `UPDATE event_rsvps 
-       SET status = 'confirmed', payment_status = 'paid', pass_code = COALESCE(pass_code, $1) 
-       WHERE event_id = $2 AND id = $3 
+       SET status = 'confirmed', 
+           payment_status = CASE WHEN payment_status = 'free' THEN 'free' ELSE 'paid' END, 
+           pass_code = COALESCE(pass_code, $1),
+           qr_token = COALESCE(qr_token, $2)
+       WHERE event_id = $3 AND id = $4 
        RETURNING *`,
-      [passCode, eventId, rsvpId]
+      [passCode, qrToken, eventId, rsvpId]
     );
-    return rows[0] || null;
+    if (!rows[0]) return null;
+
+    const fullPassResult = await pool.query(
+      `SELECT r.*, e.title as event_title, e.date_time as event_date, e.location, e.city, e.google_maps_link,
+              COALESCE(u.name, 'VIP Guest') as attendee_name, u.telegram_chat_id
+       FROM event_rsvps r
+       JOIN events e ON r.event_id = e.id
+       LEFT JOIN web_users u ON LOWER(r.user_email) = LOWER(u.email)
+       WHERE r.id = $1 LIMIT 1`,
+      [rows[0].id]
+    );
+    return fullPassResult.rows[0] || rows[0];
+}
+
+export async function issueBulkOrganizerEventPasses(pool: Pool, eventId: string, rsvpIds?: (string | number)[]) {
+    let targetRsvpsQuery = `SELECT id, user_email, pass_code, qr_token FROM event_rsvps WHERE event_id = $1 AND status = 'pending'`;
+    const params: any[] = [eventId];
+    if (rsvpIds && rsvpIds.length > 0) {
+      targetRsvpsQuery += ` AND id = ANY($2::int[])`;
+      params.push(rsvpIds.map(id => Number(id)));
+    }
+
+    const { rows: pendingList } = await pool.query(targetRsvpsQuery, params);
+    if (pendingList.length === 0) return [];
+
+    const issuedPasses = [];
+    for (const rsvp of pendingList) {
+      const passCode = rsvp.pass_code || `VB-${Math.floor(100000 + Math.random() * 900000)}`;
+      const qrToken = rsvp.qr_token || ('vc_pass_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15));
+      const { rows } = await pool.query(
+        `UPDATE event_rsvps 
+         SET status = 'confirmed',
+             payment_status = CASE WHEN payment_status = 'free' THEN 'free' ELSE 'paid' END,
+             pass_code = $1,
+             qr_token = $2
+         WHERE id = $3
+         RETURNING *`,
+        [passCode, qrToken, rsvp.id]
+      );
+      if (rows[0]) {
+        const fullPass = await pool.query(
+          `SELECT r.*, e.title as event_title, e.date_time as event_date, e.location, e.city, e.google_maps_link,
+                  COALESCE(u.name, 'VIP Guest') as attendee_name, u.telegram_chat_id
+           FROM event_rsvps r
+           JOIN events e ON r.event_id = e.id
+           LEFT JOIN web_users u ON LOWER(r.user_email) = LOWER(u.email)
+           WHERE r.id = $1 LIMIT 1`,
+          [rows[0].id]
+        );
+        issuedPasses.push(fullPass.rows[0] || rows[0]);
+      }
+    }
+    return issuedPasses;
 }
 
 export async function cancelOrganizerEventRSVP(pool: Pool, eventId: string, rsvpId: string | number) {

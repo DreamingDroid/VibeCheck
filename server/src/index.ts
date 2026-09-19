@@ -20,7 +20,7 @@ import { handleEventQuery, saveUserPreferences } from './rag';
 import { verifyWebhook, handleIncomingMessage } from './whatsapp';
 import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHandler, getUserVipInvitesHandler } from './events';
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
-import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler, organizerGetEventAnalyticsHandler, organizerToggleHousefullHandler, organizerUpdateStatusHandler, organizerGetCrmContactsHandler, organizerUpsertCrmNotesHandler, organizerCrmBroadcastHandler, organizerGetDashboardAnalyticsHandler, organizerIssuePassHandler, organizerCancelRsvpHandler, organizerUpdateWhatsAppGroupLinkHandler, organizerSendWhatsAppGroupInviteHandler, organizerGetEventInvitesHandler } from './organizer';
+import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler, organizerGetEventAnalyticsHandler, organizerToggleHousefullHandler, organizerUpdateStatusHandler, organizerGetCrmContactsHandler, organizerUpsertCrmNotesHandler, organizerCrmBroadcastHandler, organizerGetDashboardAnalyticsHandler, organizerIssuePassHandler, organizerBulkIssuePassesHandler, organizerCancelRsvpHandler, organizerUpdateWhatsAppGroupLinkHandler, organizerSendWhatsAppGroupInviteHandler, organizerGetEventInvitesHandler } from './organizer';
 import { getCitiesHandler } from './cities';
 import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingOrganizersHandler, adminApproveOrganizerHandler, adminRejectOrganizerHandler, adminDeleteOrganizerHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminGetEventsByStatusHandler, adminAddCityHandler, adminDeleteCityHandler, adminGetAdminsHandler, adminAddAdminHandler, adminRemoveAdminHandler, adminSearchHandler, adminAttendeeDetailsHandler, adminOrganizerDetailsHandler, adminEventDetailsHandler } from './admin';
 import { startPushAlertCron, runMatchmakerJob } from './cron';
@@ -331,6 +331,7 @@ app.put('/api/organizer/events/:id/toggle-housefull', (req, res) => organizerTog
 app.get('/api/organizer/events/:id/rsvps', (req, res) => organizerGetEventRsvpsHandler(req, res, pool));
 app.get('/api/organizer/events/:eventId/invites', (req, res) => organizerGetEventInvitesHandler(req, res, pool));
 app.post('/api/organizer/events/:id/rsvps/:rsvpId/issue-pass', (req, res) => organizerIssuePassHandler(req, res, pool));
+app.post('/api/organizer/events/:id/rsvps/bulk-issue-pass', (req, res) => organizerBulkIssuePassesHandler(req, res, pool));
 app.post('/api/organizer/events/:id/rsvps/:rsvpId/cancel', (req, res) => organizerCancelRsvpHandler(req, res, pool));
 app.get('/api/organizer/events/:id/broadcast-stats', (req, res) => getBroadcastStatsHandler(req, res, pool));
 app.post('/api/organizer/events/:id/broadcast', (req, res) => broadcastMessageHandler(req, res, pool));
