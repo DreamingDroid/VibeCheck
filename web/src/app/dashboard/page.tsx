@@ -171,7 +171,10 @@ function DashboardContent() {
 
   const handleJoinTelegram = () => {
     const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'VibeCheckSpaceBot';
-    window.open(`https://t.me/${botUsername}?start=dashboard`, '_blank');
+    const payload = session?.user?.email
+      ? `user_${encodeURIComponent(session.user.email)}`
+      : 'ping_vibecheck';
+    window.open(`https://t.me/${botUsername}?start=${payload}`, '_blank');
   };
 
   const handleJoinWhatsApp = () => {

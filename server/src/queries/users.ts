@@ -97,6 +97,15 @@ export async function getUsersWithPreferences(pool: Pool) {
   return rows;
 }
 
+export async function getTelegramSubscribers(pool: Pool) {
+  const { rows } = await pool.query(`
+    SELECT telegram_chat_id, name, email, city, categories
+    FROM web_users
+    WHERE telegram_chat_id IS NOT NULL
+  `);
+  return rows;
+}
+
 export async function linkUserPhoneNumber(pool: Pool, email: string, phone: string) {
   const phoneFormatted = phone; 
   await pool.query(`UPDATE web_users SET phone_number = $1 WHERE email = $2`, [phoneFormatted, email]);

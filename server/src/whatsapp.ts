@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
-import { handleEventQuery, extractAndSavePreferences } from './rag';
 import { insertEventRSVP, getEventById, getEventsInNext7Days } from './queries/events';
-import { getUserByPhone, createUser, updateUserChatHistory } from './queries/users';
 import { config } from './config';
 
 // ─── Category definitions ─────────────────────────────────────────────────────

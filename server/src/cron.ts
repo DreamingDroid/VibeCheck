@@ -1,24 +1,22 @@
 import cron from 'node-cron';
 import { Pool } from 'pg';
-import { sendWhatsAppMessage } from './whatsapp';
+import { sendTelegramMessage } from './telegram';
 import { getChatModel } from './rag';
 import { initSystemSettings, getSystemSetting } from './queries/analytics';
 import { getRecentEvents } from './queries/events';
-import { getUsersWithPreferences } from './queries/users';
+import { getTelegramSubscribers } from './queries/users';
 import { config } from './config';
 import { deleteImage } from './cloudinary';
 
-const WHATSAPP_PHONE_NUMBER_ID = config.WHATSAPP_PHONE_NUMBER_ID;
-
 /**
- * Proactive Push Alerts — core job logic.
+ * Proactive Push Alerts — core job logic on Telegram (Zero Messaging Fees).
  * Called by the daily cron AND by the /admin/trigger-cron dev route.
  */
 export async function runMatchmakerJob(pool: Pool): Promise<string> {
   const log: string[] = [];
 
-  if (!WHATSAPP_PHONE_NUMBER_ID) {
-    log.push('[Cron] No WHATSAPP_PHONE_NUMBER_ID set — skipping push alerts.');
+  if (!config.TELEGRAM_BOT_TOKEN) {
+    log.push('[Cron] No TELEGRAM_BOT_TOKEN set — skipping Telegram push alerts.');
     return log.join('\n');
   }
 
@@ -42,12 +40,17 @@ export async function runMatchmakerJob(pool: Pool): Promise<string> {
       return log.join('\n');
     }
 
-    log.push(`[Cron] Found ${newEvents.length} new event(s). Checking user preferences...`);
+    log.push(`[Cron] Found ${newEvents.length} new event(s). Checking Telegram subscriber preferences...`);
 
-    // Step 2: Get all WhatsApp-linked users with preferences
-    const users = await getUsersWithPreferences(pool);
+    // Step 2: Get all Telegram-linked users
+    const users = await getTelegramSubscribers(pool);
 
-    log.push(`[Cron] ${users.length} user(s) with saved preferences.`);
+    if (users.length === 0) {
+      log.push('[Cron] No users with linked Telegram accounts found.');
+      return log.join('\n');
+    }
+
+    log.push(`[Cron] ${users.length} user(s) with linked Telegram accounts.`);
 
     const llm = getChatModel();
 
@@ -63,39 +66,52 @@ export async function runMatchmakerJob(pool: Pool): Promise<string> {
     // Step 3: For each user, perform semantic matchmaking
     for (const user of users) {
       const firstName = user.name?.split(' ')[0] ?? 'there';
-      const userPrefsStr = JSON.stringify(user.preferences || {});
+      const userPrefs = {
+        city: user.city || 'Vizag',
+        categories: user.categories || []
+      };
 
       const systemPrompt = `You are the VibeCheck Proactive Matchmaker AI.
-You evaluate if brand new events match a specific user's preferences.
-User Preferences: ${userPrefsStr}
+You evaluate if brand new events match a specific user's preferences and city.
+User Preferences: ${JSON.stringify(userPrefs)}
 
 New Events array:
 ${JSON.stringify(compactEvents)}
 
 Task:
-1. Do any of these new events strongly align with the user's vibe/categories/city?
-2. If YES, craft a 2-3 sentence personalized WhatsApp alert to send to them. Greet them by their name (${firstName}). Focus on why the events fit their specific vibe!
-3. If NO (nothing matches strongly), output EXACTLY the phrase: NO_MATCH
+1. Do any of these new events align with the user's categories or city?
+2. If YES, craft a 2-3 sentence personalized Telegram alert to send to them. Greet them by their name (${firstName}). Format with clean emojis.
+3. If NO (nothing matches), output EXACTLY the phrase: NO_MATCH
 Do not output anything else if NO_MATCH. No explanations.`;
 
       const response = await llm.invoke([['system', systemPrompt]]);
       const aiMessage = (response.content as string).trim();
 
       if (aiMessage === 'NO_MATCH' || aiMessage.includes('NO_MATCH')) {
-        log.push(`[Cron Matchmaker] No match for ${user.phone_number}. Skipping.`);
+        log.push(`[Cron Matchmaker] No match for Telegram user ${user.telegram_chat_id}. Skipping.`);
         continue;
       }
 
-      const message = aiMessage + `\n\n_(Reply with any questions to chat with me!)_`;
+      const formattedText = `⚡ <b>Vibe Alert for ${firstName}!</b>\n\n${aiMessage}\n\n🗓️ <i>Tap below to browse the full calendar:</i>`;
 
-      await sendWhatsAppMessage(WHATSAPP_PHONE_NUMBER_ID, user.phone_number, message);
-      log.push(`[Cron Matchmaker] AI Alert sent to ${user.phone_number}`);
+      await sendTelegramMessage(user.telegram_chat_id, formattedText, {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '⚡ View Vibes on Web', url: `${config.WEB_APP_URL}/dashboard?view=calendar` },
+              { text: '🎟️ Check Events in Bot', callback_data: 'cmd_events' }
+            ]
+          ]
+        }
+      });
 
-      // Small delay between calls to avoid rate limits
-      await new Promise(r => setTimeout(r, 600));
+      log.push(`[Cron Matchmaker] AI Alert sent to Telegram chat ${user.telegram_chat_id} (${user.email || user.name})`);
+
+      // Small delay between calls
+      await new Promise(r => setTimeout(r, 400));
     }
 
-    log.push('[Cron] Push alert job complete.');
+    log.push('[Cron] Telegram push alert job complete.');
   } catch (error: any) {
     log.push(`[Cron] Error during push alert job: ${error.message}`);
     console.error('[Cron] Error during push alert job:', error);

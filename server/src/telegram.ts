@@ -202,6 +202,116 @@ export async function sendTelegramEventPass(
 }
 
 /**
+ * Answer Telegram callback query (removes loading spinner on tapped inline button)
+ */
+export async function answerTelegramCallbackQuery(callbackQueryId: string, text?: string) {
+  if (!config.TELEGRAM_BOT_TOKEN) return null;
+  try {
+    const res = await fetch(`${TELEGRAM_API}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text
+      })
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('[Telegram API] Error in answerCallbackQuery:', err);
+    return null;
+  }
+}
+
+/**
+ * Sends the active 7-day events list with rich interactive RSVP buttons
+ */
+export async function sendUpcomingEventsList(pool: Pool, chatId: number | string, city: string = 'Vizag') {
+  const activeEvents = await getEventsInNext7Days(pool, city);
+
+  if (!activeEvents || activeEvents.length === 0) {
+    await sendTelegramMessage(
+      chatId,
+      `⚡ <b>Upcoming Events in ${city}</b>\n\nNo events scheduled in the next 7 days right now.\n\n🗓️ Check the full calendar at: <a href="${config.WEB_APP_URL}/dashboard?view=calendar">${config.WEB_APP_URL}/dashboard?view=calendar</a>`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🗓️ Browse Full VibeCalendar', url: `${config.WEB_APP_URL}/dashboard?view=calendar` }]
+          ]
+        }
+      }
+    );
+    return;
+  }
+
+  let msg = `⚡ <b>ACTIVE VIBES IN ${city.toUpperCase()} (NEXT 7 DAYS)</b> ⚡\n\n`;
+  const buttons: any[] = [];
+
+  activeEvents.slice(0, 5).forEach((ev: any, idx: number) => {
+    const dateFormatted = new Date(ev.date_time).toLocaleDateString('en-IN', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    msg += `<b>${idx + 1}. ${ev.title}</b>\n` +
+           `📅 ${dateFormatted}\n` +
+           `📍 ${ev.location || city}\n` +
+           `🏷️ ${ev.category}\n\n`;
+
+    buttons.push([
+      { text: `🎟️ RSVP: ${ev.title.substring(0, 24)}`, url: `${config.WEB_APP_URL}/event/${ev.id}` }
+    ]);
+  });
+
+  buttons.push([
+    { text: '🗓️ View Full VibeCalendar', url: `${config.WEB_APP_URL}/dashboard?view=calendar` },
+    { text: '🎟️ My Passes', callback_data: 'cmd_passes' }
+  ]);
+
+  await sendTelegramMessage(chatId, msg, {
+    reply_markup: { inline_keyboard: buttons }
+  });
+}
+
+/**
+ * Sends active entry passes for user
+ */
+export async function sendUserPassesList(pool: Pool, chatId: number | string) {
+  const passesResult = await pool.query(
+    `SELECT r.*, e.title as event_title, e.date_time as event_date, e.location, e.city, u.name as attendee_name
+     FROM event_rsvps r
+     JOIN events e ON r.event_id = e.id
+     JOIN web_users u ON LOWER(r.user_email) = LOWER(u.email)
+     WHERE u.telegram_chat_id = $1 AND e.date_time >= CURRENT_DATE - INTERVAL '1 day'
+     ORDER BY e.date_time ASC`,
+    [chatId]
+  );
+
+  if (passesResult.rows.length === 0) {
+    await sendTelegramMessage(
+      chatId,
+      `🎟️ <b>No active passes found for your Telegram account.</b>\n\n` +
+      `To claim your pass, RSVP for an event on <a href="${config.WEB_APP_URL}">VibeCheck</a>!`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '⚡ Discover Events', callback_data: 'cmd_events' }],
+            [{ text: '🌐 Open VibeCheck App', url: config.WEB_APP_URL }]
+          ]
+        }
+      }
+    );
+    return;
+  }
+
+  await sendTelegramMessage(chatId, `🎟️ <b>You have ${passesResult.rows.length} active pass(es):</b>`);
+  for (const p of passesResult.rows) {
+    await sendTelegramEventPass(pool, Number(chatId), p);
+  }
+}
+
+/**
  * Telegram Webhook Handler (Express route)
  */
 export async function handleTelegramWebhook(req: Request, res: Response, pool: Pool) {
@@ -209,12 +319,33 @@ export async function handleTelegramWebhook(req: Request, res: Response, pool: P
   res.status(200).json({ ok: true });
 
   const update = req.body;
-  if (!update || !update.message) return;
+  if (!update) return;
+
+  // ── Handle Callback Query (user clicked inline keyboard button) ───────────
+  if (update.callback_query) {
+    const cb = update.callback_query;
+    const cbChatId = cb.message?.chat?.id;
+    const data = cb.data;
+
+    await answerTelegramCallbackQuery(cb.id);
+
+    if (cbChatId) {
+      if (data === 'cmd_events') {
+        await sendUpcomingEventsList(pool, cbChatId);
+      } else if (data === 'cmd_passes') {
+        await sendUserPassesList(pool, cbChatId);
+      }
+    }
+    return;
+  }
 
   const message = update.message;
+  if (!message) return;
+
   const chatId = message.chat?.id;
   const text: string = message.text?.trim() || '';
   const username = message.from?.username || message.from?.first_name || '';
+  const firstName = message.from?.first_name || 'Friend';
 
   if (!chatId || !text) return;
 
@@ -230,7 +361,6 @@ export async function handleTelegramWebhook(req: Request, res: Response, pool: P
         const pass = await getPassByQrToken(pool, qrToken);
 
         if (pass) {
-          // Link telegram_chat_id to user if email exists
           if (pass.user_email) {
             await pool.query(
               `UPDATE web_users 
@@ -242,7 +372,7 @@ export async function handleTelegramWebhook(req: Request, res: Response, pool: P
 
           await sendTelegramMessage(
             chatId,
-            `🎉 <b>Welcome to VibeCheck, ${message.from?.first_name || 'Friend'}!</b>\n\nYour account has been linked and your pass is ready below:`
+            `🎉 <b>Welcome to VibeCheck, ${firstName}!</b>\n\nYour account has been linked and your pass is ready below:`
           );
 
           await sendTelegramEventPass(pool, chatId, pass);
@@ -250,7 +380,43 @@ export async function handleTelegramWebhook(req: Request, res: Response, pool: P
         }
       }
 
-      // Case B: General start or dashboard link
+      // Case B: Deep linked via "PING VIBECHECK" button (logged in user): /start user_<email>
+      if (payload && payload.startsWith('user_')) {
+        const userEmail = decodeURIComponent(payload.replace('user_', ''));
+        if (userEmail) {
+          await pool.query(
+            `UPDATE web_users 
+             SET telegram_chat_id = $1, telegram_username = $2, telegram_linked_at = CURRENT_TIMESTAMP
+             WHERE LOWER(email) = LOWER($3)`,
+            [chatId, username, userEmail]
+          );
+        }
+
+        await sendTelegramMessage(
+          chatId,
+          `👋 <b>Welcome to VibeCheck Space, ${firstName}!</b> 🌊⚡\n\n` +
+          `✅ <b>Alerts Activated:</b> You're all set! You'll now receive curated event drops, exclusive passes, and matchmaker alerts directly here on Telegram. Stay tuned!\n\n` +
+          `👇 <i>Here are the active vibes happening in the next 7 days:</i>`
+        );
+
+        await sendUpcomingEventsList(pool, chatId);
+        return;
+      }
+
+      // Case C: Deep linked via "PING VIBECHECK" button (guest / direct ping): /start ping_vibecheck
+      if (payload === 'ping_vibecheck' || payload === 'dashboard') {
+        await sendTelegramMessage(
+          chatId,
+          `👋 <b>Welcome to VibeCheck Space, ${firstName}!</b> 🌊⚡\n\n` +
+          `✅ <b>Stay Tuned:</b> You're now connected to VibeCheck Vizag! You'll receive curated alerts and exclusive updates right here on Telegram.\n\n` +
+          `👇 <i>Here are the active vibes happening in the next 7 days:</i>`
+        );
+
+        await sendUpcomingEventsList(pool, chatId);
+        return;
+      }
+
+      // Case D: General /start greeting
       await sendTelegramMessage(
         chatId,
         `👋 <b>Welcome to VibeCheck Vizag!</b> 🌊⚡\n\n` +
@@ -276,83 +442,37 @@ export async function handleTelegramWebhook(req: Request, res: Response, pool: P
       return;
     }
 
-    // 2. Handle /events command
+    // 2. Handle /events or vibecheck text
     if (text === '/events' || text.toLowerCase().includes('events') || text.toLowerCase().includes('vibecheck')) {
-      const activeEvents = await getEventsInNext7Days(pool, 'Vizag');
-
-      if (!activeEvents || activeEvents.length === 0) {
-        await sendTelegramMessage(
-          chatId,
-          `⚡ <b>Upcoming Events in Vizag</b>\n\nNo events scheduled in the next 7 days right now.\n\n🗓️ Check the full calendar at: ${config.WEB_APP_URL}/dashboard?view=calendar`
-        );
-        return;
-      }
-
-      let msg = `⚡ <b>ACTIVE VIBES IN VIZAG (NEXT 7 DAYS)</b> ⚡\n\n`;
-      const buttons: any[] = [];
-
-      activeEvents.slice(0, 5).forEach((ev: any, idx: number) => {
-        const dateFormatted = new Date(ev.date_time).toLocaleDateString('en-IN', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-        msg += `<b>${idx + 1}. ${ev.title}</b>\n` +
-               `📅 ${dateFormatted}\n` +
-               `📍 ${ev.location || 'Vizag'}\n` +
-               `🏷️ ${ev.category}\n\n`;
-
-        buttons.push([
-          { text: `🎟️ RSVP: ${ev.title.substring(0, 20)}`, url: `${config.WEB_APP_URL}/event/${ev.id}` }
-        ]);
-      });
-
-      buttons.push([
-        { text: '🗓️ View Full VibeCalendar', url: `${config.WEB_APP_URL}/dashboard?view=calendar` }
-      ]);
-
-      await sendTelegramMessage(chatId, msg, {
-        reply_markup: { inline_keyboard: buttons }
-      });
+      await sendUpcomingEventsList(pool, chatId);
       return;
     }
 
     // 3. Handle /passes command
     if (text === '/passes' || text.toLowerCase().includes('pass') || text.toLowerCase().includes('ticket')) {
-      const passesResult = await pool.query(
-        `SELECT r.*, e.title as event_title, e.date_time as event_date, e.location, e.city, u.name as attendee_name
-         FROM event_rsvps r
-         JOIN events e ON r.event_id = e.id
-         JOIN web_users u ON LOWER(r.user_email) = LOWER(u.email)
-         WHERE u.telegram_chat_id = $1 AND e.date_time >= CURRENT_DATE - INTERVAL '1 day'
-         ORDER BY e.date_time ASC`,
-        [chatId]
-      );
-
-      if (passesResult.rows.length === 0) {
-        await sendTelegramMessage(
-          chatId,
-          `🎟️ <b>No active passes found for your Telegram account.</b>\n\n` +
-          `To link your passes, make sure to claim or RSVP for an event on <a href="${config.WEB_APP_URL}">VibeCheck</a>!`
-        );
-        return;
-      }
-
-      await sendTelegramMessage(chatId, `🎟️ <b>You have ${passesResult.rows.length} active pass(es):</b>`);
-      for (const p of passesResult.rows) {
-        await sendTelegramEventPass(pool, chatId, p);
-      }
+      await sendUserPassesList(pool, chatId);
       return;
     }
 
     // 4. Handle /help or fallback
     await sendTelegramMessage(
       chatId,
-      `Hey ${message.from?.first_name || 'there'}! 👋\n\n` +
+      `Hey ${firstName}! 👋\n\n` +
       `Send <b>/events</b> to see what's happening in Vizag this week, or <b>/passes</b> to access your entry QR codes.\n\n` +
-      `Need help? Reach out on our web platform: <a href="${config.WEB_APP_URL}">${config.WEB_APP_URL}</a>`
+      `Need help? Reach out on our web platform: <a href="${config.WEB_APP_URL}">${config.WEB_APP_URL}</a>`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '⚡ Discover Events', callback_data: 'cmd_events' },
+              { text: '🎟️ My Passes', callback_data: 'cmd_passes' }
+            ],
+            [
+              { text: '🌐 Open VibeCheck App', url: config.WEB_APP_URL }
+            ]
+          ]
+        }
+      }
     );
 
   } catch (error) {

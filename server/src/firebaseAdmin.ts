@@ -14,15 +14,22 @@ export function initializeFirebaseAdmin() {
       try {
         serviceAccount = JSON.parse(serviceAccountKeyJson);
       } catch {
-        // If not JSON string, treat as file path
-        serviceAccount = require(serviceAccountKeyJson);
+        if (!serviceAccountKeyJson.trim().startsWith('{')) {
+          try {
+            serviceAccount = require(serviceAccountKeyJson);
+          } catch (e) {
+            console.warn('[FirebaseAdmin] Could not load service account from file path:', serviceAccountKeyJson);
+          }
+        }
       }
 
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
-      firebaseInitialized = true;
-      console.log('[FirebaseAdmin] Initialized with service account.');
+      if (serviceAccount) {
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount)
+        });
+        firebaseInitialized = true;
+        console.log('[FirebaseAdmin] Initialized with service account.');
+      }
     } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       admin.initializeApp({
         credential: admin.credential.applicationDefault()

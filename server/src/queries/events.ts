@@ -377,10 +377,10 @@ export async function getOrganizerAverageVelocity(pool: Pool, email: string) {
 
 export async function getBroadcastAttendees(pool: Pool, eventId: string) {
     const { rows } = await pool.query(
-      `SELECT u.phone_number
+      `SELECT u.phone_number, u.telegram_chat_id, u.email, u.name
        FROM event_rsvps er
        JOIN web_users u ON er.user_email = u.email
-       WHERE er.event_id = $1 AND u.phone_number IS NOT NULL AND u.phone_number != ''`,
+       WHERE er.event_id = $1 AND (u.telegram_chat_id IS NOT NULL OR (u.phone_number IS NOT NULL AND u.phone_number != ''))`,
       [eventId]
     );
     return rows;

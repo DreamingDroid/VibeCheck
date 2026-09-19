@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { Resend } from 'resend';
 import { sendWhatsAppMessage } from './whatsapp';
+import { sendTelegramMessage } from './telegram';
 import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull, updateEventStatusByOrganizer, issueOrganizerEventPass, cancelOrganizerEventRSVP, updateEventWhatsAppGroupLink, getEventById, addEventInvites, getEventInvites } from './queries/events';
 import { createBroadcastAndDispatch, getAudienceRecipientEmails, CreateBroadcastInput } from './queries/broadcasts';
 import { sendFcmTopicBroadcast, sanitizeTopicName } from './firebaseAdmin';
@@ -9,7 +10,7 @@ import { getSystemSetting, getOrganizerDashboardAnalytics } from './queries/anal
 import { config } from './config';
 import { getChatModel } from './rag';
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
-import { getOrganizerCrmContacts, upsertOrganizerCrmNotes, getPhoneNumbersForEmails } from './queries/crm';
+import { getOrganizerCrmContacts, upsertOrganizerCrmNotes, getPhoneNumbersForEmails, getContactsForBroadcast } from './queries/crm';
 import { notifySuperAdmins, createUserNotification } from './notifications';
 
 const resend = new Resend(config.RESEND_API_KEY);
@@ -199,12 +200,16 @@ export async function broadcastMessageHandler(req: Request, res: Response, pool:
 
     const rows = await getBroadcastAttendees(pool, id as string);
 
-    // Send the message locally by calling sendWhatsAppMessage
+    // Send the message via Telegram (preferred/free) or WhatsApp fallback
     const phoneNumberId = config.WHATSAPP_PHONE_NUMBER_ID;
     let sentCount = 0;
 
     for (const r of rows) {
-      if (r.phone_number) {
+      if (r.telegram_chat_id) {
+        const finalMsg = `📢 <b>Update for ${eventTitle}</b>\n\n${message}\n\n<i>— The Organizer</i>`;
+        await sendTelegramMessage(r.telegram_chat_id, finalMsg);
+        sentCount++;
+      } else if (r.phone_number && config.WHATSAPP_ACCESS_TOKEN) {
         const finalMsg = `*Update for ${eventTitle}*\n\n${message}\n\n- The Organizer`;
         await sendWhatsAppMessage(phoneNumberId, r.phone_number, finalMsg);
         sentCount++;
@@ -425,15 +430,19 @@ export async function organizerCrmBroadcastHandler(req: Request, res: Response, 
   }
 
   try {
-    const phoneNumbers = await getPhoneNumbersForEmails(pool, contact_emails);
+    const contacts = await getContactsForBroadcast(pool, contact_emails);
 
     const phoneNumberId = config.WHATSAPP_PHONE_NUMBER_ID;
     let sentCount = 0;
 
-    for (const phone of phoneNumbers) {
-      if (phone) {
+    for (const c of contacts) {
+      if (c.telegram_chat_id) {
+        const finalMsg = `📢 <b>Message from Organizer</b>\n\n${message}\n\n<i>— VibeCheck Event Organizer</i>`;
+        await sendTelegramMessage(c.telegram_chat_id, finalMsg);
+        sentCount++;
+      } else if (c.phone_number && config.WHATSAPP_ACCESS_TOKEN) {
         const finalMsg = `${message}\n\n- Sent by Organizer`;
-        await sendWhatsAppMessage(phoneNumberId, phone, finalMsg);
+        await sendWhatsAppMessage(phoneNumberId, c.phone_number, finalMsg);
         sentCount++;
       }
     }

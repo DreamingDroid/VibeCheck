@@ -206,6 +206,9 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'confirmed'`);
   await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'unpaid'`);
   await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS pass_code VARCHAR(32)`);
+  await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS qr_token TEXT`);
+  await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS checkin_status VARCHAR(20) DEFAULT 'issued'`);
+  await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMP WITH TIME ZONE`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS admin_comment TEXT`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS participant_limit INTEGER`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_paid BOOLEAN DEFAULT false`);
@@ -220,6 +223,12 @@ export async function initializeDatabaseSchema(pool: Pool) {
 
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS average_rating NUMERIC(3,1)`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS ratings_count INTEGER DEFAULT 0`);
+
+  // Web Users Telegram columns migration
+  await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS telegram_chat_id BIGINT`).catch(() => {});
+  await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS telegram_username VARCHAR(255)`).catch(() => {});
+  await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS telegram_linked_at TIMESTAMP WITH TIME ZONE`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_web_users_telegram_chat ON web_users (telegram_chat_id)`).catch(() => {});
 
   // Event visibility migration (public vs invite_only)
   await pool.query(`
@@ -343,8 +352,23 @@ export async function initializeDatabaseSchema(pool: Pool) {
   `).catch((err) => {
     console.error('Failed to create fcm_tokens table:', err.message);
   });
+  // 15. Create Event Scanner PINs table
   await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_fcm_tokens_email ON fcm_tokens (user_email);
+    CREATE TABLE IF NOT EXISTS event_scanner_pins (
+      id SERIAL PRIMARY KEY,
+      event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+      pin_code VARCHAR(10) NOT NULL,
+      gate_name VARCHAR(100) DEFAULT 'Main Gate',
+      created_by VARCHAR(255),
+      is_active BOOLEAN DEFAULT true,
+      expires_at TIMESTAMP WITH TIME ZONE,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `).catch((err) => {
+    console.error('Failed to create event_scanner_pins table:', err.message);
+  });
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_scanner_pins_event ON event_scanner_pins (event_id, pin_code);
   `).catch(() => {});
 
   // Seed default cities if empty

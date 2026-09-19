@@ -3,14 +3,21 @@ import { OllamaEmbeddings, ChatOllama } from '@langchain/ollama';
 import { StateGraph, Annotation } from '@langchain/langgraph';
 import { SystemMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
 import { z } from 'zod';
-import { getUserByPhone, updateUserInteractionHistory } from './queries/users';
+import { getUserByPhone } from './queries/users';
 import { searchEventsByVector, insertEventRSVP } from './queries/events';
 import { config } from './config';
 
-const embeddings = new OllamaEmbeddings({
-  model: config.EMBED_MODEL,
-  baseUrl: config.OLLAMA_BASE_URL,
-});
+let embeddings: any = null;
+
+export function getEmbeddings() {
+  if (embeddings) return embeddings;
+  embeddings = new OllamaEmbeddings({
+    model: config.EMBED_MODEL || 'mxbai-embed-large',
+    baseUrl: config.OLLAMA_BASE_URL,
+  });
+  console.log('[RAG] Initialized OllamaEmbeddings with', config.EMBED_MODEL || 'mxbai-embed-large');
+  return embeddings;
+}
 
 // ── Chat Model: Ollama (local) or Gemini (cloud) ─────────────────────────────
 let chatModel: any = null;
@@ -22,7 +29,7 @@ export function getChatModel() {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
     chatModel = new ChatGoogleGenerativeAI({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       apiKey: config.GEMINI_API_KEY
     });
     console.log('[RAG] Running with Gemini Flash (cloud mode)');
@@ -73,7 +80,7 @@ export function buildRagGraph(pool: Pool) {
   // Node 2: Retrieve matching events from pgvector
   async function retrieveEvents(state: typeof GraphState.State) {
     const { query, city } = state;
-    const queryEmbedding = await embeddings.embedQuery(query);
+    const queryEmbedding = await getEmbeddings().embedQuery(query);
     
     const rows = await searchEventsByVector(pool, queryEmbedding, city);
     
@@ -135,52 +142,11 @@ ${context}
 Craft a short answer for WhatsApp (max ~4 sentences) suggesting the best options depending on the user's vibe and request.
 `;
 
-    // ── Plain async RSVP action (no LangChain wrapper = no TS2589) ─────────
-    const executeRsvp = async (eventId: string): Promise<string> => {
-      try {
-        await insertEventRSVP(pool, eventId, state.userId || 'unknown');
-        console.log(`[Agent] RSVP inserted for event ${eventId} by ${state.userId}`);
-        return 'Successfully registered the user for the event.';
-      } catch (e: any) {
-        console.error('[Agent] RSVP DB Error:', e.message);
-        return 'Failed to register. The user may already be registered for this event.';
-      }
-    };
-
-    // Gemini function declaration (native format — no LangChain generics)
-    const rsvpFunctionDeclaration = {
-      name: 'rsvp_to_event',
-      description: 'RSVP or book the user to a specific event using its database UUID.',
-      parameters: {
-        type: 'object',
-        properties: {
-          eventId: {
-            type: 'string',
-            description: 'The UUID of the event to RSVP to.',
-          },
-        },
-        required: ['eventId'],
-      },
-    };
-
-    const llm = getChatModel().bind({ tools: [{ functionDeclarations: [rsvpFunctionDeclaration] }] } as any);
-
+    const llm = getChatModel();
     const messages: any[] = [new SystemMessage(systemPrompt), new HumanMessage(userPrompt)];
-    let response = await llm.invoke(messages);
+    const response = await llm.invoke(messages);
 
-    // ── Autonomous Tool Execution Loop ──────────────────────────────────────
-    if (response.tool_calls && response.tool_calls.length > 0) {
-      messages.push(response);
-      for (const call of response.tool_calls) {
-        if (call.name === 'rsvp_to_event') {
-          const result = await executeRsvp(call.args.eventId as string);
-          messages.push(new ToolMessage({ content: result, tool_call_id: call.id }));
-        }
-      }
-      response = await llm.invoke(messages);
-    }
-
-    return { answer: response.content as string };
+    return { answer: typeof response.content === 'string' ? response.content : JSON.stringify(response.content) };
   }
 
   // Compile the StateGraph
@@ -233,7 +199,7 @@ const PreferencesSchema = z.object({
 // A new function to save the user's personality or preferences
 export async function saveUserPreferences(pool: Pool, body: unknown) {
   const { userId, preferences } = PreferencesSchema.parse(body);
-  const queryEmbedding = await embeddings.embedQuery(preferences);
+  const queryEmbedding = await getEmbeddings().embedQuery(preferences);
   
   const client = await pool.connect();
   try {
@@ -257,34 +223,3 @@ export async function saveUserPreferences(pool: Pool, body: unknown) {
   }
 }
 
-// ── NEW: AI Personalization Engine for WhatsApp ────────────────────────────
-export async function extractAndSavePreferences(pool: Pool, phoneNumber: string, message: string) {
-  try {
-    const prompt = `You are a user profiling assistant for an event discovery app. The user sent this message: "${message}".
-Extract any implicit or explicit event preferences, vibes, or interests (e.g. relaxing, techno, food, acoustic, sports, networking, quiet, loud, etc).
-ALSO, extract their physical city, location, or neighborhood if they naturally mention it (e.g. "I am in Vizag", "Events near MVP Colony").
-If there are no clear preferences or location, output exactly "NONE". Keep it very brief, just a 1 sentence summary. Example: "User is in Vizag and wants an acoustic beach party."`;
-
-    const response = await getChatModel().invoke([
-      ['system', prompt],
-    ]);
-
-    const extracted = typeof response?.content === 'string' ? response.content.trim() : '';
-    if (extracted === 'NONE' || !extracted || extracted.toLowerCase().includes('none')) {
-      return; 
-    }
-
-    const user = await getUserByPhone(pool, phoneNumber);
-    const currentPrefs = user?.preferences || {};
-    let history = Array.isArray(currentPrefs.interaction_history) ? currentPrefs.interaction_history : [];
-    if (typeof history === 'string') history = [history]; 
-
-    history.push(`${new Date().toISOString().split('T')[0]}: ${extracted}`);
-    if (history.length > 5) history.shift(); // Keep last 5 behavioral impressions
-
-    await updateUserInteractionHistory(pool, phoneNumber, history);
-    console.log(`[Personalization Engine] Deduced vibe for ${phoneNumber}: ${extracted}`);
-  } catch(e) {
-    console.error("[Personalization Engine] LLM extraction failed:", e);
-  }
-}

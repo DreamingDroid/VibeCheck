@@ -95,3 +95,14 @@ export async function getPhoneNumbersForEmails(pool: Pool, emails: string[]): Pr
   );
   return rows.map((r) => r.phone_number);
 }
+
+export async function getContactsForBroadcast(pool: Pool, emails: string[]): Promise<{ email: string; phone_number: string | null; telegram_chat_id: number | null }[]> {
+  if (emails.length === 0) return [];
+  const { rows } = await pool.query(
+    `SELECT email, phone_number, telegram_chat_id 
+     FROM web_users 
+     WHERE email = ANY($1) AND (telegram_chat_id IS NOT NULL OR (phone_number IS NOT NULL AND phone_number != ''))`,
+    [emails]
+  );
+  return rows;
+}
