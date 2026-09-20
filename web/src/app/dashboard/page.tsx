@@ -11,7 +11,7 @@ import { useCity, isEventEnded } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useTranslation } from "@/context/LanguageContext";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
-import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock, Send } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock, Send, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
@@ -391,19 +391,6 @@ function DashboardContent() {
       {/* Calendar Empty State / Calendar View */}
       {showCalendarView && (
         <section className="flex flex-col items-center justify-center space-y-4 md:space-y-5 animate-in fade-in duration-500 w-full mt-2 md:mt-4 relative max-w-6xl mx-auto">
-          {!isCategoryEmpty && (
-            <button 
-              onClick={() => {
-                setForceCalendarOpen(false);
-                setSelectedDate(undefined);
-                router.push('/dashboard');
-              }}
-              className="self-start flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-black transition-colors bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 md:px-4 md:py-2 rounded-full md:absolute md:top-0 md:left-0 z-10 md:-mt-2"
-            >
-              <ChevronLeft className="h-3 w-3 md:h-4 md:w-4" />
-              Back to Feed
-            </button>
-          )}
           <div className="text-center space-y-2 relative w-full flex flex-col items-center">
             <p className="text-[10px] md:text-xs font-bold tracking-[0.25em] uppercase text-primary">COMMUNITY CALENDAR</p>
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black italic tracking-tighter uppercase leading-none">
@@ -486,10 +473,12 @@ function DashboardContent() {
                         return (
                           <button
                             {...props}
-                            className="w-full aspect-square max-w-[46px] sm:max-w-[54px] md:max-w-[62px] mx-auto rounded-full flex items-center justify-center text-zinc-300 font-bold text-xs sm:text-sm md:text-base opacity-30 cursor-default"
+                            className="w-full aspect-square max-w-[50px] sm:max-w-[58px] md:max-w-[66px] mx-auto rounded-full flex items-center justify-center text-zinc-300 font-black italic text-base sm:text-lg md:text-xl lg:text-2xl opacity-30 cursor-default"
                             disabled
                           >
-                            <span>{day.date.getDate()}</span>
+                            <span className="leading-none select-none tracking-tighter tabular-nums italic">
+                              {day.date.getDate()}
+                            </span>
                           </button>
                         );
                       }
@@ -589,7 +578,7 @@ function DashboardContent() {
                         <button
                           {...props}
                           title={tooltip}
-                          className={`w-full aspect-square max-w-[46px] sm:max-w-[54px] md:max-w-[62px] mx-auto rounded-full flex items-center justify-center font-black text-xs sm:text-sm md:text-base transition-all cursor-pointer relative shadow-sm ${style.bg} ${style.border} ${style.text} ${style.hover} ${
+                          className={`w-full aspect-square max-w-[50px] sm:max-w-[58px] md:max-w-[66px] mx-auto rounded-full flex items-center justify-center font-black italic text-base sm:text-lg md:text-xl lg:text-2xl transition-all cursor-pointer relative shadow-sm ${style.bg} ${style.border} ${style.text} ${style.hover} ${
                             isSelected
                               ? "ring-4 ring-black ring-offset-2 scale-105 shadow-md z-20"
                               : isTodayDate && count > 0
@@ -597,7 +586,7 @@ function DashboardContent() {
                               : "hover:scale-105 active:scale-95"
                           }`}
                         >
-                          <span className="leading-none select-none">
+                          <span className="leading-none select-none tracking-tighter font-black italic tabular-nums">
                             {day.date.getDate()}
                           </span>
                         </button>
@@ -1229,14 +1218,36 @@ function DashboardContent() {
             router.push('/dashboard?view=calendar');
           }}
           className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-black text-white h-14 w-14 hover:w-48 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:bg-primary hover:text-black hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out border border-white/20 group overflow-hidden"
-          title="View Calendar"
+          title="Calendar View"
         >
           <div className="flex items-center justify-center whitespace-nowrap">
             <span className="shrink-0 select-none leading-none flex items-center justify-center">
-              <CalendarIcon className="h-6 w-6" />
+              <CalendarIcon className="h-5 w-5 md:h-6 md:w-6" />
             </span>
-            <span className="text-[10px] font-black uppercase tracking-widest max-w-0 opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-300 ease-in-out select-none overflow-hidden mt-0.5">
-              View Calendar
+            <span className="text-[11px] font-black uppercase tracking-wider max-w-0 opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-300 ease-in-out select-none overflow-hidden">
+              Calendar View
+            </span>
+          </div>
+        </button>
+      )}
+
+      {/* Card View Toggle Button (FAB) when calendar is visible */}
+      {showCalendarView && !isCategoryEmpty && (
+        <button
+          onClick={() => {
+            setForceCalendarOpen(false);
+            setSelectedDate(undefined);
+            router.push('/dashboard');
+          }}
+          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-black text-white h-14 w-14 hover:w-44 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:bg-primary hover:text-black hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out border border-white/20 group overflow-hidden"
+          title="Card View"
+        >
+          <div className="flex items-center justify-center whitespace-nowrap">
+            <span className="shrink-0 select-none leading-none flex items-center justify-center">
+              <LayoutGrid className="h-5 w-5 md:h-6 md:w-6" />
+            </span>
+            <span className="text-[11px] font-black uppercase tracking-wider max-w-0 opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-300 ease-in-out select-none overflow-hidden">
+              Card View
             </span>
           </div>
         </button>
