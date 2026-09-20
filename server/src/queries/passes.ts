@@ -108,14 +108,19 @@ export async function ensurePassForRSVP(
  * Look up a pass by its QR token
  */
 export async function getPassByQrToken(pool: Pool, qrToken: string): Promise<PassDetails | null> {
+  const cleanToken = (qrToken || '').trim();
+  const rawCode = cleanToken.replace(/^VB-/i, '').trim();
   const result = await pool.query(
     `SELECT r.*, e.title as event_title, e.date_time as event_date, e.location, e.city, 
             COALESCE(u.name, 'Vibe Seeker') as attendee_name, u.telegram_chat_id
      FROM event_rsvps r
      JOIN events e ON r.event_id = e.id
      LEFT JOIN web_users u ON LOWER(r.user_email) = LOWER(u.email)
-     WHERE r.qr_token = $1 LIMIT 1`,
-    [qrToken]
+     WHERE r.qr_token = $1 
+        OR UPPER(r.pass_code) = UPPER($1) 
+        OR (r.pass_code IS NOT NULL AND UPPER(REPLACE(r.pass_code, 'VB-', '')) = UPPER($2))
+     LIMIT 1`,
+    [cleanToken, rawCode]
   );
   return result.rows[0] || null;
 }

@@ -13,13 +13,45 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
-import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode, Send, Calendar, Clock, MapPin, Users, ChevronDown, ChevronUp, Key, MessageSquare } from "lucide-react";
+import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode, Send, Calendar, Clock, MapPin, Users, ChevronDown, ChevronUp, Key, MessageSquare, Plus, Backpack, ListChecks, PhoneCall, Compass, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import OrganizerInsightsDashboard from "@/components/OrganizerInsightsDashboard";
 import { OrganizerEventBroadcastModal } from "@/components/OrganizerEventBroadcastModal";
 import { OrganizerTelegramInviteModal } from "@/components/OrganizerTelegramInviteModal";
 import { BroadcastType } from "@/types/broadcast";
+
+interface ScheduleItem {
+  time: string;
+  title: string;
+  description?: string;
+}
+
+interface ContactItem {
+  name: string;
+  phone: string;
+  role?: string;
+}
+
+interface AttendeeGuideState {
+  schedule: ScheduleItem[];
+  highlights: string[];
+  whatToCarry: string[];
+  assemblyPoint: string;
+  assemblyMapsUrl: string;
+  contacts: ContactItem[];
+  feeNote: string;
+}
+
+const emptyGuideState: AttendeeGuideState = {
+  schedule: [],
+  highlights: [],
+  whatToCarry: [],
+  assemblyPoint: "",
+  assemblyMapsUrl: "",
+  contacts: [],
+  feeNote: "",
+};
 const CATEGORIES = ["Sports", "Arts", "Education", "Spiritual", "Music", "Food", "Wellness", "Indie", "Techno", "General"];
 
 const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
@@ -798,6 +830,106 @@ export default function OrganizerDashboard() {
   const [selectedImageBase64, setSelectedImageBase64] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Attendee Guide state
+  const [guideData, setGuideData] = useState<AttendeeGuideState>(emptyGuideState);
+  const [showGuideFields, setShowGuideFields] = useState(false);
+  const [newHighlight, setNewHighlight] = useState("");
+  const [newCarryItem, setNewCarryItem] = useState("");
+  const [newSchedTime, setNewSchedTime] = useState("");
+  const [newSchedTitle, setNewSchedTitle] = useState("");
+  const [newSchedDesc, setNewSchedDesc] = useState("");
+  const [newContactName, setNewContactName] = useState("");
+  const [newContactPhone, setNewContactPhone] = useState("");
+  const [newContactRole, setNewContactRole] = useState("");
+
+  const handleAddHighlight = () => {
+    if (!newHighlight.trim()) return;
+    setGuideData(prev => ({
+      ...prev,
+      highlights: [...prev.highlights, newHighlight.trim()]
+    }));
+    setNewHighlight("");
+  };
+
+  const handleRemoveHighlight = (index: number) => {
+    setGuideData(prev => ({
+      ...prev,
+      highlights: prev.highlights.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleAddCarryItem = () => {
+    if (!newCarryItem.trim()) return;
+    setGuideData(prev => ({
+      ...prev,
+      whatToCarry: [...prev.whatToCarry, newCarryItem.trim()]
+    }));
+    setNewCarryItem("");
+  };
+
+  const handleRemoveCarryItem = (index: number) => {
+    setGuideData(prev => ({
+      ...prev,
+      whatToCarry: prev.whatToCarry.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleAddScheduleItem = () => {
+    if (!newSchedTime.trim() || !newSchedTitle.trim()) {
+      toast.error("Please provide both time and milestone title.");
+      return;
+    }
+    setGuideData(prev => ({
+      ...prev,
+      schedule: [
+        ...prev.schedule,
+        {
+          time: newSchedTime.trim(),
+          title: newSchedTitle.trim(),
+          description: newSchedDesc.trim() || undefined
+        }
+      ]
+    }));
+    setNewSchedTime("");
+    setNewSchedTitle("");
+    setNewSchedDesc("");
+  };
+
+  const handleRemoveScheduleItem = (index: number) => {
+    setGuideData(prev => ({
+      ...prev,
+      schedule: prev.schedule.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleAddContact = () => {
+    if (!newContactName.trim() || !newContactPhone.trim()) {
+      toast.error("Please provide both contact name and phone number.");
+      return;
+    }
+    setGuideData(prev => ({
+      ...prev,
+      contacts: [
+        ...prev.contacts,
+        {
+          name: newContactName.trim(),
+          phone: newContactPhone.trim(),
+          role: newContactRole.trim() || undefined
+        }
+      ]
+    }));
+    setNewContactName("");
+    setNewContactPhone("");
+    setNewContactRole("");
+  };
+
+  const handleRemoveContact = (index: number) => {
+    setGuideData(prev => ({
+      ...prev,
+      contacts: prev.contacts.filter((_, i) => i !== index)
+    }));
+  };
+
   useEffect(() => {
     if (!session?.user?.email) {
       router.push("/dashboard");
@@ -1052,6 +1184,21 @@ export default function OrganizerDashboard() {
       visibility: ev.visibility || "public",
       guestList: ""
     });
+    if (ev.attendee_guide) {
+      setGuideData({
+        schedule: Array.isArray(ev.attendee_guide.schedule) ? ev.attendee_guide.schedule : [],
+        highlights: Array.isArray(ev.attendee_guide.highlights) ? ev.attendee_guide.highlights : [],
+        whatToCarry: Array.isArray(ev.attendee_guide.whatToCarry) ? ev.attendee_guide.whatToCarry : [],
+        assemblyPoint: ev.attendee_guide.assemblyPoint || "",
+        assemblyMapsUrl: ev.attendee_guide.assemblyMapsUrl || "",
+        contacts: Array.isArray(ev.attendee_guide.contacts) ? ev.attendee_guide.contacts : [],
+        feeNote: ev.attendee_guide.feeNote || "",
+      });
+      setShowGuideFields(true);
+    } else {
+      setGuideData(emptyGuideState);
+      setShowGuideFields(false);
+    }
     setImageUrl(ev.image_url || "");
     setImagePublicId(ev.image_public_id || "");
     setSelectedImageBase64("");
@@ -1068,6 +1215,8 @@ export default function OrganizerDashboard() {
       visibility: "public",
       guestList: ""
     });
+    setGuideData(emptyGuideState);
+    setShowGuideFields(false);
     setImageUrl("");
     setImagePublicId("");
     setSelectedImageBase64("");
@@ -1157,7 +1306,8 @@ export default function OrganizerDashboard() {
           image_public_id: finalImagePublicId || null,
           date_time: start_iso,
           end_time: end_iso,
-          organizer_email: session?.user?.email
+          organizer_email: session?.user?.email,
+          attendee_guide: guideData
         })
       });
       const data = await res.json();
@@ -1169,6 +1319,8 @@ export default function OrganizerDashboard() {
           visibility: "public",
           guestList: ""
         });
+        setGuideData(emptyGuideState);
+        setShowGuideFields(false);
         setImageUrl("");
         setImagePublicId("");
         setSelectedImageBase64("");
@@ -1777,6 +1929,320 @@ export default function OrganizerDashboard() {
                   <div className="space-y-1">
                     <Input name="whatsapp_group_link" placeholder="Telegram Group Invite Link / URL (Optional, e.g. https://t.me/your_group)" value={formData.whatsapp_group_link} onChange={e => setFormData({ ...formData, whatsapp_group_link: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
                     <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Optional Telegram group invite for confirmed attendees to chat and coordinate.</p>
+                  </div>
+
+                  {/* Attendee Guide & Briefing Configuration */}
+                  <div className="border border-black/5 rounded-[28px] bg-zinc-50/70 p-5 sm:p-6 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                          <Compass className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-black uppercase tracking-wider text-black">
+                            Attendee Guide &amp; What to Expect (Optional)
+                          </h4>
+                          <p className="text-[10px] text-zinc-400 font-bold">
+                            Equip attendees with itinerary milestones, checklist, and helpline.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowGuideFields(!showGuideFields)}
+                        className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border border-black/10 hover:bg-white transition-all text-black flex items-center gap-1 cursor-pointer"
+                      >
+                        {showGuideFields ? "Hide Guide Fields" : "Configure Guide"}
+                        {showGuideFields ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+
+                    {showGuideFields && (
+                      <div className="space-y-6 pt-2 border-t border-black/5 animate-in fade-in-50 duration-200">
+                        
+                        {/* 1. The Day's Schedule / Itinerary */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                              <Clock className="h-3.5 w-3.5 text-primary" />
+                              The Day&apos;s Itinerary / Milestones
+                            </Label>
+                            <span className="text-[9px] font-bold text-zinc-400">{guideData.schedule.length} Milestones added</span>
+                          </div>
+
+                          {guideData.schedule.length > 0 && (
+                            <div className="space-y-2">
+                              {guideData.schedule.map((item, idx) => (
+                                <div key={idx} className="p-3 rounded-2xl bg-white border border-black/5 flex items-start justify-between gap-3 shadow-2xs">
+                                  <div className="space-y-0.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[10px] font-black px-2 py-0.5 rounded bg-zinc-100 text-zinc-700">
+                                        {item.time}
+                                      </span>
+                                      <span className="text-xs font-black text-black">{item.title}</span>
+                                    </div>
+                                    {item.description && (
+                                      <p className="text-[11px] text-zinc-500 font-medium pl-0.5">{item.description}</p>
+                                    )}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveScheduleItem(idx)}
+                                    className="text-zinc-400 hover:text-red-500 p-1 transition-colors cursor-pointer shrink-0"
+                                    title="Delete milestone"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 p-3 bg-white/70 rounded-2xl border border-black/5">
+                            <div className="sm:col-span-4">
+                              <Input
+                                placeholder="Time (e.g. 09:00 AM – 10:30 AM)"
+                                value={newSchedTime}
+                                onChange={e => setNewSchedTime(e.target.value)}
+                                className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
+                              />
+                            </div>
+                            <div className="sm:col-span-4">
+                              <Input
+                                placeholder="Milestone Title (e.g. Welcome & Keynote)"
+                                value={newSchedTitle}
+                                onChange={e => setNewSchedTitle(e.target.value)}
+                                className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
+                              />
+                            </div>
+                            <div className="sm:col-span-4">
+                              <Input
+                                placeholder="Short Details (Optional)"
+                                value={newSchedDesc}
+                                onChange={e => setNewSchedDesc(e.target.value)}
+                                className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
+                              />
+                            </div>
+                            <div className="sm:col-span-12 flex justify-end pt-1">
+                              <button
+                                type="button"
+                                onClick={handleAddScheduleItem}
+                                className="ringer-button bg-black hover:bg-zinc-800 text-white text-[10px] font-black uppercase px-4 py-1.5 flex items-center gap-1"
+                              >
+                                <Plus className="h-3 w-3" />
+                                Add Milestone
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 2. Program Highlights */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                              <Sparkles className="h-3.5 w-3.5 text-primary" />
+                              Program Highlights
+                            </Label>
+                            <span className="text-[9px] font-bold text-zinc-400">{guideData.highlights.length} Highlights</span>
+                          </div>
+
+                          {guideData.highlights.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {guideData.highlights.map((highlight, idx) => (
+                                <span key={idx} className="sticker-badge bg-primary/10 text-black border-primary/20 flex items-center gap-2 text-[10px] pl-3 pr-2 py-1">
+                                  <span>{highlight}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveHighlight(idx)}
+                                    className="text-zinc-500 hover:text-black font-black font-sans ml-1 cursor-pointer"
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="e.g. Hands-on outdoor experiential workshop"
+                              value={newHighlight}
+                              onChange={e => setNewHighlight(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleAddHighlight();
+                                }
+                              }}
+                              className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleAddHighlight}
+                              className="ringer-button bg-black hover:bg-zinc-800 text-white text-[10px] font-black uppercase px-4 py-1.5 flex items-center gap-1 shrink-0"
+                            >
+                              <Plus className="h-3 w-3" />
+                              Add
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 3. What to Carry Checklist */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                              <Backpack className="h-3.5 w-3.5 text-primary" />
+                              What to Carry Checklist
+                            </Label>
+                            <span className="text-[9px] font-bold text-zinc-400">{guideData.whatToCarry.length} Items</span>
+                          </div>
+
+                          {guideData.whatToCarry.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {guideData.whatToCarry.map((item, idx) => (
+                                <span key={idx} className="sticker-badge bg-zinc-200/80 text-black border-none flex items-center gap-2 text-[10px] pl-3 pr-2 py-1">
+                                  <span>{item}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveCarryItem(idx)}
+                                    className="text-zinc-500 hover:text-black font-black font-sans ml-1 cursor-pointer"
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="e.g. 1 Litre reusable water bottle"
+                              value={newCarryItem}
+                              onChange={e => setNewCarryItem(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleAddCarryItem();
+                                }
+                              }}
+                              className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleAddCarryItem}
+                              className="ringer-button bg-black hover:bg-zinc-800 text-white text-[10px] font-black uppercase px-4 py-1.5 flex items-center gap-1 shrink-0"
+                            >
+                              <Plus className="h-3 w-3" />
+                              Add
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 4. Assembly Point Landmark & URL */}
+                        <div className="space-y-3">
+                          <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5 text-primary" />
+                            Specific Assembly Point / Meeting Spot
+                          </Label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <Input
+                              placeholder="Assembly Point Details (e.g. Gate 2, North Lawn Pavilion)"
+                              value={guideData.assemblyPoint}
+                              onChange={e => setGuideData({ ...guideData, assemblyPoint: e.target.value })}
+                              className="bg-zinc-50 border-black/5 text-xs font-bold rounded-xl h-9"
+                            />
+                            <Input
+                              placeholder="Assembly Google Maps URL (Optional)"
+                              value={guideData.assemblyMapsUrl}
+                              onChange={e => setGuideData({ ...guideData, assemblyMapsUrl: e.target.value })}
+                              className="bg-zinc-50 border-black/5 text-xs font-bold rounded-xl h-9"
+                            />
+                          </div>
+                        </div>
+
+                        {/* 5. Organizer & Helpline Contacts */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                              <PhoneCall className="h-3.5 w-3.5 text-primary" />
+                              Organizer / Helpline Contacts
+                            </Label>
+                            <span className="text-[9px] font-bold text-zinc-400">{guideData.contacts.length} Contacts</span>
+                          </div>
+
+                          {guideData.contacts.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {guideData.contacts.map((c, idx) => (
+                                <div key={idx} className="px-3 py-1.5 rounded-xl bg-white border border-black/5 flex items-center gap-2 text-xs font-bold shadow-2xs">
+                                  <span>{c.name}: <span className="font-mono text-zinc-600">{c.phone}</span></span>
+                                  {c.role && <span className="text-[10px] text-zinc-400">({c.role})</span>}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveContact(idx)}
+                                    className="text-zinc-400 hover:text-red-500 ml-1 cursor-pointer"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 p-3 bg-white/70 rounded-2xl border border-black/5">
+                            <div className="sm:col-span-4">
+                              <Input
+                                placeholder="Contact Name (e.g. Ramesh)"
+                                value={newContactName}
+                                onChange={e => setNewContactName(e.target.value)}
+                                className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
+                              />
+                            </div>
+                            <div className="sm:col-span-4">
+                              <Input
+                                placeholder="Phone Number (e.g. +91 9876543210)"
+                                value={newContactPhone}
+                                onChange={e => setNewContactPhone(e.target.value)}
+                                className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
+                              />
+                            </div>
+                            <div className="sm:col-span-4">
+                              <Input
+                                placeholder="Role (e.g. Program Lead)"
+                                value={newContactRole}
+                                onChange={e => setNewContactRole(e.target.value)}
+                                className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
+                              />
+                            </div>
+                            <div className="sm:col-span-12 flex justify-end pt-1">
+                              <button
+                                type="button"
+                                onClick={handleAddContact}
+                                className="ringer-button bg-black hover:bg-zinc-800 text-white text-[10px] font-black uppercase px-4 py-1.5 flex items-center gap-1"
+                              >
+                                <Plus className="h-3 w-3" />
+                                Add Contact
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 6. Fee Note (Paid Events only) */}
+                        {formData.isPaid && (
+                          <div className="space-y-2 p-3.5 bg-amber-50/70 border border-amber-200/60 rounded-2xl">
+                            <Label className="text-[10px] font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                              Fee &amp; Payment Inclusions Note (Paid Events)
+                            </Label>
+                            <Input
+                              placeholder="e.g. ₹500/- per person | Includes workshop kit, lunch & certificate"
+                              value={guideData.feeNote}
+                              onChange={e => setGuideData({ ...guideData, feeNote: e.target.value })}
+                              className="bg-white border-amber-200 text-xs font-bold rounded-xl h-9"
+                            />
+                          </div>
+                        )}
+
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-1">

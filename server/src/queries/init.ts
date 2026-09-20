@@ -231,6 +231,7 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS ratings_count INTEGER DEFAULT 0`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false`).catch(() => {});
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_events_is_featured ON events (is_featured)`).catch(() => {});
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS attendee_guide JSONB DEFAULT '{}'::jsonb`).catch(() => {});
 
   // Web Users Telegram columns migration
   await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS telegram_chat_id BIGINT`).catch(() => {});

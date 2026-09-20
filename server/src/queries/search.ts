@@ -358,6 +358,7 @@ export async function searchEvents(pool: Pool, params: EventSearchParams) {
       e.is_featured,
       e.image_url,
       e.image_public_id,
+      e.attendee_guide,
       e.created_at,
       e.updated_at,
       (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = e.id) as rsvp_count

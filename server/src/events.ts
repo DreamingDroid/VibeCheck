@@ -94,7 +94,7 @@ export async function rsvpEventHandler(req: Request, res: Response, pool: Pool) 
       success: true,
       message: event.is_paid 
         ? 'Registration received. Pass pending payment.' 
-        : 'RSVP registered. Pass pending organizer confirmation.',
+        : 'RSVP received. Pass pending organizer approval.',
       rsvp_status: rsvp.status,
       payment_status: rsvp.payment_status,
       pass_code: rsvp.pass_code

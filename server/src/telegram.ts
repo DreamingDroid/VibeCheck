@@ -110,8 +110,38 @@ export async function sendTelegramPhoto(
 }
 
 /**
- * Edit a previously sent message caption (e.g. when pass is scanned at the door)
+ * Edit a previously sent message caption (e.g. when photo pass is scanned at the door)
  */
+export async function editTelegramMessageCaption(
+  chatId: number | string,
+  messageId: number,
+  newCaption: string,
+  replyMarkup?: any
+) {
+  if (!config.TELEGRAM_BOT_TOKEN) {
+    console.log(`[Telegram Dev] Edit caption #${messageId} for ${chatId}: ${newCaption}`);
+    return { ok: true };
+  }
+
+  try {
+    const res = await fetch(`${TELEGRAM_API}/editMessageCaption`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        caption: newCaption,
+        parse_mode: 'HTML',
+        reply_markup: replyMarkup
+      })
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('[Telegram API] Network error in editMessageCaption:', err);
+    return null;
+  }
+}
+
 /**
  * Edit a previously sent message text (e.g. when text-based pass is scanned at the door)
  */
@@ -146,7 +176,7 @@ export async function editTelegramMessageText(
 }
 
 /**
- * Formats and delivers an official VibeCheck VIP / Event Entry Pass (Option 3 Card Design)
+ * Formats and delivers an official VibeCheck Entry Pass as an image with QR code and details
  */
 export async function sendTelegramEventPass(
   pool: Pool,
@@ -165,21 +195,21 @@ export async function sendTelegramEventPass(
         })
       : 'Date TBA';
 
-    const cardMessage = `🎫 <b>ENTRY PASS ISSUED</b>\n\n` +
-      `<blockquote>\n` +
-      `<b>⚡ ${pass.event_title || 'Exclusive Vibe'}</b>\n` +
+    const cardCaption = `🎫 <b>CONFIRMED ENTRY PASS</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `⚡ <b>${pass.event_title || 'Exclusive Vibe'}</b>\n\n` +
       `👤 <b>Guest:</b> ${pass.attendee_name || 'VIP Guest'}\n` +
-      `📅 <b>When:</b> ${dateFormatted}\n` +
-      `📍 <b>Where:</b> ${pass.location || 'Vizag'}${pass.city ? `, ${pass.city}` : ''}\n` +
-      `</blockquote>\n\n` +
+      `📅 <b>Date & Time:</b> ${dateFormatted}\n` +
+      `📍 <b>Venue:</b> ${pass.location || 'Vizag'}${pass.city ? `, ${pass.city}` : ''}\n` +
       `🔢 <b>Pass Code:</b> <code>${pass.pass_code}</code>\n` +
-      `🟢 <b>Status:</b> <b>Pass Issued • Valid for Entry</b>\n\n` +
-      `<i>Present this pass code or your name to the door organizer.</i>`;
+      `🟢 <b>Status:</b> Confirmed Entry Pass\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `<i>Present this QR code image or Pass Code at the entrance gate for check-in.</i>`;
 
     const buttonRow: any[] = [];
     if (pass.location) {
       const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pass.location}, ${pass.city || 'Vizag'}`)}`;
-      buttonRow.push({ text: '📍 Open in Google Maps', url: mapsUrl });
+      buttonRow.push({ text: '📍 Venue Map', url: mapsUrl });
     }
     buttonRow.push({ text: '🌐 View on VibeCheck', url: `${config.WEB_APP_URL}/event/${pass.event_id}` });
 
@@ -187,7 +217,10 @@ export async function sendTelegramEventPass(
       inline_keyboard: [buttonRow]
     };
 
-    const sendRes: any = await sendTelegramMessage(chatId, cardMessage, {
+    // Generate high-resolution scannable QR code image of the pass code
+    const qrBuffer = await generateQrCodeBuffer(pass.pass_code || pass.qr_token);
+
+    const sendRes: any = await sendTelegramPhoto(chatId, qrBuffer, cardCaption, {
       parse_mode: 'HTML',
       reply_markup: inlineKeyboard
     });

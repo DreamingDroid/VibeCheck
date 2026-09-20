@@ -163,7 +163,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         if (event?.is_paid) {
           toast.success("Registration received! Pass pending payment with organizer.");
         } else {
-          toast.success("RSVP registered! Pass pending organizer confirmation.");
+          toast.success("RSVP received! Pass pending organizer approval.");
         }
         // Refresh event data to update rsvp_count and group link
         const refreshedEventRes = await fetch(`${baseUrl}/api/events/${eventId}`);
@@ -226,8 +226,13 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         })
       });
       const data = await res.json();
-      if (data.success && data.deep_link) {
-        window.open(data.deep_link, '_blank');
+      if (data.success) {
+        if (data.sent_directly) {
+          toast.success("Pass image sent directly to your Telegram chat!");
+        } else if (data.deep_link) {
+          toast.success("Opening Telegram to receive your pass image...");
+          window.open(data.deep_link, '_blank');
+        }
       } else {
         const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'VibeCheckSpaceBot';
         window.open(`https://t.me/${botUsername}?start=event_${event.id}`, '_blank');
@@ -391,9 +396,45 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             </div>
           </div>
           
-          <div className="prose prose-zinc max-w-none text-zinc-500 text-lg font-bold leading-relaxed">
+          <div className="text-zinc-600 text-sm sm:text-base font-normal leading-relaxed whitespace-pre-line">
             {event.description}
           </div>
+
+          {/* Attendee Guide Preview Strip (if organizer provided guide info) */}
+          {Boolean(
+            event.attendee_guide && (
+              (event.attendee_guide.schedule && event.attendee_guide.schedule.length > 0) ||
+              (event.attendee_guide.highlights && event.attendee_guide.highlights.length > 0) ||
+              (event.attendee_guide.whatToCarry && event.attendee_guide.whatToCarry.length > 0) ||
+              event.attendee_guide.assemblyPoint ||
+              (event.attendee_guide.contacts && event.attendee_guide.contacts.length > 0) ||
+              event.attendee_guide.feeNote
+            )
+          ) && (
+            <div className="p-5 rounded-2xl bg-zinc-50 border border-black/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-black">
+                    Event Guide &amp; Schedule
+                  </h4>
+                  <p className="text-xs font-medium text-zinc-500">
+                    Schedule, program highlights, what to carry &amp; assembly details.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBriefingModal(true)}
+                className="ringer-button bg-white hover:bg-zinc-100 text-black border border-black/10 text-xs font-black uppercase px-5 py-2.5 flex items-center gap-1.5 transition-all active:scale-95 shadow-xs cursor-pointer shrink-0"
+              >
+                <span>View More Details</span>
+                <ExternalLink className="h-3.5 w-3.5 text-primary" />
+              </button>
+            </div>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-4 pt-6">
             {isEventEnded ? (
@@ -445,7 +486,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                       className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] bg-amber-500 text-black hover:bg-amber-400 shadow-md cursor-pointer"
                     >
                       <Clock className="h-5 w-5" />
-                      PAYMENT PENDING • VIEW BRIEFING
+                      {event.is_paid ? 'PAYMENT PENDING • VIEW BRIEFING' : 'APPROVAL PENDING • VIEW BRIEFING'}
                     </button>
                   ) : (
                     <button 
@@ -509,16 +550,16 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                   <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-700">
                       <Clock className="h-4 w-4" />
-                      <span>Registration Received</span>
+                      <span>{event.is_paid ? 'Payment Pending' : 'Approval Pending'}</span>
                     </div>
                     <p className="text-xs text-amber-900/80 font-bold leading-snug">
-                      Pass pending payment with organizer.
+                      {event.is_paid ? 'Pass pending payment with organizer.' : 'RSVP recorded! Pass pending organizer approval.'}
                     </p>
                     <button
                       onClick={() => setShowBriefingModal(true)}
                       className="text-xs font-black uppercase tracking-wider text-black underline underline-offset-4 hover:text-amber-700 transition-colors block pt-1 cursor-pointer"
                     >
-                      Contact Organizer &amp; View Guide →
+                      {event.is_paid ? 'Contact Organizer & View Guide →' : 'View Event Briefing & Guide →'}
                     </button>
                   </div>
                 ) : (
@@ -686,6 +727,8 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         event={event}
         rsvpStatus={rsvpStatus || (event?.is_paid ? 'pending' : 'confirmed')}
         passCode={passCode || undefined}
+        isPreRsvp={!rsvped}
+        onRSVP={() => handleRSVP()}
         onDownloadICS={handleDownloadICS}
         onShare={handleShare}
       />

@@ -10,7 +10,7 @@ import {
   verifyStaffScannerPin,
   createOrGetScannerPin
 } from './queries/passes';
-import { editTelegramMessageText } from './telegram';
+import { editTelegramMessageText, editTelegramMessageCaption, sendTelegramEventPass } from './telegram';
 import { config } from './config';
 
 /**
@@ -88,9 +88,16 @@ export async function verifyPassHandler(req: Request, res: Response, pool: Pool)
         inline_keyboard: [buttonRow]
       };
 
-      editTelegramMessageText(pass.telegram_chat_id, pass.telegram_message_id, updatedText, inlineKeyboard).catch(err => {
-        console.error('[Passes] Error updating live Telegram status:', err);
-      });
+      // Update caption if photo message was sent, otherwise update text
+      editTelegramMessageCaption(pass.telegram_chat_id, pass.telegram_message_id, updatedText, inlineKeyboard)
+        .then((res: any) => {
+          if (!res || !res.ok) {
+            return editTelegramMessageText(pass.telegram_chat_id!, pass.telegram_message_id!, updatedText, inlineKeyboard);
+          }
+        })
+        .catch(err => {
+          console.error('[Passes] Error updating live Telegram status:', err);
+        });
     }
 
     return res.json({
@@ -240,6 +247,14 @@ export async function getTelegramPassLinkHandler(req: Request, res: Response, po
 
     const pass = await ensurePassForRSVP(pool, event_id, user_email, phone_number);
 
+    let sentDirectly = false;
+    if (pass.telegram_chat_id) {
+      const messageId = await sendTelegramEventPass(pool, pass.telegram_chat_id, pass);
+      if (messageId) {
+        sentDirectly = true;
+      }
+    }
+
     const botUsername = config.TELEGRAM_BOT_USERNAME || 'VibeCheckSpaceBot';
     const deepLink = `https://t.me/${botUsername}?start=pass_${pass.qr_token}`;
 
@@ -247,7 +262,8 @@ export async function getTelegramPassLinkHandler(req: Request, res: Response, po
       success: true,
       pass_code: pass.pass_code,
       qr_token: pass.qr_token,
-      deep_link: deepLink
+      deep_link: deepLink,
+      sent_directly: sentDirectly
     });
   } catch (error) {
     console.error('[getTelegramPassLinkHandler] Error:', error);
