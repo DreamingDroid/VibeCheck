@@ -429,10 +429,15 @@ function DashboardContent() {
           
           <div className={`w-full p-3 sm:p-5 md:p-6 rounded-[24px] md:rounded-[36px] border-2 md:border-4 border-white shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] overflow-hidden relative bg-gradient-to-br from-white via-zinc-50 to-zinc-100/80 ${isVibrant ? 'vibe-hover-lift' : ''}`}>
             {isVibrant && (
-              <>
-                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-              </>
+              <div 
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  backgroundImage: `
+                    radial-gradient(circle at 100% 0%, rgba(25, 167, 78, 0.15) 0%, rgba(25, 167, 78, 0.06) 35%, rgba(25, 167, 78, 0.01) 60%, transparent 75%),
+                    radial-gradient(circle at 0% 100%, rgba(168, 85, 247, 0.14) 0%, rgba(168, 85, 247, 0.05) 35%, rgba(168, 85, 247, 0.01) 60%, transparent 75%)
+                  `
+                }}
+              />
             )}
             
             {calendarViewMode === 'month' ? (
