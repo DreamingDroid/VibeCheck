@@ -48,6 +48,8 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
         CASE WHEN city ILIKE $2 THEN 0 ELSE 1 END AS city_rank
       FROM events
       WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)
+        AND (status != 'ended' OR status IS NULL)
+        AND (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW()))
       ${visibilityFilter}
       ${emailFilter}
       ORDER BY city_rank ASC, embedding <=> $1::vector ASC
@@ -77,6 +79,8 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
         1 - (embedding <=> $1::vector) AS similarity
       FROM events
       WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)
+        AND (status != 'ended' OR status IS NULL)
+        AND (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW()))
       ${visibilityFilter}
       ${emailFilter}
       ORDER BY embedding <=> $1::vector
@@ -93,7 +97,9 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
       SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide,
              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count
       FROM events
-      WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status = 'ended' OR status IS NULL)
+      WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)
+        AND (status != 'ended' OR status IS NULL)
+        AND (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW()))
     `;
     const queryParams: any[] = [];
     let paramIndex = 1;
@@ -229,11 +235,12 @@ export async function getUserVipInvites(pool: Pool, email: string) {
               (SELECT status FROM event_rsvps WHERE event_id = e.id AND LOWER(user_email) = $1) as rsvp_status
        FROM event_invites ei
        JOIN events e ON ei.event_id = e.id
-       WHERE LOWER(ei.user_email) = $1
-         AND e.visibility = 'invite_only'
-         AND (e.status = 'approved' OR e.status = 'housefull' OR e.status = 'filling_fast' OR e.status IS NULL)
-         AND (e.date_time >= NOW() - INTERVAL '4 hours')
-       ORDER BY e.date_time ASC`,
+        WHERE LOWER(ei.user_email) = $1
+          AND e.visibility = 'invite_only'
+          AND (e.status = 'approved' OR e.status = 'housefull' OR e.status = 'filling_fast' OR e.status IS NULL)
+          AND (e.status != 'ended' OR e.status IS NULL)
+          AND (e.end_time >= NOW() OR (e.end_time IS NULL AND e.date_time >= NOW()))
+        ORDER BY e.date_time ASC`,
       [cleanEmail]
     );
     return rows;

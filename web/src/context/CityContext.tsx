@@ -23,6 +23,18 @@ export interface VibeEvent {
   is_paid?: boolean;
   is_featured?: boolean;
   status?: string;
+  end_time?: string;
+}
+
+export function isEventEnded(event: { status?: string; end_time?: string; date_time?: string }) {
+  if (event.status === 'ended') return true;
+  if (event.end_time) {
+    return new Date(event.end_time).getTime() <= Date.now();
+  }
+  if (event.date_time) {
+    return new Date(event.date_time).getTime() <= Date.now();
+  }
+  return false;
 }
 
 interface CityContextType {
@@ -80,8 +92,9 @@ export function CityProvider({ children }: { children: ReactNode }) {
       if (email) url.searchParams.append("email", email);
       const res = await fetch(url.toString());
       const data = await res.json();
-      if (data.success) {
-        setEvents(data.data);
+      if (data.success && Array.isArray(data.data)) {
+        const activeEvents = data.data.filter((ev: VibeEvent) => !isEventEnded(ev));
+        setEvents(activeEvents);
       }
     } catch (err) {
       console.error("Failed to fetch events:", err);

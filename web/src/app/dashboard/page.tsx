@@ -7,7 +7,7 @@ import Link from "next/link";
 import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useCity } from "@/context/CityContext";
+import { useCity, isEventEnded } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useTranslation } from "@/context/LanguageContext";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
@@ -310,13 +310,14 @@ function DashboardContent() {
     </div>
   );
 
+  const activeEvents = events.filter(ev => !isEventEnded(ev));
   const filteredEvents = selectedCategory && selectedCategory !== "The Latest"
-    ? events.filter(ev => ev.category.toLowerCase() === selectedCategory.toLowerCase())
-    : events;
+    ? activeEvents.filter(ev => ev.category.toLowerCase() === selectedCategory.toLowerCase())
+    : activeEvents;
 
   let displayEvents = filteredEvents;
   if (selectedDate) {
-    displayEvents = events.filter(ev => isSameDay(new Date(ev.date_time), selectedDate));
+    displayEvents = activeEvents.filter(ev => isSameDay(new Date(ev.date_time), selectedDate));
   }
 
   const isCategoryEmpty = filteredEvents.length === 0;
@@ -488,7 +489,7 @@ function DashboardContent() {
                   components={{
                     DayButton: (props) => {
                       const { day, modifiers } = props;
-                      const dateEvents = events.filter(e => isSameDay(new Date(e.date_time), day.date));
+                      const dateEvents = activeEvents.filter(e => isSameDay(new Date(e.date_time), day.date));
                       const isPastDate = isBefore(startOfDay(day.date), startOfDay(new Date()));
                       
                       return (
@@ -585,7 +586,7 @@ function DashboardContent() {
                 {/* 7 Day Columns Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
                   {Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i)).map((dayDate, idx) => {
-                    const dayEvents = events.filter(e => isSameDay(new Date(e.date_time), dayDate));
+                    const dayEvents = activeEvents.filter(e => isSameDay(new Date(e.date_time), dayDate));
                     const isTodayDate = isToday(dayDate);
                     const isDaySelected = selectedDate && isSameDay(selectedDate, dayDate);
 
