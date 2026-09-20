@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import {
   Dialog,
@@ -28,17 +28,93 @@ export function PhoneVerificationModal({
   email,
 }: PhoneVerificationModalProps) {
   const [step, setStep] = useState<"phone" | "code">("phone");
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [digits, setDigits] = useState<string[]>(Array(10).fill(""));
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [verificationCode, setVerificationCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [lastFailedPhone, setLastFailedPhone] = useState("");
 
   const swipeRef = useSwipeToClose(onClose);
+  const phoneNumber = digits.join("");
+
+  // Focus the first digit input when opening modal in phone step
+  useEffect(() => {
+    if (isOpen && step === "phone") {
+      const timer = setTimeout(() => {
+        inputRefs.current[0]?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, step]);
+
+  const handleDigitChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/\D/g, "");
+    const char = rawValue.slice(-1); // Take the latest typed digit
+
+    const newDigits = [...digits];
+    newDigits[index] = char;
+    setDigits(newDigits);
+
+    if (newDigits.join("") !== lastFailedPhone) {
+      setError("");
+    }
+
+    // Auto-advance cursor/focus to the next box once current box has a value
+    if (char && index < 9) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      const newDigits = [...digits];
+      if (digits[index]) {
+        newDigits[index] = "";
+        setDigits(newDigits);
+      } else if (index > 0) {
+        newDigits[index - 1] = "";
+        setDigits(newDigits);
+        inputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === "ArrowLeft" && index > 0) {
+      e.preventDefault();
+      inputRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < 9) {
+      e.preventDefault();
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData("text").replace(/\D/g, "");
+    let clean = pastedText;
+    if (clean.length === 12 && clean.startsWith("91")) {
+      clean = clean.slice(2);
+    }
+    clean = clean.slice(0, 10);
+    if (!clean) return;
+
+    const newDigits = [...digits];
+    for (let i = 0; i < 10; i++) {
+      if (i < clean.length) {
+        newDigits[i] = clean[i];
+      }
+    }
+    setDigits(newDigits);
+    if (newDigits.join("") !== lastFailedPhone) {
+      setError("");
+    }
+    const targetFocusIndex = Math.min(clean.length, 9);
+    inputRefs.current[targetFocusIndex]?.focus();
+  };
 
   const handleSendCode = async () => {
-    if (!phoneNumber || phoneNumber.length < 10) {
-      setError("Please enter a valid phone number");
+    const rawNumber = digits.join("");
+    if (!rawNumber || rawNumber.length < 10) {
+      setError("Please enter a valid 10-digit phone number");
       return;
     }
     setError("");
@@ -49,7 +125,7 @@ export function PhoneVerificationModal({
       const res = await fetch(`${baseUrl}/api/verify/send-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber, email }),
+        body: JSON.stringify({ phoneNumber: rawNumber, email }),
       });
       const data = await res.json();
       if (data.success) {
@@ -57,7 +133,7 @@ export function PhoneVerificationModal({
       } else {
         setError(data.error || "Failed to send code");
         if (data.error?.includes("already registered")) {
-          setLastFailedPhone(phoneNumber);
+          setLastFailedPhone(rawNumber);
         }
       }
     } catch (err) {
@@ -68,6 +144,7 @@ export function PhoneVerificationModal({
   };
 
   const handleVerifyCode = async () => {
+    const rawNumber = digits.join("");
     if (!verificationCode || verificationCode.length !== 6) {
       setError("Please enter the 6-digit code");
       return;
@@ -80,12 +157,13 @@ export function PhoneVerificationModal({
       const res = await fetch(`${baseUrl}/api/verify/confirm-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber, code: verificationCode, email }),
+        body: JSON.stringify({ phoneNumber: rawNumber, code: verificationCode, email }),
       });
       const data = await res.json();
       if (data.success) {
         setError("");
         setVerificationCode("");
+        setDigits(Array(10).fill(""));
         setStep("phone");
         onVerified();
       } else {
@@ -100,8 +178,7 @@ export function PhoneVerificationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent ref={swipeRef} showCloseButton={false} className="top-6 sm:top-12 translate-y-0 sm:max-w-md bg-white/95 backdrop-blur-2xl border-black/5 text-black rounded-[40px] shadow-2xl p-8 fixed max-h-[90vh] overflow-y-auto">
-        <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mb-4 md:hidden" />
+      <DialogContent showCloseButton={false} className="sm:max-w-md bg-white/95 backdrop-blur-2xl border-black/5 text-black rounded-[40px] shadow-2xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-6 right-6 p-2 rounded-full hover:bg-black/5 transition-all text-zinc-400 hover:text-black z-10"
@@ -129,20 +206,39 @@ export function PhoneVerificationModal({
 
           {step === "phone" ? (
             <div className="space-y-3">
-              <Label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Phone Number</Label>
-              <Input
-                id="phone"
-                placeholder="E.G. 9876543210"
-                value={phoneNumber}
-                onChange={(e) => {
-                  setPhoneNumber(e.target.value);
-                  if (e.target.value !== lastFailedPhone) {
-                    setError("");
-                  }
-                }}
-                className="bg-zinc-50 border-black/5 h-14 rounded-2xl text-sm font-black focus:ring-primary shadow-sm"
-              />
-              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-tight ml-1">Includes country code (default 91 for India)</p>
+              <div className="flex items-center justify-between ml-1">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                  Phone Number
+                </Label>
+                <span className="text-[10px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded-md border border-black/5">
+                  🇮🇳 +91
+                </span>
+              </div>
+              <div className="grid grid-cols-10 gap-1 sm:gap-1.5">
+                {digits.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    ref={(el) => {
+                      inputRefs.current[idx] = el;
+                    }}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleDigitChange(idx, e)}
+                    onKeyDown={(e) => handleKeyDown(idx, e)}
+                    onPaste={handlePaste}
+                    onFocus={(e) => e.target.select()}
+                    className={`h-12 w-full text-center text-base sm:text-lg font-black bg-zinc-50 border rounded-2xl focus:bg-white focus:ring-2 focus:ring-primary/30 outline-none transition-all p-0 ${
+                      digit ? "border-black/30 bg-white text-black" : "border-black/10 text-zinc-800"
+                    } focus:border-primary`}
+                  />
+                ))}
+              </div>
+              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-tight ml-1">
+                Enter your 10-digit mobile number for WhatsApp verification
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -170,7 +266,7 @@ export function PhoneVerificationModal({
           {step === "phone" ? (
             <Button
               onClick={handleSendCode}
-              disabled={loading || phoneNumber.replace(/\D/g, "").length !== 10 || (!!error && phoneNumber === lastFailedPhone)}
+              disabled={loading || phoneNumber.length !== 10 || (!!error && phoneNumber === lastFailedPhone)}
               className="ringer-button bg-primary text-black hover:scale-[1.02] h-12 text-[10px]"
             >
               {loading ? "SENDING..." : "SEND CODE"}
