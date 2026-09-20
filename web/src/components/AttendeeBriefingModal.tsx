@@ -43,36 +43,6 @@ interface AttendeeBriefingModalProps {
   onShare?: () => void;
 }
 
-const DEFAULT_ATTENDEE_GUIDE: AttendeeGuideData = {
-  schedule: [
-    { time: "09:00 AM – 10:30 AM", title: "Assembly & Tree Climbing", description: "Build your own ladder and claim the prize on the tree." },
-    { time: "10:30 AM – 11:00 AM", title: "Recess & Recharge", description: "Quick break, hydration, and group energizer." },
-    { time: "11:00 AM – 12:30 PM", title: "Terrain Mapping & Compass Crafting", description: "Read real topographic maps, sculpt terrain in clay, and make a working compass." },
-    { time: "12:30 PM – 01:15 PM", title: "Community Lunch & Games", description: "Outdoor picnic lunch, social bonding, and interactive games." },
-    { time: "01:30 PM – 02:30 PM", title: "Secret Scroll Treasure Hunt", description: "Follow cryptic navigational clues across the campus grounds." },
-    { time: "02:30 PM – 03:30 PM", title: "Catapult Engineering & Target Challenge", description: "Build a wooden catapult to take home and finish with the campus BINGO tour." }
-  ],
-  highlights: [
-    "Full-day hands-on outdoor experiential program (Drop in morning, pick-up in evening)",
-    "Designed to work with Hands, Head, and Heart in a safe, guided outdoor space",
-    "Experiential nature education — build real tools, solve creative challenges"
-  ],
-  whatToCarry: [
-    "Wear shoes and comfortable outdoor clothing",
-    "1 Litre reusable water bottle (refill stations available)",
-    "Hat / Cap & Sunscreen (sunny daytime weather)",
-    "Backpack to keep your hands free",
-    "Carry snacks and packed Lunch",
-    "Carry a notebook and pen (all tools and materials will be provided)"
-  ],
-  assemblyPoint: "Eastern Ghats Biodiversity Center, Rushikonda, Madhurawada, Vizag",
-  contacts: [
-    { name: "Vimal", phone: "+91 7330880274", role: "Program Lead" },
-    { name: "Event Desk", phone: "+91 9640856967", role: "Logistics & Enquiries" }
-  ],
-  feeNote: "₹800/- per participant | Pre-registration confirmed with RSVP."
-};
-
 export function AttendeeBriefingModal({
   isOpen,
   onClose,
@@ -86,7 +56,7 @@ export function AttendeeBriefingModal({
 
   if (!event) return null;
 
-  const guide: AttendeeGuideData = event.attendee_guide || DEFAULT_ATTENDEE_GUIDE;
+  const guide: AttendeeGuideData = event.attendee_guide || {};
   const isPaid = !!event.is_paid;
   const isPending = rsvpStatus === 'pending';
   const isPendingPayment = isPaid && isPending;
@@ -99,7 +69,7 @@ export function AttendeeBriefingModal({
     }));
   };
 
-  const mapsLink = event.google_maps_link || guide.assemblyMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.location || guide.assemblyPoint}, ${event.city || "Vizag"}`)}`;
+  const mapsLink = event.google_maps_link || guide.assemblyMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.location || guide.assemblyPoint || ""}, ${event.city || "Vizag"}`)}`;
 
   const eventDateStr = event.date_time 
     ? new Date(event.date_time).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })
@@ -113,10 +83,11 @@ export function AttendeeBriefingModal({
     ? ` → ${new Date(event.end_time).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`
     : "";
 
-  // Contact number for payment coordination
-  const primaryContact = (guide.contacts && guide.contacts[0]) || { name: event.organizer_name || "Organizer", phone: "+91 7330880274" };
-  const whatsappPayMsg = `Hi ${primaryContact.name || 'Organizer'}, I have registered for "${event.title}" on VibeCheck and would like to complete my payment for the Attendee Pass!`;
-  const whatsappPayUrl = `https://wa.me/${primaryContact.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(whatsappPayMsg)}`;
+  // Contact details for payment coordination if paid
+  const organizerPhone = event.organizer_phone || event.phone || (guide.contacts && guide.contacts[0]?.phone) || "";
+  const organizerContactName = (guide.contacts && guide.contacts[0]?.name) || event.organizer_name || "Organizer";
+  const whatsappPayMsg = `Hi ${organizerContactName}, I have registered for "${event.title}" on VibeCheck and would like to complete my payment for the Attendee Pass!`;
+  const whatsappPayUrl = organizerPhone ? `https://wa.me/${organizerPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(whatsappPayMsg)}` : "";
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -136,17 +107,7 @@ export function AttendeeBriefingModal({
           <div className="flex items-start justify-between relative z-10">
             <div className="space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
-                {isPendingPayment ? (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest shadow-sm">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>REGISTRATION RECEIVED • PASS PENDING PAYMENT</span>
-                  </div>
-                ) : isPendingApproval ? (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400 text-black text-[10px] font-black uppercase tracking-widest shadow-sm">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>RSVP RECORDED • AWAITING ORGANIZER CONFIRMATION</span>
-                  </div>
-                ) : (
+                {!isPending && (
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary text-black text-[10px] font-black uppercase tracking-widest shadow-sm">
                     <ShieldCheck className="h-3.5 w-3.5" />
                     <span>CONFIRMED ATTENDEE PASS</span>
@@ -160,7 +121,7 @@ export function AttendeeBriefingModal({
                 )}
               </div>
 
-              <h2 className="text-2xl sm:text-3xl font-black italic tracking-tight uppercase leading-tight">
+              <h2 className="text-2xl sm:text-3xl font-black italic tracking-tight uppercase leading-tight text-white">
                 {event.title}
               </h2>
               <p className="text-xs font-bold text-zinc-400">
@@ -193,32 +154,34 @@ export function AttendeeBriefingModal({
                   <p className="text-xs font-medium text-amber-800 leading-relaxed">
                     Your spot registration has been recorded! For paid events with limited slots, the organizer issues your verified pass once payment is received.
                   </p>
-                  {guide.feeNote && (
+                  {(guide.feeNote || event.price) && (
                     <p className="text-xs font-black text-amber-900 pt-1">
-                      Event Fee: {guide.feeNote}
+                      Event Fee: {guide.feeNote || `₹${event.price}/- per participant`}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 pt-1">
-                <a
-                  href={whatsappPayUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ringer-button bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase px-5 py-2.5 flex items-center gap-2 transition-transform active:scale-95 shadow-sm"
-                >
-                  <Phone className="h-3.5 w-3.5" />
-                  <span>Contact Organizer to Pay (WhatsApp) →</span>
-                </a>
-                <a
-                  href={`tel:${primaryContact.phone.replace(/[^0-9+]/g, "")}`}
-                  className="ringer-button bg-white hover:bg-zinc-100 text-black border border-black/10 text-xs font-black uppercase px-4 py-2.5 flex items-center gap-2"
-                >
-                  <Phone className="h-3.5 w-3.5 text-zinc-600" />
-                  <span>Call {primaryContact.name} ({primaryContact.phone})</span>
-                </a>
-              </div>
+              {organizerPhone && (
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <a
+                    href={whatsappPayUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ringer-button bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase px-5 py-2.5 flex items-center gap-2 transition-transform active:scale-95 shadow-sm"
+                  >
+                    <Phone className="h-3.5 w-3.5" />
+                    <span>Contact Organizer to Pay (WhatsApp) →</span>
+                  </a>
+                  <a
+                    href={`tel:${organizerPhone.replace(/[^0-9+]/g, "")}`}
+                    className="ringer-button bg-white hover:bg-zinc-100 text-black border border-black/10 text-xs font-black uppercase px-4 py-2.5 flex items-center gap-2"
+                  >
+                    <Phone className="h-3.5 w-3.5 text-zinc-600" />
+                    <span>Call {organizerContactName} ({organizerPhone})</span>
+                  </a>
+                </div>
+              )}
             </div>
           )}
 
@@ -272,11 +235,13 @@ export function AttendeeBriefingModal({
                 <span>LOCATION & ASSEMBLY</span>
               </div>
               <p className="text-sm font-black text-black leading-snug">
-                {event.location || guide.assemblyPoint}
+                {event.location || guide.assemblyPoint || "Location provided upon confirmation"}
               </p>
-              <p className="text-xs text-zinc-500 font-medium line-clamp-2">
-                {guide.assemblyPoint || event.location}
-              </p>
+              {guide.assemblyPoint && guide.assemblyPoint !== event.location && (
+                <p className="text-xs text-zinc-500 font-medium line-clamp-2">
+                  {guide.assemblyPoint}
+                </p>
+              )}
               <a
                 href={mapsLink}
                 target="_blank"
