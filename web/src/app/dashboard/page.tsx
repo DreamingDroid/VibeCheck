@@ -350,7 +350,7 @@ function DashboardContent() {
         </div>
       </div>
 
-      <div className={showCalendarView ? 'space-y-4' : 'space-y-12'}>
+      <div>
       {/* Local Currents RSS Feed Banner at the top */}
       {dashboardNews.length > 0 && activeNews && (
         <div 
@@ -386,28 +386,7 @@ function DashboardContent() {
         </div>
       )}
 
-      <div className={`max-w-7xl mx-auto px-4 sm:px-6 ${showCalendarView ? 'space-y-4' : 'space-y-12'}`}>
-      
-      {/* Calendar Toggle Button (FAB) when feed is visible */}
-      {!showCalendarView && !selectedDate && !isCategoryEmpty && (
-        <button
-          onClick={() => {
-            setForceCalendarOpen(true);
-            router.push('/dashboard?view=calendar');
-          }}
-          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-black text-white h-14 w-14 hover:w-48 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:bg-primary hover:text-black hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out border border-white/20 group overflow-hidden"
-          title="View Calendar"
-        >
-          <div className="flex items-center justify-center whitespace-nowrap">
-            <span className="shrink-0 select-none leading-none flex items-center justify-center">
-              <CalendarIcon className="h-6 w-6" />
-            </span>
-            <span className="text-[10px] font-black uppercase tracking-widest max-w-0 opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-300 ease-in-out select-none overflow-hidden mt-0.5">
-              View Calendar
-            </span>
-          </div>
-        </button>
-      )}
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 flex flex-col ${showCalendarView ? 'gap-4' : 'gap-8 md:gap-12'}`}>
 
       {/* Calendar Empty State / Calendar View */}
       {showCalendarView && (
@@ -1119,6 +1098,27 @@ function DashboardContent() {
           }}
           email={session.user.email}
         />
+      )}
+
+      {/* Calendar Toggle Button (FAB) when feed is visible */}
+      {!showCalendarView && !selectedDate && !isCategoryEmpty && (
+        <button
+          onClick={() => {
+            setForceCalendarOpen(true);
+            router.push('/dashboard?view=calendar');
+          }}
+          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-black text-white h-14 w-14 hover:w-48 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:bg-primary hover:text-black hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out border border-white/20 group overflow-hidden"
+          title="View Calendar"
+        >
+          <div className="flex items-center justify-center whitespace-nowrap">
+            <span className="shrink-0 select-none leading-none flex items-center justify-center">
+              <CalendarIcon className="h-6 w-6" />
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-widest max-w-0 opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-300 ease-in-out select-none overflow-hidden mt-0.5">
+              View Calendar
+            </span>
+          </div>
+        </button>
       )}
 
       </div>
