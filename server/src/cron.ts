@@ -121,14 +121,23 @@ Do not output anything else if NO_MATCH. No explanations.`;
 }
 
 /**
- * Schedules the daily cron job.
- * Runs daily at 9:00 AM IST (3:30 AM UTC).
+ * Schedules the daily cron jobs.
+ * - AI Matchmaker Push Alerts: 9:00 AM IST (3:30 AM UTC).
+ * - Post-Event Feedback Rating Requests: 5:00 PM IST (11:30 AM UTC).
+ * - Expired Event Image Cleanup: 2:00 AM UTC.
  */
 export function startPushAlertCron(pool: Pool) {
   // "30 3 * * *" = 3:30 AM UTC = 9:00 AM IST
   cron.schedule('30 3 * * *', async () => {
     console.log('[Cron] Running daily push alert job...');
     const result = await runMatchmakerJob(pool);
+    console.log(result);
+  });
+
+  // "30 11 * * *" = 11:30 AM UTC = 5:00 PM IST
+  cron.schedule('30 11 * * *', async () => {
+    console.log('[Cron] Running daily post-event feedback rating request job...');
+    const result = await runPostEventFeedbackJob(pool);
     console.log(result);
   });
 
@@ -140,7 +149,119 @@ export function startPushAlertCron(pool: Pool) {
   });
 
   console.log('[Cron] Daily push alert job scheduled for 9:00 AM IST.');
+  console.log('[Cron] Daily post-event feedback rating request job scheduled for 5:00 PM IST.');
   console.log('[Cron] Daily expired event cleanup job scheduled for 2:00 AM UTC.');
+}
+
+function escapeHtml(text: string): string {
+  return (text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * Sends a Telegram message requesting ratings and feedback for events that ended the previous day.
+ * Scheduled daily at 5:00 PM IST the following day of the event.
+ */
+export async function runPostEventFeedbackJob(pool: Pool): Promise<string> {
+  const log: string[] = [];
+
+  if (!config.TELEGRAM_BOT_TOKEN) {
+    log.push('[Cron Feedback] No TELEGRAM_BOT_TOKEN configured — skipping feedback rating requests.');
+    return log.join('\n');
+  }
+
+  try {
+    const { rows } = await pool.query(`
+      SELECT 
+        r.id as rsvp_id,
+        r.event_id,
+        r.user_email,
+        u.name as user_name,
+        u.telegram_chat_id,
+        e.title as event_title,
+        e.date_time,
+        e.end_time,
+        e.organizer_email,
+        COALESCE(a.brand_name, 'VibeCheck Organizer') as organizer_name
+      FROM event_rsvps r
+      JOIN events e ON r.event_id = e.id
+      JOIN web_users u ON (LOWER(u.email) = LOWER(r.user_email) OR (r.phone_number IS NOT NULL AND u.phone_number = r.phone_number))
+      LEFT JOIN admins a ON e.organizer_email = a.email
+      WHERE u.telegram_chat_id IS NOT NULL
+        AND r.feedback_requested_at IS NULL
+        AND (
+          DATE(COALESCE(e.end_time, e.date_time) AT TIME ZONE 'Asia/Kolkata') = (CURRENT_DATE AT TIME ZONE 'Asia/Kolkata') - INTERVAL '1 day'
+          OR (
+            e.status = 'ended'
+            AND COALESCE(e.end_time, e.date_time) < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata')
+            AND COALESCE(e.end_time, e.date_time) >= (CURRENT_DATE AT TIME ZONE 'Asia/Kolkata') - INTERVAL '3 days'
+          )
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM event_ratings er 
+          WHERE er.event_id = e.id AND LOWER(er.user_email) = LOWER(r.user_email)
+        )
+      ORDER BY e.date_time DESC
+    `);
+
+    if (rows.length === 0) {
+      log.push('[Cron Feedback] No pending feedback rating requests found for ended events.');
+      return log.join('\n');
+    }
+
+    log.push(`[Cron Feedback] Found ${rows.length} attendee(s) eligible for feedback rating requests.`);
+
+    let sentCount = 0;
+    for (const row of rows) {
+      try {
+        const eventUrl = `${config.WEB_APP_URL}/event/${row.event_id}`;
+        const firstName = row.user_name?.split(' ')[0] || 'there';
+        const escapedTitle = escapeHtml(row.event_title);
+        const escapedOrg = escapeHtml(row.organizer_name || 'VibeCheck Organizer');
+
+        const messageText = 
+          `✨ <b>How was the vibe?</b>\n\n` +
+          `Hey ${firstName}! We hope you had a fantastic experience at <a href="${eventUrl}">${escapedTitle}</a> with <b>${escapedOrg}</b>!\n\n` +
+          `Could you take 30 seconds to rate the vibe and share your feedback? Your review helps our host and fellow vibe seekers.\n\n` +
+          `👉 <a href="${eventUrl}">${escapedTitle}</a>`;
+
+        await sendTelegramMessage(row.telegram_chat_id, messageText, {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: `⭐ Rate ${row.event_title}`, url: eventUrl }
+              ]
+            ]
+          }
+        });
+
+        // Mark feedback as requested for this RSVP
+        await pool.query(
+          `UPDATE event_rsvps SET feedback_requested_at = CURRENT_TIMESTAMP WHERE id = $1`,
+          [row.rsvp_id]
+        );
+
+        sentCount++;
+        log.push(`[Cron Feedback] Sent rating request to Telegram chat ${row.telegram_chat_id} (${row.user_email}) for event "${row.event_title}"`);
+
+        // Small delay between Telegram messages
+        await new Promise(r => setTimeout(r, 300));
+      } catch (err: any) {
+        log.push(`[Cron Feedback] Error sending rating request for RSVP ${row.rsvp_id}: ${err.message}`);
+      }
+    }
+
+    log.push(`[Cron Feedback] Successfully dispatched ${sentCount} rating feedback request(s).`);
+  } catch (error: any) {
+    log.push(`[Cron Feedback] Error during feedback request job: ${error.message}`);
+    console.error('[Cron Feedback] Error during feedback request job:', error);
+  }
+
+  return log.join('\n');
 }
 
 export async function runExpiredEventCleanupJob(pool: Pool): Promise<string> {

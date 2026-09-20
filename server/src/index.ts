@@ -23,7 +23,7 @@ import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
 import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler, organizerGetEventAnalyticsHandler, organizerToggleHousefullHandler, organizerUpdateStatusHandler, organizerGetCrmContactsHandler, organizerUpsertCrmNotesHandler, organizerCrmBroadcastHandler, organizerGetDashboardAnalyticsHandler, organizerIssuePassHandler, organizerBulkIssuePassesHandler, organizerCancelRsvpHandler, organizerUpdateWhatsAppGroupLinkHandler, organizerSendWhatsAppGroupInviteHandler, organizerGetEventInvitesHandler } from './organizer';
 import { getCitiesHandler } from './cities';
 import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingOrganizersHandler, adminApproveOrganizerHandler, adminRejectOrganizerHandler, adminDeleteOrganizerHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminToggleEventFeaturedHandler, adminGetEventsByStatusHandler, adminAddCityHandler, adminDeleteCityHandler, adminGetAdminsHandler, adminAddAdminHandler, adminRemoveAdminHandler, adminSearchHandler, adminAttendeeDetailsHandler, adminOrganizerDetailsHandler, adminEventDetailsHandler, adminDeleteAttendeeHandler } from './admin';
-import { startPushAlertCron, runMatchmakerJob } from './cron';
+import { startPushAlertCron, runMatchmakerJob, runPostEventFeedbackJob } from './cron';
 import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verification';
 import { followOrganizerHandler, unfollowOrganizerHandler, getUserFollowingHandler, getOrganizerFollowersHandler } from './followers';
 import { sendApplyOtpHandler, verifyApplyOtpHandler, submitApplicationHandler } from './organizer-apply';
@@ -393,6 +393,18 @@ app.post('/admin/trigger-cron', async (req, res) => {
   try {
     console.log('[Dev] Manually triggering AI Matchmaker Cron...');
     const result = await runMatchmakerJob(pool);
+    console.log(result);
+    res.json({ success: true, log: result });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── Dev-only: manually trigger Post-Event Feedback Job for testing ───────────
+app.post('/admin/trigger-feedback-cron', async (req, res) => {
+  try {
+    console.log('[Dev] Manually triggering Post-Event Feedback Job...');
+    const result = await runPostEventFeedbackJob(pool);
     console.log(result);
     res.json({ success: true, log: result });
   } catch (err: any) {

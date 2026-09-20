@@ -249,6 +249,7 @@ export async function initializeDatabaseSchema(pool: Pool) {
   `).catch(() => {});
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS visibility event_visibility DEFAULT 'public'`).catch(() => {});
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_events_visibility ON events (visibility)`).catch(() => {});
+  await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS feedback_requested_at TIMESTAMP WITH TIME ZONE`).catch(() => {});
 
   // Event Invites table (Guest list for Invite-Only / VIP Events)
   await pool.query(`
