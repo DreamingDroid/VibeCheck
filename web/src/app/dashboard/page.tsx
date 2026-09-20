@@ -43,6 +43,10 @@ type VibeEvent = {
   participant_limit?: number;
   is_paid?: boolean;
   status?: string;
+  is_featured?: boolean;
+  user_rsvped?: boolean;
+  user_rsvp_status?: string | null;
+  user_pass_code?: string | null;
 };
 
 function DashboardContent() {
@@ -324,6 +328,10 @@ function DashboardContent() {
   const showCalendarView = (isCategoryEmpty || forceCalendarOpen) && !selectedDate;
   
   const featuredEvent = displayEvents.find(ev => ev.is_featured) || displayEvents[0];
+  const isFeaturedRsvped = Boolean(
+    featuredEvent?.user_rsvped ||
+    (session?.user?.email && vipInvites.some(v => v.id === featuredEvent?.id && (v.rsvp_status === 'going' || v.rsvp_status === 'confirmed' || v.rsvp_status === 'pending')))
+  );
   const otherEvents = featuredEvent ? displayEvents.filter(ev => ev.id !== featuredEvent.id) : displayEvents;
   const activeNews = dashboardNews.length > 0 ? dashboardNews[currentNewsIndex % dashboardNews.length] : null;
 
@@ -895,11 +903,20 @@ function DashboardContent() {
                   {featuredEvent.description}
                 </p>
                 <div className="flex gap-4 pt-4">
+                  {isFeaturedRsvped ? (
+                    <Link href={`/event/${featuredEvent.id}`}>
+                      <button className="ringer-button bg-white text-black hover:bg-zinc-100 px-8 py-3 text-sm shadow-xl flex items-center gap-2">
+                        <span>VIEW PASS</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </Link>
+                  ) : (
                     <Link href={`/event/${featuredEvent.id}`}>
                       <button className="ringer-button bg-white text-black hover:bg-zinc-100 px-8 py-3 text-sm shadow-xl">
                         SECURE YOUR SPOT
                       </button>
                     </Link>
+                  )}
                 </div>
               </div>
            </div>

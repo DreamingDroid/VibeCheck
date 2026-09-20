@@ -24,6 +24,9 @@ export interface VibeEvent {
   is_featured?: boolean;
   status?: string;
   end_time?: string;
+  user_rsvped?: boolean;
+  user_rsvp_status?: string | null;
+  user_pass_code?: string | null;
 }
 
 export function isEventEnded(event: { status?: string; end_time?: string; date_time?: string }) {

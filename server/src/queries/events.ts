@@ -93,16 +93,32 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
 }
 
 export async function getEventsList(pool: Pool, category: any, search: any, city: any, email?: any) {
+    const queryParams: any[] = [];
+    let paramIndex = 1;
+
+    let userRsvpSelect = `false AS user_rsvped, NULL AS user_rsvp_status, NULL AS user_pass_code`;
+    let emailParamIndex = -1;
+
+    if (email) {
+      emailParamIndex = paramIndex;
+      queryParams.push(typeof email === 'string' ? email.trim().toLowerCase() : email);
+      paramIndex++;
+      userRsvpSelect = `
+        EXISTS(SELECT 1 FROM event_rsvps WHERE event_id = events.id AND LOWER(user_email) = $${emailParamIndex}) AS user_rsvped,
+        (SELECT status FROM event_rsvps WHERE event_id = events.id AND LOWER(user_email) = $${emailParamIndex}) AS user_rsvp_status,
+        (SELECT pass_code FROM event_rsvps WHERE event_id = events.id AND LOWER(user_email) = $${emailParamIndex}) AS user_pass_code
+      `;
+    }
+
     let queryText = `
       SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide,
-             (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count
+             (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
+             ${userRsvpSelect}
       FROM events
       WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)
         AND (status != 'ended' OR status IS NULL)
         AND (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW()))
     `;
-    const queryParams: any[] = [];
-    let paramIndex = 1;
 
     if (category && category !== 'All') {
       queryText += ` AND category = $${paramIndex}::event_category`;
@@ -120,10 +136,8 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
       paramIndex++;
     }
     if (email) {
-      queryText += ` AND (visibility = 'public' OR visibility IS NULL OR organizer_email = $${paramIndex} OR EXISTS (SELECT 1 FROM event_invites ei WHERE ei.event_id = events.id AND LOWER(ei.user_email) = LOWER($${paramIndex})))`;
-      queryText += ` AND NOT EXISTS (SELECT 1 FROM event_ratings er WHERE er.event_id = events.id AND er.user_email = $${paramIndex})`;
-      queryParams.push(email);
-      paramIndex++;
+      queryText += ` AND (visibility = 'public' OR visibility IS NULL OR organizer_email = $${emailParamIndex} OR EXISTS (SELECT 1 FROM event_invites ei WHERE ei.event_id = events.id AND LOWER(ei.user_email) = $${emailParamIndex}))`;
+      queryText += ` AND NOT EXISTS (SELECT 1 FROM event_ratings er WHERE er.event_id = events.id AND er.user_email = $${emailParamIndex})`;
     } else {
       queryText += ` AND (visibility = 'public' OR visibility IS NULL)`;
     }
