@@ -466,11 +466,11 @@ function DashboardContent() {
                     nav: "absolute top-0 left-0 right-0 h-9 sm:h-10 grid grid-cols-2 items-center pointer-events-none z-20",
                     button_previous: "col-start-1 justify-self-start h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
                     button_next: "col-start-2 justify-self-end h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
-                    day: "w-full aspect-square md:aspect-auto md:h-16 lg:h-[70px] rounded-lg md:rounded-2xl flex flex-col items-center md:items-start justify-between p-1 sm:p-1.5 md:p-2.5 font-black text-xs sm:text-sm md:text-xl border-2 border-black/5 hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all bg-white relative group overflow-hidden cursor-pointer",
-                    day_selected: "ring-0 bg-primary/20 border-primary shadow-[3px_3px_0px_0px_rgba(var(--primary),1)]",
-                    day_today: "bg-zinc-50 border-black/20",
-                    day_outside: "text-zinc-300 opacity-50 bg-zinc-50/50 hover:border-black/5 hover:shadow-none hover:translate-y-0",
-                    day_disabled: "text-zinc-300 opacity-50",
+                    day: "w-full aspect-square flex items-center justify-center p-0.5 sm:p-1",
+                    day_selected: "",
+                    day_today: "",
+                    day_outside: "",
+                    day_disabled: "",
                     day_hidden: "invisible",
                   }}
                   components={{
@@ -478,31 +478,128 @@ function DashboardContent() {
                       const { day, modifiers } = props;
                       const dateEvents = activeEvents.filter(e => isSameDay(new Date(e.date_time), day.date));
                       const isPastDate = isBefore(startOfDay(day.date), startOfDay(new Date()));
-                      
+                      const isTodayDate = isToday(day.date);
+                      const isSelected = !!modifiers.selected || (!!selectedDate && isSameDay(selectedDate, day.date));
+                      const count = modifiers.outside ? 0 : dateEvents.length;
+
+                      if (modifiers.outside) {
+                        return (
+                          <button
+                            {...props}
+                            className="w-full aspect-square max-w-[46px] sm:max-w-[54px] md:max-w-[62px] mx-auto rounded-full flex items-center justify-center text-zinc-300 font-bold text-xs sm:text-sm md:text-base opacity-30 cursor-default"
+                            disabled
+                          >
+                            <span>{day.date.getDate()}</span>
+                          </button>
+                        );
+                      }
+
+                      // Dynamic color density calculation based on event count
+                      const getDensityStyle = () => {
+                        if (count === 0) {
+                          if (isPastDate) {
+                            return {
+                              bg: "bg-white/60",
+                              border: "border border-black/5",
+                              text: "text-zinc-300",
+                              hover: "hover:bg-zinc-50",
+                            };
+                          }
+                          if (isTodayDate) {
+                            return {
+                              bg: "bg-blue-50/60",
+                              border: "border-2 border-blue-500",
+                              text: "text-blue-600 font-black",
+                              hover: "hover:bg-blue-100/60",
+                            };
+                          }
+                          return {
+                            bg: "bg-white",
+                            border: "border border-black/10",
+                            text: "text-black font-bold",
+                            hover: "hover:border-black hover:bg-zinc-50",
+                          };
+                        }
+
+                        if (isPastDate) {
+                          if (count <= 2) {
+                            return {
+                              bg: "bg-emerald-50/80",
+                              border: "border border-emerald-200/60",
+                              text: "text-emerald-800/70 font-black",
+                              hover: "hover:bg-emerald-100/80",
+                            };
+                          }
+                          return {
+                            bg: "bg-emerald-100/80",
+                            border: "border border-emerald-300/60",
+                            text: "text-emerald-900/70 font-black",
+                            hover: "hover:bg-emerald-200/80",
+                          };
+                        }
+
+                        // Active / upcoming dates with events
+                        if (count === 1) {
+                          return {
+                            bg: "bg-emerald-100",
+                            border: "border border-emerald-300",
+                            text: "text-emerald-950 font-black",
+                            hover: "hover:bg-emerald-200 hover:border-emerald-400",
+                          };
+                        }
+                        if (count === 2) {
+                          return {
+                            bg: "bg-emerald-200",
+                            border: "border border-emerald-400",
+                            text: "text-emerald-950 font-black",
+                            hover: "hover:bg-emerald-300 hover:border-emerald-500",
+                          };
+                        }
+                        if (count === 3) {
+                          return {
+                            bg: "bg-emerald-400",
+                            border: "border border-emerald-500",
+                            text: "text-emerald-950 font-black",
+                            hover: "hover:bg-emerald-500 hover:border-emerald-600",
+                          };
+                        }
+                        if (count <= 5) {
+                          return {
+                            bg: "bg-emerald-700",
+                            border: "border border-emerald-800",
+                            text: "text-white font-black drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]",
+                            hover: "hover:bg-emerald-800 hover:border-emerald-900",
+                          };
+                        }
+                        // 6+ events (Darkest green with crisp white text)
+                        return {
+                          bg: "bg-emerald-900",
+                          border: "border border-emerald-950",
+                          text: "text-white font-black drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]",
+                          hover: "hover:bg-black hover:border-black",
+                        };
+                      };
+
+                      const style = getDensityStyle();
+                      const tooltip = count > 0 
+                        ? `${format(day.date, 'MMM d, yyyy')}: ${count} ${count === 1 ? 'event' : 'events'}\n${dateEvents.map(e => `• ${e.title}`).join('\n')}`
+                        : format(day.date, 'MMM d, yyyy');
+
                       return (
-                        <button {...props} className={props.className} disabled={modifiers.outside}>
-                          <span className={`block leading-none transition-colors ${isPastDate ? "opacity-40" : "group-hover:text-primary"} ${modifiers.outside ? "text-zinc-300" : ""}`}>
+                        <button
+                          {...props}
+                          title={tooltip}
+                          className={`w-full aspect-square max-w-[46px] sm:max-w-[54px] md:max-w-[62px] mx-auto rounded-full flex items-center justify-center font-black text-xs sm:text-sm md:text-base transition-all cursor-pointer relative shadow-sm ${style.bg} ${style.border} ${style.text} ${style.hover} ${
+                            isSelected
+                              ? "ring-4 ring-black ring-offset-2 scale-105 shadow-md z-20"
+                              : isTodayDate && count > 0
+                              ? "ring-2 ring-blue-500 ring-offset-1 hover:scale-105 active:scale-95"
+                              : "hover:scale-105 active:scale-95"
+                          }`}
+                        >
+                          <span className="leading-none select-none">
                             {day.date.getDate()}
                           </span>
-                          
-                          {dateEvents.length > 0 && !modifiers.outside && (
-                            <div className="absolute bottom-1 md:bottom-1.5 left-1 right-1 md:left-2 md:right-2 flex flex-col gap-0.5 z-10">
-                              <div className="flex gap-0.5 sm:gap-1 md:gap-1.5 flex-wrap w-full justify-center md:justify-start">
-                                {dateEvents.slice(0, 3).map((ev, i) => (
-                                  <div 
-                                    key={i} 
-                                    className={`h-1 w-1 sm:h-1.5 sm:w-1.5 md:h-1.5 md:w-auto md:flex-1 rounded-full ${isPastDate ? 'bg-zinc-400' : 'bg-black group-hover:bg-primary'} shadow-sm transition-colors`} 
-                                    title={ev.title} 
-                                  />
-                                ))}
-                              </div>
-                              {dateEvents.length > 3 && (
-                                <span className="text-[8px] md:text-[9px] hidden md:block font-black text-black group-hover:text-primary uppercase tracking-widest text-left leading-none transition-colors">
-                                  +{dateEvents.length - 3} MORE
-                                </span>
-                              )}
-                            </div>
-                          )}
                         </button>
                       );
                     },
@@ -513,6 +610,30 @@ function DashboardContent() {
                     }
                   }}
                 />
+
+                {/* Heatmap Legend */}
+                <div className="mt-4 pt-3 border-t border-black/5 flex flex-wrap items-center justify-between gap-3 px-2 text-[10px] md:text-xs font-bold text-zinc-500">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider text-zinc-400">Events:</span>
+                    <span className="text-[9px] uppercase font-bold text-zinc-400">Fewer</span>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3.5 h-3.5 rounded-full bg-emerald-100 border border-emerald-300" title="1 event" />
+                      <div className="w-3.5 h-3.5 rounded-full bg-emerald-300 border border-emerald-400" title="2 events" />
+                      <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 border border-emerald-600" title="3 events" />
+                      <div className="w-3.5 h-3.5 rounded-full bg-emerald-700 border border-emerald-800" title="4-5 events" />
+                      <div className="w-3.5 h-3.5 rounded-full bg-emerald-900 border border-emerald-950" title="6+ events" />
+                    </div>
+                    <span className="text-[9px] uppercase font-bold text-zinc-400">More</span>
+                  </div>
+                  {selectedDate && (
+                    <button
+                      onClick={() => setSelectedDate(undefined)}
+                      className="text-primary hover:underline font-black text-[10px] uppercase tracking-wider"
+                    >
+                      Clear Selection ({format(selectedDate, 'MMM d')})
+                    </button>
+                  )}
+                </div>
               </div>
             ) : (
               /* Week View */
