@@ -458,7 +458,7 @@ function DashboardContent() {
                     nav: "absolute top-0 left-0 right-0 h-9 sm:h-10 grid grid-cols-2 items-center pointer-events-none z-20",
                     button_previous: "col-start-1 justify-self-start h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
                     button_next: "col-start-2 justify-self-end h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-full border-2 border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px] pointer-events-auto aria-disabled:hidden",
-                    day: "w-full aspect-square flex items-center justify-center p-0.5 sm:p-1",
+                    day: "w-full aspect-square md:aspect-auto flex items-center justify-center p-0.5 sm:p-1 md:p-0",
                     day_selected: "",
                     day_today: "",
                     day_outside: "",
@@ -478,17 +478,20 @@ function DashboardContent() {
                         return (
                           <button
                             {...props}
-                            className="w-full aspect-square max-w-[50px] sm:max-w-[58px] md:max-w-[66px] mx-auto rounded-full flex items-center justify-center text-zinc-300 font-black italic text-base sm:text-lg md:text-xl lg:text-2xl opacity-30 cursor-default"
+                            className="w-full aspect-square max-w-[50px] mx-auto rounded-full flex items-center justify-center text-zinc-300 font-black italic text-base opacity-30 cursor-default md:aspect-auto md:max-w-none md:h-16 lg:h-[72px] md:rounded-2xl md:p-2.5 md:flex md:flex-col md:items-start md:justify-start md:bg-zinc-50/50 md:border-2 md:border-black/5 md:hover:border-black/5 md:hover:shadow-none md:hover:translate-y-0 md:font-normal md:not-italic"
                             disabled
                           >
-                            <span className="leading-none select-none tracking-tighter tabular-nums italic">
+                            <span className="md:hidden leading-none select-none tracking-tighter tabular-nums italic font-black">
+                              {day.date.getDate()}
+                            </span>
+                            <span className="hidden md:block text-zinc-300 font-black text-lg lg:text-xl leading-none select-none">
                               {day.date.getDate()}
                             </span>
                           </button>
                         );
                       }
 
-                      // Dynamic color density calculation based on event count
+                      // Dynamic color density calculation for mobile circular view
                       const getDensityStyle = () => {
                         if (count === 0) {
                           if (isPastDate) {
@@ -565,7 +568,6 @@ function DashboardContent() {
                             hover: "hover:bg-emerald-800 hover:border-emerald-900",
                           };
                         }
-                        // 6+ events (Darkest green with crisp white text)
                         return {
                           bg: "bg-emerald-900",
                           border: "border border-emerald-950",
@@ -579,21 +581,62 @@ function DashboardContent() {
                         ? `${format(day.date, 'MMM d, yyyy')}: ${count} ${count === 1 ? 'event' : 'events'}\n${dateEvents.map(e => `• ${e.title}`).join('\n')}`
                         : format(day.date, 'MMM d, yyyy');
 
+                      // Desktop selection and background classes
+                      const desktopClasses = isSelected
+                        ? "md:bg-primary/20 md:border-2 md:border-primary md:shadow-[3px_3px_0px_0px_rgba(var(--primary),1)] md:ring-0 md:scale-100"
+                        : isTodayDate
+                        ? "md:bg-white md:border-2 md:border-black/20 md:hover:border-black md:hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] md:hover:-translate-y-0.5"
+                        : isPastDate
+                        ? "md:bg-white md:border-2 md:border-black/5 md:hover:border-black md:hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] md:hover:-translate-y-0.5"
+                        : "md:bg-white md:border-2 md:border-black/5 md:hover:border-black md:hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] md:hover:-translate-y-0.5";
+
                       return (
                         <button
                           {...props}
                           title={tooltip}
-                          className={`w-full aspect-square max-w-[50px] sm:max-w-[58px] md:max-w-[66px] mx-auto rounded-full flex items-center justify-center font-black italic text-base sm:text-lg md:text-xl lg:text-2xl transition-all cursor-pointer relative shadow-sm ${style.bg} ${style.border} ${style.text} ${style.hover} ${
+                          className={`w-full aspect-square max-w-[50px] mx-auto rounded-full flex items-center justify-center font-black italic text-base sm:text-lg transition-all cursor-pointer relative shadow-sm ${style.bg} ${style.border} ${style.text} ${style.hover} ${
                             isSelected
                               ? "ring-4 ring-black ring-offset-2 scale-105 shadow-md z-20"
                               : isTodayDate && count > 0
                               ? "ring-2 ring-blue-500 ring-offset-1 hover:scale-105 active:scale-95"
                               : "hover:scale-105 active:scale-95"
-                          }`}
+                          } md:aspect-auto md:max-w-none md:h-16 lg:h-[72px] md:rounded-2xl md:p-2.5 md:flex md:flex-col md:items-start md:justify-between md:not-italic md:group md:overflow-hidden md:transition-all ${desktopClasses}`}
                         >
-                          <span className="leading-none select-none tracking-tighter font-black italic tabular-nums">
+                          {/* Mobile view (<md): Centered number with density style */}
+                          <span className="md:hidden leading-none select-none tracking-tighter font-black italic tabular-nums">
                             {day.date.getDate()}
                           </span>
+
+                          {/* Desktop view (>=md): Top-left aligned number */}
+                          <span className={`hidden md:block leading-none transition-colors select-none font-black text-lg lg:text-xl ${
+                            isTodayDate 
+                              ? "text-blue-600" 
+                              : isPastDate 
+                              ? "text-zinc-400 opacity-60" 
+                              : "text-black group-hover:text-primary"
+                          }`}>
+                            {day.date.getDate()}
+                          </span>
+
+                          {/* Desktop event indicator bars at the bottom */}
+                          {dateEvents.length > 0 && !modifiers.outside && (
+                            <div className="hidden md:flex w-full flex-col gap-0.5 z-10 mt-auto">
+                              <div className="flex gap-1 flex-wrap w-full">
+                                {dateEvents.slice(0, 3).map((ev, i) => (
+                                  <div 
+                                    key={i} 
+                                    className={`h-1.5 flex-1 rounded-full ${isPastDate ? 'bg-zinc-400' : isSelected ? 'bg-black' : 'bg-black group-hover:bg-primary'} shadow-xs transition-colors`} 
+                                    title={ev.title} 
+                                  />
+                                ))}
+                              </div>
+                              {dateEvents.length > 3 && (
+                                <span className="text-[8px] font-black text-black group-hover:text-primary uppercase tracking-widest text-left leading-none transition-colors">
+                                  +{dateEvents.length - 3} MORE
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </button>
                       );
                     },
@@ -605,9 +648,9 @@ function DashboardContent() {
                   }}
                 />
 
-                {/* Heatmap Legend */}
+                {/* Heatmap Legend (Mobile) & Selection Controls */}
                 <div className="mt-4 pt-3 border-t border-black/5 flex flex-wrap items-center justify-between gap-3 px-2 text-[10px] md:text-xs font-bold text-zinc-500">
-                  <div className="flex items-center gap-2">
+                  <div className="flex md:hidden items-center gap-2">
                     <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider text-zinc-400">Events:</span>
                     <span className="text-[9px] uppercase font-bold text-zinc-400">Fewer</span>
                     <div className="flex items-center gap-1">
@@ -622,7 +665,7 @@ function DashboardContent() {
                   {selectedDate && (
                     <button
                       onClick={() => setSelectedDate(undefined)}
-                      className="text-primary hover:underline font-black text-[10px] uppercase tracking-wider"
+                      className="text-primary hover:underline font-black text-[10px] uppercase tracking-wider ml-auto"
                     >
                       Clear Selection ({format(selectedDate, 'MMM d')})
                     </button>
