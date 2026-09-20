@@ -339,6 +339,44 @@ function SearchContent() {
     }
   };
 
+  const handleDeleteAttendee = async (att: any) => {
+    const displayName = (att.name && att.name !== "Attendee" && att.name !== "Anonymous Guest")
+      ? att.name
+      : (att.email || att.phone_number || "Attendee");
+
+    const confirmed = await vibeConfirm({
+      title: `Delete Attendee "${displayName}"?`,
+      message: "Are you sure you want to delete this attendee? Once deleted, these details, RSVPs, and user records cannot be restored.",
+      confirmLabel: "Delete Permanently",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    try {
+      const res = await fetch(`${baseUrl}/api/admin/attendees`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: att.id,
+          email: att.email,
+          phone_number: att.phone_number,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Attendee "${displayName}" deleted.`);
+        setDetailModal(prev => ({ ...prev, isOpen: false }));
+        executeSearch();
+      } else {
+        toast.error(data.error || "Failed to delete attendee.");
+      }
+    } catch (err) {
+      console.error("Delete attendee error:", err);
+      toast.error("Failed to delete attendee.");
+    }
+  };
+
   const handleDeleteEvent = async (id: string, titleStr: string) => {
     const confirmed = await vibeConfirm({
       title: `Delete Event "${titleStr}"?`,
@@ -1001,14 +1039,25 @@ function SearchContent() {
                       <span className="text-[11px] font-bold text-zinc-500">
                         {att.rsvp_count || 0} RSVPs
                       </span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openInspector("attendee", att.email || att.phone_number, att.phone_number)}
-                        className="rounded-xl text-[10px] font-black uppercase tracking-wider h-7 px-2.5"
-                      >
-                        <Eye className="h-3 w-3 mr-1" /> Inspect
-                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openInspector("attendee", att.email || att.phone_number, att.phone_number)}
+                          className="rounded-xl text-[10px] font-black uppercase tracking-wider h-7 px-2.5"
+                        >
+                          <Eye className="h-3 w-3 mr-1" /> Inspect
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteAttendee(att)}
+                          className="rounded-xl text-[10px] font-black uppercase tracking-wider h-7 w-7 p-0 text-zinc-400 hover:text-red-500 hover:bg-red-50 border-black/10"
+                          title="Delete Attendee"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </Card>
                 ))}
@@ -1305,14 +1354,25 @@ function SearchContent() {
                         {att.rsvp_count || 0}
                       </td>
                       <td className="p-4 text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openInspector("attendee", att.email || att.phone_number, att.phone_number)}
-                          className="rounded-xl text-[10px] font-black uppercase tracking-wider h-8 px-3"
-                        >
-                          <Eye className="h-3 w-3 mr-1" /> Inspect
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openInspector("attendee", att.email || att.phone_number, att.phone_number)}
+                            className="rounded-xl text-[10px] font-black uppercase tracking-wider h-8 px-3"
+                          >
+                            <Eye className="h-3 w-3 mr-1" /> Inspect
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteAttendee(att)}
+                            className="rounded-xl text-[10px] font-black uppercase tracking-wider h-8 w-8 p-0 text-zinc-400 hover:text-red-500 hover:bg-red-50 border-black/10"
+                            title="Delete Attendee"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1690,6 +1750,23 @@ function SearchContent() {
                         ))}
                       </div>
                     )}
+                  </div>
+
+                  {/* Modal Actions */}
+                  <div className="pt-4 border-t border-black/5 flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteAttendee({
+                        id: detailModal.data.webUser?.id || detailModal.data.whatsappUser?.id,
+                        email: detailModal.data.webUser?.email,
+                        phone_number: detailModal.data.webUser?.phone_number || detailModal.data.whatsappUser?.phone_number,
+                        name: detailModal.data.webUser?.name || detailModal.data.whatsappUser?.name
+                      })}
+                      className="rounded-xl text-[10px] font-black uppercase tracking-wider h-9 px-4 flex items-center gap-2"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Delete Attendee
+                    </Button>
                   </div>
                 </div>
               )}

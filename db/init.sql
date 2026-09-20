@@ -130,6 +130,7 @@ CREATE TABLE IF NOT EXISTS events (
     admin_comment TEXT,                          -- admin feedback on rejection/review
     participant_limit INTEGER,                   -- max number of allowed participants
     is_paid BOOLEAN DEFAULT false,               -- whether event is free or paid
+    is_featured BOOLEAN DEFAULT false,           -- whether event is a highlighted Featured Vibe
     visibility event_visibility DEFAULT 'public', -- public | invite_only
     image_url VARCHAR(1000),
     image_public_id VARCHAR(255),

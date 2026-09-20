@@ -21,6 +21,7 @@ export interface VibeEvent {
   city?: string;
   participant_limit?: number;
   is_paid?: boolean;
+  is_featured?: boolean;
   status?: string;
 }
 

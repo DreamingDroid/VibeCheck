@@ -5,9 +5,9 @@ import { Resend } from 'resend';
 import { config } from './config';
 
 const resend = new Resend(config.RESEND_API_KEY);
-import { getAllEvents, createEvent, updateEvent, deleteEvent, getPendingEvents, updateEventStatus, getEventsByStatus, getAdminEventRSVPs, addCity, deleteCity } from './queries/events';
+import { getAllEvents, createEvent, updateEvent, deleteEvent, getPendingEvents, updateEventStatus, getEventsByStatus, getAdminEventRSVPs, addCity, deleteCity, toggleEventFeatured } from './queries/events';
 import { initSystemSettings, getSystemSetting, getAnalyticsOverview, getEventsByCategoryStats, getPreferredCategoriesStats, toggleCronSetting } from './queries/analytics';
-import { searchOrganizers, searchAttendees, searchEvents, searchGlobal, getAttendeeDeepDetails, getOrganizerDeepDetails, getEventDeepDetails } from './queries/search';
+import { searchOrganizers, searchAttendees, searchEvents, searchGlobal, getAttendeeDeepDetails, getOrganizerDeepDetails, getEventDeepDetails, deleteAttendee } from './queries/search';
 import { deleteImage } from './cloudinary';
 import { notifyOrganizer } from './notifications';
 
@@ -307,7 +307,7 @@ export async function adminGetPendingEventsHandler(req: Request, res: Response, 
 
 export async function adminReviewEventHandler(req: Request, res: Response, pool: Pool) {
   const { id } = req.params;
-  const { status, comment } = req.body; // 'approved', 'rejected', or 'needs_changes'
+  const { status, comment, is_featured } = req.body; // 'approved', 'rejected', or 'needs_changes'
   if (!['approved', 'rejected', 'needs_changes'].includes(status)) {
     return res.status(400).json({ success: false, error: 'Invalid status. Must be approved, rejected, or needs_changes.' });
   }
@@ -319,7 +319,7 @@ export async function adminReviewEventHandler(req: Request, res: Response, pool:
     );
     const event = eventRows[0];
 
-    const rowCount = await updateEventStatus(pool, id as string, status, comment || null);
+    const rowCount = await updateEventStatus(pool, id as string, status, comment || null, typeof is_featured === 'boolean' ? is_featured : undefined);
     if (rowCount === 0) return res.status(404).json({ success: false, error: 'Event not found' });
 
     // Notify the organizer if organizer_email exists
@@ -394,12 +394,29 @@ export async function adminReviewEventHandler(req: Request, res: Response, pool:
     }
 
     const messages: Record<string, string> = {
-      approved: 'Event approved and published.',
+      approved: is_featured ? 'Event approved and marked as Featured Vibe ⭐' : 'Event approved and published.',
       rejected: 'Event rejected.',
       needs_changes: 'Organizer notified to update the event.',
     };
     res.json({ success: true, message: messages[status] });
   } catch (error) {
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function adminToggleEventFeaturedHandler(req: Request, res: Response, pool: Pool) {
+  const { id } = req.params;
+  const { is_featured } = req.body || {};
+  try {
+    const event = await toggleEventFeatured(pool, id as string, typeof is_featured === 'boolean' ? is_featured : undefined);
+    if (!event) return res.status(404).json({ success: false, error: 'Event not found' });
+    res.json({
+      success: true,
+      data: event,
+      message: event.is_featured ? `"${event.title}" is now set as a Featured vibe ⭐` : `"${event.title}" is no longer a Featured vibe.`
+    });
+  } catch (error) {
+    console.error('Error toggling featured event:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
@@ -622,6 +639,22 @@ export async function adminEventDetailsHandler(req: Request, res: Response, pool
   } catch (error) {
     console.error('Admin event details error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+export async function adminDeleteAttendeeHandler(req: Request, res: Response, pool: Pool) {
+  const { id, email, phone_number } = { ...req.query, ...req.body, ...req.params } as any;
+
+  if (!id && !email && !phone_number) {
+    return res.status(400).json({ success: false, error: 'id, email, or phone_number is required to delete an attendee' });
+  }
+
+  try {
+    const result = await deleteAttendee(pool, { id, email, phone_number });
+    res.json({ success: true, message: 'Attendee deleted successfully.', data: result });
+  } catch (error) {
+    console.error('Delete attendee error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error while deleting attendee' });
   }
 }
 

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit3, Trash2, Calendar, MapPin, ExternalLink, Phone, FileText, ChevronDown, ChevronUp, Image as ImageIcon } from "lucide-react";
+import { Plus, Edit3, Trash2, Calendar, MapPin, ExternalLink, Phone, FileText, ChevronDown, ChevronUp, Image as ImageIcon, Star, Sparkles } from "lucide-react";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
 import { toast } from "sonner";
@@ -31,13 +31,14 @@ type Event = {
   location: string; date_time: string; end_time?: string; timings?: string; external_link: string; contact_info: string;
   status?: string; admin_comment?: string; organizer_email?: string;
   participant_limit?: number; is_paid?: boolean;
+  is_featured?: boolean;
 };
 
 const emptyForm = { 
   title: "", description: "", category: "General", location: "", 
   startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM",
   timings: "", external_link: "", contact_info: "",
-  participantLimit: "", isPaid: false
+  participantLimit: "", isPaid: false, isFeatured: false
 };
 
 function AdminEventsPageContent() {
@@ -127,7 +128,8 @@ function AdminEventsPageContent() {
       timings: ev.timings || "",
       external_link: ev.external_link || "", contact_info: ev.contact_info || "",
       participantLimit: ev.participant_limit ? String(ev.participant_limit) : "",
-      isPaid: ev.is_paid || false
+      isPaid: ev.is_paid || false,
+      isFeatured: Boolean((ev as any).is_featured)
     });
     setImageUrl((ev as any).image_url || "");
     setImagePublicId((ev as any).image_public_id || "");
@@ -135,6 +137,34 @@ function AdminEventsPageContent() {
     setEditingId(ev.id);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleToggleFeatured = async (e: React.MouseEvent, ev: Event) => {
+    e.stopPropagation();
+    const nextVal = !ev.is_featured;
+    
+    // Optimistic state update
+    setEvents(prev => prev.map(item => item.id === ev.id ? { ...item, is_featured: nextVal } : item));
+    
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    try {
+      const res = await fetch(`${baseUrl}/api/admin/events/${ev.id}/toggle-featured`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_featured: nextVal })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(nextVal ? `⭐ "${ev.title}" marked as Featured Vibe` : `Removed "${ev.title}" from Featured Vibes`);
+      } else {
+        // Revert on error
+        setEvents(prev => prev.map(item => item.id === ev.id ? { ...item, is_featured: !nextVal } : item));
+        toast.error(data.error || "Failed to update featured status");
+      }
+    } catch (err) {
+      setEvents(prev => prev.map(item => item.id === ev.id ? { ...item, is_featured: !nextVal } : item));
+      toast.error("Failed to connect to server");
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -161,7 +191,7 @@ function AdminEventsPageContent() {
     }
   };
 
-  const handleReview = async (id: string, status: string) => {
+  const handleReview = async (id: string, status: string, is_featured: boolean = false) => {
     if (status === "rejected" || status === "needs_changes") {
       setReviewModal({
         isOpen: true,
@@ -178,11 +208,11 @@ function AdminEventsPageContent() {
       const response = await fetch(`${baseUrl}/api/admin/events/${id}/review`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, comment: "" })
+        body: JSON.stringify({ status, comment: "", is_featured })
       });
       const data = await response.json();
       if (data.success) {
-        toast.success("Event approved and published successfully.");
+        toast.success(is_featured ? "Event approved and marked as Featured Vibe ⭐" : "Event approved and published successfully.");
         fetchEvents();
       } else {
         toast.error("Failed to approve event.");
@@ -293,6 +323,7 @@ function AdminEventsPageContent() {
         ...form, 
         participant_limit: form.participantLimit ? parseInt(form.participantLimit, 10) : null,
         is_paid: form.isPaid,
+        is_featured: form.isFeatured,
         image_url: finalImageUrl || null,
         image_public_id: finalImagePublicId || null,
         date_time: start_iso,
@@ -467,6 +498,31 @@ function AdminEventsPageContent() {
               </div>
 
               <div className="md:col-span-2 space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1 flex items-center gap-1.5">
+                  <Star className="h-3 w-3 text-amber-500" /> Curation & Featured Vibe Status
+                </Label>
+                <button 
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, isFeatured: !f.isFeatured }))}
+                  className={`w-full py-3.5 px-5 rounded-xl border flex items-center justify-between text-xs font-black uppercase tracking-wider transition-all ${
+                    form.isFeatured 
+                      ? 'bg-amber-400/15 border-amber-400 text-amber-950 shadow-sm' 
+                      : 'bg-white border-black/10 text-zinc-500 hover:border-black/20 hover:text-black'
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <Star className={`h-4 w-4 ${form.isFeatured ? 'text-amber-500 fill-amber-400' : 'text-zinc-400'}`} />
+                    {form.isFeatured ? "Featured Vibe (Primary hero spotlight on discovery feed)" : "Standard Vibe (Regular catalog listing)"}
+                  </span>
+                  <span className={`text-[10px] px-2.5 py-1 rounded-full uppercase font-black ${
+                    form.isFeatured ? 'bg-amber-400 text-black shadow-xs' : 'bg-zinc-100 text-zinc-500'
+                  }`}>
+                    {form.isFeatured ? "★ FEATURED" : "STANDARD"}
+                  </span>
+                </button>
+              </div>
+
+              <div className="md:col-span-2 space-y-2">
                 <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1"><ImageIcon className="h-3 w-3"/> Event Image</Label>
                 <div className="flex flex-col gap-3">
                   <Input 
@@ -576,6 +632,12 @@ function AdminEventsPageContent() {
                         <div className="sticker-badge bg-black text-white px-3 flex items-center gap-1">
                           {ev.category}
                         </div>
+                        {ev.is_featured && (
+                          <div className="sticker-badge bg-amber-400 text-black border border-amber-500 font-black px-2.5 flex items-center gap-1 shadow-sm animate-in fade-in">
+                            <Star className="h-3 w-3 fill-black text-black" />
+                            FEATURED VIBE
+                          </div>
+                        )}
                         <h3 className="text-2xl font-black italic tracking-tighter uppercase leading-none group-hover:text-primary transition-colors">
                           {ev.title}
                         </h3>
@@ -599,11 +661,11 @@ function AdminEventsPageContent() {
                     {/* Action buttons or expand/collapse indicator */}
                     <div className="flex items-center gap-3 shrink-0" onClick={e => e.stopPropagation()}>
                       {!isExpanded ? (
-                        <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-black flex items-center gap-1.5">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-black flex items-center gap-1.5 cursor-pointer" onClick={() => setExpandedId(ev.id)}>
                           SHOW DETAILS <ChevronDown className="h-4 w-4" />
                         </div>
                       ) : (
-                        <div className="text-[10px] font-black uppercase tracking-widest text-black flex items-center gap-1.5">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-black flex items-center gap-1.5 cursor-pointer" onClick={() => setExpandedId(null)}>
                           HIDE DETAILS <ChevronUp className="h-4 w-4" />
                         </div>
                       )}
@@ -670,10 +732,14 @@ function AdminEventsPageContent() {
 
                       {/* Action buttons inside expanded card */}
                       <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-black/5">
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
                           {activeTab === 'pending' && (
                             <>
-                              <button onClick={() => handleReview(ev.id, 'approved')} className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2">
+                              <button onClick={() => handleReview(ev.id, 'approved', true)} className="ringer-button bg-amber-400 hover:bg-amber-500 text-black text-[10px] flex items-center gap-1.5 font-black shadow-md">
+                                <Star className="h-3 w-3 fill-black text-black" />
+                                APPROVE & FEATURE ⭐
+                              </button>
+                              <button onClick={() => handleReview(ev.id, 'approved', false)} className="ringer-button bg-primary text-black text-[10px] flex items-center gap-2">
                                 APPROVE & PUBLISH
                               </button>
                               <button onClick={() => handleReview(ev.id, 'needs_changes')} className="ringer-button bg-orange-500 text-white text-[10px] flex items-center gap-2">
@@ -687,6 +753,18 @@ function AdminEventsPageContent() {
                         </div>
 
                         <div className="flex items-center gap-3">
+                          <button 
+                            type="button"
+                            onClick={(e) => handleToggleFeatured(e, ev)}
+                            className={`ringer-button text-[10px] flex items-center gap-1.5 ${
+                              ev.is_featured
+                                ? 'bg-amber-400 text-black border border-amber-500 hover:bg-amber-500 font-black'
+                                : 'bg-zinc-50 border border-black/5 hover:bg-amber-400 hover:text-black text-black'
+                            }`}
+                          >
+                            <Star className={`h-3 w-3 ${ev.is_featured ? 'fill-black text-black' : ''}`} />
+                            {ev.is_featured ? "UNFEATURE VIBE" : "FEATURE VIBE ⭐"}
+                          </button>
                           <button 
                             onClick={() => handleEdit(ev)}
                             className="ringer-button bg-zinc-50 border border-black/5 hover:bg-black hover:text-white text-black text-[10px] flex items-center gap-2"

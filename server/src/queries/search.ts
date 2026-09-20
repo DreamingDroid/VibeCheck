@@ -355,6 +355,7 @@ export async function searchEvents(pool: Pool, params: EventSearchParams) {
       e.admin_comment,
       e.participant_limit,
       e.is_paid,
+      e.is_featured,
       e.image_url,
       e.image_public_id,
       e.created_at,
@@ -642,4 +643,110 @@ export async function getEventDeepDetails(pool: Pool, id: string) {
     event,
     rsvps
   };
+}
+
+// ─────────────────────────────────────────────────────────────
+// 6. DELETE ATTENDEE / USER
+// ─────────────────────────────────────────────────────────────
+export async function deleteAttendee(
+  pool: Pool,
+  params: { id?: string; email?: string; phone_number?: string }
+) {
+  const { id, email, phone_number } = params;
+  if (!id && !email && !phone_number) {
+    throw new Error('At least one identifier (id, email, phone_number) must be provided.');
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const emailsToDelete = new Set<string>();
+    const phonesToDelete = new Set<string>();
+    const webUserIds = new Set<string>();
+    const userIds = new Set<string>();
+
+    if (email) emailsToDelete.add(email);
+    if (phone_number) phonesToDelete.add(phone_number);
+
+    if (id) {
+      const wRes = await client.query('SELECT id, email, phone_number FROM web_users WHERE id = $1', [id]);
+      wRes.rows.forEach((r: any) => {
+        webUserIds.add(r.id);
+        if (r.email) emailsToDelete.add(r.email);
+        if (r.phone_number) phonesToDelete.add(r.phone_number);
+      });
+      const uRes = await client.query('SELECT id, phone_number FROM users WHERE id = $1', [id]);
+      uRes.rows.forEach((r: any) => {
+        userIds.add(r.id);
+        if (r.phone_number) phonesToDelete.add(r.phone_number);
+      });
+    }
+
+    if (emailsToDelete.size > 0) {
+      for (const e of emailsToDelete) {
+        const wRes = await client.query('SELECT id, phone_number FROM web_users WHERE email = $1', [e]);
+        wRes.rows.forEach((r: any) => {
+          webUserIds.add(r.id);
+          if (r.phone_number) phonesToDelete.add(r.phone_number);
+        });
+      }
+    }
+
+    if (phonesToDelete.size > 0) {
+      for (const p of phonesToDelete) {
+        const uRes = await client.query('SELECT id FROM users WHERE phone_number = $1', [p]);
+        uRes.rows.forEach((r: any) => userIds.add(r.id));
+        const wRes = await client.query('SELECT id, email FROM web_users WHERE phone_number = $1', [p]);
+        wRes.rows.forEach((r: any) => {
+          webUserIds.add(r.id);
+          if (r.email) emailsToDelete.add(r.email);
+        });
+      }
+    }
+
+    // Cascade delete linked records for emails
+    for (const e of emailsToDelete) {
+      await client.query('DELETE FROM event_ratings WHERE user_email = $1', [e]);
+      await client.query('DELETE FROM user_notifications WHERE user_email = $1', [e]);
+      await client.query('DELETE FROM fcm_tokens WHERE user_email = $1', [e]);
+      await client.query('DELETE FROM organizer_crm_notes WHERE contact_email = $1', [e]);
+      await client.query('DELETE FROM organizer_followers WHERE user_email = $1', [e]);
+      await client.query('DELETE FROM event_invites WHERE LOWER(user_email) = LOWER($1)', [e]);
+      await client.query('DELETE FROM event_rsvps WHERE user_email = $1', [e]);
+    }
+
+    // Cascade delete linked records for phones
+    for (const p of phonesToDelete) {
+      await client.query('DELETE FROM event_rsvps WHERE phone_number = $1', [p]);
+      await client.query('DELETE FROM event_invites WHERE phone_number = $1', [p]);
+    }
+
+    // Delete primary user entities
+    for (const e of emailsToDelete) {
+      await client.query('DELETE FROM web_users WHERE email = $1', [e]);
+    }
+    for (const p of phonesToDelete) {
+      await client.query('DELETE FROM users WHERE phone_number = $1', [p]);
+      await client.query('DELETE FROM web_users WHERE phone_number = $1', [p]);
+    }
+    for (const wid of webUserIds) {
+      await client.query('DELETE FROM web_users WHERE id = $1', [wid]);
+    }
+    for (const uid of userIds) {
+      await client.query('DELETE FROM users WHERE id = $1', [uid]);
+    }
+
+    await client.query('COMMIT');
+    return { 
+      success: true, 
+      deletedEmails: Array.from(emailsToDelete), 
+      deletedPhones: Array.from(phonesToDelete) 
+    };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }

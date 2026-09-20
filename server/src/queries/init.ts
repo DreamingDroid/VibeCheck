@@ -104,6 +104,7 @@ export async function initializeDatabaseSchema(pool: Pool) {
       admin_comment TEXT,
       participant_limit INTEGER,
       is_paid BOOLEAN DEFAULT false,
+      is_featured BOOLEAN DEFAULT false,
       image_url VARCHAR(1000),
       image_public_id VARCHAR(255),
       whatsapp_group_link TEXT,
@@ -228,6 +229,8 @@ export async function initializeDatabaseSchema(pool: Pool) {
 
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS average_rating NUMERIC(3,1)`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS ratings_count INTEGER DEFAULT 0`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_events_is_featured ON events (is_featured)`).catch(() => {});
 
   // Web Users Telegram columns migration
   await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS telegram_chat_id BIGINT`).catch(() => {});

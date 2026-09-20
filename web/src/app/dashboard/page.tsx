@@ -322,8 +322,8 @@ function DashboardContent() {
   const isCategoryEmpty = filteredEvents.length === 0;
   const showCalendarView = (isCategoryEmpty || forceCalendarOpen) && !selectedDate;
   
-  const featuredEvent = displayEvents[0];
-  const otherEvents = displayEvents.slice(1);
+  const featuredEvent = displayEvents.find(ev => ev.is_featured) || displayEvents[0];
+  const otherEvents = featuredEvent ? displayEvents.filter(ev => ev.id !== featuredEvent.id) : displayEvents;
   const activeNews = dashboardNews.length > 0 ? dashboardNews[currentNewsIndex % dashboardNews.length] : null;
 
   return (

@@ -22,7 +22,7 @@ import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHan
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
 import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler, organizerGetEventAnalyticsHandler, organizerToggleHousefullHandler, organizerUpdateStatusHandler, organizerGetCrmContactsHandler, organizerUpsertCrmNotesHandler, organizerCrmBroadcastHandler, organizerGetDashboardAnalyticsHandler, organizerIssuePassHandler, organizerBulkIssuePassesHandler, organizerCancelRsvpHandler, organizerUpdateWhatsAppGroupLinkHandler, organizerSendWhatsAppGroupInviteHandler, organizerGetEventInvitesHandler } from './organizer';
 import { getCitiesHandler } from './cities';
-import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingOrganizersHandler, adminApproveOrganizerHandler, adminRejectOrganizerHandler, adminDeleteOrganizerHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminGetEventsByStatusHandler, adminAddCityHandler, adminDeleteCityHandler, adminGetAdminsHandler, adminAddAdminHandler, adminRemoveAdminHandler, adminSearchHandler, adminAttendeeDetailsHandler, adminOrganizerDetailsHandler, adminEventDetailsHandler } from './admin';
+import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingOrganizersHandler, adminApproveOrganizerHandler, adminRejectOrganizerHandler, adminDeleteOrganizerHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminToggleEventFeaturedHandler, adminGetEventsByStatusHandler, adminAddCityHandler, adminDeleteCityHandler, adminGetAdminsHandler, adminAddAdminHandler, adminRemoveAdminHandler, adminSearchHandler, adminAttendeeDetailsHandler, adminOrganizerDetailsHandler, adminEventDetailsHandler, adminDeleteAttendeeHandler } from './admin';
 import { startPushAlertCron, runMatchmakerJob } from './cron';
 import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verification';
 import { followOrganizerHandler, unfollowOrganizerHandler, getUserFollowingHandler, getOrganizerFollowersHandler } from './followers';
@@ -281,6 +281,9 @@ app.get('/api/admin/search', (req, res) => adminSearchHandler(req, res, pool));
 app.get('/api/admin/search/attendee-details', (req, res) => adminAttendeeDetailsHandler(req, res, pool));
 app.get('/api/admin/search/organizer-details', (req, res) => adminOrganizerDetailsHandler(req, res, pool));
 app.get('/api/admin/search/event-details', (req, res) => adminEventDetailsHandler(req, res, pool));
+app.delete('/api/admin/attendees', (req, res) => adminDeleteAttendeeHandler(req, res, pool));
+app.delete('/api/admin/attendees/:id', (req, res) => adminDeleteAttendeeHandler(req, res, pool));
+app.delete('/api/admin/search/attendees', (req, res) => adminDeleteAttendeeHandler(req, res, pool));
 app.get('/api/admin/events', (req, res) => adminGetEventsHandler(req, res, pool));
 app.get('/api/admin/events/:id/rsvps', (req, res) => adminGetEventRsvpsHandler(req, res, pool));
 app.post('/api/admin/events', (req, res) => adminCreateEventHandler(req, res, pool));
@@ -316,6 +319,8 @@ app.post('/api/admin/organizers/:id/reject', (req, res) => adminRejectOrganizerH
 app.get('/api/admin/events/pending', (req, res) => adminGetPendingEventsHandler(req, res, pool));
 app.get('/api/admin/events/status/:status', (req, res) => adminGetEventsByStatusHandler(req, res, pool));
 app.put('/api/admin/events/:id/review', (req, res) => adminReviewEventHandler(req, res, pool));
+app.put('/api/admin/events/:id/toggle-featured', (req, res) => adminToggleEventFeaturedHandler(req, res, pool));
+app.put('/api/admin/events/:id/feature', (req, res) => adminToggleEventFeaturedHandler(req, res, pool));
 
 // Cities API
 app.get('/api/cities', (req, res) => getCitiesHandler(req, res, pool));
