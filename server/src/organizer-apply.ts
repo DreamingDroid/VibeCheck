@@ -44,8 +44,9 @@ export async function getInstagramAuthUrlHandler(req: Request, res: Response) {
 
     const clientId = config.INSTAGRAM_CLIENT_ID;
     const redirectUri = encodeURIComponent(config.INSTAGRAM_REDIRECT_URI);
-    const scope = encodeURIComponent('user_profile,user_media');
-    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code`;
+    // Use Instagram Business Login domain & permission scope
+    const scope = encodeURIComponent('instagram_business_basic');
+    const authUrl = `https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_authentication=1&client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`;
 
     return res.json({
       success: true,

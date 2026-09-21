@@ -69,6 +69,10 @@ function InstagramCallbackContent() {
       setStatus("error");
       setMessage("No authorization code received from Instagram.");
       if (window.opener) {
+        window.opener.postMessage(
+          { type: "INSTAGRAM_AUTH_ERROR", error: "No authorization code received from Instagram." },
+          "*"
+        );
         setTimeout(() => window.close(), 2000);
       } else {
         setTimeout(() => router.push("/organizer/apply"), 2500);

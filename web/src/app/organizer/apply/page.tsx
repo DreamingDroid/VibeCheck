@@ -36,6 +36,39 @@ function InstagramIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
+function isValidInstagramInput(val: string): boolean {
+  const trimmed = val.trim();
+  if (!trimmed) return false;
+
+  // 1. Explicit handle format starting with '@': e.g. @mybrand (1-30 valid chars)
+  if (trimmed.startsWith("@")) {
+    const handle = trimmed.slice(1);
+    return /^[a-zA-Z0-9._]{1,30}$/.test(handle);
+  }
+
+  // 2. Full or partial Instagram URL: must contain instagram.com/ or instagr.am/
+  const hasInstagramDomain = /^(https?:\/\/)?(www\.)?(instagram\.com|instagr\.am)\//i.test(trimmed);
+  if (!hasInstagramDomain) {
+    return false;
+  }
+
+  try {
+    const urlToTest = trimmed.startsWith("http://") || trimmed.startsWith("https://")
+      ? trimmed
+      : `https://${trimmed}`;
+    const parsed = new URL(urlToTest);
+    const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '');
+    if (hostname !== "instagram.com" && hostname !== "instagr.am") {
+      return false;
+    }
+    const pathname = parsed.pathname.replace(/^\/+|\/+$/g, "");
+    // Must have a valid username segment (1-30 chars, no nested routes)
+    return /^[a-zA-Z0-9._]{1,30}$/.test(pathname);
+  } catch {
+    return false;
+  }
+}
+
 export default function OrganizerApplyPage() {
   const router = useRouter();
   const { data: session, status: authStatus } = useSession();
@@ -179,6 +212,11 @@ export default function OrganizerApplyPage() {
   };
 
   const handleStartInstagramVerify = async () => {
+    if (!isValidInstagramInput(formData.instagramUrl)) {
+      toast.error("Please enter a valid Instagram profile URL (e.g. https://instagram.com/yourbrand) or @handle");
+      return;
+    }
+
     setInstagramLoading(true);
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -214,7 +252,19 @@ export default function OrganizerApplyPage() {
         `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no`
       );
 
-      if (!popup) {
+      if (popup) {
+        const checkPopupClosed = setInterval(() => {
+          try {
+            if (!popup || popup.closed) {
+              clearInterval(checkPopupClosed);
+              setInstagramLoading(false);
+            }
+          } catch {
+            clearInterval(checkPopupClosed);
+            setInstagramLoading(false);
+          }
+        }, 500);
+      } else {
         // Popup blocked, fallback to direct redirect
         window.location.href = data.authUrl;
       }
@@ -618,8 +668,8 @@ export default function OrganizerApplyPage() {
                       <Button
                         type="button"
                         onClick={handleStartInstagramVerify}
-                        disabled={instagramLoading}
-                        className="bg-gradient-to-r from-amber-500 via-pink-600 to-purple-600 text-white text-[10px] uppercase font-black px-6 h-12 rounded-2xl hover:opacity-90 transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 duration-200 shrink-0 gap-2"
+                        disabled={instagramLoading || !isValidInstagramInput(formData.instagramUrl)}
+                        className="bg-gradient-to-r from-amber-500 via-pink-600 to-purple-600 text-white text-[10px] uppercase font-black px-6 h-12 rounded-2xl hover:opacity-90 transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 duration-200 shrink-0 gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none"
                       >
                         {instagramLoading ? (
                           <>
@@ -635,6 +685,13 @@ export default function OrganizerApplyPage() {
                       </Button>
                     )}
                   </div>
+
+                  {!instagramVerified && formData.instagramUrl.trim().length > 0 && !isValidInstagramInput(formData.instagramUrl) && (
+                    <p className="text-[11px] font-bold text-amber-600 mt-2.5 flex items-center gap-1.5">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      Please enter a valid Instagram URL (e.g. https://instagram.com/yourbrand) or @handle
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -691,12 +748,20 @@ export default function OrganizerApplyPage() {
               {/* Requirement Checklist */}
               <div className="bg-zinc-50 border border-black/5 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-zinc-600">
                 <span className="flex items-center gap-2">
+                  {formData.brandName.trim() && formData.description.trim() ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <div className="h-4 w-4 rounded-full border border-zinc-300" />
+                  )}
+                  Brand Details
+                </span>
+                <span className="flex items-center gap-2">
                   {phoneVerified ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                   ) : (
                     <div className="h-4 w-4 rounded-full border border-zinc-300" />
                   )}
-                  WhatsApp Phone Verified
+                  WhatsApp Verified
                 </span>
                 <span className="flex items-center gap-2">
                   {instagramVerified ? (
@@ -704,21 +769,27 @@ export default function OrganizerApplyPage() {
                   ) : (
                     <div className="h-4 w-4 rounded-full border border-zinc-300" />
                   )}
-                  Instagram Account Verified
+                  Instagram Verified
                 </span>
               </div>
 
               <div className="pt-4">
                 <Button
                   type="submit"
-                  disabled={loading || !phoneVerified || !instagramVerified}
+                  disabled={
+                    loading ||
+                    !formData.brandName.trim() ||
+                    !formData.description.trim() ||
+                    !phoneVerified ||
+                    !instagramVerified
+                  }
                   className="w-full bg-primary text-black font-black italic tracking-tighter uppercase text-xl h-16 rounded-2xl hover:bg-primary/80 transition-colors shadow-lg hover:shadow-xl hover:-translate-y-1 duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {organizerStatus === "rejected" ? "Re-Submit Application" : "Submit Application"}
                 </Button>
-                {(!phoneVerified || !instagramVerified) && (
+                {(!formData.brandName.trim() || !formData.description.trim() || !phoneVerified || !instagramVerified) && (
                   <p className="text-center text-xs text-zinc-400 font-bold mt-4 flex items-center justify-center gap-2">
-                    <ShieldAlert className="h-4 w-4" /> Please verify both WhatsApp and Instagram to unlock submission
+                    <ShieldAlert className="h-4 w-4" /> Please fill all mandatory fields (Brand Name, Description) and verify both WhatsApp & Instagram to submit
                   </p>
                 )}
               </div>
