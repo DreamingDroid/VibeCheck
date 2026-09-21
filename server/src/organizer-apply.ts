@@ -68,6 +68,7 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
 
     if (hasCredentials && code && code !== 'dev_simulation') {
       const cleanCode = String(code).replace(/#_$/, '').split('#')[0].trim();
+
       // Exchange authorization code for Instagram access token
       const tokenForm = new URLSearchParams();
       tokenForm.append('client_id', config.INSTAGRAM_CLIENT_ID);

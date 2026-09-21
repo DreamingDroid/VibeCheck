@@ -39,12 +39,29 @@ function InstagramCallbackContent() {
 
     if (code) {
       const cleanCode = code.replace(/#_$/, "").split("#")[0].trim();
-      const baseUrl = getApiBaseUrl();
 
+      // If opened as a popup window, transmit code to parent opener immediately
+      if (window.opener) {
+        window.opener.postMessage(
+          { type: "INSTAGRAM_AUTH_SUCCESS", code: cleanCode },
+          "*"
+        );
+        setStatus("success");
+        setMessage("Instagram authorization received! Verifying with your session...");
+        setTimeout(() => {
+          try {
+            window.close();
+          } catch {}
+        }, 1200);
+        return;
+      }
+
+      // Standalone redirect fallback
+      const baseUrl = getApiBaseUrl();
       setMessage("Confirming Instagram account ownership with server...");
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
 
       fetch(`${baseUrl}/api/apply/instagram/exchange`, {
         method: "POST",
@@ -64,35 +81,12 @@ function InstagramCallbackContent() {
           if (data.success && data.handle) {
             sessionStorage.setItem("vibecheck_ig_verified", JSON.stringify(data));
             setStatus("success");
-            setMessage(`Verified @${data.handle}! Closing window...`);
-
-            if (window.opener) {
-              window.opener.postMessage(
-                {
-                  type: "INSTAGRAM_VERIFIED",
-                  token: data.token,
-                  handle: data.handle,
-                  instagramUrl: data.instagramUrl || `https://instagram.com/${data.handle}`,
-                },
-                "*"
-              );
-              setTimeout(() => {
-                try {
-                  window.close();
-                } catch {}
-              }, 1200);
-            } else {
-              setTimeout(() => router.push("/organizer/apply"), 1200);
-            }
+            setMessage(`Verified @${data.handle}! Redirecting...`);
+            setTimeout(() => router.push("/organizer/apply"), 1200);
           } else {
             setStatus("error");
             setMessage(data.error || "Failed to verify Instagram account.");
-            if (window.opener) {
-              window.opener.postMessage(
-                { type: "INSTAGRAM_AUTH_ERROR", error: data.error || "Instagram verification failed." },
-                "*"
-              );
-            }
+            setTimeout(() => router.push("/organizer/apply"), 3500);
           }
         })
         .catch((err: any) => {
@@ -104,12 +98,7 @@ function InstagramCallbackContent() {
               ? "Verification request timed out. Please check your network or backend server."
               : "Network error connecting to verification service.";
           setMessage(errMsg);
-          if (window.opener) {
-            window.opener.postMessage(
-              { type: "INSTAGRAM_AUTH_ERROR", error: errMsg },
-              "*"
-            );
-          }
+          setTimeout(() => router.push("/organizer/apply"), 3500);
         });
     } else {
       setStatus("error");

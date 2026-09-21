@@ -245,7 +245,7 @@ export default function OrganizerApplyPage() {
     }
 
     setInstagramLoading(true);
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    const baseUrl = getApiBaseUrl();
 
     try {
       const res = await fetch(`${baseUrl}/api/apply/instagram/auth-url`);
