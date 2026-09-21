@@ -60,7 +60,7 @@ export async function getInstagramAuthUrlHandler(req: Request, res: Response) {
 }
 
 export async function exchangeInstagramCodeHandler(req: Request, res: Response, pool: Pool) {
-  const { code, devHandle, email } = req.body;
+  const { code, devHandle, email, redirectUri } = req.body;
 
   try {
     let verifiedHandle = '';
@@ -68,19 +68,21 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
 
     if (hasCredentials && code && code !== 'dev_simulation') {
       const cleanCode = String(code).replace(/#_$/, '').split('#')[0].trim();
+      const targetRedirectUri = redirectUri || config.INSTAGRAM_REDIRECT_URI;
 
       // Exchange authorization code for Instagram access token
       const tokenForm = new URLSearchParams();
       tokenForm.append('client_id', config.INSTAGRAM_CLIENT_ID);
       tokenForm.append('client_secret', config.INSTAGRAM_CLIENT_SECRET);
       tokenForm.append('grant_type', 'authorization_code');
-      tokenForm.append('redirect_uri', config.INSTAGRAM_REDIRECT_URI);
+      tokenForm.append('redirect_uri', targetRedirectUri);
       tokenForm.append('code', cleanCode);
 
       const tokenRes = await fetch('https://api.instagram.com/oauth/access_token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: tokenForm.toString(),
+        signal: AbortSignal.timeout(15000),
       });
 
       const tokenData = (await tokenRes.json()) as any;
@@ -94,7 +96,8 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
 
       // Fetch user profile info from Meta Graph API
       const userRes = await fetch(
-        `https://graph.instagram.com/me?fields=id,username,account_type&access_token=${tokenData.access_token}`
+        `https://graph.instagram.com/me?fields=id,username,account_type&access_token=${tokenData.access_token}`,
+        { signal: AbortSignal.timeout(15000) }
       );
       const userData = (await userRes.json()) as any;
 

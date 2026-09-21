@@ -184,6 +184,9 @@ export default function OrganizerApplyPage() {
       if (event.data?.type === "INSTAGRAM_AUTH_SUCCESS" && event.data?.code) {
         setInstagramLoading(true);
         const baseUrl = getApiBaseUrl();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
+
         try {
           const res = await fetch(`${baseUrl}/api/apply/instagram/exchange`, {
             method: "POST",
@@ -192,19 +195,37 @@ export default function OrganizerApplyPage() {
               code: event.data.code,
               email: formData.email || session?.user?.email || "",
             }),
+            signal: controller.signal,
           });
-          const data = await res.json();
-          if (data.success) {
+          clearTimeout(timeoutId);
+
+          let data: any = {};
+          try {
+            data = await res.json();
+          } catch {
+            data = { success: false, error: `Server returned status ${res.status}` };
+          }
+
+          if (data.success && data.handle) {
             setInstagramVerified(true);
             setInstagramToken(data.token);
             setInstagramHandle(data.handle);
-            setFormData((prev) => ({ ...prev, instagramUrl: data.instagramUrl || `https://instagram.com/${data.handle}` }));
+            setFormData((prev) => ({
+              ...prev,
+              instagramUrl: data.instagramUrl || `https://instagram.com/${data.handle}`,
+            }));
             toast.success(`Instagram @${data.handle} verified successfully! 🎉`);
           } else {
             toast.error(data.error || "Failed to verify Instagram account.");
           }
-        } catch (err) {
-          toast.error("Network error completing Instagram verification.");
+        } catch (err: any) {
+          clearTimeout(timeoutId);
+          console.error("Instagram verification exchange error:", err);
+          if (err.name === "AbortError") {
+            toast.error("Instagram verification request timed out.");
+          } else {
+            toast.error("Network error completing Instagram verification.");
+          }
         } finally {
           setInstagramLoading(false);
         }
