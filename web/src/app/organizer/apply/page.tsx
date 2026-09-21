@@ -157,6 +157,20 @@ export default function OrganizerApplyPage() {
 
       if (!isTrustedOrigin) return;
 
+      if (event.data?.type === "INSTAGRAM_VERIFIED") {
+        const { token, handle, instagramUrl } = event.data;
+        setInstagramVerified(true);
+        setInstagramToken(token);
+        setInstagramHandle(handle);
+        setFormData((prev) => ({
+          ...prev,
+          instagramUrl: instagramUrl || `https://instagram.com/${handle}`,
+        }));
+        setInstagramLoading(false);
+        toast.success(`Instagram @${handle} verified successfully! 🎉`);
+        return;
+      }
+
       if (event.data?.type === "INSTAGRAM_AUTH_SUCCESS" && event.data?.code) {
         setInstagramLoading(true);
         const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -164,7 +178,10 @@ export default function OrganizerApplyPage() {
           const res = await fetch(`${baseUrl}/api/apply/instagram/exchange`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code: event.data.code }),
+            body: JSON.stringify({
+              code: event.data.code,
+              email: formData.email || session?.user?.email || "",
+            }),
           });
           const data = await res.json();
           if (data.success) {

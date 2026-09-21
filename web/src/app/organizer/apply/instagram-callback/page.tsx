@@ -29,42 +29,65 @@ function InstagramCallbackContent() {
     }
 
     if (code) {
-      // If opened as a popup window, transmit code to parent
-      if (window.opener) {
-        window.opener.postMessage(
-          { type: "INSTAGRAM_AUTH_SUCCESS", code },
-          "*"
-        );
-        setStatus("success");
-        setMessage("Instagram connected! Closing window...");
-        setTimeout(() => window.close(), 1000);
-      } else {
-        // Fallback if full-page redirect was used
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-        fetch(`${baseUrl}/api/apply/instagram/exchange`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code }),
-        })
-          .then((r) => r.json())
-          .then((data) => {
-            if (data.success) {
-              sessionStorage.setItem("vibecheck_ig_verified", JSON.stringify(data));
-              setStatus("success");
-              setMessage(`Verified @${data.handle}! Redirecting...`);
-              setTimeout(() => router.push("/organizer/apply"), 1200);
+      const cleanCode = code.replace(/#_$/, "").split("#")[0].trim();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+      setMessage("Exchanging token and confirming Instagram ownership...");
+
+      fetch(`${baseUrl}/api/apply/instagram/exchange`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: cleanCode }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success) {
+            sessionStorage.setItem("vibecheck_ig_verified", JSON.stringify(data));
+            setStatus("success");
+            setMessage(`Verified @${data.handle}! Closing...`);
+
+            if (window.opener) {
+              window.opener.postMessage(
+                {
+                  type: "INSTAGRAM_VERIFIED",
+                  token: data.token,
+                  handle: data.handle,
+                  instagramUrl: data.instagramUrl || `https://instagram.com/${data.handle}`,
+                },
+                "*"
+              );
+              setTimeout(() => window.close(), 1200);
             } else {
-              setStatus("error");
-              setMessage(data.error || "Failed to verify Instagram account.");
-              setTimeout(() => router.push("/organizer/apply"), 2500);
+              setTimeout(() => router.push("/organizer/apply"), 1200);
             }
-          })
-          .catch((err) => {
+          } else {
             setStatus("error");
-            setMessage("Network error verifying Instagram account.");
-            setTimeout(() => router.push("/organizer/apply"), 2500);
-          });
-      }
+            setMessage(data.error || "Failed to verify Instagram account with Meta.");
+            if (window.opener) {
+              window.opener.postMessage(
+                { type: "INSTAGRAM_AUTH_ERROR", error: data.error || "Instagram verification failed." },
+                "*"
+              );
+              setTimeout(() => window.close(), 3500);
+            } else {
+              setTimeout(() => router.push("/organizer/apply"), 3500);
+            }
+          }
+        })
+        .catch((err) => {
+          console.error("Instagram exchange error:", err);
+          setStatus("error");
+          setMessage("Network error connecting to verification service.");
+          if (window.opener) {
+            window.opener.postMessage(
+              { type: "INSTAGRAM_AUTH_ERROR", error: "Network error completing Instagram verification." },
+              "*"
+            );
+            setTimeout(() => window.close(), 3500);
+          } else {
+            setTimeout(() => router.push("/organizer/apply"), 3500);
+          }
+        });
     } else {
       setStatus("error");
       setMessage("No authorization code received from Instagram.");
@@ -73,7 +96,7 @@ function InstagramCallbackContent() {
           { type: "INSTAGRAM_AUTH_ERROR", error: "No authorization code received from Instagram." },
           "*"
         );
-        setTimeout(() => window.close(), 2000);
+        setTimeout(() => window.close(), 2500);
       } else {
         setTimeout(() => router.push("/organizer/apply"), 2500);
       }

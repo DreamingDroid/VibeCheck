@@ -60,20 +60,21 @@ export async function getInstagramAuthUrlHandler(req: Request, res: Response) {
 }
 
 export async function exchangeInstagramCodeHandler(req: Request, res: Response, pool: Pool) {
-  const { code, devHandle } = req.body;
+  const { code, devHandle, email } = req.body;
 
   try {
     let verifiedHandle = '';
     const hasCredentials = Boolean(config.INSTAGRAM_CLIENT_ID && config.INSTAGRAM_CLIENT_SECRET);
 
     if (hasCredentials && code && code !== 'dev_simulation') {
+      const cleanCode = String(code).replace(/#_$/, '').split('#')[0].trim();
       // Exchange authorization code for Instagram access token
       const tokenForm = new URLSearchParams();
       tokenForm.append('client_id', config.INSTAGRAM_CLIENT_ID);
       tokenForm.append('client_secret', config.INSTAGRAM_CLIENT_SECRET);
       tokenForm.append('grant_type', 'authorization_code');
       tokenForm.append('redirect_uri', config.INSTAGRAM_REDIRECT_URI);
-      tokenForm.append('code', code);
+      tokenForm.append('code', cleanCode);
 
       const tokenRes = await fetch('https://api.instagram.com/oauth/access_token', {
         method: 'POST',
@@ -118,6 +119,7 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
     }
 
     // Check if this Instagram handle is already registered to another active or pending organizer
+    const callerEmail = (email || (req.headers['x-user-email'] as string) || '').toLowerCase().trim();
     const duplicateCheck = await pool.query(
       `SELECT email, status, brand_name 
        FROM admins 
@@ -127,17 +129,20 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
 
     if (duplicateCheck.rows.length > 0) {
       const existing = duplicateCheck.rows[0];
-      if (existing.status === 'pending_approval') {
-        return res.status(400).json({
-          success: false,
-          error: `Instagram account @${verifiedHandle} is already linked to an application pending approval.`,
-        });
-      }
-      if (existing.status === 'approved') {
-        return res.status(400).json({
-          success: false,
-          error: `Instagram account @${verifiedHandle} is already registered to an active organizer.`,
-        });
+      const isSameApplicant = callerEmail && existing.email.toLowerCase().trim() === callerEmail;
+      if (!isSameApplicant) {
+        if (existing.status === 'pending_approval') {
+          return res.status(400).json({
+            success: false,
+            error: `Instagram account @${verifiedHandle} is already linked to another application pending approval.`,
+          });
+        }
+        if (existing.status === 'approved') {
+          return res.status(400).json({
+            success: false,
+            error: `Instagram account @${verifiedHandle} is already registered to an active organizer.`,
+          });
+        }
       }
     }
 
