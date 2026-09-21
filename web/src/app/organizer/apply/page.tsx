@@ -8,8 +8,33 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, ShieldAlert, Timer, RefreshCw, Clock, AlertCircle, ArrowLeft, Sparkles, Check, ChevronRight } from "lucide-react";
+import {
+  CheckCircle2,
+  ShieldAlert,
+  Timer,
+  RefreshCw,
+  Clock,
+  AlertCircle,
+  ArrowLeft,
+  Sparkles,
+  Check,
+  ChevronRight,
+  Lock,
+  ExternalLink,
+  ShieldCheck,
+  Loader2
+} from "lucide-react";
 import { toast } from "sonner";
+
+function InstagramIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    </svg>
+  );
+}
 
 export default function OrganizerApplyPage() {
   const router = useRouter();
@@ -26,13 +51,19 @@ export default function OrganizerApplyPage() {
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [phoneToken, setPhoneToken] = useState("");
 
+  const [instagramVerified, setInstagramVerified] = useState(false);
+  const [instagramToken, setInstagramToken] = useState("");
+  const [instagramHandle, setInstagramHandle] = useState("");
+  const [instagramLoading, setInstagramLoading] = useState(false);
+  const [devInstagramModal, setDevInstagramModal] = useState<{ isOpen: boolean; handle: string }>({ isOpen: false, handle: "" });
+
   const [verifyModal, setVerifyModal] = useState<{ isOpen: boolean; type: "phone" | null }>({ isOpen: false, type: null });
   const [otpCode, setOtpCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [organizerStatus, setOrganizerStatus] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
-  
+
   // Timer state
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes = 180 seconds
 
@@ -60,6 +91,73 @@ export default function OrganizerApplyPage() {
     }
   }, [session, authStatus]);
 
+  // Check for Instagram verification from session storage (redirect fallback)
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem("vibecheck_ig_verified");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.token && parsed.handle) {
+          setInstagramVerified(true);
+          setInstagramToken(parsed.token);
+          setInstagramHandle(parsed.handle);
+          setFormData((prev) => ({ ...prev, instagramUrl: parsed.instagramUrl || `https://instagram.com/${parsed.handle}` }));
+          sessionStorage.removeItem("vibecheck_ig_verified");
+          toast.success(`Instagram @${parsed.handle} verified successfully!`);
+        }
+      }
+    } catch (e) {
+      // Ignore parse error
+    }
+  }, []);
+
+  // Window message listener for Instagram OAuth popup
+  useEffect(() => {
+    const handleOAuthMessage = async (event: MessageEvent) => {
+      // Validate trusted origin (local, vercel preview, production)
+      const isTrustedOrigin =
+        event.origin === window.location.origin ||
+        event.origin.includes("localhost") ||
+        event.origin.includes("127.0.0.1") ||
+        event.origin.includes("vercel.app") ||
+        event.origin.includes("vibecheckspace");
+
+      if (!isTrustedOrigin) return;
+
+      if (event.data?.type === "INSTAGRAM_AUTH_SUCCESS" && event.data?.code) {
+        setInstagramLoading(true);
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        try {
+          const res = await fetch(`${baseUrl}/api/apply/instagram/exchange`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: event.data.code }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            setInstagramVerified(true);
+            setInstagramToken(data.token);
+            setInstagramHandle(data.handle);
+            setFormData((prev) => ({ ...prev, instagramUrl: data.instagramUrl || `https://instagram.com/${data.handle}` }));
+            toast.success(`Instagram @${data.handle} verified successfully! 🎉`);
+          } else {
+            toast.error(data.error || "Failed to verify Instagram account.");
+          }
+        } catch (err) {
+          toast.error("Network error completing Instagram verification.");
+        } finally {
+          setInstagramLoading(false);
+        }
+      } else if (event.data?.type === "INSTAGRAM_AUTH_ERROR") {
+        toast.error(event.data.error || "Instagram authorization failed.");
+        setInstagramLoading(false);
+      }
+    };
+
+    window.addEventListener("message", handleOAuthMessage);
+    return () => window.removeEventListener("message", handleOAuthMessage);
+  }, []);
+
   // Protect route
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -78,6 +176,97 @@ export default function OrganizerApplyPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleStartInstagramVerify = async () => {
+    setInstagramLoading(true);
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+    try {
+      const res = await fetch(`${baseUrl}/api/apply/instagram/auth-url`);
+      const data = await res.json();
+
+      if (!data.success) {
+        toast.error(data.error || "Failed to initialize Instagram verification");
+        setInstagramLoading(false);
+        return;
+      }
+
+      if (data.isDevMode || !data.authUrl) {
+        // Dev Simulation Mode (or Meta credentials pending)
+        const initialHandle = formData.instagramUrl
+          ? formData.instagramUrl.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').split(/[/?#]/)[0].replace(/^@/, '')
+          : '';
+        setDevInstagramModal({ isOpen: true, handle: initialHandle });
+        setInstagramLoading(false);
+        return;
+      }
+
+      // Live OAuth popup flow
+      const width = 600;
+      const height = 700;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+
+      const popup = window.open(
+        data.authUrl,
+        "Instagram OAuth Verification",
+        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no`
+      );
+
+      if (!popup) {
+        // Popup blocked, fallback to direct redirect
+        window.location.href = data.authUrl;
+      }
+    } catch (err) {
+      console.error("Instagram verify init error:", err);
+      toast.error("Network error starting Instagram verification");
+      setInstagramLoading(false);
+    }
+  };
+
+  const handleDevInstagramVerify = async () => {
+    if (!devInstagramModal.handle.trim()) {
+      toast.error("Please enter an Instagram handle to verify.");
+      return;
+    }
+
+    setInstagramLoading(true);
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+    try {
+      const res = await fetch(`${baseUrl}/api/apply/instagram/exchange`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: "dev_simulation",
+          devHandle: devInstagramModal.handle.trim()
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setInstagramVerified(true);
+        setInstagramToken(data.token);
+        setInstagramHandle(data.handle);
+        setFormData((prev) => ({ ...prev, instagramUrl: data.instagramUrl || `https://instagram.com/${data.handle}` }));
+        setDevInstagramModal({ isOpen: false, handle: "" });
+        toast.success(`Instagram @${data.handle} verified successfully! 🎉`);
+      } else {
+        toast.error(data.error || "Failed to verify Instagram account.");
+      }
+    } catch (e) {
+      toast.error("Network error during verification.");
+    } finally {
+      setInstagramLoading(false);
+    }
+  };
+
+  const handleResetInstagram = () => {
+    setInstagramVerified(false);
+    setInstagramToken("");
+    setInstagramHandle("");
+    setFormData((prev) => ({ ...prev, instagramUrl: "" }));
   };
 
   const handleSendOtp = async (type: "phone") => {
@@ -143,13 +332,22 @@ export default function OrganizerApplyPage() {
       return;
     }
 
+    if (!instagramVerified || !instagramToken) {
+      toast.error("Please verify your business Instagram account to prove ownership.");
+      return;
+    }
+
     setLoading(true);
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
       const res = await fetch(`${baseUrl}/api/apply/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, phoneToken }),
+        body: JSON.stringify({
+          ...formData,
+          phoneToken,
+          instagramToken
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -214,15 +412,15 @@ export default function OrganizerApplyPage() {
               {/* Application Lifecycle Pipeline */}
               <div className="bg-zinc-50/80 rounded-2xl p-5 border border-black/5 space-y-4">
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Approval Workflow</h3>
-                
+
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
                     <div className="h-6 w-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
                       <Check className="h-3.5 w-3.5 stroke-[3]" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-black uppercase text-zinc-800">Application Submitted</h4>
-                      <p className="text-[11px] font-medium text-zinc-500">Your brand details and WhatsApp verification were recorded.</p>
+                      <h4 className="text-xs font-black uppercase text-zinc-800">Application Submitted & Identity Verified</h4>
+                      <p className="text-[11px] font-medium text-zinc-500">Your brand details, WhatsApp verification, and Instagram ownership were confirmed.</p>
                     </div>
                   </div>
 
@@ -232,7 +430,7 @@ export default function OrganizerApplyPage() {
                     </div>
                     <div>
                       <h4 className="text-xs font-black uppercase text-amber-700">SuperAdmin Review in Progress</h4>
-                      <p className="text-[11px] font-medium text-zinc-500">Our administrators are validating your organizer credentials and brand info.</p>
+                      <p className="text-[11px] font-medium text-zinc-500">Our administrators are validating your organizer credentials and vibe curation history.</p>
                     </div>
                   </div>
 
@@ -361,31 +559,105 @@ export default function OrganizerApplyPage() {
                   <label className="text-[10px] font-black uppercase tracking-widest text-black mb-2 block">Description *</label>
                   <Textarea name="description" required value={formData.description} onChange={handleChange} rows={5} className="bg-zinc-100/80 font-bold border-transparent focus-visible:ring-2 focus-visible:ring-primary p-5 rounded-2xl transition-all resize-y" placeholder="What kind of events do you curate?" />
                 </div>
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-black mb-2 block">Instagram URL</label>
-                  <Input name="instagramUrl" value={formData.instagramUrl} onChange={handleChange} className="bg-zinc-100/80 font-bold border-transparent focus-visible:ring-2 focus-visible:ring-primary h-12 px-5 rounded-2xl transition-all" placeholder="https://instagram.com/..." />
+
+                {/* Instagram Ownership Verification Card */}
+                <div className="md:col-span-2 bg-gradient-to-br from-zinc-50 via-pink-50/20 to-purple-50/30 border border-black/5 p-5 sm:p-6 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-xl bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 text-white flex items-center justify-center shadow-xs">
+                        <InstagramIcon className="h-4 w-4 stroke-[2.5]" />
+                      </div>
+                      <label className="text-[11px] font-black uppercase tracking-widest text-black">
+                        Business Instagram Account *
+                      </label>
+                    </div>
+                    {instagramVerified ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 text-[10px] font-black uppercase tracking-wider">
+                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                        Ownership Verified
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                        OAuth Verification Required
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-zinc-500 font-medium mb-4 leading-relaxed">
+                    To protect organizers and attendees against fraud, you must prove ownership of your business Instagram profile.
+                  </p>
+
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                      <Input
+                        name="instagramUrl"
+                        readOnly={instagramVerified}
+                        disabled={instagramVerified}
+                        value={formData.instagramUrl}
+                        onChange={handleChange}
+                        className={`bg-white font-bold border-black/10 focus-visible:ring-2 focus-visible:ring-primary h-12 px-5 rounded-2xl transition-all ${instagramVerified ? 'text-emerald-700 bg-emerald-50/40 border-emerald-300/60' : ''}`}
+                        placeholder="https://instagram.com/yourbrand"
+                      />
+                      {instagramVerified && (
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-emerald-600">
+                          <CheckCircle2 className="h-4 w-4" />
+                        </div>
+                      )}
+                    </div>
+
+                    {instagramVerified ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleResetInstagram}
+                        className="border-black/10 text-zinc-600 hover:text-black hover:bg-zinc-100 text-[10px] uppercase font-black px-5 h-12 rounded-2xl shrink-0 transition-colors"
+                      >
+                        Change Account
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        onClick={handleStartInstagramVerify}
+                        disabled={instagramLoading}
+                        className="bg-gradient-to-r from-amber-500 via-pink-600 to-purple-600 text-white text-[10px] uppercase font-black px-6 h-12 rounded-2xl hover:opacity-90 transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 duration-200 shrink-0 gap-2"
+                      >
+                        {instagramLoading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Connecting...</span>
+                          </>
+                        ) : (
+                          <>
+                            <InstagramIcon className="h-4 w-4" />
+                            <span>Verify with Instagram</span>
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
+
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-black mb-2 block">Facebook URL</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-black mb-2 block">Facebook URL (Optional)</label>
                   <Input name="facebookUrl" value={formData.facebookUrl} onChange={handleChange} className="bg-zinc-100/80 font-bold border-transparent focus-visible:ring-2 focus-visible:ring-primary h-12 px-5 rounded-2xl transition-all" placeholder="https://facebook.com/..." />
                 </div>
               </div>
 
               <div className="border-t border-black/5 pt-6">
-                <h3 className="text-sm font-black uppercase tracking-widest mb-4">Contact & Verification</h3>
-                
+                <h3 className="text-sm font-black uppercase tracking-widest mb-4">Contact & Security Verification</h3>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Email Address (Read-only from session) */}
                   <div className="bg-white border border-black/5 p-4 sm:p-5 rounded-3xl shadow-sm opacity-80">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-black mb-3 block">Email Address (Linked Account)</label>
-                    <Input 
-                      name="email" 
-                      readOnly 
+                    <label className="text-[10px] font-black uppercase tracking-widest text-black mb-3 block">Email Address (Linked Google Account)</label>
+                    <Input
+                      name="email"
+                      readOnly
                       disabled
-                      value={formData.email} 
-                      className="bg-zinc-100/80 font-bold border-transparent h-12 px-5 rounded-2xl cursor-not-allowed text-zinc-500" 
-                      placeholder="guardian@vibecheck.com" 
-                      type="email" 
+                      value={formData.email}
+                      className="bg-zinc-100/80 font-bold border-transparent h-12 px-5 rounded-2xl cursor-not-allowed text-zinc-500"
+                      placeholder="guardian@vibecheck.com"
+                      type="email"
                     />
                   </div>
 
@@ -393,14 +665,14 @@ export default function OrganizerApplyPage() {
                   <div className="bg-white border border-black/5 p-4 sm:p-5 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
                     <label className="text-[10px] font-black uppercase tracking-widest text-black mb-3 block">WhatsApp Number *</label>
                     <div className="flex flex-col lg:flex-row gap-3">
-                      <Input 
-                        name="phone" 
-                        required 
-                        disabled={phoneVerified} 
-                        value={formData.phone} 
-                        onChange={handleChange} 
-                        className={`bg-zinc-100/80 font-bold border-transparent focus-visible:ring-2 focus-visible:ring-primary h-12 px-5 rounded-2xl transition-all flex-1 ${phoneVerified ? 'text-primary opacity-70' : ''}`} 
-                        placeholder="+91 99999 99999" 
+                      <Input
+                        name="phone"
+                        required
+                        disabled={phoneVerified}
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className={`bg-zinc-100/80 font-bold border-transparent focus-visible:ring-2 focus-visible:ring-primary h-12 px-5 rounded-2xl transition-all flex-1 ${phoneVerified ? 'text-primary opacity-70' : ''}`}
+                        placeholder="+91 99999 99999"
                       />
                       {phoneVerified ? (
                         <Button type="button" disabled className="bg-primary/20 text-primary border-none text-[10px] uppercase font-black px-6 h-12 rounded-2xl shrink-0">
@@ -416,13 +688,37 @@ export default function OrganizerApplyPage() {
                 </div>
               </div>
 
-              <div className="pt-6">
-                <Button type="submit" disabled={loading || !phoneVerified} className="w-full bg-primary text-black font-black italic tracking-tighter uppercase text-xl h-16 rounded-2xl hover:bg-primary/80 transition-colors shadow-lg hover:shadow-xl hover:-translate-y-1 duration-300">
+              {/* Requirement Checklist */}
+              <div className="bg-zinc-50 border border-black/5 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-zinc-600">
+                <span className="flex items-center gap-2">
+                  {phoneVerified ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <div className="h-4 w-4 rounded-full border border-zinc-300" />
+                  )}
+                  WhatsApp Phone Verified
+                </span>
+                <span className="flex items-center gap-2">
+                  {instagramVerified ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <div className="h-4 w-4 rounded-full border border-zinc-300" />
+                  )}
+                  Instagram Account Verified
+                </span>
+              </div>
+
+              <div className="pt-4">
+                <Button
+                  type="submit"
+                  disabled={loading || !phoneVerified || !instagramVerified}
+                  className="w-full bg-primary text-black font-black italic tracking-tighter uppercase text-xl h-16 rounded-2xl hover:bg-primary/80 transition-colors shadow-lg hover:shadow-xl hover:-translate-y-1 duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   {organizerStatus === "rejected" ? "Re-Submit Application" : "Submit Application"}
                 </Button>
-                {!phoneVerified && (
+                {(!phoneVerified || !instagramVerified) && (
                   <p className="text-center text-xs text-zinc-400 font-bold mt-4 flex items-center justify-center gap-2">
-                    <ShieldAlert className="h-4 w-4" /> Please verify your WhatsApp number to continue
+                    <ShieldAlert className="h-4 w-4" /> Please verify both WhatsApp and Instagram to unlock submission
                   </p>
                 )}
               </div>
@@ -431,7 +727,51 @@ export default function OrganizerApplyPage() {
         </Card>
       </div>
 
-      {/* Verification Modal */}
+      {/* Dev / Simulation Instagram Verification Modal */}
+      {devInstagramModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-black/10 text-center space-y-5">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-pink-500/20">
+              <InstagramIcon className="h-8 w-8 stroke-[2.5]" />
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-black italic uppercase tracking-tighter">Verify Instagram</h2>
+              <p className="text-zinc-500 text-xs font-bold mt-2">
+                Enter your Instagram handle. The system will verify its availability and lock it to your organizer account.
+              </p>
+            </div>
+
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-zinc-400 text-base">@</span>
+              <Input
+                value={devInstagramModal.handle}
+                onChange={(e) => setDevInstagramModal({ ...devInstagramModal, handle: e.target.value.replace(/^@/, '') })}
+                placeholder="technovibes"
+                className="pl-9 text-base font-bold h-14 bg-zinc-50 rounded-2xl"
+                autoFocus
+              />
+            </div>
+
+            <Button
+              onClick={handleDevInstagramVerify}
+              disabled={instagramLoading || !devInstagramModal.handle.trim()}
+              className="w-full bg-gradient-to-r from-amber-500 via-pink-600 to-purple-600 text-white uppercase font-black tracking-widest text-xs h-12 hover:opacity-90 transition-opacity rounded-2xl"
+            >
+              {instagramLoading ? "Verifying Account..." : "Confirm & Link Handle"}
+            </Button>
+
+            <button
+              onClick={() => setDevInstagramModal({ isOpen: false, handle: "" })}
+              className="w-full text-center text-[10px] font-black uppercase text-zinc-400 hover:text-black pt-2 tracking-widest"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* WhatsApp OTP Verification Modal */}
       {verifyModal.isOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
           <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-black/10">
@@ -441,20 +781,20 @@ export default function OrganizerApplyPage() {
               </div>
               <h2 className="text-2xl font-black italic uppercase tracking-tighter">Verify {verifyModal.type}</h2>
               <p className="text-zinc-500 text-xs font-bold mt-2 mb-4">Enter the 6-digit code sent to your WhatsApp</p>
-              
+
               {timeLeft > 0 && (
                 <div className="inline-flex items-center gap-2 bg-primary/20 text-primary px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest animate-in fade-in zoom-in slide-in-from-bottom-2 duration-300">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> 
+                  <CheckCircle2 className="h-3.5 w-3.5" />
                   WhatsApp OTP Sent!
                 </div>
               )}
             </div>
-            
-            <Input 
-              value={otpCode} 
-              onChange={(e) => setOtpCode(e.target.value)} 
-              placeholder="123456" 
-              className="text-center text-3xl tracking-[0.5em] font-black h-16 bg-zinc-50 mb-6" 
+
+            <Input
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value)}
+              placeholder="123456"
+              className="text-center text-3xl tracking-[0.5em] font-black h-16 bg-zinc-50 mb-6"
               maxLength={6}
             />
 
@@ -482,4 +822,5 @@ export default function OrganizerApplyPage() {
     </div>
   );
 }
+
 

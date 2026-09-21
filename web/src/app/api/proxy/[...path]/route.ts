@@ -69,25 +69,27 @@ function isAllowedOrigin(req: NextRequest): boolean {
 function isPublicRoute(method: string, endpointPath: string): boolean {
   const normalizedPath = endpointPath.toLowerCase();
 
-  // Public GET endpoints (Discovery, Cities, News, Settings)
+  // Public GET endpoints (Discovery, Cities, News, Settings, Instagram Auth)
   if (method === "GET") {
     if (
       normalizedPath.startsWith("/api/events") ||
       normalizedPath.startsWith("/api/cities") ||
       normalizedPath.startsWith("/api/news") ||
       normalizedPath.startsWith("/api/settings") ||
-      normalizedPath === "/api/admin/settings"
+      normalizedPath === "/api/admin/settings" ||
+      normalizedPath.startsWith("/api/apply/instagram/auth-url")
     ) {
       return true;
     }
   }
 
-  // Public OTP / Application / RSVP / Ratings / Telegram webhook endpoints
+  // Public OTP / Application / RSVP / Ratings / Telegram webhook / Instagram exchange endpoints
   if (method === "POST") {
     if (
       normalizedPath.startsWith("/api/apply/send-otp") ||
       normalizedPath.startsWith("/api/apply/verify-otp") ||
       normalizedPath.startsWith("/api/apply/submit") ||
+      normalizedPath.startsWith("/api/apply/instagram/exchange") ||
       normalizedPath.startsWith("/api/verify/send-code") ||
       normalizedPath.startsWith("/api/verify/confirm-code") ||
       normalizedPath.startsWith("/api/telegram/webhook") ||

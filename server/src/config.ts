@@ -57,8 +57,12 @@ export const config = {
   TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '',
   TELEGRAM_BOT_USERNAME: process.env.TELEGRAM_BOT_USERNAME || 'VibeCheckSpaceBot',
   TELEGRAM_WEBHOOK_SECRET: process.env.TELEGRAM_WEBHOOK_SECRET || 'vibecheck_telegram_secret',
-  QR_SIGNING_SECRET: process.env.QR_SIGNING_SECRET || 'vibecheck_qr_secure_key_2026',
+  // Instagram OAuth Settings
+  INSTAGRAM_CLIENT_ID: process.env.INSTAGRAM_CLIENT_ID || process.env.INSTAGRAM_APP_ID || '',
+  INSTAGRAM_CLIENT_SECRET: process.env.INSTAGRAM_CLIENT_SECRET || process.env.INSTAGRAM_APP_SECRET || '',
+  INSTAGRAM_REDIRECT_URI: process.env.INSTAGRAM_REDIRECT_URI || `${process.env.WEB_APP_URL || 'http://localhost:3000'}/organizer/apply/instagram-callback`,
 
   // Security / Smart Proxy Token
   PRIVATE_BACKEND_TOKEN: process.env.PRIVATE_BACKEND_TOKEN || ''
 };
+

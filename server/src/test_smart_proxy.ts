@@ -103,7 +103,8 @@ async function runTests() {
         normalizedPath.startsWith("/api/cities") ||
         normalizedPath.startsWith("/api/news") ||
         normalizedPath.startsWith("/api/settings") ||
-        normalizedPath === "/api/admin/settings"
+        normalizedPath === "/api/admin/settings" ||
+        normalizedPath.startsWith("/api/apply/instagram/auth-url")
       ) {
         return true;
       }
@@ -113,6 +114,7 @@ async function runTests() {
         normalizedPath.startsWith("/api/apply/send-otp") ||
         normalizedPath.startsWith("/api/apply/verify-otp") ||
         normalizedPath.startsWith("/api/apply/submit") ||
+        normalizedPath.startsWith("/api/apply/instagram/exchange") ||
         normalizedPath.startsWith("/api/verify/send-code") ||
         normalizedPath.startsWith("/api/verify/confirm-code")
       ) {

@@ -89,11 +89,16 @@ CREATE TABLE IF NOT EXISTS admins (
     phone_number VARCHAR(255) UNIQUE,
     email_verified BOOLEAN DEFAULT false,
     phone_verified BOOLEAN DEFAULT false,
+    instagram_verified BOOLEAN DEFAULT false,
+    instagram_handle VARCHAR(255),
     rejection_reason TEXT,
     image_url TEXT,
     rating NUMERIC(3,1) DEFAULT 4.5,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_unique_instagram ON admins (LOWER(instagram_handle)) 
+WHERE status != 'rejected' AND instagram_handle IS NOT NULL;
 
 -- 4. System Settings (admin-controlled feature flags)
 CREATE TABLE IF NOT EXISTS system_settings (

@@ -194,6 +194,13 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS phone_number VARCHAR(255)`);
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false`);
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN DEFAULT false`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS instagram_verified BOOLEAN DEFAULT false`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS instagram_handle VARCHAR(255)`);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_unique_instagram 
+    ON admins (LOWER(instagram_handle)) 
+    WHERE status != 'rejected' AND instagram_handle IS NOT NULL
+  `).catch(() => {});
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS rejection_reason TEXT`);
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS image_url TEXT`);
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS rating NUMERIC(3,1) DEFAULT 4.5`);

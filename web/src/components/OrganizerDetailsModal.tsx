@@ -353,6 +353,11 @@ export function OrganizerDetailsModal({
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200/60 text-xs font-black uppercase tracking-wider transition-all shadow-2xs"
                     >
                       <span>Instagram</span>
+                      {event?.organizer_instagram_verified && (
+                        <span title="Verified Host Instagram" className="inline-flex">
+                          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                        </span>
+                      )}
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   )}

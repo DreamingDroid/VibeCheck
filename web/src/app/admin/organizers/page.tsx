@@ -7,10 +7,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   Users, CheckCircle2, XCircle, ChevronDown, ChevronUp, 
-  Mail, Phone, Calendar, ExternalLink, Trash2 
+  Mail, Phone, Calendar, ExternalLink, Trash2, ShieldCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import { vibeConfirm } from "@/components/vibe-confirm";
+
+function InstagramIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    </svg>
+  );
+}
 
 type Organizer = {
   id: string;
@@ -18,6 +28,8 @@ type Organizer = {
   brand_name?: string;
   description?: string;
   phone_number?: string;
+  instagram_verified?: boolean;
+  instagram_handle?: string;
   social_links?: {
     instagram?: string;
     facebook?: string;
@@ -315,9 +327,17 @@ function AdminOrganizersPageContent() {
                         <div className="space-y-3">
                           {req.social_links?.instagram && (
                             <div>
-                              <span className="text-[9px] uppercase tracking-wider text-zinc-400 block mb-1">instagram linkage</span>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span className="text-[9px] uppercase tracking-wider text-zinc-400">instagram linkage</span>
+                                {req.instagram_verified && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[9px] font-black uppercase tracking-wider border border-emerald-500/20">
+                                    <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                                    OAuth Verified
+                                  </span>
+                                )}
+                              </div>
                               <a href={req.social_links.instagram} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-black flex items-center gap-1.5 break-all">
-                                <ExternalLink className="h-3.5 w-3.5" /> {req.social_links.instagram}
+                                <InstagramIcon className="h-3.5 w-3.5" /> {req.social_links.instagram}
                               </a>
                             </div>
                           )}

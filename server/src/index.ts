@@ -26,7 +26,13 @@ import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, admi
 import { startPushAlertCron, runMatchmakerJob, runPostEventFeedbackJob } from './cron';
 import { sendVerificationCodeHandler, verifyPhoneNumberHandler } from './verification';
 import { followOrganizerHandler, unfollowOrganizerHandler, getUserFollowingHandler, getOrganizerFollowersHandler } from './followers';
-import { sendApplyOtpHandler, verifyApplyOtpHandler, submitApplicationHandler } from './organizer-apply';
+import { 
+  sendApplyOtpHandler, 
+  verifyApplyOtpHandler, 
+  submitApplicationHandler,
+  getInstagramAuthUrlHandler,
+  exchangeInstagramCodeHandler
+} from './organizer-apply';
 import { initializeDatabaseSchema } from './queries/init';
 import { getNewsArticlesHandler, getLatestNewsArticlesHandler, getSingleNewsArticleHandler, adminCreateNewsArticleHandler, adminUpdateNewsArticleArticleHandler, adminDeleteNewsArticleHandler } from './news';
 import { uploadImageHandler } from './upload';
@@ -271,6 +277,8 @@ app.get('/api/settings', async (req, res) => {
 });
 
 // Organizer Application & Verification API
+app.get('/api/apply/instagram/auth-url', getInstagramAuthUrlHandler);
+app.post('/api/apply/instagram/exchange', (req, res) => exchangeInstagramCodeHandler(req, res, pool));
 app.post('/api/apply/send-otp', (req, res) => sendApplyOtpHandler(req, res, pool));
 app.post('/api/apply/verify-otp', verifyApplyOtpHandler);
 app.post('/api/apply/submit', (req, res) => submitApplicationHandler(req, res, pool));

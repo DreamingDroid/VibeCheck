@@ -159,6 +159,8 @@ export async function getEventById(pool: Pool, id: string) {
               (SELECT description FROM admins WHERE email = events.organizer_email) as organizer_description,
               (SELECT rating FROM admins WHERE email = events.organizer_email) as organizer_rating,
               (SELECT social_links FROM admins WHERE email = events.organizer_email) as organizer_social_links,
+              (SELECT instagram_verified FROM admins WHERE email = events.organizer_email) as organizer_instagram_verified,
+              (SELECT instagram_handle FROM admins WHERE email = events.organizer_email) as organizer_instagram_handle,
               (SELECT COUNT(*)::int FROM events e2 WHERE e2.organizer_email = events.organizer_email AND (e2.status = 'approved' OR e2.status = 'housefull' OR e2.status = 'filling_fast' OR e2.status = 'ended')) as organizer_events_count,
               (SELECT COUNT(*)::int FROM organizer_followers WHERE organizer_email = events.organizer_email) as organizer_followers_count
        FROM events WHERE id = $1 AND (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status = 'ended' OR status IS NULL)`,

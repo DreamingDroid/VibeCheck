@@ -511,7 +511,7 @@ export async function getOrganizerDeepDetails(pool: Pool, email: string) {
     const orgRes = await pool.query(`
       SELECT 
         id, email, role, status, brand_name, description, social_links, 
-        phone_number, email_verified, phone_verified, rejection_reason, 
+        phone_number, email_verified, phone_verified, instagram_verified, instagram_handle, rejection_reason, 
         image_url, rating, created_at
       FROM admins 
       WHERE email = $1
@@ -523,7 +523,7 @@ export async function getOrganizerDeepDetails(pool: Pool, email: string) {
       const orgResFallback = await pool.query(`
         SELECT 
           id, email, role, status, brand_name, description, social_links, 
-          phone_number, email_verified, phone_verified, rejection_reason, 
+          phone_number, email_verified, phone_verified, instagram_verified, instagram_handle, rejection_reason, 
           created_at
         FROM admins 
         WHERE email = $1

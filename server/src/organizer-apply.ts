@@ -13,10 +13,155 @@ const resend = new Resend(config.RESEND_API_KEY);
 const applyOtpCache = new Map<string, { code: string; expiry: number }>();
 
 // Cache for verified tokens: token -> { type, value, expiry }
-const verifiedTokens = new Map<string, { type: 'email' | 'phone'; value: string; expiry: number }>();
+const verifiedTokens = new Map<string, { type: 'email' | 'phone' | 'instagram'; value: string; expiry: number }>();
 
 const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 const TOKEN_EXPIRY_MS = 30 * 60 * 1000; // 30 minutes
+
+export function normalizeInstagramHandle(input: string): string {
+  if (!input) return '';
+  let handle = input.trim();
+  // Remove URL prefixes if provided
+  handle = handle.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '');
+  // Remove trailing slashes and query params
+  handle = handle.split(/[/?#]/)[0];
+  // Remove leading @
+  handle = handle.replace(/^@/, '');
+  return handle.toLowerCase().trim();
+}
+
+export async function getInstagramAuthUrlHandler(req: Request, res: Response) {
+  try {
+    const hasCredentials = Boolean(config.INSTAGRAM_CLIENT_ID && config.INSTAGRAM_CLIENT_SECRET);
+    
+    if (!hasCredentials) {
+      return res.json({
+        success: true,
+        isDevMode: true,
+        message: 'Instagram Meta OAuth in Sandbox / Dev Simulation mode.',
+      });
+    }
+
+    const clientId = config.INSTAGRAM_CLIENT_ID;
+    const redirectUri = encodeURIComponent(config.INSTAGRAM_REDIRECT_URI);
+    const scope = encodeURIComponent('user_profile,user_media');
+    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code`;
+
+    return res.json({
+      success: true,
+      isDevMode: false,
+      authUrl,
+    });
+  } catch (error: any) {
+    console.error('Error in getInstagramAuthUrlHandler:', error);
+    return res.status(500).json({ success: false, error: 'Failed to generate Instagram authorization URL' });
+  }
+}
+
+export async function exchangeInstagramCodeHandler(req: Request, res: Response, pool: Pool) {
+  const { code, devHandle } = req.body;
+
+  try {
+    let verifiedHandle = '';
+    const hasCredentials = Boolean(config.INSTAGRAM_CLIENT_ID && config.INSTAGRAM_CLIENT_SECRET);
+
+    if (hasCredentials && code && code !== 'dev_simulation') {
+      // Exchange authorization code for Instagram access token
+      const tokenForm = new URLSearchParams();
+      tokenForm.append('client_id', config.INSTAGRAM_CLIENT_ID);
+      tokenForm.append('client_secret', config.INSTAGRAM_CLIENT_SECRET);
+      tokenForm.append('grant_type', 'authorization_code');
+      tokenForm.append('redirect_uri', config.INSTAGRAM_REDIRECT_URI);
+      tokenForm.append('code', code);
+
+      const tokenRes = await fetch('https://api.instagram.com/oauth/access_token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: tokenForm.toString(),
+      });
+
+      const tokenData = (await tokenRes.json()) as any;
+      if (!tokenRes.ok || !tokenData.access_token) {
+        console.error('Instagram Token Exchange Failed:', tokenData);
+        return res.status(400).json({
+          success: false,
+          error: tokenData.error_message || tokenData.error?.message || 'Failed to exchange Instagram authorization code',
+        });
+      }
+
+      // Fetch user profile info from Meta Graph API
+      const userRes = await fetch(
+        `https://graph.instagram.com/me?fields=id,username,account_type&access_token=${tokenData.access_token}`
+      );
+      const userData = (await userRes.json()) as any;
+
+      if (!userRes.ok || !userData.username) {
+        console.error('Instagram Profile Fetch Failed:', userData);
+        return res.status(400).json({
+          success: false,
+          error: userData.error?.message || 'Failed to retrieve Instagram profile username',
+        });
+      }
+
+      verifiedHandle = normalizeInstagramHandle(userData.username);
+    } else {
+      // Dev / Simulation Mode
+      if (!devHandle) {
+        return res.status(400).json({ success: false, error: 'Instagram handle required for verification' });
+      }
+      verifiedHandle = normalizeInstagramHandle(devHandle);
+    }
+
+    if (!verifiedHandle) {
+      return res.status(400).json({ success: false, error: 'Invalid Instagram handle resolved' });
+    }
+
+    // Check if this Instagram handle is already registered to another active or pending organizer
+    const duplicateCheck = await pool.query(
+      `SELECT email, status, brand_name 
+       FROM admins 
+       WHERE LOWER(instagram_handle) = $1 AND status != 'rejected'`,
+      [verifiedHandle]
+    );
+
+    if (duplicateCheck.rows.length > 0) {
+      const existing = duplicateCheck.rows[0];
+      if (existing.status === 'pending_approval') {
+        return res.status(400).json({
+          success: false,
+          error: `Instagram account @${verifiedHandle} is already linked to an application pending approval.`,
+        });
+      }
+      if (existing.status === 'approved') {
+        return res.status(400).json({
+          success: false,
+          error: `Instagram account @${verifiedHandle} is already registered to an active organizer.`,
+        });
+      }
+    }
+
+    // Generate secure Instagram verification token
+    const token = 'ig_' + crypto.randomBytes(32).toString('hex');
+    verifiedTokens.set(token, {
+      type: 'instagram',
+      value: verifiedHandle,
+      expiry: Date.now() + TOKEN_EXPIRY_MS,
+    });
+
+    const fullInstagramUrl = `https://instagram.com/${verifiedHandle}`;
+
+    return res.json({
+      success: true,
+      token,
+      handle: verifiedHandle,
+      instagramUrl: fullInstagramUrl,
+      message: `Successfully verified Instagram account @${verifiedHandle}!`,
+    });
+  } catch (error: any) {
+    console.error('Error in exchangeInstagramCodeHandler:', error);
+    return res.status(500).json({ success: false, error: error.message || 'Internal server error verifying Instagram account' });
+  }
+}
 
 export async function sendApplyOtpHandler(req: Request, res: Response, pool?: Pool) {
   const { type, value } = req.body;
@@ -61,15 +206,13 @@ export async function sendApplyOtpHandler(req: Request, res: Response, pool?: Po
       console.log(`[Verification] [Dev Mode] Email Code for ${value}: ${code}`);
       if (config.RESEND_API_KEY && config.RESEND_API_KEY !== 're_dummy_key_123') {
         resend.emails.send({
-          from: 'VibeCheck <onboarding@resend.dev>', // Needs a verified domain in prod
+          from: 'VibeCheck <onboarding@resend.dev>',
           to: value,
           subject: 'VibeCheck Verification Code',
           html: `<p>Your VibeCheck verification code is: <strong>${code}</strong></p><p>It will expire in 10 minutes.</p>`
         }).catch(err => console.error('[Verification] Error sending Resend email in background:', err));
       }
     } else if (type === 'phone') {
-      const message = `Your VibeCheck verification code is: *${code}*. It will expire in 10 minutes.`;
-      
       console.log(`[Verification] [Dev Mode] Phone Code for ${formattedPhone}: ${code}`);
       
       if (config.WHATSAPP_PHONE_NUMBER_ID) {
@@ -120,11 +263,11 @@ export async function verifyApplyOtpHandler(req: Request, res: Response) {
 export async function submitApplicationHandler(req: Request, res: Response, pool: Pool) {
   const { 
     brandName, description, facebookUrl, instagramUrl, 
-    email, phone, phoneToken 
+    email, phone, phoneToken, instagramToken 
   } = req.body;
   
   if (!brandName || !description || !email || !phone || !phoneToken) {
-    return res.status(400).json({ success: false, error: 'Missing required fields or tokens' });
+    return res.status(400).json({ success: false, error: 'Missing required fields or verification tokens' });
   }
 
   const cleanEmail = email.trim().toLowerCase();
@@ -142,22 +285,80 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
     return res.status(400).json({ success: false, error: 'Invalid or expired phone verification token' });
   }
 
-  // Clean up tokens
-  verifiedTokens.delete(phoneToken);
+  // Validate Instagram verification token
+  let cleanInstagramHandle: string | null = null;
+  let isInstagramVerified = false;
 
-  const socialLinks = { facebook: facebookUrl, instagram: instagramUrl };
+  if (instagramUrl || instagramToken) {
+    if (!instagramToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'Instagram account ownership verification is required. Please verify with Instagram before submitting.',
+      });
+    }
+
+    const igVerif = verifiedTokens.get(instagramToken);
+    if (!igVerif || igVerif.type !== 'instagram' || Date.now() > igVerif.expiry) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired Instagram verification token. Please verify your Instagram account again.',
+      });
+    }
+
+    const submittedHandle = normalizeInstagramHandle(instagramUrl || '');
+    if (submittedHandle !== igVerif.value) {
+      return res.status(400).json({
+        success: false,
+        error: `Submitted Instagram URL does not match the verified account @${igVerif.value}.`,
+      });
+    }
+
+    cleanInstagramHandle = igVerif.value;
+    isInstagramVerified = true;
+  } else {
+    return res.status(400).json({
+      success: false,
+      error: 'Please verify your business Instagram account to proceed with organizer registration.',
+    });
+  }
+
+  // Clean up used tokens
+  verifiedTokens.delete(phoneToken);
+  if (instagramToken) verifiedTokens.delete(instagramToken);
+
+  const finalInstagramUrl = cleanInstagramHandle ? `https://instagram.com/${cleanInstagramHandle}` : (instagramUrl || null);
+  const socialLinks = { facebook: facebookUrl || '', instagram: finalInstagramUrl || '' };
 
   try {
-    // 1. Check for existing organizer application by email or phone
+    // 1. Check for existing organizer application by email, phone, or instagram
     const existingCheck = await pool.query(
-      `SELECT id, email, phone_number, role, status, rejection_reason 
+      `SELECT id, email, phone_number, instagram_handle, role, status, rejection_reason 
        FROM admins 
-       WHERE LOWER(email) = $1 OR phone_number = $2`,
-      [cleanEmail, formattedPhone]
+       WHERE LOWER(email) = $1 OR phone_number = $2 OR (instagram_handle IS NOT NULL AND LOWER(instagram_handle) = $3)`,
+      [cleanEmail, formattedPhone, cleanInstagramHandle]
     );
 
     const existingEmailMatch = existingCheck.rows.find(r => r.email.toLowerCase() === cleanEmail);
     const existingPhoneMatch = existingCheck.rows.find(r => r.phone_number === formattedPhone);
+    const existingInstagramMatch = cleanInstagramHandle 
+      ? existingCheck.rows.find(r => r.instagram_handle && r.instagram_handle.toLowerCase() === cleanInstagramHandle) 
+      : null;
+
+    // Check if Instagram handle belongs to a different active/pending organizer
+    if (existingInstagramMatch && existingInstagramMatch.email.toLowerCase() !== cleanEmail) {
+      if (existingInstagramMatch.status === 'pending_approval') {
+        return res.status(400).json({
+          success: false,
+          error: `Instagram account @${cleanInstagramHandle} is linked to another application pending review.`,
+        });
+      }
+      if (existingInstagramMatch.status === 'approved') {
+        return res.status(400).json({
+          success: false,
+          error: `Instagram account @${cleanInstagramHandle} is already registered to another active organizer.`,
+        });
+      }
+    }
 
     // Case A: User with this email already exists
     if (existingEmailMatch) {
@@ -191,22 +392,24 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
                description = $2, 
                social_links = $3::jsonb, 
                phone_number = $4, 
+               instagram_handle = $5,
+               instagram_verified = $6,
                status = 'pending_approval', 
                rejection_reason = NULL, 
                phone_verified = true, 
                email_verified = true, 
                created_at = CURRENT_TIMESTAMP
-           WHERE LOWER(email) = $5`,
-          [brandName, description, JSON.stringify(socialLinks), formattedPhone, cleanEmail]
+           WHERE LOWER(email) = $7`,
+          [brandName, description, JSON.stringify(socialLinks), formattedPhone, cleanInstagramHandle, isInstagramVerified, cleanEmail]
         );
 
         // Notify SuperAdmins of the re-application
         notifySuperAdmins(pool, {
           title: `Organizer Re-Application: ${brandName}`,
-          message: `${brandName} (${cleanEmail}) has re-submitted their organizer application for review.`,
+          message: `${brandName} (${cleanEmail}) has re-submitted their organizer application for review (Instagram: @${cleanInstagramHandle}).`,
           type: 'approval_pending',
           link: '/admin/organizers?tab=pending',
-          metadata: { brand_name: brandName, email: cleanEmail, phone: formattedPhone, type: 'organizer_application' },
+          metadata: { brand_name: brandName, email: cleanEmail, phone: formattedPhone, instagram_handle: cleanInstagramHandle, type: 'organizer_application' },
           emailSubject: `[VibeCheck Admin] Organizer Re-Application: ${brandName}`,
           emailHtml: `
             <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -216,6 +419,7 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
                 <p style="margin: 6px 0;"><strong>Brand / Organization:</strong> ${brandName}</p>
                 <p style="margin: 6px 0;"><strong>Contact Email:</strong> ${cleanEmail}</p>
                 <p style="margin: 6px 0;"><strong>Phone:</strong> ${formattedPhone}</p>
+                <p style="margin: 6px 0;"><strong>Instagram:</strong> @${cleanInstagramHandle} (Verified via OAuth)</p>
                 <p style="margin: 6px 0;"><strong>Description:</strong> ${description}</p>
               </div>
               <div style="margin-top: 24px;">
@@ -252,20 +456,20 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
     // Case C: Brand new organizer application
     await pool.query(
       `INSERT INTO admins (
-        email, role, status, brand_name, description, social_links, phone_number, email_verified, phone_verified
+        email, role, status, brand_name, description, social_links, phone_number, email_verified, phone_verified, instagram_verified, instagram_handle
       ) VALUES (
-        $1, 'organizer', 'pending_approval', $2, $3, $4::jsonb, $5, true, true
+        $1, 'organizer', 'pending_approval', $2, $3, $4::jsonb, $5, true, true, $6, $7
       )`,
-      [cleanEmail, brandName, description, JSON.stringify(socialLinks), formattedPhone]
+      [cleanEmail, brandName, description, JSON.stringify(socialLinks), formattedPhone, isInstagramVerified, cleanInstagramHandle]
     );
 
     // Notify SuperAdmins of the pending application
     notifySuperAdmins(pool, {
       title: `New Organizer Application: ${brandName}`,
-      message: `${brandName} (${cleanEmail}) has submitted an application for organizer approval.`,
+      message: `${brandName} (${cleanEmail}) has submitted an application for organizer approval (Instagram: @${cleanInstagramHandle}).`,
       type: 'approval_pending',
       link: '/admin/organizers?tab=pending',
-      metadata: { brand_name: brandName, email: cleanEmail, phone: formattedPhone, type: 'organizer_application' },
+      metadata: { brand_name: brandName, email: cleanEmail, phone: formattedPhone, instagram_handle: cleanInstagramHandle, type: 'organizer_application' },
       emailSubject: `[VibeCheck Admin] New Organizer Application: ${brandName}`,
       emailHtml: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -275,6 +479,7 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
             <p style="margin: 6px 0;"><strong>Brand / Organization:</strong> ${brandName}</p>
             <p style="margin: 6px 0;"><strong>Contact Email:</strong> ${cleanEmail}</p>
             <p style="margin: 6px 0;"><strong>Phone:</strong> ${formattedPhone}</p>
+            <p style="margin: 6px 0;"><strong>Instagram:</strong> @${cleanInstagramHandle} (Verified via OAuth)</p>
             <p style="margin: 6px 0;"><strong>Description:</strong> ${description}</p>
           </div>
           <div style="margin-top: 24px;">
@@ -287,10 +492,14 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
     return res.json({ success: true, message: 'Application submitted successfully! Please wait for admin approval.' });
   } catch (error: any) {
     if (error.code === '23505') {
-      return res.status(400).json({ success: false, error: 'An account with this email or phone number already exists' });
+      if (error.constraint === 'idx_admins_unique_instagram') {
+        return res.status(400).json({ success: false, error: 'This Instagram handle is already registered to another organizer.' });
+      }
+      return res.status(400).json({ success: false, error: 'An account with this email, phone number, or Instagram handle already exists.' });
     }
     console.error('Application submission error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
+
 
