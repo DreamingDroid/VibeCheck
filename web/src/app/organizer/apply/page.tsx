@@ -69,6 +69,16 @@ function isValidInstagramInput(val: string): boolean {
   }
 }
 
+function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+    return "/api/proxy";
+  }
+  return "http://localhost:4000";
+}
+
 export default function OrganizerApplyPage() {
   const router = useRouter();
   const { data: session, status: authStatus } = useSession();
@@ -105,7 +115,7 @@ export default function OrganizerApplyPage() {
     if (session?.user?.email) {
       setFormData((prev) => ({ ...prev, email: session?.user?.email || "" }));
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const baseUrl = getApiBaseUrl();
       fetch(`${baseUrl}/api/admin/check?email=${encodeURIComponent(session.user.email)}`)
         .then((r) => r.json())
         .then((data) => {
@@ -173,7 +183,7 @@ export default function OrganizerApplyPage() {
 
       if (event.data?.type === "INSTAGRAM_AUTH_SUCCESS" && event.data?.code) {
         setInstagramLoading(true);
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const baseUrl = getApiBaseUrl();
         try {
           const res = await fetch(`${baseUrl}/api/apply/instagram/exchange`, {
             method: "POST",
@@ -345,7 +355,7 @@ export default function OrganizerApplyPage() {
 
     setLoading(true);
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const baseUrl = getApiBaseUrl();
       const res = await fetch(`${baseUrl}/api/apply/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -371,7 +381,7 @@ export default function OrganizerApplyPage() {
     const value = formData.phone;
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const baseUrl = getApiBaseUrl();
       const res = await fetch(`${baseUrl}/api/apply/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -406,7 +416,7 @@ export default function OrganizerApplyPage() {
 
     setLoading(true);
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const baseUrl = getApiBaseUrl();
       const res = await fetch(`${baseUrl}/api/apply/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

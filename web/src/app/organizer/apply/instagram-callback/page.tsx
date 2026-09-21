@@ -4,6 +4,16 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
+function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+    return "/api/proxy";
+  }
+  return "http://localhost:4000";
+}
+
 function InstagramCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -17,34 +27,44 @@ function InstagramCallbackContent() {
 
     if (error) {
       setStatus("error");
-      setMessage(errorDescription || "Instagram authorization was cancelled or failed.");
+      setMessage(errorDescription || error || "Instagram authorization was cancelled or failed.");
       if (window.opener) {
         window.opener.postMessage(
           { type: "INSTAGRAM_AUTH_ERROR", error: errorDescription || error },
           "*"
         );
-        setTimeout(() => window.close(), 2000);
       }
       return;
     }
 
     if (code) {
       const cleanCode = code.replace(/#_$/, "").split("#")[0].trim();
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const baseUrl = getApiBaseUrl();
 
-      setMessage("Exchanging token and confirming Instagram ownership...");
+      setMessage("Confirming Instagram account ownership with server...");
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       fetch(`${baseUrl}/api/apply/instagram/exchange`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: cleanCode }),
+        signal: controller.signal,
       })
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.success) {
+        .then(async (res) => {
+          clearTimeout(timeoutId);
+          let data: any = {};
+          try {
+            data = await res.json();
+          } catch {
+            data = { success: false, error: `Server returned status ${res.status}` };
+          }
+
+          if (data.success && data.handle) {
             sessionStorage.setItem("vibecheck_ig_verified", JSON.stringify(data));
             setStatus("success");
-            setMessage(`Verified @${data.handle}! Closing...`);
+            setMessage(`Verified @${data.handle}! Closing window...`);
 
             if (window.opener) {
               window.opener.postMessage(
@@ -56,36 +76,39 @@ function InstagramCallbackContent() {
                 },
                 "*"
               );
-              setTimeout(() => window.close(), 1200);
+              setTimeout(() => {
+                try {
+                  window.close();
+                } catch {}
+              }, 1200);
             } else {
               setTimeout(() => router.push("/organizer/apply"), 1200);
             }
           } else {
             setStatus("error");
-            setMessage(data.error || "Failed to verify Instagram account with Meta.");
+            setMessage(data.error || "Failed to verify Instagram account.");
             if (window.opener) {
               window.opener.postMessage(
                 { type: "INSTAGRAM_AUTH_ERROR", error: data.error || "Instagram verification failed." },
                 "*"
               );
-              setTimeout(() => window.close(), 3500);
-            } else {
-              setTimeout(() => router.push("/organizer/apply"), 3500);
             }
           }
         })
-        .catch((err) => {
+        .catch((err: any) => {
+          clearTimeout(timeoutId);
           console.error("Instagram exchange error:", err);
           setStatus("error");
-          setMessage("Network error connecting to verification service.");
+          const errMsg =
+            err.name === "AbortError"
+              ? "Verification request timed out. Please check your network or backend server."
+              : "Network error connecting to verification service.";
+          setMessage(errMsg);
           if (window.opener) {
             window.opener.postMessage(
-              { type: "INSTAGRAM_AUTH_ERROR", error: "Network error completing Instagram verification." },
+              { type: "INSTAGRAM_AUTH_ERROR", error: errMsg },
               "*"
             );
-            setTimeout(() => window.close(), 3500);
-          } else {
-            setTimeout(() => router.push("/organizer/apply"), 3500);
           }
         });
     } else {
@@ -96,16 +119,13 @@ function InstagramCallbackContent() {
           { type: "INSTAGRAM_AUTH_ERROR", error: "No authorization code received from Instagram." },
           "*"
         );
-        setTimeout(() => window.close(), 2500);
-      } else {
-        setTimeout(() => router.push("/organizer/apply"), 2500);
       }
     }
   }, [searchParams, router]);
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 text-white text-center">
-      <div className="max-w-sm w-full bg-zinc-900/90 border border-white/10 rounded-3xl p-8 shadow-2xl space-y-5">
+      <div className="max-w-sm w-full bg-zinc-900/90 border border-white/10 rounded-3xl p-8 shadow-2xl space-y-6">
         {status === "processing" && (
           <>
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 flex items-center justify-center mx-auto shadow-lg shadow-pink-500/20">
@@ -133,6 +153,18 @@ function InstagramCallbackContent() {
             </div>
             <h2 className="text-xl font-black uppercase tracking-tight text-red-400">Verification Failed</h2>
             <p className="text-xs text-zinc-300 font-bold leading-relaxed">{message}</p>
+            <button
+              onClick={() => {
+                if (window.opener) {
+                  window.close();
+                } else {
+                  router.push("/organizer/apply");
+                }
+              }}
+              className="w-full h-11 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-black text-xs uppercase tracking-wider transition-colors"
+            >
+              Close Window
+            </button>
           </>
         )}
       </div>
