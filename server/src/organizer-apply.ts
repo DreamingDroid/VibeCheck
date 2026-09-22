@@ -95,13 +95,28 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
       }
 
       // Fetch user profile info from Meta Graph API
+      let username = '';
       const userRes = await fetch(
         `https://graph.instagram.com/me?fields=id,username,account_type&access_token=${tokenData.access_token}`,
         { signal: AbortSignal.timeout(15000) }
       );
       const userData = (await userRes.json()) as any;
 
-      if (!userRes.ok || !userData.username) {
+      if (userRes.ok && userData.username) {
+        username = userData.username;
+      } else if (tokenData.user_id) {
+        // Fallback: fetch using user_id if /me query did not return username
+        const altUserRes = await fetch(
+          `https://graph.instagram.com/${tokenData.user_id}?fields=id,username&access_token=${tokenData.access_token}`,
+          { signal: AbortSignal.timeout(15000) }
+        );
+        const altData = (await altUserRes.json()) as any;
+        if (altUserRes.ok && altData.username) {
+          username = altData.username;
+        }
+      }
+
+      if (!username) {
         console.error('Instagram Profile Fetch Failed:', userData);
         return res.status(400).json({
           success: false,
@@ -109,7 +124,7 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
         });
       }
 
-      verifiedHandle = normalizeInstagramHandle(userData.username);
+      verifiedHandle = normalizeInstagramHandle(username);
     } else {
       // Dev / Simulation Mode
       if (!devHandle) {
