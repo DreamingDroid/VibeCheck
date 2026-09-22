@@ -385,7 +385,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             <h1 className="text-4xl sm:text-6xl font-black tracking-tighter text-black leading-[0.9] uppercase italic">
               {event.title}
             </h1>
-            <div className="flex items-center gap-2 pt-2">
+            <div className="flex items-center gap-2 pt-2 flex-wrap">
               <span className="text-sm font-bold text-zinc-500">Organized by:</span>
               <button 
                 onClick={() => setShowOrganizerModal(true)}
@@ -393,6 +393,14 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               >
                 {event.organizer_name || "VibeCheck Organizer"}
               </button>
+              {event.organizer_email && (
+                <Link
+                  href={`/organizer/${encodeURIComponent(event.organizer_slug || event.organizer_email)}`}
+                  className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 ml-1 transition-all"
+                >
+                  View Host Page &rarr;
+                </Link>
+              )}
             </div>
           </div>
           

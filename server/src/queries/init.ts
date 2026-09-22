@@ -205,6 +205,18 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS rejection_reason TEXT`);
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS image_url TEXT`);
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS rating NUMERIC(3,1) DEFAULT 4.5`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS slug VARCHAR(255)`);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_unique_slug 
+    ON admins (LOWER(slug)) 
+    WHERE slug IS NOT NULL
+  `).catch(() => {});
+  // Auto-generate slugs for existing approved organizers without a slug
+  await pool.query(`
+    UPDATE admins 
+    SET slug = LOWER(REGEXP_REPLACE(REGEXP_REPLACE(COALESCE(brand_name, split_part(email, '@', 1)), '[^a-zA-Z0-9]+', '-', 'g'), '^-|-$', '', 'g'))
+    WHERE slug IS NULL AND (brand_name IS NOT NULL OR email IS NOT NULL);
+  `).catch(() => {});
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_email TEXT`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS end_time TIMESTAMP WITH TIME ZONE`).catch(() => {});

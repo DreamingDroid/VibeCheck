@@ -405,6 +405,19 @@ export function OrganizerDetailsModal({
                 </div>
               </div>
             )}
+
+            {/* Link to Dedicated Public Organizer Page */}
+            {(organizerEmail || event?.organizer_email) && (
+              <div className="pt-1">
+                <a
+                  href={`/organizer/${encodeURIComponent(event?.organizer_slug || organizerEmail || event?.organizer_email)}`}
+                  className="w-full py-3 px-4 rounded-2xl bg-black hover:bg-zinc-800 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-98 cursor-pointer text-center"
+                >
+                  <span>Browse All Events by {organizerName}</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>

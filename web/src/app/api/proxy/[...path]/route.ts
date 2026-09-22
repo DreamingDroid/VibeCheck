@@ -69,10 +69,12 @@ function isAllowedOrigin(req: NextRequest): boolean {
 function isPublicRoute(method: string, endpointPath: string): boolean {
   const normalizedPath = endpointPath.toLowerCase();
 
-  // Public GET endpoints (Discovery, Cities, News, Settings, Instagram Auth)
+  // Public GET endpoints (Discovery, Cities, News, Settings, Instagram Auth, Organizers, Followers)
   if (method === "GET") {
     if (
       normalizedPath.startsWith("/api/events") ||
+      normalizedPath.startsWith("/api/organizers") ||
+      normalizedPath.startsWith("/api/followers") ||
       normalizedPath.startsWith("/api/cities") ||
       normalizedPath.startsWith("/api/news") ||
       normalizedPath.startsWith("/api/settings") ||
@@ -84,8 +86,9 @@ function isPublicRoute(method: string, endpointPath: string): boolean {
   }
 
   // Public OTP / Application / RSVP / Ratings / Telegram webhook / Instagram exchange endpoints
-  if (method === "POST") {
+  if (method === "POST" || method === "DELETE") {
     if (
+      normalizedPath.startsWith("/api/followers") ||
       normalizedPath.startsWith("/api/apply/send-otp") ||
       normalizedPath.startsWith("/api/apply/verify-otp") ||
       normalizedPath.startsWith("/api/apply/submit") ||

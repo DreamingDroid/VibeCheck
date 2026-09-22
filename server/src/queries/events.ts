@@ -161,6 +161,7 @@ export async function getEventById(pool: Pool, id: string) {
               (SELECT social_links FROM admins WHERE email = events.organizer_email) as organizer_social_links,
               (SELECT instagram_verified FROM admins WHERE email = events.organizer_email) as organizer_instagram_verified,
               (SELECT instagram_handle FROM admins WHERE email = events.organizer_email) as organizer_instagram_handle,
+              (SELECT slug FROM admins WHERE email = events.organizer_email) as organizer_slug,
               (SELECT COUNT(*)::int FROM events e2 WHERE e2.organizer_email = events.organizer_email AND (e2.status = 'approved' OR e2.status = 'housefull' OR e2.status = 'filling_fast' OR e2.status = 'ended')) as organizer_events_count,
               (SELECT COUNT(*)::int FROM organizer_followers WHERE organizer_email = events.organizer_email) as organizer_followers_count
        FROM events WHERE id = $1 AND (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status = 'ended' OR status IS NULL)`,
@@ -701,3 +702,73 @@ export async function updateEventStatusByOrganizer(pool: Pool, id: string, organ
     );
     return { success: true, status: newStatus };
 }
+
+export async function getPublicOrganizerEvents(pool: Pool, organizerEmail: string, userEmail?: string) {
+    const params: any[] = [organizerEmail.trim().toLowerCase()];
+    let paramIndex = 2;
+
+    let userRsvpSelect = `false AS user_rsvped, NULL AS user_rsvp_status, NULL AS user_pass_code`;
+    let visibilityFilter = `AND (visibility = 'public' OR visibility IS NULL)`;
+
+    if (userEmail) {
+      const cleanUserEmail = userEmail.trim().toLowerCase();
+      params.push(cleanUserEmail);
+      userRsvpSelect = `
+        EXISTS(SELECT 1 FROM event_rsvps WHERE event_id = events.id AND LOWER(user_email) = $${paramIndex}) AS user_rsvped,
+        (SELECT status FROM event_rsvps WHERE event_id = events.id AND LOWER(user_email) = $${paramIndex}) AS user_rsvp_status,
+        (SELECT pass_code FROM event_rsvps WHERE event_id = events.id AND LOWER(user_email) = $${paramIndex}) AS user_pass_code
+      `;
+      visibilityFilter = `AND (
+        visibility = 'public' 
+        OR visibility IS NULL 
+        OR LOWER(organizer_email) = $${paramIndex} 
+        OR EXISTS (SELECT 1 FROM event_invites ei WHERE ei.event_id = events.id AND LOWER(ei.user_email) = $${paramIndex})
+      )`;
+      paramIndex++;
+    }
+
+    const queryText = `
+      SELECT 
+        id, 
+        title, 
+        description, 
+        location, 
+        city, 
+        date_time, 
+        end_time, 
+        timings, 
+        category, 
+        organizer_email, 
+        google_maps_link, 
+        whatsapp_group_link, 
+        status, 
+        participant_limit, 
+        is_paid, 
+        is_featured, 
+        visibility, 
+        image_url, 
+        image_public_id, 
+        average_rating, 
+        ratings_count, 
+        attendee_guide, 
+        contact_info,
+        (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
+        CASE 
+          WHEN (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW())) THEN 0 
+          ELSE 1 
+        END AS is_past,
+        ${userRsvpSelect}
+      FROM events
+      WHERE LOWER(organizer_email) = $1
+        AND (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status = 'ended' OR status IS NULL)
+        ${visibilityFilter}
+      ORDER BY 
+        is_past ASC,
+        CASE WHEN (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW())) THEN date_time END ASC,
+        date_time DESC;
+    `;
+
+    const { rows } = await pool.query(queryText, params);
+    return rows;
+}
+

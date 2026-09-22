@@ -94,9 +94,11 @@ CREATE TABLE IF NOT EXISTS admins (
     rejection_reason TEXT,
     image_url TEXT,
     rating NUMERIC(3,1) DEFAULT 4.5,
+    slug VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_unique_slug ON admins (LOWER(slug)) WHERE slug IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_unique_instagram ON admins (LOWER(instagram_handle)) 
 WHERE status != 'rejected' AND instagram_handle IS NOT NULL;
 

@@ -3,7 +3,8 @@ import { Pool } from 'pg';
 import { Resend } from 'resend';
 import { sendWhatsAppMessage } from './whatsapp';
 import { sendTelegramMessage, sendTelegramEventPass } from './telegram';
-import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull, updateEventStatusByOrganizer, issueOrganizerEventPass, issueBulkOrganizerEventPasses, cancelOrganizerEventRSVP, updateEventWhatsAppGroupLink, getEventById, addEventInvites, getEventInvites } from './queries/events';
+import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull, updateEventStatusByOrganizer, issueOrganizerEventPass, issueBulkOrganizerEventPasses, cancelOrganizerEventRSVP, updateEventWhatsAppGroupLink, getEventById, addEventInvites, getEventInvites, getPublicOrganizerEvents } from './queries/events';
+import { getPublicOrganizerProfile, getPublicOrganizersList } from './queries/admins';
 import { createBroadcastAndDispatch, getAudienceRecipientEmails, CreateBroadcastInput } from './queries/broadcasts';
 import { sendFcmTopicBroadcast, sanitizeTopicName } from './firebaseAdmin';
 import { getSystemSetting, getOrganizerDashboardAnalytics } from './queries/analytics';
@@ -708,3 +709,61 @@ export async function organizerSendWhatsAppGroupInviteHandler(req: Request, res:
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
+
+/**
+ * Public Organizer Profile & Events Showcase API
+ * GET /api/organizers/:identifier
+ */
+export async function getPublicOrganizerHandler(req: Request, res: Response, pool: Pool) {
+  const identifier = req.params.identifier as string;
+  const userEmail = (req.query.userEmail as string)?.trim()?.toLowerCase();
+
+  if (!identifier) {
+    return res.status(400).json({ success: false, error: 'Missing organizer identifier' });
+  }
+
+  try {
+    const organizer = await getPublicOrganizerProfile(pool, identifier);
+    if (!organizer) {
+      return res.status(404).json({ success: false, error: 'Organizer not found' });
+    }
+
+    const events = await getPublicOrganizerEvents(pool, organizer.email, userEmail);
+
+    let isFollowing = false;
+    if (userEmail) {
+      const followCheck = await pool.query(
+        `SELECT 1 FROM organizer_followers WHERE LOWER(user_email) = $1 AND LOWER(organizer_email) = $2 LIMIT 1`,
+        [userEmail, organizer.email.toLowerCase()]
+      );
+      isFollowing = followCheck.rows.length > 0;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        organizer,
+        events,
+        isFollowing
+      }
+    });
+  } catch (error: any) {
+    console.error('Get public organizer error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+/**
+ * Public List of Verified Organizers
+ * GET /api/organizers
+ */
+export async function getPublicOrganizersListHandler(req: Request, res: Response, pool: Pool) {
+  try {
+    const organizers = await getPublicOrganizersList(pool);
+    res.json({ success: true, data: organizers });
+  } catch (error: any) {
+    console.error('Get public organizers list error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
