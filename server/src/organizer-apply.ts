@@ -12,8 +12,71 @@ const resend = new Resend(config.RESEND_API_KEY);
 // Key format: "email:foo@bar.com" or "phone:919999999999"
 const applyOtpCache = new Map<string, { code: string; expiry: number }>();
 
-// Cache for verified tokens: token -> { type, value, expiry }
-const verifiedTokens = new Map<string, { type: 'email' | 'phone' | 'instagram'; value: string; expiry: number }>();
+// Cache for verified tokens: token -> { type, value, expiry, metadata }
+export interface InstagramMetadata {
+  account_name?: string;
+  account_type?: 'BUSINESS' | 'CREATOR' | string;
+  followers_count?: number;
+  follower_bucket?: string;
+  tier_level?: number;
+  tier_label?: string;
+  score_recommendation?: string;
+  media_count?: number;
+  profile_picture_url?: string;
+  verified_at?: string;
+}
+
+const verifiedTokens = new Map<string, {
+  type: 'email' | 'phone' | 'instagram';
+  value: string;
+  expiry: number;
+  metadata?: InstagramMetadata | any;
+}>();
+
+export function classifyFollowerTier(followers: number): {
+  bucket: string;
+  tierLevel: number;
+  tierLabel: string;
+  scoreRecommendation: string;
+} {
+  const count = Math.max(0, Math.floor(followers || 0));
+  if (count <= 2000) {
+    return {
+      bucket: '0 - 2,000',
+      tierLevel: 1,
+      tierLabel: 'Micro / Seed Host',
+      scoreRecommendation: 'Emerging Local Organizer',
+    };
+  } else if (count <= 4000) {
+    return {
+      bucket: '2,001 - 4,000',
+      tierLevel: 2,
+      tierLabel: 'Community Host',
+      scoreRecommendation: 'Community Leader',
+    };
+  } else if (count <= 10000) {
+    return {
+      bucket: '4,001 - 10,000',
+      tierLevel: 3,
+      tierLabel: 'Growing Brand',
+      scoreRecommendation: 'Established Local Brand',
+    };
+  } else if (count <= 50000) {
+    return {
+      bucket: '10,001 - 50,000',
+      tierLevel: 4,
+      tierLabel: 'Major Promoter',
+      scoreRecommendation: 'High-Impact Organizer',
+    };
+  } else {
+    return {
+      bucket: '50,000+',
+      tierLevel: 5,
+      tierLabel: 'Key Influencer / Mega Brand',
+      scoreRecommendation: 'Premier Anchor Host',
+    };
+  }
+}
 
 const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 const TOKEN_EXPIRY_MS = 30 * 60 * 1000; // 30 minutes
@@ -95,27 +158,30 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
       }
 
       // Fetch user profile info from Meta Graph API
-      let username = '';
+      const targetFields = 'id,username,name,account_type,followers_count,follows_count,media_count,profile_picture_url';
+      let profileData: any = {};
+
       const userRes = await fetch(
-        `https://graph.instagram.com/me?fields=id,username,account_type&access_token=${tokenData.access_token}`,
+        `https://graph.instagram.com/me?fields=${targetFields}&access_token=${tokenData.access_token}`,
         { signal: AbortSignal.timeout(15000) }
       );
       const userData = (await userRes.json()) as any;
 
-      if (userRes.ok && userData.username) {
-        username = userData.username;
+      if (userRes.ok && (userData.username || userData.id)) {
+        profileData = userData;
       } else if (tokenData.user_id) {
         // Fallback: fetch using user_id if /me query did not return username
         const altUserRes = await fetch(
-          `https://graph.instagram.com/${tokenData.user_id}?fields=id,username&access_token=${tokenData.access_token}`,
+          `https://graph.instagram.com/${tokenData.user_id}?fields=${targetFields}&access_token=${tokenData.access_token}`,
           { signal: AbortSignal.timeout(15000) }
         );
         const altData = (await altUserRes.json()) as any;
-        if (altUserRes.ok && altData.username) {
-          username = altData.username;
+        if (altUserRes.ok && (altData.username || altData.id)) {
+          profileData = altData;
         }
       }
 
+      const username = profileData.username || userData.username || '';
       if (!username) {
         console.error('Instagram Profile Fetch Failed:', userData);
         return res.status(400).json({
@@ -124,64 +190,141 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
         });
       }
 
+      // Check Instagram account type: Only allow BUSINESS or CREATOR, reject PERSONAL
+      const rawAccountType = String(profileData.account_type || '').toUpperCase();
+      if (rawAccountType === 'PERSONAL') {
+        return res.status(400).json({
+          success: false,
+          error: `Instagram account @${username} is a Personal account. Only Instagram Business or Creator accounts are eligible for Organizer verification. Please switch to a Professional account in the Instagram app (Settings → Account type and tools → Switch to professional account) and try again.`,
+        });
+      }
+
       verifiedHandle = normalizeInstagramHandle(username);
+
+      // Extract account name and audience metrics
+      const rawFollowers = Number(profileData.followers_count ?? 0);
+      const followersCount = isNaN(rawFollowers) ? 0 : rawFollowers;
+      const mediaCount = Number(profileData.media_count ?? 0) || 0;
+      const accountName = profileData.name || username;
+      const profilePictureUrl = profileData.profile_picture_url || '';
+
+      const tierInfo = classifyFollowerTier(followersCount);
+
+      const instagramMetadata: InstagramMetadata = {
+        account_name: accountName,
+        account_type: rawAccountType || 'BUSINESS',
+        followers_count: followersCount,
+        follower_bucket: tierInfo.bucket,
+        tier_level: tierInfo.tierLevel,
+        tier_label: tierInfo.tierLabel,
+        score_recommendation: tierInfo.scoreRecommendation,
+        media_count: mediaCount,
+        profile_picture_url: profilePictureUrl,
+        verified_at: new Date().toISOString(),
+      };
+
+      // Check if this Instagram handle is already registered to another active or pending organizer
+      const callerEmail = (email || (req.headers['x-user-email'] as string) || '').toLowerCase().trim();
+      const duplicateCheck = await pool.query(
+        `SELECT email, status, brand_name 
+         FROM admins 
+         WHERE LOWER(instagram_handle) = $1 AND status != 'rejected'`,
+        [verifiedHandle]
+      );
+
+      if (duplicateCheck.rows.length > 0) {
+        const existing = duplicateCheck.rows[0];
+        const isSameApplicant = callerEmail && existing.email.toLowerCase().trim() === callerEmail;
+        if (!isSameApplicant) {
+          if (existing.status === 'pending_approval') {
+            return res.status(400).json({
+              success: false,
+              error: `Instagram account @${verifiedHandle} is already linked to another application pending approval.`,
+            });
+          }
+          if (existing.status === 'approved') {
+            return res.status(400).json({
+              success: false,
+              error: `Instagram account @${verifiedHandle} is already registered to an active organizer.`,
+            });
+          }
+        }
+      }
+
+      // Generate secure Instagram verification token
+      const token = 'ig_' + crypto.randomBytes(32).toString('hex');
+      verifiedTokens.set(token, {
+        type: 'instagram',
+        value: verifiedHandle,
+        expiry: Date.now() + TOKEN_EXPIRY_MS,
+        metadata: instagramMetadata,
+      });
+
+      const fullInstagramUrl = `https://instagram.com/${verifiedHandle}`;
+
+      return res.json({
+        success: true,
+        token,
+        handle: verifiedHandle,
+        accountName: instagramMetadata.account_name,
+        accountType: instagramMetadata.account_type,
+        followersCount: instagramMetadata.followers_count,
+        followerBucket: instagramMetadata.follower_bucket,
+        tierLabel: instagramMetadata.tier_label,
+        scoreRecommendation: instagramMetadata.score_recommendation,
+        instagramUrl: fullInstagramUrl,
+        metadata: instagramMetadata,
+        message: `Successfully verified Instagram account @${verifiedHandle}!`,
+      });
     } else {
       // Dev / Simulation Mode
       if (!devHandle) {
         return res.status(400).json({ success: false, error: 'Instagram handle required for verification' });
       }
       verifiedHandle = normalizeInstagramHandle(devHandle);
-    }
 
-    if (!verifiedHandle) {
-      return res.status(400).json({ success: false, error: 'Invalid Instagram handle resolved' });
-    }
-
-    // Check if this Instagram handle is already registered to another active or pending organizer
-    const callerEmail = (email || (req.headers['x-user-email'] as string) || '').toLowerCase().trim();
-    const duplicateCheck = await pool.query(
-      `SELECT email, status, brand_name 
-       FROM admins 
-       WHERE LOWER(instagram_handle) = $1 AND status != 'rejected'`,
-      [verifiedHandle]
-    );
-
-    if (duplicateCheck.rows.length > 0) {
-      const existing = duplicateCheck.rows[0];
-      const isSameApplicant = callerEmail && existing.email.toLowerCase().trim() === callerEmail;
-      if (!isSameApplicant) {
-        if (existing.status === 'pending_approval') {
-          return res.status(400).json({
-            success: false,
-            error: `Instagram account @${verifiedHandle} is already linked to another application pending approval.`,
-          });
-        }
-        if (existing.status === 'approved') {
-          return res.status(400).json({
-            success: false,
-            error: `Instagram account @${verifiedHandle} is already registered to an active organizer.`,
-          });
-        }
+      if (!verifiedHandle) {
+        return res.status(400).json({ success: false, error: 'Invalid Instagram handle resolved' });
       }
+
+      const tierInfo = classifyFollowerTier(3500);
+      const simMetadata: InstagramMetadata = {
+        account_name: verifiedHandle,
+        account_type: 'BUSINESS',
+        followers_count: 3500,
+        follower_bucket: tierInfo.bucket,
+        tier_level: tierInfo.tierLevel,
+        tier_label: tierInfo.tierLabel,
+        score_recommendation: tierInfo.scoreRecommendation,
+        media_count: 24,
+        verified_at: new Date().toISOString(),
+      };
+
+      const token = 'ig_' + crypto.randomBytes(32).toString('hex');
+      verifiedTokens.set(token, {
+        type: 'instagram',
+        value: verifiedHandle,
+        expiry: Date.now() + TOKEN_EXPIRY_MS,
+        metadata: simMetadata,
+      });
+
+      const fullInstagramUrl = `https://instagram.com/${verifiedHandle}`;
+
+      return res.json({
+        success: true,
+        token,
+        handle: verifiedHandle,
+        accountName: simMetadata.account_name,
+        accountType: simMetadata.account_type,
+        followersCount: simMetadata.followers_count,
+        followerBucket: simMetadata.follower_bucket,
+        tierLabel: simMetadata.tier_label,
+        scoreRecommendation: simMetadata.score_recommendation,
+        instagramUrl: fullInstagramUrl,
+        metadata: simMetadata,
+        message: `Successfully verified Instagram account @${verifiedHandle} (Dev Mode)!`,
+      });
     }
-
-    // Generate secure Instagram verification token
-    const token = 'ig_' + crypto.randomBytes(32).toString('hex');
-    verifiedTokens.set(token, {
-      type: 'instagram',
-      value: verifiedHandle,
-      expiry: Date.now() + TOKEN_EXPIRY_MS,
-    });
-
-    const fullInstagramUrl = `https://instagram.com/${verifiedHandle}`;
-
-    return res.json({
-      success: true,
-      token,
-      handle: verifiedHandle,
-      instagramUrl: fullInstagramUrl,
-      message: `Successfully verified Instagram account @${verifiedHandle}!`,
-    });
   } catch (error: any) {
     console.error('Error in exchangeInstagramCodeHandler:', error);
     return res.status(500).json({ success: false, error: error.message || 'Internal server error verifying Instagram account' });
@@ -313,6 +456,7 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
   // Validate Instagram verification token
   let cleanInstagramHandle: string | null = null;
   let isInstagramVerified = false;
+  let instagramMetadata: InstagramMetadata | Record<string, any> = {};
 
   if (instagramUrl || instagramToken) {
     if (!instagramToken) {
@@ -340,6 +484,7 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
 
     cleanInstagramHandle = igVerif.value;
     isInstagramVerified = true;
+    instagramMetadata = igVerif.metadata || {};
   } else {
     return res.status(400).json({
       success: false,
@@ -419,22 +564,30 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
                phone_number = $4, 
                instagram_handle = $5,
                instagram_verified = $6,
+               instagram_metadata = $7::jsonb,
                status = 'pending_approval', 
                rejection_reason = NULL, 
                phone_verified = true, 
                email_verified = true, 
                created_at = CURRENT_TIMESTAMP
-           WHERE LOWER(email) = $7`,
-          [brandName, description, JSON.stringify(socialLinks), formattedPhone, cleanInstagramHandle, isInstagramVerified, cleanEmail]
+           WHERE LOWER(email) = $8`,
+          [brandName, description, JSON.stringify(socialLinks), formattedPhone, cleanInstagramHandle, isInstagramVerified, JSON.stringify(instagramMetadata), cleanEmail]
         );
 
         // Notify SuperAdmins of the re-application
         notifySuperAdmins(pool, {
           title: `Organizer Re-Application: ${brandName}`,
-          message: `${brandName} (${cleanEmail}) has re-submitted their organizer application for review (Instagram: @${cleanInstagramHandle}).`,
+          message: `${brandName} (${cleanEmail}) has re-submitted their organizer application for review (Instagram: @${cleanInstagramHandle}, ${instagramMetadata.follower_bucket || 'N/A'} followers).`,
           type: 'approval_pending',
           link: '/admin/organizers?tab=pending',
-          metadata: { brand_name: brandName, email: cleanEmail, phone: formattedPhone, instagram_handle: cleanInstagramHandle, type: 'organizer_application' },
+          metadata: { 
+            brand_name: brandName, 
+            email: cleanEmail, 
+            phone: formattedPhone, 
+            instagram_handle: cleanInstagramHandle,
+            instagram_metadata: instagramMetadata,
+            type: 'organizer_application' 
+          },
           emailSubject: `[VibeCheck Admin] Organizer Re-Application: ${brandName}`,
           emailHtml: `
             <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -444,7 +597,8 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
                 <p style="margin: 6px 0;"><strong>Brand / Organization:</strong> ${brandName}</p>
                 <p style="margin: 6px 0;"><strong>Contact Email:</strong> ${cleanEmail}</p>
                 <p style="margin: 6px 0;"><strong>Phone:</strong> ${formattedPhone}</p>
-                <p style="margin: 6px 0;"><strong>Instagram:</strong> @${cleanInstagramHandle} (Verified via OAuth)</p>
+                <p style="margin: 6px 0;"><strong>Instagram:</strong> @${cleanInstagramHandle} (${instagramMetadata.account_type || 'BUSINESS'} • ${instagramMetadata.follower_bucket || 'N/A'} followers)</p>
+                <p style="margin: 6px 0;"><strong>Tier Assessment:</strong> ${instagramMetadata.tier_label || 'Standard'} (${instagramMetadata.score_recommendation || 'Applicant'})</p>
                 <p style="margin: 6px 0;"><strong>Description:</strong> ${description}</p>
               </div>
               <div style="margin-top: 24px;">
@@ -481,20 +635,27 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
     // Case C: Brand new organizer application
     await pool.query(
       `INSERT INTO admins (
-        email, role, status, brand_name, description, social_links, phone_number, email_verified, phone_verified, instagram_verified, instagram_handle
+        email, role, status, brand_name, description, social_links, phone_number, email_verified, phone_verified, instagram_verified, instagram_handle, instagram_metadata
       ) VALUES (
-        $1, 'organizer', 'pending_approval', $2, $3, $4::jsonb, $5, true, true, $6, $7
+        $1, 'organizer', 'pending_approval', $2, $3, $4::jsonb, $5, true, true, $6, $7, $8::jsonb
       )`,
-      [cleanEmail, brandName, description, JSON.stringify(socialLinks), formattedPhone, isInstagramVerified, cleanInstagramHandle]
+      [cleanEmail, brandName, description, JSON.stringify(socialLinks), formattedPhone, isInstagramVerified, cleanInstagramHandle, JSON.stringify(instagramMetadata)]
     );
 
     // Notify SuperAdmins of the pending application
     notifySuperAdmins(pool, {
       title: `New Organizer Application: ${brandName}`,
-      message: `${brandName} (${cleanEmail}) has submitted an application for organizer approval (Instagram: @${cleanInstagramHandle}).`,
+      message: `${brandName} (${cleanEmail}) has submitted an application for organizer approval (Instagram: @${cleanInstagramHandle}, ${instagramMetadata.follower_bucket || 'N/A'} followers).`,
       type: 'approval_pending',
       link: '/admin/organizers?tab=pending',
-      metadata: { brand_name: brandName, email: cleanEmail, phone: formattedPhone, instagram_handle: cleanInstagramHandle, type: 'organizer_application' },
+      metadata: { 
+        brand_name: brandName, 
+        email: cleanEmail, 
+        phone: formattedPhone, 
+        instagram_handle: cleanInstagramHandle, 
+        instagram_metadata: instagramMetadata,
+        type: 'organizer_application' 
+      },
       emailSubject: `[VibeCheck Admin] New Organizer Application: ${brandName}`,
       emailHtml: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -504,7 +665,8 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
             <p style="margin: 6px 0;"><strong>Brand / Organization:</strong> ${brandName}</p>
             <p style="margin: 6px 0;"><strong>Contact Email:</strong> ${cleanEmail}</p>
             <p style="margin: 6px 0;"><strong>Phone:</strong> ${formattedPhone}</p>
-            <p style="margin: 6px 0;"><strong>Instagram:</strong> @${cleanInstagramHandle} (Verified via OAuth)</p>
+            <p style="margin: 6px 0;"><strong>Instagram:</strong> @${cleanInstagramHandle} (${instagramMetadata.account_type || 'BUSINESS'} • ${instagramMetadata.follower_bucket || 'N/A'} followers)</p>
+            <p style="margin: 6px 0;"><strong>Tier Assessment:</strong> ${instagramMetadata.tier_label || 'Standard'} (${instagramMetadata.score_recommendation || 'Applicant'})</p>
             <p style="margin: 6px 0;"><strong>Description:</strong> ${description}</p>
           </div>
           <div style="margin-top: 24px;">

@@ -31,7 +31,7 @@ export async function addOrganizer(pool: Pool, email: string) {
 export async function getOrganizers(pool: Pool) {
   await ensureOrganizerRole(pool);
   const { rows } = await pool.query(
-    `SELECT id, email, role, status, brand_name, description, social_links, phone_number, instagram_verified, instagram_handle, created_at
+    `SELECT id, email, role, status, brand_name, description, social_links, phone_number, instagram_verified, instagram_handle, instagram_metadata, created_at
      FROM admins
      WHERE LOWER(role::text) = 'organizer' AND status = 'approved'
      ORDER BY created_at DESC`
@@ -42,7 +42,7 @@ export async function getOrganizers(pool: Pool) {
 export async function getPendingOrganizers(pool: Pool) {
   await ensureOrganizerRole(pool);
   const { rows } = await pool.query(
-    `SELECT id, email, role, status, brand_name, description, social_links, phone_number, instagram_verified, instagram_handle, created_at
+    `SELECT id, email, role, status, brand_name, description, social_links, phone_number, instagram_verified, instagram_handle, instagram_metadata, created_at
      FROM admins
      WHERE LOWER(role::text) = 'organizer' AND status = 'pending_approval'
      ORDER BY created_at DESC`
