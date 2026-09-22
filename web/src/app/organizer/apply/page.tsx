@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -91,6 +91,19 @@ export default function OrganizerApplyPage() {
     phone: "",
   });
 
+  const formDataRef = useRef(formData);
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+
+  const sessionRef = useRef(session);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  const popupIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isExchangingRef = useRef(false);
+
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [phoneToken, setPhoneToken] = useState("");
 
@@ -109,6 +122,57 @@ export default function OrganizerApplyPage() {
 
   // Timer state
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes = 180 seconds
+
+  const clearPopupInterval = () => {
+    if (popupIntervalRef.current) {
+      clearInterval(popupIntervalRef.current);
+      popupIntervalRef.current = null;
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearPopupInterval();
+    };
+  }, []);
+
+  // Restore draft form inputs and Instagram verification from session storage on mount
+  useEffect(() => {
+    try {
+      // 1. Restore draft form inputs if returning from redirect
+      const draft = sessionStorage.getItem("vibecheck_apply_draft");
+      if (draft) {
+        const parsedDraft = JSON.parse(draft);
+        if (parsedDraft && typeof parsedDraft === "object") {
+          setFormData((prev) => ({
+            ...prev,
+            ...parsedDraft,
+          }));
+        }
+        sessionStorage.removeItem("vibecheck_apply_draft");
+      }
+
+      // 2. Check for Instagram verification from session storage (redirect fallback)
+      const stored = sessionStorage.getItem("vibecheck_ig_verified");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.token && parsed.handle) {
+          setInstagramVerified(true);
+          setInstagramToken(parsed.token);
+          setInstagramHandle(parsed.handle);
+          setFormData((prev) => ({
+            ...prev,
+            instagramUrl: parsed.instagramUrl || `https://instagram.com/${parsed.handle}`,
+          }));
+          sessionStorage.removeItem("vibecheck_ig_verified");
+          toast.success(`Instagram @${parsed.handle} verified successfully! 🎉`);
+        }
+      }
+    } catch (e) {
+      // Ignore parse error
+    }
+  }, []);
 
   // Prefill email and check existing organizer status
   useEffect(() => {
@@ -134,26 +198,6 @@ export default function OrganizerApplyPage() {
     }
   }, [session, authStatus]);
 
-  // Check for Instagram verification from session storage (redirect fallback)
-  useEffect(() => {
-    try {
-      const stored = sessionStorage.getItem("vibecheck_ig_verified");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.token && parsed.handle) {
-          setInstagramVerified(true);
-          setInstagramToken(parsed.token);
-          setInstagramHandle(parsed.handle);
-          setFormData((prev) => ({ ...prev, instagramUrl: parsed.instagramUrl || `https://instagram.com/${parsed.handle}` }));
-          sessionStorage.removeItem("vibecheck_ig_verified");
-          toast.success(`Instagram @${parsed.handle} verified successfully!`);
-        }
-      }
-    } catch (e) {
-      // Ignore parse error
-    }
-  }, []);
-
   // Window message listener for Instagram OAuth popup
   useEffect(() => {
     const handleOAuthMessage = async (event: MessageEvent) => {
@@ -168,6 +212,7 @@ export default function OrganizerApplyPage() {
       if (!isTrustedOrigin) return;
 
       if (event.data?.type === "INSTAGRAM_VERIFIED") {
+        clearPopupInterval();
         const { token, handle, instagramUrl } = event.data;
         setInstagramVerified(true);
         setInstagramToken(token);
@@ -182,10 +227,14 @@ export default function OrganizerApplyPage() {
       }
 
       if (event.data?.type === "INSTAGRAM_AUTH_SUCCESS" && event.data?.code) {
+        if (isExchangingRef.current) return;
+        isExchangingRef.current = true;
+        clearPopupInterval();
         setInstagramLoading(true);
+
         const baseUrl = getApiBaseUrl();
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000);
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
 
         try {
           const res = await fetch(`${baseUrl}/api/apply/instagram/exchange`, {
@@ -193,7 +242,7 @@ export default function OrganizerApplyPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               code: event.data.code,
-              email: formData.email || session?.user?.email || "",
+              email: formDataRef.current.email || sessionRef.current?.user?.email || "",
             }),
             signal: controller.signal,
           });
@@ -227,16 +276,21 @@ export default function OrganizerApplyPage() {
             toast.error("Network error completing Instagram verification.");
           }
         } finally {
+          isExchangingRef.current = false;
           setInstagramLoading(false);
         }
       } else if (event.data?.type === "INSTAGRAM_AUTH_ERROR") {
+        clearPopupInterval();
         toast.error(event.data.error || "Instagram authorization failed.");
         setInstagramLoading(false);
       }
     };
 
     window.addEventListener("message", handleOAuthMessage);
-    return () => window.removeEventListener("message", handleOAuthMessage);
+    return () => {
+      window.removeEventListener("message", handleOAuthMessage);
+      clearPopupInterval();
+    };
   }, []);
 
   // Protect route
@@ -266,6 +320,7 @@ export default function OrganizerApplyPage() {
     }
 
     setInstagramLoading(true);
+    clearPopupInterval();
     const baseUrl = getApiBaseUrl();
 
     try {
@@ -288,6 +343,11 @@ export default function OrganizerApplyPage() {
         return;
       }
 
+      // Save draft form data to sessionStorage in case of redirect fallback
+      try {
+        sessionStorage.setItem("vibecheck_apply_draft", JSON.stringify(formData));
+      } catch {}
+
       // Live OAuth popup flow
       const width = 600;
       const height = 700;
@@ -301,14 +361,16 @@ export default function OrganizerApplyPage() {
       );
 
       if (popup) {
-        const checkPopupClosed = setInterval(() => {
+        let elapsed = 0;
+        popupIntervalRef.current = setInterval(() => {
+          elapsed += 500;
           try {
-            if (!popup || popup.closed) {
-              clearInterval(checkPopupClosed);
+            if (!popup || popup.closed || elapsed >= 120000) {
+              clearPopupInterval();
               setInstagramLoading(false);
             }
           } catch {
-            clearInterval(checkPopupClosed);
+            clearPopupInterval();
             setInstagramLoading(false);
           }
         }, 500);
@@ -330,7 +392,7 @@ export default function OrganizerApplyPage() {
     }
 
     setInstagramLoading(true);
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    const baseUrl = getApiBaseUrl();
 
     try {
       const res = await fetch(`${baseUrl}/api/apply/instagram/exchange`, {
