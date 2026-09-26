@@ -115,9 +115,9 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
              ${userRsvpSelect}
       FROM events
-      WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR (status = 'cancelled' AND date_time::date >= CURRENT_DATE) OR status IS NULL)
-        AND (status != 'ended' OR status IS NULL)
-        AND (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW()) OR (status = 'cancelled' AND date_time::date >= CURRENT_DATE))
+      WHERE (LOWER(status::text) IN ('approved', 'housefull', 'filling_fast') OR (LOWER(status::text) = 'cancelled' AND date_time::date >= CURRENT_DATE) OR status IS NULL)
+        AND (LOWER(status::text) != 'ended' OR status IS NULL)
+        AND (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW()) OR (LOWER(status::text) = 'cancelled' AND date_time::date >= CURRENT_DATE))
     `;
 
     if (category && category !== 'All') {
@@ -125,15 +125,28 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
       queryParams.push(category);
       paramIndex++;
     }
-    if (city) {
-      queryText += ` AND city = $${paramIndex}`;
+    if (city && city !== 'All' && city !== 'all') {
+      queryText += ` AND (city ILIKE $${paramIndex} OR (city ILIKE 'Vizag%' AND $${paramIndex} ILIKE 'Visakhapatnam%') OR (city ILIKE 'Visakhapatnam%' AND $${paramIndex} ILIKE 'Vizag%'))`;
       queryParams.push(city);
       paramIndex++;
     }
     if (search) {
-      queryText += ` AND (title ILIKE $${paramIndex} OR description ILIKE $${paramIndex})`;
-      queryParams.push(`%${search}%`);
-      paramIndex++;
+      const cleanSearch = String(search).trim();
+      const qLower = cleanSearch.toLowerCase();
+      const terms = [cleanSearch];
+      if (qLower.endsWith('ing') && qLower.length > 4) {
+        terms.push(qLower.slice(0, -3));
+        if (qLower.endsWith('king')) terms.push(qLower.slice(0, -4) + 'k');
+      }
+      if (qLower.endsWith('s') && qLower.length > 3) {
+        terms.push(qLower.slice(0, -1));
+      }
+      const searchClauses = terms.map(t => {
+        queryParams.push(`%${t}%`);
+        const idx = paramIndex++;
+        return `(title ILIKE $${idx} OR description ILIKE $${idx} OR location ILIKE $${idx} OR category::text ILIKE $${idx})`;
+      });
+      queryText += ` AND (${searchClauses.join(' OR ')})`;
     }
     if (email) {
       queryText += ` AND (visibility = 'public' OR visibility IS NULL OR organizer_email = $${emailParamIndex} OR EXISTS (SELECT 1 FROM event_invites ei WHERE ei.event_id = events.id AND LOWER(ei.user_email) = $${emailParamIndex}))`;

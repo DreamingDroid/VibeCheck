@@ -369,8 +369,45 @@ export async function handleTelegramSmartSearch(
 
   const lower = userText.toLowerCase();
 
-  // 1. Timeframe extraction
-  if (lower.includes('this weekend') || lower.includes('weekend') || lower.includes('saturday') || lower.includes('sunday')) {
+  let startDate: string | undefined;
+  let endDate: string | undefined;
+
+  const monthMap: Record<string, number> = {
+    january: 0, jan: 0,
+    february: 1, feb: 1,
+    march: 2, mar: 2,
+    april: 3, apr: 3,
+    may: 4,
+    june: 5, jun: 5,
+    july: 6, jul: 6,
+    august: 7, aug: 7,
+    september: 8, sept: 8, sep: 8,
+    october: 9, oct: 9,
+    november: 10, nov: 10,
+    december: 11, dec: 11
+  };
+
+  const monthRegex = /\b(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\b/i;
+  const monthMatch = lower.match(monthRegex);
+
+  // 1. Timeframe & Month extraction
+  if (monthMatch) {
+    const monthKey = monthMatch[1].toLowerCase();
+    const targetMonth = monthMap[monthKey];
+    if (targetMonth !== undefined) {
+      const now = new Date();
+      let year = now.getFullYear();
+      if (targetMonth < now.getMonth()) {
+        year += 1;
+      }
+      startDate = new Date(Date.UTC(year, targetMonth, 1, 0, 0, 0)).toISOString();
+      const lastDay = new Date(year, targetMonth + 1, 0).getDate();
+      endDate = new Date(Date.UTC(year, targetMonth, lastDay, 23, 59, 59, 999)).toISOString();
+      timeframe = monthKey.charAt(0).toUpperCase() + monthKey.slice(1);
+    }
+  } else if (lower.includes('next weekend')) {
+    timeframe = 'next_weekend';
+  } else if (lower.includes('this weekend') || lower.includes('weekend') || lower.includes('saturday') || lower.includes('sunday')) {
     timeframe = 'this_weekend';
   } else if (lower.includes('today') || lower.includes('tonight')) {
     timeframe = 'today';
@@ -384,7 +421,7 @@ export async function handleTelegramSmartSearch(
 
   // 2. Clean query extraction
   let cleanQuery = lower
-    .replace(/\b(events?|vibes?|parties|party|shows?|happening|any|show me|find|get|looking for|tell me about|what are the|in vizag|in hyderabad|in bangalore|this weekend|today|tomorrow|this week|this month|for|the|a|an|please)\b/gi, ' ')
+    .replace(/\b(events?|vibes?|parties|party|shows?|happening|any|show me|find|get|looking for|tell me about|what are the|in vizag|in hyderabad|in bangalore|in chennai|in mumbai|in delhi|in goa|in pune|next weekend|this weekend|today|tomorrow|tonight|this week|this month|next week|next month|january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec|in|on|at|during|for|the|a|an|please)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
@@ -394,10 +431,13 @@ export async function handleTelegramSmartSearch(
       const model = getChatModel();
       if (model) {
         const prompt = `You are a search query parser for an events platform called VibeCheck.
+Current date: ${new Date().toISOString().split('T')[0]}.
 Extract search intent from user input: "${userText}"
 Return valid JSON ONLY with keys:
-- "query": search keyword (e.g., "trekking", "techno", "standup", "comedy", or empty string if general)
-- "timeframe": one of ["today", "tomorrow", "this_weekend", "this_week", "this_month", "upcoming"]
+- "query": search keyword without dates/months/prepositions (e.g., "trekking", "techno", "standup", "comedy", or empty string if general)
+- "timeframe": one of ["today", "tomorrow", "this_weekend", "next_weekend", "this_week", "this_month", "upcoming"]
+- "startDate": ISO 8601 start timestamp if specific month/date range requested, else null
+- "endDate": ISO 8601 end timestamp if specific month/date range requested, else null
 - "city": city name if specified or null
 JSON:`;
         const response = await Promise.race([
@@ -411,6 +451,8 @@ JSON:`;
           const parsed = JSON.parse(jsonMatch[0]);
           if (parsed.query !== undefined && typeof parsed.query === 'string') cleanQuery = parsed.query.trim();
           if (parsed.timeframe && typeof parsed.timeframe === 'string') timeframe = parsed.timeframe;
+          if (parsed.startDate && typeof parsed.startDate === 'string') startDate = parsed.startDate;
+          if (parsed.endDate && typeof parsed.endDate === 'string') endDate = parsed.endDate;
           if (parsed.city && typeof parsed.city === 'string') city = parsed.city;
         }
       }
@@ -423,7 +465,9 @@ JSON:`;
   const searchResults = await searchPublic(pool, {
     q: cleanQuery || undefined,
     city: city,
-    timeframe: timeframe,
+    timeframe: (startDate && endDate) ? undefined : timeframe,
+    startDate,
+    endDate,
     limitEvents: 4,
     limitOrganizers: 2,
   });

@@ -791,19 +791,32 @@ export async function searchPublic(pool: Pool, params: PublicSearchParams) {
   let eventIdx = 1;
 
   if (cleanQ) {
-    eventWhere.push(`(
-      e.title ILIKE $${eventIdx} OR
-      e.description ILIKE $${eventIdx} OR
-      e.location ILIKE $${eventIdx} OR
-      e.category::text ILIKE $${eventIdx} OR
-      a.brand_name ILIKE $${eventIdx}
-    )`);
-    eventValues.push(`%${cleanQ}%`);
-    eventIdx++;
+    const qLower = cleanQ.toLowerCase();
+    const terms = [cleanQ];
+    if (qLower.endsWith('ing') && qLower.length > 4) {
+      terms.push(qLower.slice(0, -3));
+      if (qLower.endsWith('king')) terms.push(qLower.slice(0, -4) + 'k');
+    }
+    if (qLower.endsWith('s') && qLower.length > 3) {
+      terms.push(qLower.slice(0, -1));
+    }
+
+    const termConditions = terms.map(term => {
+      const idx = eventIdx++;
+      eventValues.push(`%${term}%`);
+      return `(
+        e.title ILIKE $${idx} OR
+        e.description ILIKE $${idx} OR
+        e.location ILIKE $${idx} OR
+        e.category::text ILIKE $${idx} OR
+        a.brand_name ILIKE $${idx}
+      )`;
+    });
+    eventWhere.push(`(${termConditions.join(' OR ')})`);
   }
 
   if (city && city !== 'All' && city !== 'all') {
-    eventWhere.push(`e.city ILIKE $${eventIdx}`);
+    eventWhere.push(`(e.city ILIKE $${eventIdx} OR (e.city ILIKE 'Vizag%' AND $${eventIdx} ILIKE '%Visakhapatnam%') OR (e.city ILIKE 'Visakhapatnam%' AND $${eventIdx} ILIKE '%Vizag%'))`);
     eventValues.push(`%${city.trim()}%`);
     eventIdx++;
   }
@@ -827,6 +840,10 @@ export async function searchPublic(pool: Pool, params: PublicSearchParams) {
     eventWhere.push(`(
       (EXTRACT(ISODOW FROM e.date_time) IN (5, 6, 7) AND e.date_time >= NOW() AND e.date_time <= NOW() + INTERVAL '7 days')
       OR (e.date_time >= date_trunc('week', NOW()) + INTERVAL '4 days 16 hours' AND e.date_time <= date_trunc('week', NOW()) + INTERVAL '6 days 23 hours 59 minutes' AND e.date_time >= NOW())
+    )`);
+  } else if (timeframe === 'next_weekend') {
+    eventWhere.push(`(
+      e.date_time >= date_trunc('week', NOW()) + INTERVAL '11 days 16 hours' AND e.date_time <= date_trunc('week', NOW()) + INTERVAL '13 days 23 hours 59 minutes'
     )`);
   } else if (timeframe === 'this_week') {
     eventWhere.push(`e.date_time >= NOW() AND e.date_time <= NOW() + INTERVAL '7 days'`);

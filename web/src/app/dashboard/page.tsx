@@ -324,14 +324,19 @@ function DashboardContent() {
   // 1. Search query filter
   if (searchParamQuery && searchParamQuery.trim()) {
     const qLower = searchParamQuery.trim().toLowerCase();
-    filteredEvents = filteredEvents.filter(ev => 
-      ev.title?.toLowerCase().includes(qLower) ||
-      ev.description?.toLowerCase().includes(qLower) ||
-      ev.category?.toLowerCase().includes(qLower) ||
-      ev.location?.toLowerCase().includes(qLower) ||
-      ev.city?.toLowerCase().includes(qLower) ||
-      ev.organizer_email?.toLowerCase().includes(qLower)
-    );
+    const queryTerms = [qLower];
+    if (qLower.endsWith('ing') && qLower.length > 4) {
+      queryTerms.push(qLower.slice(0, -3));
+      if (qLower.endsWith('king')) queryTerms.push(qLower.slice(0, -4) + 'k');
+    }
+    if (qLower.endsWith('s') && qLower.length > 3) {
+      queryTerms.push(qLower.slice(0, -1));
+    }
+
+    filteredEvents = filteredEvents.filter(ev => {
+      const targetText = `${ev.title || ''} ${ev.description || ''} ${ev.category || ''} ${ev.location || ''} ${ev.city || ''} ${ev.organizer_email || ''}`.toLowerCase();
+      return queryTerms.some(term => targetText.includes(term));
+    });
   }
 
   // 2. Timeframe filter
@@ -348,6 +353,13 @@ function DashboardContent() {
         const day = d.getDay(); // 0 is Sun, 5 is Fri, 6 is Sat
         const diffDays = (d.getTime() - now.getTime()) / (1000 * 3600 * 24);
         return (day === 0 || day === 6 || (day === 5 && d.getHours() >= 16)) && diffDays >= -1 && diffDays <= 7;
+      });
+    } else if (timeframeParam === 'next_weekend') {
+      filteredEvents = filteredEvents.filter(ev => {
+        const d = new Date(ev.date_time);
+        const day = d.getDay(); // 0 is Sun, 5 is Fri, 6 is Sat
+        const diffDays = (d.getTime() - now.getTime()) / (1000 * 3600 * 24);
+        return (day === 0 || day === 6 || (day === 5 && d.getHours() >= 16)) && diffDays > 5 && diffDays <= 14;
       });
     } else if (timeframeParam === 'this_week') {
       filteredEvents = filteredEvents.filter(ev => {
