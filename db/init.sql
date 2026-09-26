@@ -329,5 +329,20 @@ CREATE INDEX IF NOT EXISTS idx_tickets_status ON support_tickets (status);
 CREATE INDEX IF NOT EXISTS idx_tickets_email ON support_tickets (user_email);
 CREATE INDEX IF NOT EXISTS idx_tickets_created ON support_tickets (created_at DESC);
 
+-- 14. Event Community Reports & Safety Audit Table
+CREATE TABLE IF NOT EXISTS event_reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    reporter_email VARCHAR(255),
+    reporter_ip VARCHAR(100),
+    reason VARCHAR(100) NOT NULL,
+    details TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_reports_event_id ON event_reports (event_id);
+CREATE INDEX IF NOT EXISTS idx_event_reports_created ON event_reports (created_at DESC);
+
+
 
 

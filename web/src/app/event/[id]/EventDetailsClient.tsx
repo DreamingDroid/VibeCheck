@@ -319,6 +319,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
 
   if (!event) return null;
 
+  const isCancelled = event.status === 'cancelled';
   const isHousefull = event.status === 'housefull' || (event.participant_limit && (event.rsvp_count || 0) >= event.participant_limit);
   const isFillingFast = event.status === 'filling_fast';
   const isEventEnded = event.status === 'ended' || (event.end_time ? new Date(event.end_time).getTime() <= Date.now() : event.date_time ? new Date(event.date_time).getTime() <= Date.now() : false);
@@ -383,6 +384,11 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                   <span className="text-[10px] text-amber-800/80 font-bold">({event.ratings_count || 0})</span>
                 </div>
               ) : null}
+              {isCancelled && (
+                <div className="sticker-badge bg-rose-600 border-none text-white font-black animate-pulse flex items-center gap-1">
+                  🚨 Event Cancelled
+                </div>
+              )}
               {event.status === 'housefull' && (
                 <div className="sticker-badge bg-red-500 border-none text-white font-black animate-pulse">Sold Out</div>
               )}
@@ -457,7 +463,29 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
           )}
 
           <div className="flex flex-col sm:flex-row gap-4 pt-6">
-            {isEventEnded ? (
+            {isCancelled ? (
+              <div className="w-full p-6 rounded-[24px] bg-rose-50 border-2 border-rose-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-rose-600 text-white flex items-center justify-center shrink-0">
+                    <AlertCircle className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="text-base font-black text-rose-950 uppercase tracking-tight">
+                      This Event Has Been Cancelled
+                    </div>
+                    <div className="text-xs font-bold text-rose-800">
+                      The organizer has officially cancelled this event. Any passes and bookings have been voided.
+                    </div>
+                  </div>
+                </div>
+                <Link
+                  href="/dashboard"
+                  className="ringer-button text-xs font-black bg-rose-600 hover:bg-rose-700 text-white px-5 py-3 rounded-xl uppercase tracking-wider"
+                >
+                  Explore Other Vibes
+                </Link>
+              </div>
+            ) : isEventEnded ? (
               // ENDED EVENT STATE: Only Rating button or "Already Rated" confirmation stays
               hasRated ? (
                 <div className="w-full p-4 sm:p-5 rounded-[20px] bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-between gap-4">
@@ -565,7 +593,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         {/* Right Side: Meta Info Box */}
         <div className="w-full md:w-80 bg-zinc-50 border-t md:border-t-0 md:border-l border-black/5 p-6 sm:p-12 space-y-8 sm:space-y-12">
            <div className="space-y-6">
-              {!isEventEnded && rsvped && (
+              {!isCancelled && !isEventEnded && rsvped && (
                 rsvpStatus === 'pending' ? (
                   <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-700">
@@ -610,7 +638,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               )}
 
               {/* Official Attendee Telegram Group (RSVP'd Card) */}
-              {!isEventEnded && rsvped && event.whatsapp_group_link && (
+              {!isCancelled && !isEventEnded && rsvped && event.whatsapp_group_link && (
                 <div className="p-4 rounded-2xl bg-sky-50 border border-sky-200 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#229ED9]">

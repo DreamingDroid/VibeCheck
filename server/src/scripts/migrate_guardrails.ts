@@ -61,8 +61,21 @@ async function runMigration() {
       CREATE INDEX IF NOT EXISTS idx_tickets_status ON support_tickets (status);
       CREATE INDEX IF NOT EXISTS idx_tickets_email ON support_tickets (user_email);
       CREATE INDEX IF NOT EXISTS idx_tickets_created ON support_tickets (created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS event_reports (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+          reporter_email VARCHAR(255),
+          reporter_ip VARCHAR(100),
+          reason VARCHAR(100) NOT NULL,
+          details TEXT,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_event_reports_event_id ON event_reports (event_id);
+      CREATE INDEX IF NOT EXISTS idx_event_reports_created ON event_reports (created_at DESC);
     `);
-    console.log('[Migration] Successfully created moderation_logs and support_tickets tables!');
+    console.log('[Migration] Successfully created moderation_logs, support_tickets, and event_reports tables!');
   } catch (error) {
     console.error('[Migration] Failed to run migration:', error);
   } finally {

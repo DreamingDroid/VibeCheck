@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { getEventsList, getEventById, insertEventRSVPEmail, checkEventRSVPEmail, checkUserEventAccess, getUserVipInvites } from './queries/events';
+import { notifySuperAdmins } from './notifications';
+import { logModerationResult } from './moderation';
 
 export async function getEventsHandler(req: Request, res: Response, pool: Pool) {
   try {
@@ -191,4 +193,94 @@ export async function getUserVipInvitesHandler(req: Request, res: Response, pool
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
+
+export async function reportEventHandler(req: Request, res: Response, pool: Pool) {
+  try {
+    const { id } = req.params;
+    const { reporter_email, reason, details } = req.body;
+    const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
+
+    if (!reason) {
+      return res.status(400).json({ success: false, error: 'Reporting reason is required.' });
+    }
+
+    const event = await getEventById(pool, id as string);
+    if (!event) {
+      return res.status(404).json({ success: false, error: 'Event not found.' });
+    }
+
+    const cleanEmail = (reporter_email || '').toLowerCase().trim();
+
+    // Prevent duplicate report from same email/ip
+    const existing = await pool.query(
+      `SELECT id FROM event_reports 
+       WHERE event_id = $1 AND ((reporter_email IS NOT NULL AND reporter_email = $2) OR (reporter_ip IS NOT NULL AND reporter_ip = $3))`,
+      [id, cleanEmail || null, ip]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.json({
+        success: true,
+        message: 'Your report has already been logged. Our trust & safety team is investigating.',
+      });
+    }
+
+    await pool.query(
+      `INSERT INTO event_reports (event_id, reporter_email, reporter_ip, reason, details)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [id, cleanEmail || null, ip, reason, details || null]
+    );
+
+    // Count distinct community reports
+    const countRes = await pool.query(
+      `SELECT COUNT(DISTINCT COALESCE(NULLIF(reporter_email, ''), reporter_ip))::int AS count 
+       FROM event_reports 
+       WHERE event_id = $1`,
+      [id]
+    );
+
+    const reportCount = countRes.rows[0]?.count || 1;
+
+    // Threshold Check: If >= 3 distinct reports, auto-freeze event
+    if (reportCount >= 3) {
+      await pool.query(
+        `UPDATE events SET status = 'flagged_review', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+        [id]
+      );
+
+      await logModerationResult(pool, {
+        entity_type: 'event',
+        entity_id: id as string,
+        submitted_by: event.organizer_email,
+        content_payload: { title: event.title, reportCount, latest_reason: reason },
+        result: {
+          is_safe: false,
+          profanity_detected: false,
+          fast_filter_passed: false,
+          quality_score: 0,
+          decision: 'auto_reject',
+          flags: ['community_3_reports_threshold_reached'],
+          reason: `Auto-frozen: Event reached ${reportCount} community safety reports.`,
+        },
+      });
+
+      await notifySuperAdmins(pool, {
+        title: `🚨 CRITICAL SAFETY FREEZE: ${event.title}`,
+        message: `Event ID ${id} (${event.title}) has been automatically FROZEN after receiving ${reportCount} community fraud/safety reports. Public listing and booking have been suspended pending SuperAdmin audit.`,
+        type: 'critical_event_freeze',
+        link: `/event/${id}`,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Report received. Our automated safety system is reviewing this event.',
+      auto_frozen: reportCount >= 3,
+    });
+  } catch (error) {
+    console.error('Error in reportEventHandler:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
 

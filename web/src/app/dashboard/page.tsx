@@ -1082,70 +1082,78 @@ function DashboardContent() {
                 <div className="sticker-badge bg-zinc-100 border-none text-zinc-500">
                   {featuredEvent.is_paid ? "Paid Entry" : "Free Entry"}
                 </div>
-                {featuredEvent.status === 'housefull' && (
-                  <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] animate-pulse">Sold Out</div>
-                )}
-                {featuredEvent.status === 'filling_fast' && (
-                  <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] animate-pulse flex items-center gap-1"><Sparkles className="h-3 w-3" /> Filling Fast</div>
-                )}
-                <div className="sticker-badge bg-primary/10 border-none text-primary flex items-center gap-1.5 font-black">
-                  <Users className="h-3 w-3" />
-                  <span>{featuredEvent.rsvp_count || 0} Interested</span>
-                </div>
-              </div>
-              <div className="pt-6 border-t border-black/5 mt-4">
-                <button 
-                  onClick={(e) => toggleFollow(e, featuredEvent.organizer_email)}
-                  className={`ringer-button text-xs ${following.includes(featuredEvent.organizer_email) ? 'bg-zinc-200 text-black' : 'bg-white text-black border border-black hover:bg-zinc-50'}`}
-                >
-                  {following.includes(featuredEvent.organizer_email) ? '✓ FOLLOWING ORGANIZER' : '➕ FOLLOW ORGANIZER'}
-                </button>
-              </div>
-           </div>
-        </section>
-      )}
+                 {featuredEvent.status === 'cancelled' && (
+                   <div className="sticker-badge bg-rose-600 border-none text-white font-black text-[10px] uppercase tracking-wider animate-pulse flex items-center gap-1">🚨 Cancelled</div>
+                 )}
+                 {featuredEvent.status === 'housefull' && (
+                   <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] animate-pulse">Sold Out</div>
+                 )}
+                 {featuredEvent.status === 'filling_fast' && (
+                   <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] animate-pulse flex items-center gap-1"><Sparkles className="h-3 w-3" /> Filling Fast</div>
+                 )}
+                 <div className="sticker-badge bg-primary/10 border-none text-primary flex items-center gap-1.5 font-black">
+                   <Users className="h-3 w-3" />
+                   <span>{featuredEvent.rsvp_count || 0} Interested</span>
+                 </div>
+               </div>
+               <div className="pt-6 border-t border-black/5 mt-4">
+                 <button 
+                   onClick={(e) => toggleFollow(e, featuredEvent.organizer_email)}
+                   className={`ringer-button text-xs ${following.includes(featuredEvent.organizer_email) ? 'bg-zinc-200 text-black' : 'bg-white text-black border border-black hover:bg-zinc-50'}`}
+                 >
+                   {following.includes(featuredEvent.organizer_email) ? '✓ FOLLOWING ORGANIZER' : '➕ FOLLOW ORGANIZER'}
+                 </button>
+               </div>
+            </div>
+         </section>
+       )}
 
-      {/* Bento Grid */}
-      {!showCalendarView && otherEvents.length > 0 && (
-        <section className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-8 auto-rows-min">
-        {otherEvents.map((ev, i) => {
-          const isLarge = i % 5 === 0;
-          return (
-            <div 
-              key={ev.id} 
-              className={`
-                ringer-card p-0 group flex flex-col relative overflow-hidden active:scale-[0.98] transition-transform
-                ${isLarge ? 'md:col-span-6 lg:col-span-8' : 'md:col-span-3 lg:col-span-4'}
-                ${isVibrant ? `${getCategoryCardClass(ev.category)} vibe-hover-lift` : ''}
-              `}
-            >
-              {isVibrant && <CategoryDecorations category={ev.category} showAccent={false} />}
-              <Link href={`/event/${ev.id}`} className="absolute inset-0 z-10" aria-label={`View details for ${ev.title}`} />
-              <div className="p-5 sm:p-8 flex flex-col h-full space-y-6 relative z-10 pointer-events-none">
-                 <div className="flex justify-between items-start">
-                   <div className="flex flex-wrap gap-2">
-                     <div className={`sticker-badge ${getCategoryColor(ev.category)} text-black border-none font-black`}>
-                       {ev.category}
-                     </div>
-                     {ev.event_type === 'online' && (
-                       <div className="sticker-badge bg-sky-100 text-sky-900 border-none font-black text-[10px] flex items-center gap-1">
-                         <Globe className="h-3 w-3 text-sky-600" /> Online
-                       </div>
-                     )}
-                     <div className="sticker-badge bg-zinc-100 border-none text-zinc-500 font-bold text-[10px]">
-                       {ev.is_paid ? "Paid" : "Free"}
-                     </div>
-                     {ev.status === 'housefull' && (
-                       <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] animate-pulse">
-                         Sold Out
-                       </div>
-                     )}
-                     {ev.status === 'filling_fast' && (
-                       <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] animate-pulse flex items-center gap-1">
-                         <Sparkles className="h-3 w-3" /> Filling Fast
-                       </div>
-                     )}
-                   </div>
+       {/* Bento Grid */}
+       {!showCalendarView && otherEvents.length > 0 && (
+         <section className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-8 auto-rows-min">
+         {otherEvents.map((ev, i) => {
+           const isLarge = i % 5 === 0;
+           return (
+             <div 
+               key={ev.id} 
+               className={`
+                 ringer-card p-0 group flex flex-col relative overflow-hidden active:scale-[0.98] transition-transform
+                 ${isLarge ? 'md:col-span-6 lg:col-span-8' : 'md:col-span-3 lg:col-span-4'}
+                 ${isVibrant ? `${getCategoryCardClass(ev.category)} vibe-hover-lift` : ''}
+               `}
+             >
+               {isVibrant && <CategoryDecorations category={ev.category} showAccent={false} />}
+               <Link href={`/event/${ev.id}`} className="absolute inset-0 z-10" aria-label={`View details for ${ev.title}`} />
+               <div className="p-5 sm:p-8 flex flex-col h-full space-y-6 relative z-10 pointer-events-none">
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-wrap gap-2">
+                      <div className={`sticker-badge ${getCategoryColor(ev.category)} text-black border-none font-black`}>
+                        {ev.category}
+                      </div>
+                      {ev.event_type === 'online' && (
+                        <div className="sticker-badge bg-sky-100 text-sky-900 border-none font-black text-[10px] flex items-center gap-1">
+                          <Globe className="h-3 w-3 text-sky-600" /> Online
+                        </div>
+                      )}
+                      <div className="sticker-badge bg-zinc-100 border-none text-zinc-500 font-bold text-[10px]">
+                        {ev.is_paid ? "Paid" : "Free"}
+                      </div>
+                      {ev.status === 'cancelled' && (
+                        <div className="sticker-badge bg-rose-600 border-none text-white font-black text-[10px] uppercase tracking-wider animate-pulse flex items-center gap-1">
+                          🚨 Cancelled
+                        </div>
+                      )}
+                      {ev.status === 'housefull' && (
+                        <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] animate-pulse">
+                          Sold Out
+                        </div>
+                      )}
+                      {ev.status === 'filling_fast' && (
+                        <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] animate-pulse flex items-center gap-1">
+                          <Sparkles className="h-3 w-3" /> Filling Fast
+                        </div>
+                      )}
+                    </div>
                    <div className="flex items-center gap-2">
                      <button 
                        onClick={(e) => toggleFollow(e, ev.organizer_email)}

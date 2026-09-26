@@ -17,7 +17,7 @@ import { Pool } from 'pg';
 import { registerType } from 'pgvector/pg';
 import { handleEventQuery, saveUserPreferences } from './rag';
 import { verifyWebhook, handleIncomingMessage } from './whatsapp';
-import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHandler, getUserVipInvitesHandler } from './events';
+import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHandler, getUserVipInvitesHandler, reportEventHandler } from './events';
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
 import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler, organizerGetEventAnalyticsHandler, organizerToggleHousefullHandler, organizerUpdateStatusHandler, organizerGetCrmContactsHandler, organizerUpsertCrmNotesHandler, organizerCrmBroadcastHandler, organizerGetDashboardAnalyticsHandler, organizerIssuePassHandler, organizerBulkIssuePassesHandler, organizerCancelRsvpHandler, organizerUpdateWhatsAppGroupLinkHandler, organizerSendWhatsAppGroupInviteHandler, organizerGetEventInvitesHandler, getPublicOrganizerHandler, getPublicOrganizersListHandler } from './organizer';
 import { getCitiesHandler } from './cities';
@@ -246,6 +246,7 @@ app.get('/api/events', (req, res) => getEventsHandler(req, res, pool));
 app.get('/api/events/:id', (req, res) => getSingleEventHandler(req, res, pool));
 app.post('/api/events/:id/rsvp', (req, res) => rsvpEventHandler(req, res, pool));
 app.get('/api/events/:id/rsvp/check', (req, res) => checkRsvpHandler(req, res, pool));
+app.post('/api/events/:id/report', (req, res) => reportEventHandler(req, res, pool));
 app.get('/api/user/vip-invites', (req, res) => getUserVipInvitesHandler(req, res, pool));
 
 // Ratings API (Event & Organizer Star Ratings)

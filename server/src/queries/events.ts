@@ -115,9 +115,9 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
              ${userRsvpSelect}
       FROM events
-      WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)
+      WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR (status = 'cancelled' AND date_time::date >= CURRENT_DATE) OR status IS NULL)
         AND (status != 'ended' OR status IS NULL)
-        AND (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW()))
+        AND (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW()) OR (status = 'cancelled' AND date_time::date >= CURRENT_DATE))
     `;
 
     if (category && category !== 'All') {
@@ -714,22 +714,30 @@ export async function getEventsInNext7Days(pool: Pool, city?: string) {
 
 export async function updateEventStatusByOrganizer(pool: Pool, id: string, organizerEmail: string, newStatus: string) {
     const { rows } = await pool.query(
-      `SELECT status FROM events WHERE id = $1 AND organizer_email = $2`,
+      `SELECT id, title, status FROM events WHERE id = $1 AND organizer_email = $2`,
       [id, organizerEmail]
     );
     if (rows.length === 0) return null;
     const currentStatus = rows[0].status;
     
-    // Only allow changes if event is already in an approved-like state
-    if (!['approved', 'housefull', 'filling_fast'].includes(currentStatus)) {
-        return { success: false, error: 'Event is not in a live status state.' };
+    // Only allow changes if event is already in an approved-like state or cancelled
+    if (!['approved', 'housefull', 'filling_fast', 'cancelled'].includes(currentStatus)) {
+        return { success: false, error: 'Event is not in an editable live status state.' };
     }
     
     await pool.query(
       `UPDATE events SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
       [newStatus, id]
     );
-    return { success: true, status: newStatus };
+
+    if (newStatus === 'cancelled') {
+      await pool.query(
+        `UPDATE event_rsvps SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE event_id = $1`,
+        [id]
+      );
+    }
+
+    return { success: true, status: newStatus, title: rows[0].title };
 }
 
 export async function getPublicOrganizerEvents(pool: Pool, organizerEmail: string, userEmail?: string) {
@@ -791,7 +799,7 @@ export async function getPublicOrganizerEvents(pool: Pool, organizerEmail: strin
         ${userRsvpSelect}
       FROM events
       WHERE LOWER(organizer_email) = $1
-        AND (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status = 'ended' OR status IS NULL)
+        AND (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status = 'ended' OR status = 'cancelled' OR status IS NULL)
         AND (
           date_time >= CURRENT_DATE 
           OR (end_time IS NOT NULL AND end_time >= CURRENT_DATE)

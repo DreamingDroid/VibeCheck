@@ -5,7 +5,7 @@ import { Resend } from 'resend';
 import { config } from './config';
 import { sendWhatsAppMessage, sendWhatsAppTemplateOTP } from './whatsapp';
 import { notifySuperAdmins } from './notifications';
-import { evaluateContentWithAI, logModerationResult } from './moderation';
+import { evaluateContentWithAI, logModerationResult, generateOrganizerInstagramIntelligence, InstagramHostReport } from './moderation';
 
 const resend = new Resend(config.RESEND_API_KEY);
 
@@ -25,6 +25,8 @@ export interface InstagramMetadata {
   media_count?: number;
   profile_picture_url?: string;
   verified_at?: string;
+  recent_posts_analyzed?: number;
+  ai_host_report?: InstagramHostReport;
 }
 
 const verifiedTokens = new Map<string, {
@@ -202,6 +204,21 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
 
       verifiedHandle = normalizeInstagramHandle(username);
 
+      // Fetch recent media posts to evaluate past event hosting history
+      let recentPosts: any[] = [];
+      try {
+        const mediaRes = await fetch(
+          `https://graph.instagram.com/me/media?fields=id,caption,media_type,timestamp,permalink&limit=15&access_token=${tokenData.access_token}`,
+          { signal: AbortSignal.timeout(15000) }
+        );
+        if (mediaRes.ok) {
+          const mediaData = (await mediaRes.json()) as any;
+          recentPosts = Array.isArray(mediaData.data) ? mediaData.data : [];
+        }
+      } catch (mediaErr: any) {
+        console.warn('[Instagram Apply] Media fetch warning:', mediaErr.message);
+      }
+
       // Extract account name and audience metrics
       const rawFollowers = Number(profileData.followers_count ?? 0);
       const followersCount = isNaN(rawFollowers) ? 0 : rawFollowers;
@@ -210,6 +227,15 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
       const profilePictureUrl = profileData.profile_picture_url || '';
 
       const tierInfo = classifyFollowerTier(followersCount);
+
+      // Autonomous AI host evaluation from profile & recent post captions
+      const aiHostReport = await generateOrganizerInstagramIntelligence({
+        username: verifiedHandle,
+        account_name: accountName,
+        followers_count: followersCount,
+        media_count: mediaCount,
+        recent_posts: recentPosts,
+      });
 
       const instagramMetadata: InstagramMetadata = {
         account_name: accountName,
@@ -222,6 +248,8 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
         media_count: mediaCount,
         profile_picture_url: profilePictureUrl,
         verified_at: new Date().toISOString(),
+        recent_posts_analyzed: recentPosts.length,
+        ai_host_report: aiHostReport,
       };
 
       // Check if this Instagram handle is already registered to another active or pending organizer
@@ -275,6 +303,7 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
         scoreRecommendation: instagramMetadata.score_recommendation,
         instagramUrl: fullInstagramUrl,
         metadata: instagramMetadata,
+        aiHostReport: instagramMetadata.ai_host_report,
         message: `Successfully verified Instagram account @${verifiedHandle}!`,
       });
     } else {
@@ -289,6 +318,18 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
       }
 
       const tierInfo = classifyFollowerTier(3500);
+
+      const simAiHostReport = await generateOrganizerInstagramIntelligence({
+        username: verifiedHandle,
+        account_name: verifiedHandle,
+        followers_count: 3500,
+        media_count: 24,
+        recent_posts: [
+          { caption: 'Amazing turnout at last weekend community acoustic jam session! Next meetup coming soon.', media_type: 'IMAGE', timestamp: '2026-08-15' },
+          { caption: 'Sunset rooftop board games night in Vizag was pure vibes! 🎲✨', media_type: 'CAROUSEL_ALBUM', timestamp: '2026-07-28' },
+        ],
+      });
+
       const simMetadata: InstagramMetadata = {
         account_name: verifiedHandle,
         account_type: 'BUSINESS',
@@ -299,6 +340,8 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
         score_recommendation: tierInfo.scoreRecommendation,
         media_count: 24,
         verified_at: new Date().toISOString(),
+        recent_posts_analyzed: 2,
+        ai_host_report: simAiHostReport,
       };
 
       const token = 'ig_' + crypto.randomBytes(32).toString('hex');
@@ -323,6 +366,7 @@ export async function exchangeInstagramCodeHandler(req: Request, res: Response, 
         scoreRecommendation: simMetadata.score_recommendation,
         instagramUrl: fullInstagramUrl,
         metadata: simMetadata,
+        aiHostReport: simMetadata.ai_host_report,
         message: `Successfully verified Instagram account @${verifiedHandle} (Dev Mode)!`,
       });
     }

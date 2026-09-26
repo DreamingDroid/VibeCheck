@@ -438,6 +438,64 @@ export async function organizerUpdateStatusHandler(req: Request, res: Response, 
     if (result.success === false) {
       return res.status(400).json({ success: false, error: result.error });
     }
+
+    // Cancellation Cascade: notify all attendees and superadmins ($0 zero WhatsApp charges)
+    if (status === 'cancelled') {
+      try {
+        const attendeesRes = await pool.query(
+          `SELECT er.user_email, u.telegram_chat_id, u.name 
+           FROM event_rsvps er 
+           LEFT JOIN web_users u ON LOWER(er.user_email) = LOWER(u.email) 
+           WHERE er.event_id = $1`,
+          [id]
+        );
+
+        const eventTitle = result.title || 'Event';
+
+        // 1. In-App Notifications & Telegram Alerts
+        for (const attendee of attendeesRes.rows) {
+          if (attendee.user_email) {
+            await createUserNotification(pool, {
+              userEmail: attendee.user_email,
+              title: `Event Cancelled: ${eventTitle}`,
+              message: `The organizer has cancelled "${eventTitle}". Your pass has been cancelled and voided.`,
+              type: 'event_cancelled',
+              link: `/event/${id}`,
+              metadata: { event_id: id },
+            });
+          }
+
+          if (attendee.telegram_chat_id) {
+            const guestName = attendee.name || 'Friend';
+            await sendTelegramMessage(
+              attendee.telegram_chat_id,
+              `⚠️ *Event Cancellation Notice*\n\nHi ${guestName},\n\nThe organizer has cancelled *${eventTitle}*.\n\nYour digital pass has been cancelled and voided. Please do not head to the venue.`
+            );
+          }
+        }
+
+        // 2. Firebase Cloud Messaging Topic Broadcast
+        const topic = sanitizeTopicName(`event_${id}`);
+        await sendFcmTopicBroadcast({
+          topic,
+          title: `⚠️ Event Cancelled: ${eventTitle}`,
+          message: `The organizer has cancelled "${eventTitle}". All passes have been voided.`,
+          type: 'event_cancelled',
+          link: `/event/${id}`,
+        });
+
+        // 3. SuperAdmin Alert
+        await notifySuperAdmins(pool, {
+          title: `Event Cancelled by Host: ${eventTitle}`,
+          message: `Organizer (${organizer_email}) cancelled event ID ${id}. All ${attendeesRes.rows.length} attendee passes have been voided and notified via In-App + Telegram.`,
+          type: 'event_cancelled',
+          link: `/event/${id}`,
+        });
+      } catch (cascadeErr) {
+        console.error('[Event Cancellation Cascade Error]:', cascadeErr);
+      }
+    }
+
     res.json({ success: true, status: result.status, message: `Event status updated to ${result.status}.` });
   } catch (error) {
     console.error('Error updating status:', error);
