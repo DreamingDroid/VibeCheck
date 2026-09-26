@@ -769,6 +769,8 @@ export async function getPublicOrganizerEvents(pool: Pool, organizerEmail: strin
         ratings_count, 
         attendee_guide, 
         contact_info,
+        event_type,
+        timezone,
         (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
         CASE 
           WHEN (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW())) THEN 0 
@@ -778,11 +780,14 @@ export async function getPublicOrganizerEvents(pool: Pool, organizerEmail: strin
       FROM events
       WHERE LOWER(organizer_email) = $1
         AND (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status = 'ended' OR status IS NULL)
+        AND (
+          date_time >= CURRENT_DATE 
+          OR (end_time IS NOT NULL AND end_time >= CURRENT_DATE)
+        )
         ${visibilityFilter}
       ORDER BY 
         is_past ASC,
-        CASE WHEN (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW())) THEN date_time END ASC,
-        date_time DESC;
+        date_time ASC;
     `;
 
     const { rows } = await pool.query(queryText, params);

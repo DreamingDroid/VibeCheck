@@ -213,7 +213,7 @@ interface OrganizerProfileClientProps {
 }
 
 // Countdown hook for real-time live timer display
-function useCountdown(targetDateStr: string) {
+function useCountdown(targetDateStr: string, endDateStr?: string | null, status?: string) {
   const [timeLeft, setTimeLeft] = useState<{
     days: number;
     hours: number;
@@ -232,21 +232,39 @@ function useCountdown(targetDateStr: string) {
 
   useEffect(() => {
     const calculate = () => {
-      const targetTime = new Date(targetDateStr).getTime();
-      const now = new Date().getTime();
-      const diff = targetTime - now;
-
-      // Event is currently live (started within last 6 hours or target reached)
-      if (diff <= 0) {
-        const hoursSinceStart = Math.abs(diff) / (1000 * 60 * 60);
-        if (hoursSinceStart <= 6) {
-          setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, isPast: false, isLive: true });
-        } else {
-          setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, isPast: true, isLive: false });
-        }
+      if (status === "ended") {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, isPast: true, isLive: false });
         return;
       }
 
+      const startTime = new Date(targetDateStr).getTime();
+      const now = Date.now();
+
+      if (isNaN(startTime)) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, isPast: false, isLive: false });
+        return;
+      }
+
+      // Calculate end time: use endDateStr if available, otherwise default to 3 hours after start
+      let endTime = endDateStr ? new Date(endDateStr).getTime() : NaN;
+      if (isNaN(endTime)) {
+        endTime = startTime + (3 * 60 * 60 * 1000);
+      }
+
+      // Event has ended
+      if (now >= endTime) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, isPast: true, isLive: false });
+        return;
+      }
+
+      // Event is currently live (now is between start and end time)
+      if (now >= startTime && now < endTime) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, isPast: false, isLive: true });
+        return;
+      }
+
+      // Future event - count down to start
+      const diff = startTime - now;
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -258,7 +276,7 @@ function useCountdown(targetDateStr: string) {
     calculate();
     const interval = setInterval(calculate, 1000);
     return () => clearInterval(interval);
-  }, [targetDateStr]);
+  }, [targetDateStr, endDateStr, status]);
 
   return timeLeft;
 }
@@ -281,7 +299,7 @@ function EventCard({
   const [passCode, setPassCode] = useState(event.user_pass_code);
   const [rsvpStatus, setRsvpStatus] = useState(event.user_rsvp_status);
 
-  const countdown = useCountdown(event.date_time);
+  const countdown = useCountdown(event.date_time, event.end_time, event.status);
   const { isVibrant } = useTheme();
 
   const formattedDate = useMemo(() => {
@@ -315,6 +333,11 @@ function EventCard({
   const handleRsvp = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (countdown.isPast) {
+      toast.error("This event has already ended.");
+      return;
+    }
 
     if (!userEmail) {
       toast.error("Please sign in to book your spot!");
@@ -361,9 +384,13 @@ function EventCard({
   const catStyle = getCategoryVibrantStyle(event.category);
 
   return (
-    <div className="ringer-card group overflow-hidden flex flex-col bg-white border border-black/8 hover:border-black/20 hover:shadow-xl transition-all duration-300 rounded-[22px] sm:rounded-[32px]">
+    <div className={`ringer-card group overflow-hidden flex flex-col bg-white border transition-all duration-300 rounded-[22px] sm:rounded-[32px] ${
+      countdown.isPast
+        ? "border-black/5 opacity-80 bg-zinc-50/50 shadow-sm"
+        : "border-black/8 hover:border-black/20 hover:shadow-xl"
+    }`}>
       {/* Poster Image Area - Mobile Optimized Aspect Ratio */}
-      <div className="relative aspect-[16/8] sm:aspect-[16/11] w-full overflow-hidden bg-zinc-900">
+      <div className={`relative aspect-[16/8] sm:aspect-[16/11] w-full overflow-hidden bg-zinc-900 ${countdown.isPast ? "grayscale-[25%]" : ""}`}>
         {event.image_url ? (
           <>
             <img
@@ -425,7 +452,12 @@ function EventCard({
         </div>
 
         {/* Live / Status Banner */}
-        {countdown.isLive ? (
+        {countdown.isPast ? (
+          <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-zinc-900/90 text-zinc-300 border border-white/10 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md">
+            <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
+            Event Ended
+          </div>
+        ) : countdown.isLive ? (
           <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-emerald-500 text-white px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md animate-pulse">
             <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-white" />
             Live Now
@@ -541,7 +573,16 @@ function EventCard({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 pt-1 sm:pt-2">
-          {userRsvped ? (
+          {countdown.isPast ? (
+            <button
+              type="button"
+              disabled
+              className="flex-1 ringer-button bg-zinc-100 text-zinc-400 border border-zinc-200 font-black text-[11px] sm:text-xs uppercase py-2.5 sm:py-3.5 shadow-none flex items-center justify-center gap-1.5 cursor-not-allowed select-none"
+            >
+              <Clock className="h-3.5 w-3.5" />
+              <span>Event Concluded</span>
+            </button>
+          ) : userRsvped ? (
             <button
               type="button"
               onClick={() => onOpenGuide(event)}
@@ -617,11 +658,29 @@ export function OrganizerProfileClient({
     setFollowersCount(initialOrganizer.followers_count || 0);
   }, [initialOrganizer, initialEvents]);
 
-  // Extract unique dates from upcoming events for the date filter bar
+  // Helper to check if an event is today or later
+  const isTodayOrLater = (ev: VibeEvent) => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const evDate = new Date(ev.date_time);
+      const evEndDate = ev.end_time ? new Date(ev.end_time) : null;
+      return evDate >= today || (evEndDate ? evEndDate >= today : false);
+    } catch {
+      return true;
+    }
+  };
+
+  // Only display events occurring today or later (older events are retained in DB but hidden from public profile)
+  const activeEvents = useMemo(() => {
+    return events.filter(isTodayOrLater);
+  }, [events]);
+
+  // Extract unique dates from upcoming/today events for the date filter bar
   const dateOptions = useMemo(() => {
     const datesMap = new Map<string, { label: string; dateStr: string; rawDate: Date }>();
     
-    events.forEach((ev) => {
+    activeEvents.forEach((ev) => {
       try {
         const d = new Date(ev.date_time);
         const dateStr = d.toISOString().split("T")[0];
@@ -643,11 +702,11 @@ export function OrganizerProfileClient({
     );
 
     return [{ dateStr: "ALL", label: "ALL" }, ...sortedDates];
-  }, [events]);
+  }, [activeEvents]);
 
-  // Filtered events
+  // Filtered events based on date switcher
   const filteredEvents = useMemo(() => {
-    return events.filter((ev) => {
+    return activeEvents.filter((ev) => {
       // Date filter
       if (selectedDateFilter !== "ALL") {
         try {
@@ -659,7 +718,7 @@ export function OrganizerProfileClient({
       }
       return true;
     });
-  }, [events, selectedDateFilter]);
+  }, [activeEvents, selectedDateFilter]);
 
   // User RSVPs for this organizer
   const userBookedEvents = useMemo(() => {
