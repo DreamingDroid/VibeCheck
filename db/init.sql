@@ -142,6 +142,8 @@ CREATE TABLE IF NOT EXISTS events (
     image_url VARCHAR(1000),
     image_public_id VARCHAR(255),
     whatsapp_group_link TEXT,                    -- WhatsApp group invite link for RSVP'd attendees
+    event_type VARCHAR(20) DEFAULT 'in_person',  -- in_person | online
+    timezone VARCHAR(50) DEFAULT 'Asia/Kolkata', -- event timezone (e.g. Asia/Kolkata, UTC, etc.)
     average_rating NUMERIC(3,1),
     ratings_count INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -207,11 +209,12 @@ CREATE INDEX IF NOT EXISTS idx_scanner_pins_event ON event_scanner_pins(event_id
 CREATE TABLE IF NOT EXISTS cities (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
+    timezone VARCHAR(50) DEFAULT 'Asia/Kolkata',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Seed default cities
-INSERT INTO cities (name) VALUES ('Vizag'), ('Bangalore'), ('London')
+INSERT INTO cities (name, timezone) VALUES ('Vizag', 'Asia/Kolkata'), ('Bangalore', 'Asia/Kolkata'), ('London', 'Europe/London')
 ON CONFLICT (name) DO NOTHING;
 
 -- 8. Organizer Followers (CRM)

@@ -435,13 +435,13 @@ export async function adminGetEventsByStatusHandler(req: Request, res: Response,
 // --- CITY MANAGEMENT ---
 
 export async function adminAddCityHandler(req: Request, res: Response, pool: Pool) {
-  const { name } = req.body;
+  const { name, timezone } = req.body;
   if (!name || typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ success: false, error: 'City name required' });
   }
   const formattedName = name.trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   try {
-    const city = await addCity(pool, formattedName);
+    const city = await addCity(pool, formattedName, timezone || 'Asia/Kolkata');
     res.json({ success: true, data: city, message: 'City added successfully.' });
   } catch (error: any) {
     if (error.code === '23505') {

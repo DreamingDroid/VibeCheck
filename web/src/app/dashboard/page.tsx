@@ -11,7 +11,7 @@ import { useCity, isEventEnded } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useTranslation } from "@/context/LanguageContext";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
-import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock, Send, LayoutGrid } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock, Send, LayoutGrid, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
@@ -1074,6 +1074,11 @@ function DashboardContent() {
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="sticker-badge border-black text-black">{featuredEvent.category}</div>
+                {featuredEvent.event_type === 'online' && (
+                  <div className="sticker-badge bg-sky-100 text-sky-900 border-none font-black text-[10px] flex items-center gap-1">
+                    <Globe className="h-3 w-3 text-sky-600" /> Online Event
+                  </div>
+                )}
                 <div className="sticker-badge bg-zinc-100 border-none text-zinc-500">
                   {featuredEvent.is_paid ? "Paid Entry" : "Free Entry"}
                 </div>
@@ -1122,6 +1127,11 @@ function DashboardContent() {
                      <div className={`sticker-badge ${getCategoryColor(ev.category)} text-black border-none font-black`}>
                        {ev.category}
                      </div>
+                     {ev.event_type === 'online' && (
+                       <div className="sticker-badge bg-sky-100 text-sky-900 border-none font-black text-[10px] flex items-center gap-1">
+                         <Globe className="h-3 w-3 text-sky-600" /> Online
+                       </div>
+                     )}
                      <div className="sticker-badge bg-zinc-100 border-none text-zinc-500 font-bold text-[10px]">
                        {ev.is_paid ? "Paid" : "Free"}
                      </div>

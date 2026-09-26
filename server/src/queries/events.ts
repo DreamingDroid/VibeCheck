@@ -111,7 +111,7 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
     }
 
     let queryText = `
-      SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide,
+      SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone,
              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
              ${userRsvpSelect}
       FROM events
@@ -149,7 +149,7 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
 
 export async function getEventById(pool: Pool, id: string) {
     const { rows } = await pool.query(
-      `SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, is_featured, visibility, contact_info, image_url, image_public_id, average_rating, ratings_count, attendee_guide,
+      `SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, is_featured, visibility, contact_info, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone,
               (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
               (SELECT brand_name FROM admins WHERE email = events.organizer_email) as organizer_name,
               COALESCE(
@@ -315,19 +315,21 @@ export async function getEventByOrganizer(pool: Pool, eventId: string) {
 }
 
 export async function createOrganizerEvent(pool: Pool, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, organizer_email, participant_limit, is_paid, visibility, image_url, image_public_id, attendee_guide, attendeeGuide } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, organizer_email, participant_limit, is_paid, visibility, image_url, image_public_id, attendee_guide, attendeeGuide, event_type, timezone } = data;
     const validVisibility = visibility === 'invite_only' ? 'invite_only' : 'public';
     const validCategories = ['Sports', 'Arts', 'Education', 'Spiritual', 'Music', 'Food', 'Wellness', 'Indie', 'Techno', 'General'];
     const safeCategory = category && validCategories.includes(category) ? category : 'General';
     const safeLimit = participant_limit !== undefined && participant_limit !== null && participant_limit !== '' ? parseInt(participant_limit, 10) : (data.participantLimit !== undefined && data.participantLimit !== null && data.participantLimit !== '' ? parseInt(data.participantLimit, 10) : null);
     const safeIsPaid = Boolean(is_paid ?? data.isPaid ?? false);
     const safeGuide = attendee_guide || attendeeGuide || {};
+    const safeEventType = event_type === 'online' ? 'online' : 'in_person';
+    const safeTimezone = timezone && typeof timezone === 'string' ? timezone : 'Asia/Kolkata';
 
     const { rows } = await pool.query(
-      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, status, organizer_email, participant_limit, is_paid, visibility, image_url, image_public_id, attendee_guide)
-       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending', $13, $14, $15, $16::event_visibility, $17, $18, $19)
-       RETURNING id, title, status, visibility, image_url, image_public_id, whatsapp_group_link, attendee_guide`,
-      [title, description, safeCategory, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, organizer_email, isNaN(safeLimit as number) ? null : safeLimit, safeIsPaid, validVisibility, image_url || null, image_public_id || null, JSON.stringify(safeGuide)]
+      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, status, organizer_email, participant_limit, is_paid, visibility, image_url, image_public_id, attendee_guide, event_type, timezone)
+       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending', $13, $14, $15, $16::event_visibility, $17, $18, $19, $20, $21)
+       RETURNING id, title, status, visibility, image_url, image_public_id, whatsapp_group_link, attendee_guide, event_type, timezone`,
+      [title, description, safeCategory, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, organizer_email, isNaN(safeLimit as number) ? null : safeLimit, safeIsPaid, validVisibility, image_url || null, image_public_id || null, JSON.stringify(safeGuide), safeEventType, safeTimezone]
     );
     return rows[0];
 }
@@ -335,7 +337,7 @@ export async function createOrganizerEvent(pool: Pool, data: any) {
 export async function getEventsByOrganizerEmail(pool: Pool, email: string) {
     const { rows } = await pool.query(
       `SELECT id, title, category, location, city, date_time, end_time, timings, description,
-              external_link, google_maps_link, whatsapp_group_link, contact_info, status, admin_comment, participant_limit, is_paid, visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide, created_at,
+              external_link, google_maps_link, whatsapp_group_link, contact_info, status, admin_comment, participant_limit, is_paid, visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone, created_at,
               (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
               (SELECT COUNT(*)::int FROM event_invites WHERE event_id = events.id) AS invite_count
        FROM events WHERE organizer_email = $1 ORDER BY created_at DESC`,
@@ -497,26 +499,35 @@ export async function createEvent(pool: Pool, data: any) {
     const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, attendeeGuide } = data;
     const validVisibility = visibility === 'invite_only' ? 'invite_only' : 'public';
     const safeGuide = attendee_guide || attendeeGuide || {};
+    const safeEventType = data.event_type === 'online' ? 'online' : 'in_person';
+    const safeTimezone = data.timezone && typeof data.timezone === 'string' ? data.timezone : 'Asia/Kolkata';
+
     const { rows } = await pool.query(
-      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide)
-       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::event_visibility, $17, $18, $19)
-       RETURNING id, title, category, is_featured, visibility, image_url, image_public_id, whatsapp_group_link, attendee_guide`,
-      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, participant_limit || null, is_paid || false, is_featured || false, validVisibility, image_url || null, image_public_id || null, JSON.stringify(safeGuide)]
+      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, event_type, timezone)
+       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::event_visibility, $17, $18, $19, $20, $21)
+       RETURNING id, title, category, is_featured, visibility, image_url, image_public_id, whatsapp_group_link, attendee_guide, event_type, timezone`,
+      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, participant_limit || null, is_paid || false, is_featured || false, validVisibility, image_url || null, image_public_id || null, JSON.stringify(safeGuide), safeEventType, safeTimezone]
     );
     return rows[0];
 }
 
 export async function updateEvent(pool: Pool, id: string, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, attendeeGuide } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, attendeeGuide, event_type, timezone } = data;
     const validVisibility = visibility === 'invite_only' ? 'invite_only' : 'public';
     const safeGuide = attendee_guide !== undefined ? attendee_guide : (attendeeGuide !== undefined ? attendeeGuide : null);
+    const safeEventType = event_type === 'online' ? 'online' : (event_type === 'in_person' ? 'in_person' : undefined);
+    const safeTimezone = timezone && typeof timezone === 'string' ? timezone : undefined;
+
     await pool.query(
       `UPDATE events SET title=$1, description=$2, category=$3::event_category, location=$4, city=$5,
        date_time=$6, end_time=$7, timings=$8, external_link=$9, google_maps_link=$10, whatsapp_group_link=$11, contact_info=$12,
        participant_limit=$13, is_paid=$14, is_featured=$15, visibility=$16::event_visibility, image_url=$17, image_public_id=$18,
-       attendee_guide=COALESCE($19::jsonb, attendee_guide), updated_at=CURRENT_TIMESTAMP
-       WHERE id=$20`,
-      [title, description, category, location, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, participant_limit || null, is_paid || false, is_featured || false, validVisibility, image_url || null, image_public_id || null, safeGuide ? JSON.stringify(safeGuide) : null, id]
+       attendee_guide=COALESCE($19::jsonb, attendee_guide),
+       event_type=COALESCE($20, event_type),
+       timezone=COALESCE($21, timezone),
+       updated_at=CURRENT_TIMESTAMP
+       WHERE id=$22`,
+      [title, description, category, location, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, participant_limit || null, is_paid || false, is_featured || false, validVisibility, image_url || null, image_public_id || null, safeGuide ? JSON.stringify(safeGuide) : null, safeEventType || null, safeTimezone || null, id]
     );
 }
 
@@ -527,7 +538,7 @@ export async function deleteEvent(pool: Pool, id: string) {
 
 export async function getPendingEvents(pool: Pool) {
     const { rows } = await pool.query(
-      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, google_maps_link, whatsapp_group_link, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide
+      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, google_maps_link, whatsapp_group_link, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, event_type, timezone
        FROM events WHERE status = 'pending' ORDER BY created_at ASC`
     );
     return rows;
@@ -541,7 +552,7 @@ export async function getEventsByStatus(pool: Pool, status: string, days?: numbe
 
     if (days) {
         const { rows } = await pool.query(
-          `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at, google_maps_link, whatsapp_group_link, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide
+          `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at, google_maps_link, whatsapp_group_link, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, event_type, timezone
            FROM events WHERE ${statusCondition} AND updated_at >= NOW() - INTERVAL '${days} days'
            ORDER BY updated_at DESC`,
           [status]
@@ -549,7 +560,7 @@ export async function getEventsByStatus(pool: Pool, status: string, days?: numbe
         return rows;
     }
     const { rows } = await pool.query(
-      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at, google_maps_link, whatsapp_group_link, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide
+      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at, google_maps_link, whatsapp_group_link, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, event_type, timezone
        FROM events WHERE ${statusCondition} ORDER BY updated_at DESC`,
       [status]
     );
@@ -586,21 +597,26 @@ export async function toggleEventFeatured(pool: Pool, id: string, is_featured?: 
 }
 
 export async function updateOrganizerEvent(pool: Pool, id: string, organizerEmail: string, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, visibility, image_url, image_public_id, attendee_guide, attendeeGuide } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, visibility, image_url, image_public_id, attendee_guide, attendeeGuide, event_type, timezone } = data;
     const validVisibility = visibility === 'invite_only' ? 'invite_only' : 'public';
     const safeGuide = attendee_guide !== undefined ? attendee_guide : (attendeeGuide !== undefined ? attendeeGuide : null);
+    const safeEventType = event_type === 'online' ? 'online' : (event_type === 'in_person' ? 'in_person' : undefined);
+    const safeTimezone = timezone && typeof timezone === 'string' ? timezone : undefined;
+
     const { rowCount } = await pool.query(
       `UPDATE events
        SET title=$1, description=$2, category=$3::event_category, location=$4, city=$5,
            date_time=$6, end_time=$7, timings=$8, external_link=$9, google_maps_link=$10, whatsapp_group_link=$11, contact_info=$12,
            status='pending', admin_comment=NULL, updated_at=CURRENT_TIMESTAMP, participant_limit=$13, is_paid=$14,
            visibility=$15::event_visibility, image_url=$16, image_public_id=$17,
-           attendee_guide=COALESCE($18::jsonb, attendee_guide)
-       WHERE id=$19 AND organizer_email=$20 AND status='needs_changes'`,
+           attendee_guide=COALESCE($18::jsonb, attendee_guide),
+           event_type=COALESCE($19, event_type),
+           timezone=COALESCE($20, timezone)
+       WHERE id=$21 AND organizer_email=$22 AND status='needs_changes'`,
       [title, description, category, location || null, city || null,
        date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null,
        participant_limit || null, is_paid || false, validVisibility, image_url || null, image_public_id || null,
-       safeGuide ? JSON.stringify(safeGuide) : null, id, organizerEmail]
+       safeGuide ? JSON.stringify(safeGuide) : null, safeEventType || null, safeTimezone || null, id, organizerEmail]
     );
     return rowCount;
 }
@@ -628,10 +644,11 @@ export async function getAdminEventRSVPs(pool: Pool, eventId: string) {
     return rows;
 }
 
-export async function addCity(pool: Pool, name: string) {
+export async function addCity(pool: Pool, name: string, timezone: string = 'Asia/Kolkata') {
+    const safeTimezone = timezone && typeof timezone === 'string' ? timezone : 'Asia/Kolkata';
     const { rows } = await pool.query(
-      'INSERT INTO cities (name) VALUES ($1) RETURNING *',
-      [name]
+      'INSERT INTO cities (name, timezone) VALUES ($1, $2) RETURNING *',
+      [name, safeTimezone]
     );
     return rows[0];
 }

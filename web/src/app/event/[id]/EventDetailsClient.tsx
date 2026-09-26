@@ -13,7 +13,8 @@ import { JoinTelegramPromptModal } from "@/components/JoinTelegramPromptModal";
 import { formatTelegramLink } from "@/lib/telegramGroup";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
 import { useTheme } from "@/context/ThemeContext";
-import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink, Send } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink, Send, Globe } from "lucide-react";
+import { formatEventTimeWithTimezone, getTimezoneAbbr } from "@/lib/timezone";
 import { toast } from "sonner";
 
 interface EventDetailsClientProps {
@@ -355,6 +356,17 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               >
                 {event.category}
               </div>
+              {event.event_type === 'online' ? (
+                <div className="sticker-badge bg-sky-100 border-sky-300 text-sky-900 font-bold flex items-center gap-1.5 shadow-xs">
+                  <Globe className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Online Event</span>
+                </div>
+              ) : (
+                <div className="sticker-badge bg-emerald-50 border-emerald-200 text-emerald-900 font-bold flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>In-Person</span>
+                </div>
+              )}
               {event.visibility === 'invite_only' && (
                 <div className="sticker-badge bg-gradient-to-r from-amber-500 to-yellow-400 text-black border-none font-black shadow-md flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 fill-black text-black" /> VIP Invite-Only
@@ -553,7 +565,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         {/* Right Side: Meta Info Box */}
         <div className="w-full md:w-80 bg-zinc-50 border-t md:border-t-0 md:border-l border-black/5 p-6 sm:p-12 space-y-8 sm:space-y-12">
            <div className="space-y-6">
-              {rsvped && (
+              {!isEventEnded && rsvped && (
                 rsvpStatus === 'pending' ? (
                   <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-700">
@@ -598,7 +610,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               )}
 
               {/* Official Attendee Telegram Group (RSVP'd Card) */}
-              {rsvped && event.whatsapp_group_link && (
+              {!isEventEnded && rsvped && event.whatsapp_group_link && (
                 <div className="p-4 rounded-2xl bg-sky-50 border border-sky-200 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#229ED9]">
@@ -625,38 +637,74 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                 </div>
               )}
 
-              <div className="space-y-1">
-                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Date & Time</div>
-                 <div className="flex items-center gap-2 text-black font-black">
-                   <Calendar className="h-4 w-4 text-primary" />
-                   {new Date(event.date_time).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric'})}
-                   {event.end_time && new Date(event.date_time).toDateString() !== new Date(event.end_time).toDateString() && (
-                     <span className="text-zinc-300 ml-1"> - {new Date(event.end_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric'})}</span>
-                   )}
-                 </div>
-                 <div className="text-sm font-bold text-zinc-500">
-                    {new Date(event.date_time).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit'})}
-                    {event.end_time && (
-                      <span className="text-zinc-400"> → {new Date(event.end_time).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit'})}</span>
-                    )}
-                    {event.timings && <span className="block mt-1 text-primary italic uppercase text-[9px] tracking-widest">{event.timings}</span>}
-                 </div>
-              </div>
+              {(() => {
+                const timeInfo = formatEventTimeWithTimezone(event.date_time, event.end_time, event.timezone || 'Asia/Kolkata');
+                return (
+                  <div className="space-y-1.5">
+                     <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Date & Time</div>
+                     <div className="flex items-center gap-2 text-black font-black">
+                       <Calendar className="h-4 w-4 text-primary shrink-0" />
+                       <span>
+                         {new Date(event.date_time).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: event.timezone || 'Asia/Kolkata' })}
+                         {event.end_time && new Date(event.date_time).toDateString() !== new Date(event.end_time).toDateString() && (
+                           <span className="text-zinc-300 ml-1"> - {new Date(event.end_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: event.timezone || 'Asia/Kolkata' })}</span>
+                         )}
+                       </span>
+                     </div>
+                     <div className="text-sm font-bold text-zinc-800 flex items-center gap-1.5 flex-wrap">
+                        <span>{timeInfo.timeRangeDisplay}</span>
+                        <span className="text-[10px] font-black uppercase text-zinc-700 bg-zinc-200/80 px-1.5 py-0.5 rounded tracking-wider shadow-xs">
+                          {timeInfo.tzAbbr}
+                        </span>
+                     </div>
+                     {timeInfo.localTimeNote && (
+                       <div className="text-[11px] font-bold text-sky-800 bg-sky-50 border border-sky-200/80 px-2.5 py-1 rounded-xl w-fit flex items-center gap-1">
+                         <Globe className="h-3 w-3 text-sky-600 shrink-0" />
+                         <span>{timeInfo.localTimeNote}</span>
+                       </div>
+                     )}
+                     {event.timings && <span className="block mt-1 text-primary italic uppercase text-[9px] tracking-widest">{event.timings}</span>}
+                  </div>
+                );
+              })()}
 
               <div className="space-y-1">
-                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Location</div>
-                 <div className="flex items-center gap-2 text-black font-black">
-                   <MapPin className="h-4 w-4 text-primary" />
-                   {event.location}
+                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                   {event.event_type === 'online' ? 'Event Mode & Platform' : 'Location'}
                  </div>
-                 <a
-                   href={event.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.location}, ${event.city || ''}`)}`}
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   className="text-xs font-bold text-zinc-400 underline hover:text-black block w-fit"
-                 >
-                   Open in Maps
-                 </a>
+                 <div className="flex items-center gap-2 text-black font-black">
+                   {event.event_type === 'online' ? (
+                     <>
+                       <Globe className="h-4 w-4 text-sky-600 shrink-0" />
+                       <span>Online / Virtual Event</span>
+                     </>
+                   ) : (
+                     <>
+                       <MapPin className="h-4 w-4 text-primary shrink-0" />
+                       <span>{event.location}</span>
+                     </>
+                   )}
+                 </div>
+                 {event.event_type === 'online' ? (
+                   event.location && event.location !== 'Online Event' && event.location !== 'Online' ? (
+                     <span className="text-xs font-semibold text-zinc-500 block">
+                       Platform: {event.location}
+                     </span>
+                   ) : (
+                     <span className="text-xs font-semibold text-zinc-500 block">
+                       Virtual access details available in Attendee Pass.
+                     </span>
+                   )
+                 ) : (
+                   <a
+                     href={event.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.location}, ${event.city || ''}`)}`}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     className="text-xs font-bold text-zinc-400 underline hover:text-black block w-fit"
+                   >
+                     Open in Maps
+                   </a>
+                 )}
               </div>
 
               <div className="space-y-1">

@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 export interface City {
   id: number;
   name: string;
+  timezone?: string;
 }
 
 export interface VibeEvent {
@@ -27,6 +28,8 @@ export interface VibeEvent {
   user_rsvped?: boolean;
   user_rsvp_status?: string | null;
   user_pass_code?: string | null;
+  event_type?: 'in_person' | 'online';
+  timezone?: string;
 }
 
 export function isEventEnded(event: { status?: string; end_time?: string; date_time?: string }) {

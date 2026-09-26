@@ -13,13 +13,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
-import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode, Send, Calendar, Clock, MapPin, Users, ChevronDown, ChevronUp, Key, MessageSquare, Plus, Backpack, ListChecks, PhoneCall, Compass, CheckCircle2 } from "lucide-react";
+import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode, Send, Calendar, Clock, MapPin, Users, ChevronDown, ChevronUp, Key, MessageSquare, Plus, Backpack, ListChecks, PhoneCall, Compass, CheckCircle2, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import OrganizerInsightsDashboard from "@/components/OrganizerInsightsDashboard";
 import { OrganizerEventBroadcastModal } from "@/components/OrganizerEventBroadcastModal";
 import { OrganizerTelegramInviteModal } from "@/components/OrganizerTelegramInviteModal";
 import { BroadcastType } from "@/types/broadcast";
+import { COMMON_TIMEZONES, getTimezoneAbbr, getUserTimezone, getTimezoneOptions } from "@/lib/timezone";
+import { WorldTimezoneSelector } from "@/components/WorldTimezoneSelector";
 
 interface ScheduleItem {
   time: string;
@@ -796,7 +798,7 @@ export default function OrganizerDashboard() {
   const [myEvents, setMyEvents] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'events' | 'crm' | 'insights'>('events');
   const [showForm, setShowForm] = useState(false);
-  const [supportedCities, setSupportedCities] = useState<{ id: number; name: string }[]>([]);
+  const [supportedCities, setSupportedCities] = useState<{ id: number; name: string; timezone?: string }[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [crmLoading, setCrmLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -823,7 +825,9 @@ export default function OrganizerDashboard() {
     startDate: "", endDate: "", startTime: "", endTime: "",
     participantLimit: "", isPaid: false,
     visibility: "public" as "public" | "invite_only",
-    guestList: ""
+    guestList: "",
+    eventType: "in_person" as "in_person" | "online",
+    timezone: typeof window !== "undefined" ? getUserTimezone() : "Asia/Kolkata"
   });
   const [imageUrl, setImageUrl] = useState("");
   const [imagePublicId, setImagePublicId] = useState("");
@@ -1182,7 +1186,9 @@ export default function OrganizerDashboard() {
       participantLimit: ev.participant_limit ? String(ev.participant_limit) : "",
       isPaid: ev.is_paid || false,
       visibility: ev.visibility || "public",
-      guestList: ""
+      guestList: "",
+      eventType: (ev.event_type || "in_person") as "in_person" | "online",
+      timezone: ev.timezone || getUserTimezone()
     });
     if (ev.attendee_guide) {
       setGuideData({
@@ -1213,7 +1219,9 @@ export default function OrganizerDashboard() {
       startDate: "", endDate: "", startTime: "", endTime: "",
       participantLimit: "", isPaid: false,
       visibility: "public",
-      guestList: ""
+      guestList: "",
+      eventType: "in_person",
+      timezone: getUserTimezone()
     });
     setGuideData(emptyGuideState);
     setShowGuideFields(false);
@@ -1234,8 +1242,8 @@ export default function OrganizerDashboard() {
     if (!formData.startTime) newErrors.startTime = true;
     if (!formData.endTime) newErrors.endTime = true;
     if (!formData.category) newErrors.category = true;
-    if (!formData.city) newErrors.city = true;
-    if (!formData.location) newErrors.location = true;
+    if (formData.eventType === 'in_person' && !formData.city) newErrors.city = true;
+    if (formData.eventType === 'in_person' && !formData.location) newErrors.location = true;
     if (!formData.description) newErrors.description = true;
 
     if (Object.keys(newErrors).length > 0) {
@@ -1298,6 +1306,8 @@ export default function OrganizerDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          location: formData.eventType === 'online' ? (formData.location || 'Online Event') : formData.location,
+          city: formData.eventType === 'online' ? (formData.city || 'Global / Online') : formData.city,
           participant_limit: formData.participantLimit ? parseInt(formData.participantLimit, 10) : null,
           is_paid: formData.isPaid,
           visibility: formData.visibility,
@@ -1307,7 +1317,9 @@ export default function OrganizerDashboard() {
           date_time: start_iso,
           end_time: end_iso,
           organizer_email: session?.user?.email,
-          attendee_guide: guideData
+          attendee_guide: guideData,
+          event_type: formData.eventType,
+          timezone: formData.timezone || 'Asia/Kolkata'
         })
       });
       const data = await res.json();
@@ -1317,7 +1329,9 @@ export default function OrganizerDashboard() {
           startDate: "", endDate: "", startTime: "", endTime: "",
           participantLimit: "", isPaid: false,
           visibility: "public",
-          guestList: ""
+          guestList: "",
+          eventType: "in_person",
+          timezone: getUserTimezone()
         });
         setGuideData(emptyGuideState);
         setShowGuideFields(false);
@@ -1659,7 +1673,9 @@ export default function OrganizerDashboard() {
               startDate: "", endDate: "", startTime: "", endTime: "",
               participantLimit: "", isPaid: false,
               visibility: "public",
-              guestList: ""
+              guestList: "",
+              eventType: "in_person",
+              timezone: getUserTimezone()
             });
             setImageUrl("");
             setImagePublicId("");
@@ -1714,6 +1730,42 @@ export default function OrganizerDashboard() {
                     {errors.title && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Title is required</p>}
                   </div>
 
+                  {/* Event Format: In-Person vs Online */}
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1">
+                      <Globe className="h-3 w-3" /> Event Format
+                    </Label>
+                    <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const matchedCity = supportedCities.find(c => c.name === formData.city);
+                          setFormData({ 
+                            ...formData, 
+                            eventType: 'in_person',
+                            timezone: matchedCity?.timezone || formData.timezone || "Asia/Kolkata"
+                          });
+                        }}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                          formData.eventType === 'in_person' ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'
+                        }`}
+                      >
+                        <MapPin className="h-3.5 w-3.5" />
+                        <span>In-Person Vibe</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, eventType: 'online' })}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                          formData.eventType === 'online' ? 'bg-sky-600 text-white font-black shadow-lg shadow-sky-600/20' : 'text-zinc-400 hover:text-black'
+                        }`}
+                      >
+                        <Globe className="h-3.5 w-3.5" />
+                        <span>Online Event</span>
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Select value={formData.category} onValueChange={v => { setFormData({ ...formData, category: v || "" }); if (errors.category) setErrors({ ...errors, category: false }) }}>
@@ -1730,7 +1782,19 @@ export default function OrganizerDashboard() {
                     </div>
 
                     <div className="space-y-1">
-                      <Select value={formData.city} onValueChange={v => { setFormData({ ...formData, city: v || "" }); if (errors.city) setErrors({ ...errors, city: false }) }}>
+                      <Select 
+                        value={formData.city} 
+                        onValueChange={v => { 
+                          const matchedCity = supportedCities.find(c => c.name === v);
+                          const cityTz = matchedCity?.timezone || "Asia/Kolkata";
+                          setFormData({ 
+                            ...formData, 
+                            city: v || "",
+                            ...(formData.eventType === 'in_person' ? { timezone: cityTz } : {})
+                          }); 
+                          if (errors.city) setErrors({ ...errors, city: false });
+                        }}
+                      >
                         <SelectTrigger className={cn("w-full bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.city && "border-red-500 ring-red-500/20")}>
                           <SelectValue placeholder="Select City" />
                         </SelectTrigger>
@@ -1793,6 +1857,35 @@ export default function OrganizerDashboard() {
                       error={errors.endTime}
                     />
                   </div>
+
+                  {/* Event Timezone */}
+                  {formData.eventType === 'online' ? (
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1">
+                        <Clock className="h-3 w-3 text-sky-600" /> Event Timezone (Virtual Event)
+                      </Label>
+                      <WorldTimezoneSelector
+                        value={formData.timezone}
+                        onChange={tz => setFormData({ ...formData, timezone: tz })}
+                      />
+                      <p className="text-[9px] text-zinc-400 font-bold ml-1">Search across 400+ worldwide timezones. Virtual attendees will see timings converted to their local zones.</p>
+                    </div>
+                  ) : (
+                    <div className="bg-zinc-50 border border-black/5 rounded-xl p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <Clock className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                        <div>
+                          <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">City-Inferred Timezone</span>
+                          <span className="text-xs font-black text-black">
+                            {formData.timezone || "Asia/Kolkata"} <span className="text-primary">({getTimezoneAbbr(formData.timezone || "Asia/Kolkata")})</span>
+                          </span>
+                        </div>
+                      </div>
+                      <span className="sticker-badge bg-primary/10 text-primary border-primary/20 text-[9px] font-black uppercase">
+                        📍 {formData.city || "Auto"}
+                      </span>
+                    </div>
+                  )}
 
                   <Input placeholder="Extra Timings Note (Optional)" value={formData.timings} onChange={e => setFormData({ ...formData, timings: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
 
@@ -1876,8 +1969,17 @@ export default function OrganizerDashboard() {
                   </div>
 
                   <div className="space-y-1">
-                    <Input name="location" placeholder="Location Name (e.g. Rushikonda Beach)" value={formData.location} onChange={e => { setFormData({ ...formData, location: e.target.value }); if (errors.location) setErrors({ ...errors, location: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.location && "border-red-500 ring-red-500/20")} />
-                    {errors.location && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Location name is required</p>}
+                    <Input
+                      name="location"
+                      placeholder={formData.eventType === 'online' ? "Platform / Virtual Link (e.g. Google Meet, Zoom, YouTube Live, or 'Link in Pass')" : "Location Name (e.g. Rushikonda Beach)"}
+                      value={formData.location}
+                      onChange={e => { setFormData({ ...formData, location: e.target.value }); if (errors.location) setErrors({ ...errors, location: false }) }}
+                      className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.location && "border-red-500 ring-red-500/20")}
+                    />
+                    {errors.location && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Location is required for in-person events</p>}
+                    {formData.eventType === 'online' && (
+                      <p className="text-[9px] text-sky-600 font-bold uppercase ml-1">Virtual events can specify the platform (Zoom, Meet, Discord) or provide link in the Attendee Guide.</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
