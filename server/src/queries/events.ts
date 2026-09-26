@@ -348,9 +348,16 @@ export async function getEventsByOrganizerEmail(pool: Pool, email: string) {
     return rows;
 }
 
+export function maskEmail(email: string | null): string {
+    if (!email || !email.includes('@')) return 'Anonymous';
+    const [local, domain] = email.split('@');
+    if (local.length <= 2) return `${local[0]}***@${domain}`;
+    return `${local.substring(0, 2)}***${local.substring(local.length - 1)}@${domain}`;
+}
+
 export async function getOrganizerEventRSVPs(pool: Pool, eventId: string) {
     const { rows } = await pool.query(
-      `SELECT er.id, er.user_email, er.status, er.payment_status, er.pass_code, er.created_at, 
+      `SELECT er.id, er.user_email, er.status, er.payment_status, er.pass_code, er.checkin_status, er.created_at, 
               COALESCE(u.name, 'Anonymous Guest') as name
        FROM event_rsvps er 
        LEFT JOIN web_users u ON er.user_email = u.email 
@@ -358,7 +365,10 @@ export async function getOrganizerEventRSVPs(pool: Pool, eventId: string) {
        ORDER BY er.created_at DESC`,
       [eventId]
     );
-    return rows;
+    return rows.map(r => ({
+      ...r,
+      user_email_masked: maskEmail(r.user_email),
+    }));
 }
 
 export async function issueOrganizerEventPass(pool: Pool, eventId: string, rsvpId: string | number) {

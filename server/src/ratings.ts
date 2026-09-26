@@ -30,9 +30,24 @@ export async function submitRatingHandler(req: Request, res: Response, pool: Poo
       return res.status(400).json({ success: false, error: 'Organizer rating must be between 1 and 5 stars' });
     }
 
+    const cleanEmail = String(email).trim().toLowerCase();
+
+    // Guardrail #2: Review-Bombing Protection (Verified Gate Check-in Required)
+    const checkinVerification = await pool.query(
+      `SELECT checkin_status FROM event_rsvps WHERE event_id = $1 AND LOWER(user_email) = $2`,
+      [eventId, cleanEmail]
+    );
+
+    if (checkinVerification.rows.length === 0 || checkinVerification.rows[0].checkin_status !== 'checked_in') {
+      return res.status(403).json({
+        success: false,
+        error: 'Verified Attendees Only: You can only rate vibes and organizers after your pass has been verified and scanned at the gate.',
+      });
+    }
+
     const result = await submitEventAndOrganizerRating(pool, {
       eventId,
-      userEmail: String(email).trim().toLowerCase(),
+      userEmail: cleanEmail,
       eventRating: numEventRating,
       organizerRating: numOrgRating,
     });

@@ -79,6 +79,53 @@ export async function rsvpEventHandler(req: Request, res: Response, pool: Pool) 
       return res.status(404).json({ success: false, error: 'Event not found' });
     }
 
+    // 1. Age Verification Gate (Guardrail #5)
+    const isAdultEvent = event.category === 'Techno' || event.category === 'Nightlife' || event.category === 'Clubbing';
+    if (isAdultEvent && req.body.age_confirmed !== true) {
+      return res.status(400).json({
+        success: false,
+        requires_age_declaration: true,
+        error: 'Age Verification Required: This event is strictly 21+ with mandatory Government Photo ID check at the gate. Please confirm your age before reserving.'
+      });
+    }
+
+    // 2. Anti-Hoarding & Sybil Protection (Guardrail #1)
+    const cleanEmail = (email as string).trim().toLowerCase();
+    const activeRsvpsCheck = await pool.query(
+      `SELECT COUNT(*)::int as active_count,
+              EXISTS (
+                SELECT 1 FROM event_rsvps er2 
+                JOIN events e2 ON er2.event_id = e2.id 
+                WHERE LOWER(er2.user_email) = $1 
+                  AND er2.status = 'confirmed' 
+                  AND er2.event_id != $2 
+                  AND e2.date_time = $3
+              ) as has_conflict
+       FROM event_rsvps er 
+       JOIN events e ON er.event_id = e.id 
+       WHERE LOWER(er.user_email) = $1 
+         AND er.status != 'cancelled' 
+         AND e.date_time > NOW()`,
+      [cleanEmail, id, event.date_time]
+    );
+
+    const activeCount = activeRsvpsCheck.rows[0]?.active_count || 0;
+    const hasConflict = activeRsvpsCheck.rows[0]?.has_conflict;
+
+    if (activeCount >= 5) {
+      return res.status(400).json({
+        success: false,
+        error: 'RSVP Limit Exceeded: You currently have 5 active upcoming reservations. Please attend or cancel existing passes to reserve more spots.'
+      });
+    }
+
+    if (hasConflict) {
+      return res.status(400).json({
+        success: false,
+        error: 'Schedule Conflict: You already have a confirmed RSVP for another event happening at this exact same time.'
+      });
+    }
+
     // Capacity check: applies to BOTH paid and free events
     if (event.status === 'housefull') {
       return res.status(400).json({ success: false, error: 'This event is housefull' });
@@ -88,7 +135,7 @@ export async function rsvpEventHandler(req: Request, res: Response, pool: Pool) 
       return res.status(400).json({ success: false, error: 'This event is housefull' });
     }
 
-    const rsvp = await insertEventRSVPEmail(pool, id as string, email as string, !!event.is_paid);
+    const rsvp = await insertEventRSVPEmail(pool, id as string, cleanEmail, !!event.is_paid);
 
     return res.json({
       success: true,

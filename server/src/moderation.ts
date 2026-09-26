@@ -5,12 +5,41 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 // ── 1. Deterministic Fast-Filter Rules ─────────────────────────────────────────
 
-// Common profanities, slurs, and explicit swear words (English and transliterations)
+// ── 1. Deterministic Fast-Filter Rules ─────────────────────────────────────────
+
+// Comprehensive list of profanities, slurs, swear words, and derogatory terms across English, Telugu, Hindi, Tamil, Kannada, and regional transliterations
 const BLOCKED_WORDS = [
-  'fuck', 'fck', 'f*ck', 'shit', 'sh*t', 'bitch', 'b*tch', 'bastard', 'asshole',
-  'dick', 'pussy', 'cock', 'cunt', 'slut', 'whore', 'nigger', 'nigga', 'faggot',
-  'chutiya', 'bhenchod', 'madarchod', 'gandu', 'laude', 'harami', 'kamina',
-  'dengu', 'lanja', 'munda', 'modda', 'puku', 'erripappa'
+  // English & Global Slurs
+  'fuck', 'fck', 'f*ck', 'fuk', 'fucking', 'shit', 'sh*t', 'bitch', 'b*tch', 'bastard', 'asshole',
+  'dick', 'pussy', 'cock', 'cunt', 'slut', 'whore', 'nigger', 'nigga', 'faggot', 'retard',
+
+  // Telugu (Romanized / Transliterated Slang & Swear Words)
+  'dengu', 'dengutha', 'denguthara', 'dengey', 'dengichuko', 'dengaleka', 'dengudu',
+  'lanja', 'lanjakodaka', 'lanjakoduku', 'lanjamunda', 'lanjakompa', 'lanjodka',
+  'munda', 'mundamopi', 'mundampey', 'vedhava',
+  'modda', 'moddalo', 'moddara', 'moddagudu', 'moddalo vibe',
+  'puku', 'pooku', 'pukulo', 'pukulodi', 'erripuku', 'erripooku', 'erripappa', 'yerripuku',
+  'gudha', 'guddha', 'gudhalo', 'guddhala', 'gudhabalaga',
+  'bevarsi', 'bevarse', 'bolli', 'bongu', 'dhonga',
+
+  // Telugu (Native Script)
+  'దెంగు', 'దెంగుతా', 'దెంగుతారు', 'దెంగేయ్', 'లంజ', 'లంజకొడుకా', 'లంజకొడుకు', 'లంజముండ',
+  'ముండ', 'ముండమోపి', 'మొడ్డ', 'మొడ్డలో', 'మొడ్డగుడు', 'పూకు', 'పూకులో', 'ఎర్రిపూకు', 'ఎర్రిపప్ప',
+  'గుద్ద', 'గుద్దలో', 'బేవార్స్', 'వెధవ',
+
+  // Hindi / Urdu (Romanized & Transliterated)
+  'chutiya', 'chutiye', 'choot', 'chut', 'bhenchod', 'behenchod', 'bc', 'madarchod', 'mc',
+  'gandu', 'gaand', 'gaandu', 'gandmasti', 'laude', 'loda', 'lavda', 'lund',
+  'bhosadi', 'bhosadike', 'bhosdike', 'bsdk', 'harami', 'kamina', 'kaminey', 'randi', 'kuttiya',
+
+  // Hindi (Devanagari Script)
+  'चूतिया', 'चूतिये', 'बहनचोद', 'मादरचोद', 'गांडू', 'गांड', 'लौड़े', 'लवड़ा', 'लंड',
+  'भोसड़ी', 'भोसड़ीके', 'हरामी', 'कमीने', 'रांडी', 'कुतिया',
+
+  // Tamil / Kannada / Malayalam
+  'thevidiya', 'otha', 'ommala', 'poda panni', 'kena', 'sunni', 'pundai',
+  'bolimagane', 'huchanaayi', 'soole', 'katthe', 'kallan',
+  'myre', 'myran', 'kunna', 'oombu', 'thendi', 'pooru'
 ];
 
 const SCAM_PATTERNS = [
@@ -34,9 +63,10 @@ export function runFastFilter(text: string): FastFilterResult {
   const cleanText = text.toLowerCase();
   const flaggedWords: string[] = [];
 
-  // 1. Check blocked words (word boundary or leetspeak match)
+  // 1. Check blocked words (handles both word boundaries and embedded substrings)
   for (const word of BLOCKED_WORDS) {
-    const regex = new RegExp(`\\b${word}\\b`, 'i');
+    const isAscii = /^[\x00-\x7F]*$/.test(word);
+    const regex = isAscii ? new RegExp(`\\b${word}\\b`, 'i') : new RegExp(word, 'i');
     if (regex.test(cleanText)) {
       flaggedWords.push(word);
     }
@@ -52,7 +82,7 @@ export function runFastFilter(text: string): FastFilterResult {
   if (flaggedWords.length > 0) {
     return {
       passed: false,
-      reason: `Content contains prohibited terms or suspicious patterns: ${flaggedWords.join(', ')}`,
+      reason: `Content contains prohibited terms or regional profanity: ${flaggedWords.join(', ')}`,
       flaggedWords,
     };
   }
@@ -77,11 +107,13 @@ export interface ModerationResult {
 // ── 3. AI Scrutiny Core Logic ───────────────────────────────────────────────
 
 const MODERATION_SYSTEM_PROMPT = `You are the Lead Trust & Safety AI Agent for "VibeCheckSpace", a city-wide social and local events discovery platform.
+You are fully multilingual and understand English, Telugu (both native script and Romanized/English transliteration slang like "dengu", "lanja", "modda", "pooku", "erripuk", "gudha"), Hindi/Urdu, Tamil, Kannada, Malayalam, and other regional Indian dialects.
+
 Your job is to scrutinize user and organizer submissions (event listings, organizer applications, support requests).
 
 Scrutiny Criteria:
-1. Safety & Language: Zero tolerance for hate speech, harassment, vulgarity, explicit sexual content, or dangerous illegal activities.
-2. Anti-Scam: Detect Ponzi schemes, MLM, fake giveaways, predatory services, or misleading ticket sales.
+1. Safety & Language: Absolute zero tolerance for hate speech, vulgarity, swearing, sexual slurs, casteist/religious abuses, or offensive colloquial slang in ANY language or script (English, Telugu, Hindi, etc.).
+2. Anti-Scam: Detect Ponzi schemes, MLM, fake giveaways, predatory services, betting links, or misleading ticket sales.
 3. Content Quality & Sanity:
    - For Events: Clear title, coherent description, sensible timing and venue, realistic category alignment.
    - For Organizers: Authentic brand identity, clear vision for community gatherings, valid social/web presence.
@@ -174,7 +206,82 @@ export async function evaluateContentWithAI(
   }
 }
 
-// ── 4. Audit Logger Helper ──────────────────────────────────────────────────
+// ── 4. Multimodal Image & Flyer Safety Scrutiny ─────────────────────────────
+
+const IMAGE_MODERATION_PROMPT = `You are the Lead Visual Trust & Safety AI Agent for "VibeCheckSpace" (an events and community discovery platform).
+Inspect this uploaded flyer / event poster / user image for community guidelines violations.
+
+Scrutiny Criteria:
+1. Nudity & Sexual Content: Zero tolerance for explicit nudity, pornography, exposed private parts, or sexually explicit graphics.
+2. Violence & Gore: Zero tolerance for graphic violence, gore, weapons being brandished in a threatening manner, or self-harm.
+3. Hate Speech & Symbols: Check for hate group logos, offensive text, or abusive overlays in any language.
+4. Dangerous / Illicit: Hard drugs, illegal weapons, or fraudulent promotions.
+
+Output Format (Pure JSON only without markdown formatting):
+{
+  "is_safe": boolean,
+  "nudity_detected": boolean,
+  "violence_detected": boolean,
+  "hate_symbols_detected": boolean,
+  "decision": "auto_approve" | "auto_reject",
+  "reason": "Brief, constructive explanation",
+  "flags": ["list", "of", "detected", "violations"]
+}`;
+
+export interface ImageModerationResult {
+  is_safe: boolean;
+  decision: 'auto_approve' | 'auto_reject';
+  reason: string;
+  flags: string[];
+}
+
+export async function evaluateImageWithAI(base64OrUrl: string): Promise<ImageModerationResult> {
+  if (!base64OrUrl || typeof base64OrUrl !== 'string') {
+    return { is_safe: true, decision: 'auto_approve', reason: 'No image payload provided.', flags: [] };
+  }
+
+  try {
+    const chat = getChatModel();
+    const formattedUrl = base64OrUrl.startsWith('data:') || base64OrUrl.startsWith('http')
+      ? base64OrUrl
+      : `data:image/jpeg;base64,${base64OrUrl}`;
+
+    const response = await chat.invoke([
+      new SystemMessage(IMAGE_MODERATION_PROMPT),
+      new HumanMessage({
+        content: [
+          { type: 'text', text: 'Please analyze this uploaded event image against community safety guidelines.' },
+          { type: 'image_url', image_url: { url: formattedUrl } },
+        ],
+      }),
+    ]);
+
+    let rawText = response.content;
+    if (typeof rawText !== 'string') rawText = JSON.stringify(rawText);
+    rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+    const parsed = JSON.parse(rawText);
+    const isSafe = Boolean(parsed.is_safe) && !parsed.nudity_detected && !parsed.violence_detected && !parsed.hate_symbols_detected;
+
+    return {
+      is_safe: isSafe,
+      decision: isSafe ? 'auto_approve' : 'auto_reject',
+      reason: parsed.reason || (isSafe ? 'Image meets all community safety guidelines.' : 'Image violates community guidelines.'),
+      flags: Array.isArray(parsed.flags) ? parsed.flags : [],
+    };
+  } catch (err: any) {
+    console.error('[Moderation] Image AI evaluation error:', err.message);
+    // If vision call fails/times out, allow upload but flag for safety
+    return {
+      is_safe: true,
+      decision: 'auto_approve',
+      reason: 'Visual check skipped due to service timeout.',
+      flags: ['vision_ai_skipped'],
+    };
+  }
+}
+
+// ── 5. Audit Logger Helper ──────────────────────────────────────────────────
 
 export async function logModerationResult(
   pool: Pool,
@@ -183,10 +290,13 @@ export async function logModerationResult(
     entity_id?: string;
     submitted_by?: string;
     content_payload: Record<string, any>;
-    result: ModerationResult;
+    result: ModerationResult | ImageModerationResult;
   }
 ) {
   try {
+    const qualityScore = 'quality_score' in params.result ? params.result.quality_score : (params.result.is_safe ? 100 : 0);
+    const fastFilterPassed = 'fast_filter_passed' in params.result ? params.result.fast_filter_passed : true;
+
     await pool.query(
       `INSERT INTO moderation_logs (
         entity_type, entity_id, submitted_by, content_payload,
@@ -197,8 +307,8 @@ export async function logModerationResult(
         params.entity_id || null,
         params.submitted_by || null,
         JSON.stringify(params.content_payload),
-        params.result.fast_filter_passed,
-        params.result.quality_score,
+        fastFilterPassed,
+        qualityScore,
         params.result.decision,
         JSON.stringify(params.result.flags),
         params.result.reason,
