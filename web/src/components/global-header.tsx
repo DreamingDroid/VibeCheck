@@ -10,7 +10,7 @@ import {
   Trophy, Palette, BookOpen, Compass, Heart,
   Activity, Wine, Smile, Briefcase, Sparkles, Bell,
   SunMoon, X, CheckCircle2, AlertCircle, Clock, ExternalLink, Calendar, User,
-  Sliders, LogOut, Shield, Newspaper, LifeBuoy
+  Sliders, LogOut, Shield, Newspaper, LifeBuoy, Star, Loader2, ArrowRight, Tag
 } from "lucide-react"
 import { SupportTicketModal } from "@/components/SupportTicketModal"
 import { useTheme } from "@/context/ThemeContext"
@@ -248,6 +248,59 @@ export function GlobalHeader() {
   const [selectedNotification, setSelectedNotification] = useState<ModalNotification | null>(null)
   const [avatarImgError, setAvatarImgError] = useState(false)
   const [isSupportOpen, setIsSupportOpen] = useState(false)
+
+  // Header Search State
+  const [headerSearchQuery, setHeaderSearchQuery] = useState("")
+  const [headerSearchResults, setHeaderSearchResults] = useState<{ events: any[]; organizers: any[] } | null>(null)
+  const [isSearchingHeader, setIsSearchingHeader] = useState(false)
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
+  const searchDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Live search debounce
+  useEffect(() => {
+    const trimmed = headerSearchQuery.trim();
+    if (!trimmed) {
+      setHeaderSearchResults(null);
+      setIsSearchingHeader(false);
+      return;
+    }
+
+    setIsSearchingHeader(true);
+    const timer = setTimeout(async () => {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const res = await fetch(`${baseUrl}/api/search?q=${encodeURIComponent(trimmed)}&city=${encodeURIComponent(currentCity)}`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          setHeaderSearchResults(json.data);
+        }
+      } catch (err) {
+        console.error("Search fetch failed:", err);
+      } finally {
+        setIsSearchingHeader(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [headerSearchQuery, currentCity]);
+
+  // Click outside listener for search dropdown
+  useEffect(() => {
+    function handleClickOutsideSearch(e: MouseEvent) {
+      if (searchDropdownRef.current && !searchDropdownRef.current.contains(e.target as Node)) {
+        setIsSearchDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutsideSearch);
+    return () => document.removeEventListener("mousedown", handleClickOutsideSearch);
+  }, []);
+
+  const handleSearchSubmit = (overrideQuery?: string) => {
+    const q = (overrideQuery !== undefined ? overrideQuery : headerSearchQuery).trim();
+    if (!q) return;
+    setIsSearchDropdownOpen(false);
+    router.push(`/dashboard?q=${encodeURIComponent(q)}`);
+  };
 
   // In-App Notification Center States
   const [notifications, setNotifications] = useState<UserNotification[]>([])
@@ -622,17 +675,233 @@ export function GlobalHeader() {
           </div>
 
           {/* Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-sm mx-2 lg:mx-4">
+          <div className="hidden md:flex flex-1 max-w-md mx-2 lg:mx-4 relative" ref={searchDropdownRef}>
             <div className="relative w-full group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-zinc-400 group-focus-within:text-primary transition-colors" />
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                {isSearchingHeader ? (
+                  <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4 text-zinc-400 group-focus-within:text-primary transition-colors" />
+                )}
               </div>
               <input
                 type="text"
+                value={headerSearchQuery}
+                onChange={(e) => {
+                  setHeaderSearchQuery(e.target.value);
+                  setIsSearchDropdownOpen(true);
+                }}
+                onFocus={() => setIsSearchDropdownOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSearchSubmit();
+                  } else if (e.key === "Escape") {
+                    setIsSearchDropdownOpen(false);
+                  }
+                }}
                 placeholder={t("nav.search_placeholder")}
-                className="block w-full pl-11 pr-4 py-2 bg-zinc-100/50 border-none rounded-full text-xs font-medium focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all placeholder:text-zinc-500"
+                className="block w-full pl-10 pr-9 py-2 bg-zinc-100/70 border border-transparent rounded-full text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-white focus:border-primary/30 transition-all placeholder:text-zinc-500 shadow-sm"
               />
+              {headerSearchQuery && (
+                <button
+                  onClick={() => {
+                    setHeaderSearchQuery("");
+                    setHeaderSearchResults(null);
+                  }}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-black transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
+
+            {/* Live Search Dropdown */}
+            {isSearchDropdownOpen && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-xl border border-black/10 rounded-[24px] shadow-2xl z-50 overflow-hidden p-3.5 max-h-[82vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+                {/* Empty State / Quick Search Suggestions */}
+                {!headerSearchQuery.trim() && (
+                  <div className="py-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 px-1">
+                      Popular Vibe Searches
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {["Trekking", "Live Music", "Techno", "Comedy", "Sports", "Food", "Wellness", "Indie"].map((tag) => (
+                        <button
+                          key={tag}
+                          onClick={() => {
+                            setHeaderSearchQuery(tag);
+                            handleSearchSubmit(tag);
+                          }}
+                          className="text-[11px] font-bold px-3 py-1.5 bg-zinc-100 hover:bg-black hover:text-white rounded-full transition-all text-zinc-700 flex items-center gap-1"
+                        >
+                          <Tag className="h-2.5 w-2.5 opacity-60" />
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Loading State */}
+                {isSearchingHeader && (
+                  <div className="flex items-center justify-center py-6 text-zinc-400 gap-2 text-xs font-medium">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span>Searching events & organisers...</span>
+                  </div>
+                )}
+
+                {/* Search Results */}
+                {!isSearchingHeader && headerSearchQuery.trim() && headerSearchResults && (
+                  <div className="space-y-4">
+                    {/* Organizers Group */}
+                    {headerSearchResults.organizers && headerSearchResults.organizers.length > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between px-1 mb-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                            Organisers ({headerSearchResults.organizers.length})
+                          </span>
+                        </div>
+                        <div className="grid gap-1.5">
+                          {headerSearchResults.organizers.slice(0, 4).map((org: any) => (
+                            <Link
+                              key={org.id || org.email}
+                              href={`/organizer/${encodeURIComponent(org.slug || org.email)}`}
+                              onClick={() => setIsSearchDropdownOpen(false)}
+                              className="flex items-center justify-between p-2 rounded-2xl hover:bg-black/5 transition-colors group"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                {org.image_url ? (
+                                  <img
+                                    src={org.image_url}
+                                    alt={org.brand_name}
+                                    className="h-8 w-8 rounded-full object-cover shrink-0 border border-black/5"
+                                  />
+                                ) : (
+                                  <div className="h-8 w-8 rounded-full bg-primary/20 text-black flex items-center justify-center font-bold text-xs shrink-0">
+                                    {(org.brand_name || "O")[0].toUpperCase()}
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-zinc-900 group-hover:text-primary transition-colors truncate">
+                                    {org.brand_name}
+                                  </p>
+                                  <p className="text-[10px] text-zinc-500 truncate flex items-center gap-1.5">
+                                    {org.instagram_handle ? `@${org.instagram_handle}` : `${org.followers_count || 0} followers`}
+                                    {org.upcoming_events_count > 0 && (
+                                      <>
+                                        <span>•</span>
+                                        <span className="text-primary font-semibold">{org.upcoming_events_count} active vibe{org.upcoming_events_count > 1 ? 's' : ''}</span>
+                                      </>
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                                <span className="flex items-center text-[10px] font-bold text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                  <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400 mr-0.5" />
+                                  {Number(org.rating || 4.8).toFixed(1)}
+                                </span>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Events Group */}
+                    {headerSearchResults.events && headerSearchResults.events.length > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between px-1 mb-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                            Events & Vibes ({headerSearchResults.events.length})
+                          </span>
+                        </div>
+                        <div className="grid gap-1.5">
+                          {headerSearchResults.events.slice(0, 5).map((ev: any) => {
+                            const dateStr = ev.date_time
+                              ? new Date(ev.date_time).toLocaleDateString("en-IN", {
+                                  weekday: "short",
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "";
+                            return (
+                              <Link
+                                key={ev.id}
+                                href={`/event/${ev.id}`}
+                                onClick={() => setIsSearchDropdownOpen(false)}
+                                className="flex items-center justify-between p-2 rounded-2xl hover:bg-black/5 transition-colors group"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  {ev.image_url ? (
+                                    <img
+                                      src={ev.image_url}
+                                      alt={ev.title}
+                                      className="h-9 w-9 rounded-xl object-cover shrink-0 border border-black/5"
+                                    />
+                                  ) : (
+                                    <div className="h-9 w-9 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-500 shrink-0">
+                                      <Calendar className="h-4 w-4 text-zinc-600" />
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-bold text-zinc-900 group-hover:text-primary transition-colors truncate">
+                                      {ev.title}
+                                    </p>
+                                    <p className="text-[10px] text-zinc-500 truncate">
+                                      {dateStr} • {ev.location || ev.city}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="shrink-0 pl-2 text-right">
+                                  <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 bg-zinc-100 rounded-full text-zinc-700">
+                                    {ev.category}
+                                  </span>
+                                </div>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* No Matches */}
+                    {headerSearchResults.events?.length === 0 && headerSearchResults.organizers?.length === 0 && (
+                      <div className="text-center py-6 px-4">
+                        <p className="text-xs font-bold text-zinc-800 mb-1">
+                          No vibes found for "{headerSearchQuery}"
+                        </p>
+                        <p className="text-[11px] text-zinc-500 mb-3">
+                          Try searching for keywords like "trekking", "music", "comedy", or an organiser name.
+                        </p>
+                        <button
+                          onClick={() => handleSearchSubmit()}
+                          className="ringer-button bg-primary text-black text-[10px] py-1.5 px-4 font-black"
+                        >
+                          Browse Full Catalog
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Bottom Link to Full Search / Dashboard */}
+                    {(headerSearchResults.events?.length > 0 || headerSearchResults.organizers?.length > 0) && (
+                      <div className="pt-2 border-t border-black/5 mt-2">
+                        <button
+                          onClick={() => handleSearchSubmit()}
+                          className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-zinc-50 hover:bg-primary hover:text-black rounded-xl text-xs font-bold text-zinc-700 transition-all group"
+                        >
+                          <span>View all results for "{headerSearchQuery}"</span>
+                          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* User Actions */}

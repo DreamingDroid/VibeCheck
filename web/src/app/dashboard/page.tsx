@@ -11,7 +11,7 @@ import { useCity, isEventEnded } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useTranslation } from "@/context/LanguageContext";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
-import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock, Send, LayoutGrid, Globe } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock, Send, LayoutGrid, Globe, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
@@ -314,10 +314,58 @@ function DashboardContent() {
     </div>
   );
 
+  const searchParamQuery = searchParams.get("q") || searchParams.get("search");
+  const timeframeParam = searchParams.get("timeframe");
+
   const activeEvents = events.filter(ev => !isEventEnded(ev));
-  const filteredEvents = selectedCategory && selectedCategory !== "The Latest"
-    ? activeEvents.filter(ev => ev.category.toLowerCase() === selectedCategory.toLowerCase())
-    : activeEvents;
+
+  let filteredEvents = activeEvents;
+
+  // 1. Search query filter
+  if (searchParamQuery && searchParamQuery.trim()) {
+    const qLower = searchParamQuery.trim().toLowerCase();
+    filteredEvents = filteredEvents.filter(ev => 
+      ev.title?.toLowerCase().includes(qLower) ||
+      ev.description?.toLowerCase().includes(qLower) ||
+      ev.category?.toLowerCase().includes(qLower) ||
+      ev.location?.toLowerCase().includes(qLower) ||
+      ev.city?.toLowerCase().includes(qLower) ||
+      ev.organizer_email?.toLowerCase().includes(qLower)
+    );
+  }
+
+  // 2. Timeframe filter
+  if (timeframeParam) {
+    const now = new Date();
+    if (timeframeParam === 'today') {
+      filteredEvents = filteredEvents.filter(ev => isToday(new Date(ev.date_time)));
+    } else if (timeframeParam === 'tomorrow') {
+      const tomorrow = addDays(now, 1);
+      filteredEvents = filteredEvents.filter(ev => isSameDay(new Date(ev.date_time), tomorrow));
+    } else if (timeframeParam === 'this_weekend') {
+      filteredEvents = filteredEvents.filter(ev => {
+        const d = new Date(ev.date_time);
+        const day = d.getDay(); // 0 is Sun, 5 is Fri, 6 is Sat
+        const diffDays = (d.getTime() - now.getTime()) / (1000 * 3600 * 24);
+        return (day === 0 || day === 6 || (day === 5 && d.getHours() >= 16)) && diffDays >= -1 && diffDays <= 7;
+      });
+    } else if (timeframeParam === 'this_week') {
+      filteredEvents = filteredEvents.filter(ev => {
+        const diffDays = (new Date(ev.date_time).getTime() - now.getTime()) / (1000 * 3600 * 24);
+        return diffDays >= 0 && diffDays <= 7;
+      });
+    } else if (timeframeParam === 'this_month') {
+      filteredEvents = filteredEvents.filter(ev => {
+        const diffDays = (new Date(ev.date_time).getTime() - now.getTime()) / (1000 * 3600 * 24);
+        return diffDays >= 0 && diffDays <= 30;
+      });
+    }
+  }
+
+  // 3. Category filter
+  if (selectedCategory && selectedCategory !== "The Latest") {
+    filteredEvents = filteredEvents.filter(ev => ev.category.toLowerCase() === selectedCategory.toLowerCase());
+  }
 
   let displayEvents = filteredEvents;
   if (selectedDate) {
@@ -387,6 +435,44 @@ function DashboardContent() {
       )}
 
       <div className={`max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 flex flex-col ${showCalendarView ? 'gap-4' : 'gap-8 md:gap-12'}`}>
+
+        {/* Active Search & Timeframe Filter Banner */}
+        {(searchParamQuery || timeframeParam) && (
+          <div className="w-full bg-gradient-to-r from-primary/15 via-primary/10 to-transparent border border-primary/20 rounded-[24px] p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="h-8 w-8 rounded-full bg-primary text-black flex items-center justify-center shrink-0 shadow-sm font-black">
+                <Search className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {searchParamQuery && (
+                    <span className="text-xs sm:text-sm font-black text-zinc-900 tracking-tight">
+                      Results for <span className="underline decoration-primary decoration-2 underline-offset-2">"{searchParamQuery}"</span>
+                    </span>
+                  )}
+                  {timeframeParam && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-black text-white px-2.5 py-0.5 rounded-full">
+                      {timeframeParam.replace(/_/g, ' ')}
+                    </span>
+                  )}
+                  <span className="text-[10px] font-bold text-zinc-600 bg-white/80 border border-black/5 px-2 py-0.5 rounded-full">
+                    {displayEvents.length} vibe{displayEvents.length === 1 ? '' : 's'} found
+                  </span>
+                </div>
+                <p className="text-[10px] text-zinc-500 mt-0.5">
+                  Showing matches from events, categories, and locations in {currentCity}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="ringer-button bg-white text-black hover:bg-black hover:text-white text-[10px] py-1.5 px-3.5 border border-black/10 shrink-0 flex items-center gap-1.5 shadow-sm transition-all"
+            >
+              <X className="h-3 w-3" />
+              Clear Filter
+            </button>
+          </div>
+        )}
 
       {/* Calendar Empty State / Calendar View */}
       {showCalendarView && (

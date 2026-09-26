@@ -4,6 +4,9 @@ import QRCode from 'qrcode';
 import { config } from './config';
 import { getEventsInNext7Days } from './queries/events';
 import { PassDetails, getPassByQrToken } from './queries/passes';
+import { searchPublic } from './queries/search';
+import { getChatModel } from './rag';
+import { HumanMessage } from '@langchain/core/messages';
 
 const TELEGRAM_API = `https://api.telegram.org/bot${config.TELEGRAM_BOT_TOKEN}`;
 
@@ -352,6 +355,162 @@ export async function sendUserPassesList(pool: Pool, chatId: number | string) {
 }
 
 /**
+ * Smart Natural Language & Filtered Search for Telegram Bot
+ */
+export async function handleTelegramSmartSearch(
+  pool: Pool,
+  chatId: number | string,
+  userText: string,
+  defaultCity: string = 'Vizag'
+) {
+  let query = userText.trim();
+  let timeframe = 'upcoming';
+  let city = defaultCity;
+
+  const lower = userText.toLowerCase();
+
+  // 1. Timeframe extraction
+  if (lower.includes('this weekend') || lower.includes('weekend') || lower.includes('saturday') || lower.includes('sunday')) {
+    timeframe = 'this_weekend';
+  } else if (lower.includes('today') || lower.includes('tonight')) {
+    timeframe = 'today';
+  } else if (lower.includes('tomorrow')) {
+    timeframe = 'tomorrow';
+  } else if (lower.includes('this week') || lower.includes('next 7 days')) {
+    timeframe = 'this_week';
+  } else if (lower.includes('this month')) {
+    timeframe = 'this_month';
+  }
+
+  // 2. Clean query extraction
+  let cleanQuery = lower
+    .replace(/\b(events?|vibes?|parties|party|shows?|happening|any|show me|find|get|looking for|tell me about|what are the|in vizag|in hyderabad|in bangalore|this weekend|today|tomorrow|this week|this month|for|the|a|an|please)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Try fast LLM parsing if available and prompt is multi-word
+  if (userText.split(' ').length > 2) {
+    try {
+      const model = getChatModel();
+      if (model) {
+        const prompt = `You are a search query parser for an events platform called VibeCheck.
+Extract search intent from user input: "${userText}"
+Return valid JSON ONLY with keys:
+- "query": search keyword (e.g., "trekking", "techno", "standup", "comedy", or empty string if general)
+- "timeframe": one of ["today", "tomorrow", "this_weekend", "this_week", "this_month", "upcoming"]
+- "city": city name if specified or null
+JSON:`;
+        const response = await Promise.race([
+          model.invoke([new HumanMessage(prompt)]),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1800))
+        ]) as any;
+
+        const content = typeof response?.content === 'string' ? response.content : '';
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.query !== undefined && typeof parsed.query === 'string') cleanQuery = parsed.query.trim();
+          if (parsed.timeframe && typeof parsed.timeframe === 'string') timeframe = parsed.timeframe;
+          if (parsed.city && typeof parsed.city === 'string') city = parsed.city;
+        }
+      }
+    } catch (_) {
+      // Fall back to regex extracted parameters
+    }
+  }
+
+  // 3. Database Search Query
+  const searchResults = await searchPublic(pool, {
+    q: cleanQuery || undefined,
+    city: city,
+    timeframe: timeframe,
+    limitEvents: 4,
+    limitOrganizers: 2,
+  });
+
+  const { events, organizers } = searchResults;
+  const hasEvents = events && events.length > 0;
+  const hasOrganizers = organizers && organizers.length > 0;
+
+  if (!hasEvents && !hasOrganizers) {
+    const timeframeLabel = timeframe !== 'upcoming' ? ` (${timeframe.replace(/_/g, ' ')})` : '';
+    await sendTelegramMessage(
+      chatId,
+      `🔍 <b>No matching vibes found for "${cleanQuery || userText}"${timeframeLabel} in ${city}.</b>\n\n` +
+      `💡 <i>Try searching for other vibes like <b>Trekking</b>, <b>Live Music</b>, <b>Standup</b>, or <b>Techno</b>!</i>\n\n` +
+      `🗓️ Browse the full live calendar: <a href="${config.WEB_APP_URL}/dashboard">${config.WEB_APP_URL}/dashboard</a>`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🗓️ Browse Full VibeCalendar', url: `${config.WEB_APP_URL}/dashboard?view=calendar` }],
+            [{ text: '⚡ Discover All Events', callback_data: 'cmd_events' }]
+          ]
+        }
+      }
+    );
+    return;
+  }
+
+  const timeframeTitle = timeframe !== 'upcoming' ? ` • ${timeframe.replace(/_/g, ' ').toUpperCase()}` : '';
+  const searchTitle = cleanQuery ? `Matching "${cleanQuery.toUpperCase()}"` : `Active Vibes`;
+
+  let msg = `⚡ <b>${searchTitle}${timeframeTitle} in ${city.toUpperCase()}</b> ⚡\n\n`;
+  const buttons: any[] = [];
+
+  // Add event cards
+  if (hasEvents) {
+    events.slice(0, 3).forEach((ev: any, idx: number) => {
+      const dateFormatted = ev.date_time
+        ? new Date(ev.date_time).toLocaleDateString('en-IN', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : 'Date TBA';
+
+      const priceTag = ev.is_paid ? '🎟️ Paid Pass' : '🟢 Free Entry';
+      const organizerTag = ev.organizer_name ? ` (by ${ev.organizer_name})` : '';
+
+      msg += `<b>${idx + 1}. ${ev.title}</b>${organizerTag}\n` +
+             `📅 ${dateFormatted}\n` +
+             `📍 ${ev.location || city}\n` +
+             `🏷️ ${ev.category} • ${priceTag}\n\n`;
+
+      buttons.push([
+        { text: `🎟️ RSVP: ${ev.title.substring(0, 26)}`, url: `${config.WEB_APP_URL}/event/${ev.id}` }
+      ]);
+    });
+  }
+
+  // Add organizer highlight
+  if (hasOrganizers) {
+    const topOrg = organizers[0];
+    msg += `🎭 <b>Featured Organiser: ${topOrg.brand_name}</b> (⭐ ${Number(topOrg.rating || 4.8).toFixed(1)}/5)\n` +
+           `${topOrg.description ? `<i>"${topOrg.description.substring(0, 90)}..."</i>\n\n` : '\n'}`;
+
+    buttons.push([
+      { text: `🎭 Organiser Profile: ${topOrg.brand_name.substring(0, 22)}`, url: `${config.WEB_APP_URL}/organizer/${encodeURIComponent(topOrg.slug || topOrg.email)}` }
+    ]);
+  }
+
+  // Smart Deep Link with prefilled filters
+  const queryParam = cleanQuery ? `&q=${encodeURIComponent(cleanQuery)}` : '';
+  const timeframeQueryParam = timeframe !== 'upcoming' ? `&timeframe=${encodeURIComponent(timeframe)}` : '';
+  const cityParam = `&city=${encodeURIComponent(city)}`;
+  const filteredDashboardUrl = `${config.WEB_APP_URL}/dashboard?search=true${queryParam}${timeframeQueryParam}${cityParam}`;
+
+  buttons.unshift([
+    { text: '🌐 View on VibeCheckSpace', url: filteredDashboardUrl }
+  ]);
+
+  await sendTelegramMessage(chatId, msg, {
+    reply_markup: { inline_keyboard: buttons }
+  });
+}
+
+/**
  * Telegram Webhook Handler (Express route)
  */
 export async function handleTelegramWebhook(req: Request, res: Response, pool: Pool) {
@@ -460,10 +619,11 @@ export async function handleTelegramWebhook(req: Request, res: Response, pool: P
       await sendTelegramMessage(
         chatId,
         `👋 <b>Welcome to VibeCheck Vizag!</b> 🌊⚡\n\n` +
-        `I am your official VibeCheck companion. Here's what you can do:\n\n` +
-        `• <b>/events</b> — Explore upcoming curated events & vibes\n` +
-        `• <b>/passes</b> — View your active tickets & VIP invites\n` +
-        `• <b>/help</b> — Need assistance or contact organizer\n\n` +
+        `I am your official VibeCheck companion. You can ask me anything about events, or use:\n\n` +
+        `• <b>"trekking this weekend"</b> — Find specific events or organisers\n` +
+        `• <b>/events</b> — Explore all upcoming vibes\n` +
+        `• <b>/passes</b> — View your active tickets & QR passes\n` +
+        `• <b>/help</b> — Need assistance\n\n` +
         `🗓️ Browse full calendar on web: <a href="${config.WEB_APP_URL}">${config.WEB_APP_URL}</a>`,
         {
           reply_markup: {
@@ -482,40 +642,53 @@ export async function handleTelegramWebhook(req: Request, res: Response, pool: P
       return;
     }
 
-    // 2. Handle /events or vibecheck text
-    if (text === '/events' || text.toLowerCase().includes('events') || text.toLowerCase().includes('vibecheck')) {
-      await sendUpcomingEventsList(pool, chatId);
-      return;
-    }
+    const lowerText = text.toLowerCase();
 
-    // 3. Handle /passes command
-    if (text === '/passes' || text.toLowerCase().includes('pass') || text.toLowerCase().includes('ticket')) {
+    // 2. Handle /passes command or strictly passes query
+    if (text === '/passes' || lowerText === 'passes' || lowerText === 'my passes' || lowerText === 'tickets') {
       await sendUserPassesList(pool, chatId);
       return;
     }
 
-    // 4. Handle /help or fallback
-    await sendTelegramMessage(
-      chatId,
-      `Hey ${firstName}! 👋\n\n` +
-      `Send <b>/events</b> to see what's happening in Vizag this week, or <b>/passes</b> to access your entry QR codes.\n\n` +
-      `Need help? Reach out on our web platform: <a href="${config.WEB_APP_URL}">${config.WEB_APP_URL}</a>`,
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: '⚡ Discover Events', callback_data: 'cmd_events' },
-              { text: '🎟️ My Passes', callback_data: 'cmd_passes' }
-            ],
-            [
-              { text: '🌐 Open VibeCheck App', url: config.WEB_APP_URL }
+    // 3. Handle /events or generic vibecheck prompt
+    if (text === '/events' || lowerText === 'events' || lowerText === 'vibecheck') {
+      await sendUpcomingEventsList(pool, chatId);
+      return;
+    }
+
+    // 4. Handle /help command
+    if (text === '/help' || lowerText === 'help') {
+      await sendTelegramMessage(
+        chatId,
+        `Hey ${firstName}! 👋\n\n` +
+        `You can search naturally by sending messages like:\n` +
+        `• <i>"Are there any trekking events this weekend?"</i>\n` +
+        `• <i>"Show me techno parties tomorrow"</i>\n` +
+        `• <i>"Standup comedy in Vizag"</i>\n\n` +
+        `Or use commands: <b>/events</b> for 7-day schedule, <b>/passes</b> for tickets.\n\n` +
+        `Need support? <a href="${config.WEB_APP_URL}">${config.WEB_APP_URL}</a>`,
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '⚡ Discover Events', callback_data: 'cmd_events' },
+                { text: '🎟️ My Passes', callback_data: 'cmd_passes' }
+              ],
+              [
+                { text: '🌐 Open VibeCheck App', url: config.WEB_APP_URL }
+              ]
             ]
-          ]
+          }
         }
-      }
-    );
+      );
+      return;
+    }
+
+    // 5. Natural Language & Smart Search for all free-form text
+    await handleTelegramSmartSearch(pool, chatId, text, 'Vizag');
 
   } catch (error) {
     console.error('[Telegram Webhook] Error processing message:', error);
   }
 }
+

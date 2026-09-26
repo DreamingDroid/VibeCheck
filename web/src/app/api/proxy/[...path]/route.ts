@@ -69,10 +69,11 @@ function isAllowedOrigin(req: NextRequest): boolean {
 function isPublicRoute(method: string, endpointPath: string): boolean {
   const normalizedPath = endpointPath.toLowerCase();
 
-  // Public GET endpoints (Discovery, Cities, News, Settings, Instagram Auth, Organizers, Followers)
+  // Public GET endpoints (Discovery, Cities, News, Settings, Instagram Auth, Organizers, Followers, Search)
   if (method === "GET") {
     if (
       normalizedPath.startsWith("/api/events") ||
+      normalizedPath.startsWith("/api/search") ||
       normalizedPath.startsWith("/api/organizers") ||
       normalizedPath.startsWith("/api/followers") ||
       normalizedPath.startsWith("/api/cities") ||

@@ -112,9 +112,21 @@ export function CityProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     fetchCities();
 
-    const savedCity = localStorage.getItem("vibecheck_city");
-    if (savedCity) {
-      setCurrentCity(savedCity);
+    let initialCity: string | null = null;
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlCity = urlParams.get("city");
+      if (urlCity) {
+        initialCity = urlCity;
+      }
+    }
+
+    if (!initialCity) {
+      initialCity = localStorage.getItem("vibecheck_city");
+    }
+
+    if (initialCity) {
+      setCurrentCity(initialCity);
       setIsLoadingLocation(false);
     } else {
       // Attempt Geolocation

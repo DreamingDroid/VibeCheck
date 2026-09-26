@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { getEventsList, getEventById, insertEventRSVPEmail, checkEventRSVPEmail, checkUserEventAccess, getUserVipInvites } from './queries/events';
+import { searchPublic } from './queries/search';
 import { notifySuperAdmins } from './notifications';
 import { logModerationResult } from './moderation';
 
@@ -282,5 +283,33 @@ export async function reportEventHandler(req: Request, res: Response, pool: Pool
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
+
+export async function publicSearchHandler(req: Request, res: Response, pool: Pool) {
+  try {
+    const { q, query, city, category, timeframe, startDate, endDate, limitEvents, limitOrganizers } = req.query;
+
+    const searchTerm = (q || query) as string | undefined;
+
+    const results = await searchPublic(pool, {
+      q: searchTerm,
+      city: city as string | undefined,
+      category: category as string | undefined,
+      timeframe: timeframe as string | undefined,
+      startDate: startDate as string | undefined,
+      endDate: endDate as string | undefined,
+      limitEvents: limitEvents ? parseInt(limitEvents as string, 10) : 12,
+      limitOrganizers: limitOrganizers ? parseInt(limitOrganizers as string, 10) : 6,
+    });
+
+    res.json({
+      success: true,
+      data: results,
+    });
+  } catch (error) {
+    console.error('Error in publicSearchHandler:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
 
 

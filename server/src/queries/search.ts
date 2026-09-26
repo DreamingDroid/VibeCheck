@@ -751,3 +751,195 @@ export async function deleteAttendee(
     client.release();
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// 8. PUBLIC SEARCH (Events & Organizers with timeframe filters)
+// ─────────────────────────────────────────────────────────────
+
+export interface PublicSearchParams {
+  q?: string;
+  city?: string;
+  category?: string;
+  timeframe?: string; // 'all' | 'upcoming' | 'today' | 'tomorrow' | 'this_weekend' | 'this_week' | 'this_month'
+  startDate?: string;
+  endDate?: string;
+  limitEvents?: number;
+  limitOrganizers?: number;
+}
+
+export async function searchPublic(pool: Pool, params: PublicSearchParams) {
+  const {
+    q,
+    city,
+    category,
+    timeframe = 'upcoming',
+    startDate,
+    endDate,
+    limitEvents = 10,
+    limitOrganizers = 6,
+  } = params;
+
+  const cleanQ = q?.trim() || '';
+
+  // 1. Build Events Query
+  const eventWhere: string[] = [
+    `(e.status = 'approved' OR e.status = 'housefull' OR e.status = 'filling_fast' OR e.status IS NULL)`,
+    `(e.status != 'ended' OR e.status IS NULL)`,
+    `(e.visibility = 'public' OR e.visibility IS NULL)`
+  ];
+  const eventValues: any[] = [];
+  let eventIdx = 1;
+
+  if (cleanQ) {
+    eventWhere.push(`(
+      e.title ILIKE $${eventIdx} OR
+      e.description ILIKE $${eventIdx} OR
+      e.location ILIKE $${eventIdx} OR
+      e.category::text ILIKE $${eventIdx} OR
+      a.brand_name ILIKE $${eventIdx}
+    )`);
+    eventValues.push(`%${cleanQ}%`);
+    eventIdx++;
+  }
+
+  if (city && city !== 'All' && city !== 'all') {
+    eventWhere.push(`e.city ILIKE $${eventIdx}`);
+    eventValues.push(`%${city.trim()}%`);
+    eventIdx++;
+  }
+
+  if (category && category !== 'All' && category !== 'The Latest' && category !== 'all') {
+    eventWhere.push(`e.category::text ILIKE $${eventIdx}`);
+    eventValues.push(`%${category.trim()}%`);
+    eventIdx++;
+  }
+
+  // Timeframe handling
+  if (startDate && endDate) {
+    eventWhere.push(`e.date_time >= $${eventIdx} AND e.date_time <= $${eventIdx + 1}`);
+    eventValues.push(startDate, endDate);
+    eventIdx += 2;
+  } else if (timeframe === 'today') {
+    eventWhere.push(`e.date_time >= CURRENT_DATE AND e.date_time < CURRENT_DATE + INTERVAL '1 day'`);
+  } else if (timeframe === 'tomorrow') {
+    eventWhere.push(`e.date_time >= CURRENT_DATE + INTERVAL '1 day' AND e.date_time < CURRENT_DATE + INTERVAL '2 days'`);
+  } else if (timeframe === 'this_weekend') {
+    eventWhere.push(`(
+      (EXTRACT(ISODOW FROM e.date_time) IN (5, 6, 7) AND e.date_time >= NOW() AND e.date_time <= NOW() + INTERVAL '7 days')
+      OR (e.date_time >= date_trunc('week', NOW()) + INTERVAL '4 days 16 hours' AND e.date_time <= date_trunc('week', NOW()) + INTERVAL '6 days 23 hours 59 minutes' AND e.date_time >= NOW())
+    )`);
+  } else if (timeframe === 'this_week') {
+    eventWhere.push(`e.date_time >= NOW() AND e.date_time <= NOW() + INTERVAL '7 days'`);
+  } else if (timeframe === 'this_month') {
+    eventWhere.push(`e.date_time >= NOW() AND e.date_time <= NOW() + INTERVAL '30 days'`);
+  } else {
+    // Default upcoming
+    eventWhere.push(`(e.end_time >= NOW() OR (e.end_time IS NULL AND e.date_time >= NOW()))`);
+  }
+
+  const eventsQuery = `
+    SELECT 
+      e.id,
+      e.title,
+      e.description,
+      e.category,
+      e.location,
+      e.city,
+      e.date_time,
+      e.end_time,
+      e.timings,
+      e.status,
+      e.is_paid,
+      e.is_featured,
+      e.participant_limit,
+      e.image_url,
+      e.google_maps_link,
+      e.whatsapp_group_link,
+      e.event_type,
+      e.timezone,
+      e.organizer_email,
+      COALESCE(a.brand_name, split_part(e.organizer_email, '@', 1)) as organizer_name,
+      COALESCE(a.slug, LOWER(REGEXP_REPLACE(COALESCE(a.brand_name, split_part(e.organizer_email, '@', 1)), '[^a-zA-Z0-9]+', '-', 'g'))) as organizer_slug,
+      COALESCE(a.image_url, (SELECT image_url FROM web_users WHERE LOWER(web_users.email) = LOWER(e.organizer_email))) as organizer_image,
+      COALESCE(a.rating, 4.5)::float as organizer_rating,
+      (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = e.id) as rsvp_count
+    FROM events e
+    LEFT JOIN admins a ON LOWER(e.organizer_email) = LOWER(a.email)
+    WHERE ${eventWhere.join(' AND ')}
+    ORDER BY e.is_featured DESC, e.date_time ASC
+    LIMIT $${eventIdx}
+  `;
+  eventValues.push(limitEvents);
+
+  // 2. Build Organizers Query
+  const orgWhere: string[] = [
+    `LOWER(a.role::text) = 'organizer'`,
+    `(a.status = 'approved' OR a.role::text = 'SuperAdmin')`
+  ];
+  const orgValues: any[] = [];
+  let orgIdx = 1;
+
+  if (cleanQ) {
+    orgWhere.push(`(
+      a.brand_name ILIKE $${orgIdx} OR
+      a.description ILIKE $${orgIdx} OR
+      a.instagram_handle ILIKE $${orgIdx} OR
+      a.email ILIKE $${orgIdx} OR
+      EXISTS (
+        SELECT 1 FROM events ev 
+        WHERE LOWER(ev.organizer_email) = LOWER(a.email) 
+          AND (ev.title ILIKE $${orgIdx} OR ev.description ILIKE $${orgIdx} OR ev.category::text ILIKE $${orgIdx})
+      )
+    )`);
+    orgValues.push(`%${cleanQ}%`);
+    orgIdx++;
+  }
+
+  if (city && city !== 'All' && city !== 'all') {
+    orgWhere.push(`EXISTS (
+      SELECT 1 FROM events ev 
+      WHERE LOWER(ev.organizer_email) = LOWER(a.email) 
+        AND ev.city ILIKE $${orgIdx}
+    )`);
+    orgValues.push(`%${city.trim()}%`);
+    orgIdx++;
+  }
+
+  const organizersQuery = `
+    SELECT 
+      a.id,
+      a.email,
+      COALESCE(a.brand_name, split_part(a.email, '@', 1)) as brand_name,
+      COALESCE(a.slug, LOWER(REGEXP_REPLACE(COALESCE(a.brand_name, split_part(a.email, '@', 1)), '[^a-zA-Z0-9]+', '-', 'g'))) as slug,
+      a.description,
+      COALESCE(a.image_url, (SELECT image_url FROM web_users WHERE LOWER(web_users.email) = LOWER(a.email))) as image_url,
+      COALESCE(a.rating, 4.5)::float as rating,
+      a.instagram_handle,
+      a.instagram_verified,
+      (SELECT COUNT(*)::int FROM organizer_followers WHERE LOWER(organizer_email) = LOWER(a.email)) as followers_count,
+      (SELECT COUNT(*)::int FROM events WHERE LOWER(organizer_email) = LOWER(a.email) AND (status = 'approved' OR status = 'housefull' OR status = 'filling_fast') AND (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW()))) as upcoming_events_count
+    FROM admins a
+    WHERE ${orgWhere.join(' AND ')}
+    ORDER BY followers_count DESC, upcoming_events_count DESC, rating DESC
+    LIMIT $${orgIdx}
+  `;
+  orgValues.push(limitOrganizers);
+
+  // Execute in parallel
+  const [eventsResult, organizersResult] = await Promise.all([
+    pool.query(eventsQuery, eventValues),
+    pool.query(organizersQuery, orgValues),
+  ]);
+
+  return {
+    query: cleanQ,
+    city: city || null,
+    category: category || null,
+    timeframe,
+    events: eventsResult.rows,
+    organizers: organizersResult.rows,
+    totalEvents: eventsResult.rows.length,
+    totalOrganizers: organizersResult.rows.length,
+  };
+}
+
