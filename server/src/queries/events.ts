@@ -325,11 +325,13 @@ export async function createOrganizerEvent(pool: Pool, data: any) {
     const safeEventType = event_type === 'online' ? 'online' : 'in_person';
     const safeTimezone = timezone && typeof timezone === 'string' ? timezone : 'Asia/Kolkata';
 
+    const initialEventStatus = data.status && ['approved', 'pending', 'rejected'].includes(data.status) ? data.status : 'pending';
+
     const { rows } = await pool.query(
       `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, status, organizer_email, participant_limit, is_paid, visibility, image_url, image_public_id, attendee_guide, event_type, timezone)
-       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending', $13, $14, $15, $16::event_visibility, $17, $18, $19, $20, $21)
+       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17::event_visibility, $18, $19, $20, $21, $22)
        RETURNING id, title, status, visibility, image_url, image_public_id, whatsapp_group_link, attendee_guide, event_type, timezone`,
-      [title, description, safeCategory, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, organizer_email, isNaN(safeLimit as number) ? null : safeLimit, safeIsPaid, validVisibility, image_url || null, image_public_id || null, JSON.stringify(safeGuide), safeEventType, safeTimezone]
+      [title, description, safeCategory, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, initialEventStatus, organizer_email, isNaN(safeLimit as number) ? null : safeLimit, safeIsPaid, validVisibility, image_url || null, image_public_id || null, JSON.stringify(safeGuide), safeEventType, safeTimezone]
     );
     return rows[0];
 }

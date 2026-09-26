@@ -43,6 +43,7 @@ export const config = {
   // LLM Settings
   RUN_MODE: (process.env.RUN_MODE || 'cloud').trim(),
   GEMINI_API_KEY: process.env.GEMINI_API_KEY?.trim() || '',
+  GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
   CHAT_MODEL: process.env.CHAT_MODEL || 'llama3.3',
   EMBED_MODEL: process.env.EMBED_MODEL || process.env.OLLAMA_EMBEDDING_MODEL || 'nomic-embed-text',
   OLLAMA_BASE_URL: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',

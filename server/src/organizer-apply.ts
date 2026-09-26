@@ -5,6 +5,7 @@ import { Resend } from 'resend';
 import { config } from './config';
 import { sendWhatsAppMessage, sendWhatsAppTemplateOTP } from './whatsapp';
 import { notifySuperAdmins } from './notifications';
+import { evaluateContentWithAI, logModerationResult } from './moderation';
 
 const resend = new Resend(config.RESEND_API_KEY);
 
@@ -499,6 +500,40 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
   const finalInstagramUrl = cleanInstagramHandle ? `https://instagram.com/${cleanInstagramHandle}` : (instagramUrl || null);
   const socialLinks = { facebook: facebookUrl || '', instagram: finalInstagramUrl || '' };
 
+  // AI Guardrails & Scrutiny
+  const moderationPayload = {
+    brand_name: brandName,
+    description,
+    instagram_handle: cleanInstagramHandle,
+    social_links: socialLinks,
+    email: cleanEmail,
+    phone: formattedPhone,
+  };
+
+  const moderationResult = await evaluateContentWithAI('organizer', moderationPayload);
+
+  // Log moderation check asynchronously
+  logModerationResult(pool, {
+    entity_type: 'organizer',
+    submitted_by: cleanEmail,
+    content_payload: moderationPayload,
+    result: moderationResult,
+  });
+
+  // If flagged as unsafe or containing abusive content / scam, reject immediately
+  if (!moderationResult.fast_filter_passed || moderationResult.decision === 'auto_reject') {
+    return res.status(400).json({
+      success: false,
+      error: `Application rejected by Trust & Safety AI Guardrail: ${moderationResult.reason}`,
+      flags: moderationResult.flags,
+    });
+  }
+
+  // Auto-Approve if high AI score (>= 80) and Instagram verified
+  const initialStatus = moderationResult.decision === 'auto_approve' && isInstagramVerified
+    ? 'approved'
+    : 'pending_approval';
+
   try {
     // 1. Check for existing organizer application by email, phone, or instagram
     const existingCheck = await pool.query(
@@ -637,15 +672,23 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
       `INSERT INTO admins (
         email, role, status, brand_name, description, social_links, phone_number, email_verified, phone_verified, instagram_verified, instagram_handle, instagram_metadata
       ) VALUES (
-        $1, 'organizer', 'pending_approval', $2, $3, $4::jsonb, $5, true, true, $6, $7, $8::jsonb
+        $1, 'organizer', $2, $3, $4, $5::jsonb, $6, true, true, $7, $8, $9::jsonb
       )`,
-      [cleanEmail, brandName, description, JSON.stringify(socialLinks), formattedPhone, isInstagramVerified, cleanInstagramHandle, JSON.stringify(instagramMetadata)]
+      [cleanEmail, initialStatus, brandName, description, JSON.stringify(socialLinks), formattedPhone, isInstagramVerified, cleanInstagramHandle, JSON.stringify(instagramMetadata)]
     );
 
-    // Notify SuperAdmins of the pending application
+    if (initialStatus === 'approved') {
+      return res.json({
+        success: true,
+        status: 'approved',
+        message: '🎉 Application approved automatically by AI Trust & Safety verification! You can now log into your organizer dashboard.',
+      });
+    }
+
+    // Notify SuperAdmins of the pending application (with AI Score & Flags)
     notifySuperAdmins(pool, {
-      title: `New Organizer Application: ${brandName}`,
-      message: `${brandName} (${cleanEmail}) has submitted an application for organizer approval (Instagram: @${cleanInstagramHandle}, ${instagramMetadata.follower_bucket || 'N/A'} followers).`,
+      title: `New Organizer Application (AI Score: ${moderationResult.quality_score}/100): ${brandName}`,
+      message: `${brandName} (${cleanEmail}) applied. AI Assessment: ${moderationResult.reason}`,
       type: 'approval_pending',
       link: '/admin/organizers?tab=pending',
       metadata: { 
@@ -653,30 +696,28 @@ export async function submitApplicationHandler(req: Request, res: Response, pool
         email: cleanEmail, 
         phone: formattedPhone, 
         instagram_handle: cleanInstagramHandle, 
-        instagram_metadata: instagramMetadata,
+        ai_score: moderationResult.quality_score,
+        ai_flags: moderationResult.flags,
         type: 'organizer_application' 
       },
-      emailSubject: `[VibeCheck Admin] New Organizer Application: ${brandName}`,
+      emailSubject: `[VibeCheck Admin] New Organizer Application: ${brandName} (AI Score: ${moderationResult.quality_score})`,
       emailHtml: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #6366f1; margin-top: 0;">New Organizer Application Submitted</h2>
-          <p>A new organizer has registered and submitted an application for review on VibeCheck.</p>
+          <h2 style="color: #6366f1; margin-top: 0;">New Organizer Application (Pending Review)</h2>
+          <p><strong>AI Trust Score:</strong> ${moderationResult.quality_score}/100</p>
+          <p><strong>AI Assessment:</strong> ${moderationResult.reason}</p>
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
-            <p style="margin: 6px 0;"><strong>Brand / Organization:</strong> ${brandName}</p>
-            <p style="margin: 6px 0;"><strong>Contact Email:</strong> ${cleanEmail}</p>
+            <p style="margin: 6px 0;"><strong>Brand:</strong> ${brandName}</p>
+            <p style="margin: 6px 0;"><strong>Email:</strong> ${cleanEmail}</p>
             <p style="margin: 6px 0;"><strong>Phone:</strong> ${formattedPhone}</p>
-            <p style="margin: 6px 0;"><strong>Instagram:</strong> @${cleanInstagramHandle} (${instagramMetadata.account_type || 'BUSINESS'} • ${instagramMetadata.follower_bucket || 'N/A'} followers)</p>
-            <p style="margin: 6px 0;"><strong>Tier Assessment:</strong> ${instagramMetadata.tier_label || 'Standard'} (${instagramMetadata.score_recommendation || 'Applicant'})</p>
             <p style="margin: 6px 0;"><strong>Description:</strong> ${description}</p>
           </div>
-          <div style="margin-top: 24px;">
-            <a href="${config.WEB_APP_URL}/admin/organizers?tab=pending" style="display: inline-block; background: #6366f1; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Review Application in Admin Portal &rarr;</a>
-          </div>
+          <a href="${config.WEB_APP_URL}/admin/organizers?tab=pending" style="display: inline-block; background: #6366f1; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Review in Admin Portal &rarr;</a>
         </div>
       `
     }).catch(err => console.warn('[Notifications] Error in notifySuperAdmins on apply:', err.message));
 
-    return res.json({ success: true, message: 'Application submitted successfully! Please wait for admin approval.' });
+    return res.json({ success: true, status: 'pending_approval', message: 'Application submitted successfully! Queued for review.' });
   } catch (error: any) {
     if (error.code === '23505') {
       if (error.constraint === 'idx_admins_unique_instagram') {

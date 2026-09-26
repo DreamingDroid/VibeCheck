@@ -10,8 +10,9 @@ import {
   Trophy, Palette, BookOpen, Compass, Heart,
   Activity, Wine, Smile, Briefcase, Sparkles, Bell,
   SunMoon, X, CheckCircle2, AlertCircle, Clock, ExternalLink, Calendar, User,
-  Sliders, LogOut, Shield, Newspaper
+  Sliders, LogOut, Shield, Newspaper, LifeBuoy
 } from "lucide-react"
+import { SupportTicketModal } from "@/components/SupportTicketModal"
 import { useTheme } from "@/context/ThemeContext"
 import { useLanguage, useTranslation, ALL_LANGUAGES } from "@/context/LanguageContext"
 import {
@@ -246,6 +247,7 @@ export function GlobalHeader() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [selectedNotification, setSelectedNotification] = useState<ModalNotification | null>(null)
   const [avatarImgError, setAvatarImgError] = useState(false)
+  const [isSupportOpen, setIsSupportOpen] = useState(false)
 
   // In-App Notification Center States
   const [notifications, setNotifications] = useState<UserNotification[]>([])
@@ -1052,6 +1054,24 @@ export function GlobalHeader() {
 
                           <div className="w-full h-[1px] bg-black/5 my-2.5" />
 
+                          {/* Help & Support (AI Assistant) */}
+                          <button
+                            onClick={() => { setShowProfileMenu(false); setIsSupportOpen(true); }}
+                            className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-indigo-50 text-zinc-700 hover:text-indigo-600 transition-colors text-left group"
+                          >
+                            <div className="h-8 w-8 rounded-lg bg-indigo-50 group-hover:bg-indigo-100 group-hover:text-indigo-600 flex items-center justify-center transition-colors text-indigo-500">
+                              <LifeBuoy className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs font-black uppercase tracking-wider block">
+                                Help &amp; Support
+                              </span>
+                              <span className="text-[10px] text-zinc-400 group-hover:text-indigo-400 font-medium block">
+                                Instant AI assistant &amp; tickets
+                              </span>
+                            </div>
+                          </button>
+
                           {/* Sign out */}
                           <button
                             onClick={() => { setShowProfileMenu(false); handleSignOut(); }}
@@ -1232,6 +1252,13 @@ export function GlobalHeader() {
           </div>
         );
       })()}
+
+      {/* Support Ticket Modal (AI First-Responder) */}
+      <SupportTicketModal
+        isOpen={isSupportOpen}
+        onClose={() => setIsSupportOpen(false)}
+        defaultEmail={session?.user?.email || ""}
+      />
 
     </div>
   )

@@ -60,6 +60,11 @@ import {
   createScannerPinHandler,
   getTelegramPassLinkHandler
 } from './passes';
+import {
+  submitTicketHandler,
+  getTicketStatusHandler,
+  adminListTicketsHandler
+} from './tickets';
 import { config } from './config';
 
 import rateLimit from 'express-rate-limit';
@@ -398,6 +403,11 @@ app.post('/api/passes/manual-checkin', (req, res) => manualCheckInHandler(req, r
 app.post('/api/passes/telegram-link', (req, res) => getTelegramPassLinkHandler(req, res, pool));
 app.get('/api/organizer/events/:id/attendance', (req, res) => getAttendanceStatsHandler(req, res, pool));
 app.post('/api/organizer/events/:id/scanner-pin', (req, res) => createScannerPinHandler(req, res, pool));
+
+// AI Support Ticketing API
+app.post('/api/tickets', (req, res) => submitTicketHandler(req, res, pool));
+app.get('/api/tickets/:ticketNumber', (req, res) => getTicketStatusHandler(req, res, pool));
+app.get('/api/admin/tickets', (req, res) => adminListTicketsHandler(req, res, pool));
 
 // ── Dev-only: manually trigger the AI Matchmaker for testing ─────────────────
 app.post('/admin/trigger-cron', async (req, res) => {
