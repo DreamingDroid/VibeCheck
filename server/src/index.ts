@@ -65,6 +65,7 @@ import {
   getTicketStatusHandler,
   adminListTicketsHandler
 } from './tickets';
+import createVenueAuthRouter from './routes/venueAuth';
 import { config } from './config';
 
 import rateLimit from 'express-rate-limit';
@@ -412,6 +413,9 @@ app.post('/api/organizer/events/:id/scanner-pin', (req, res) => createScannerPin
 app.post('/api/tickets', (req, res) => submitTicketHandler(req, res, pool));
 app.get('/api/tickets/:ticketNumber', (req, res) => getTicketStatusHandler(req, res, pool));
 app.get('/api/admin/tickets', (req, res) => adminListTicketsHandler(req, res, pool));
+
+// Venue Authorization & Legal Verification API
+app.use('/api/venue-auth', createVenueAuthRouter(pool));
 
 // ── Dev-only: manually trigger the AI Matchmaker for testing ─────────────────
 app.post('/admin/trigger-cron', async (req, res) => {

@@ -17,12 +17,45 @@ import { evaluateContentWithAI, logModerationResult } from './moderation';
 
 const resend = new Resend(config.RESEND_API_KEY);
 
+import crypto from 'crypto';
+import { sendVenueAuthorizationEmail } from './services/venueAuthEmail';
+
 export async function organizerCreateEventHandler(req: Request, res: Response, pool: Pool) {
-  const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email, visibility, guest_list, guestList } = req.body;
+  const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email, visibility, guest_list, guestList, is_paid, isPaid, ticket_price, ticketPrice, venue_official_email, venueOfficialEmail, venue_official_phone, venueOfficialPhone, venue_section_hall, venueSectionHall, upi_id, upiId, external_ticket_link, externalTicketLink } = req.body;
 
   if (!organizer_email) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
-  // 1. AI Guardrails & Moderation Scrutiny
+  const safeIsPaid = Boolean(is_paid ?? isPaid ?? false);
+  const safeVenueEmail = venue_official_email || venueOfficialEmail;
+  const safeVenuePhone = venue_official_phone || venueOfficialPhone;
+  const safeVenueHall = venue_section_hall || venueSectionHall;
+  const safeUpiId = upi_id || upiId;
+  const safeTicketPrice = ticket_price ?? ticketPrice ?? 0;
+  const safeExternalTicketLink = external_ticket_link || externalTicketLink;
+
+  // 1. Strict 7-Day Advance Submission Rule for Paid Events
+  if (safeIsPaid) {
+    if (!date_time) {
+      return res.status(400).json({ success: false, error: 'Event date and time is required.' });
+    }
+    const eventDate = new Date(date_time);
+    const minLeadTimeMs = 7 * 24 * 60 * 60 * 1000; // 7 days (168 hours)
+    if (eventDate.getTime() - Date.now() < minLeadTimeMs) {
+      return res.status(400).json({
+        success: false,
+        error: 'Paid events must be scheduled at least 7 days in advance to allow sufficient time for venue authorization, security verification, and attendee ticket sales.'
+      });
+    }
+
+    if (!safeVenueEmail) {
+      return res.status(400).json({
+        success: false,
+        error: 'Official Venue Manager Email is required for paid events to complete legal venue authorization.'
+      });
+    }
+  }
+
+  // 2. AI Guardrails & Moderation Scrutiny
   const moderationPayload = {
     title,
     description,
@@ -53,11 +86,79 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
     });
   }
 
-  // Auto-Approve if high AI score (>= 80)
-  const initialStatus = moderationResult.decision === 'auto_approve' ? 'approved' : 'pending';
+  // For paid events: Status is always 'pending_venue_auth' until venue approves
+  let initialStatus: string;
+  let venueAuthToken: string | null = null;
+  let venueTokenExpiresAt: Date | null = null;
+  let venueStatus = 'unverified';
+  let paymentDetailsLocked = false;
+
+  if (safeIsPaid && safeVenueEmail) {
+    initialStatus = 'pending_venue_auth';
+    venueStatus = 'pending_venue_auth';
+    venueAuthToken = crypto.randomBytes(32).toString('hex');
+    venueTokenExpiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48-hour window
+    paymentDetailsLocked = true;
+  } else {
+    initialStatus = moderationResult.decision === 'auto_approve' ? 'approved' : 'pending';
+  }
 
   try {
-    const event = await createOrganizerEvent(pool, { ...req.body, status: initialStatus });
+    const event = await createOrganizerEvent(pool, {
+      ...req.body,
+      status: initialStatus,
+      is_paid: safeIsPaid,
+      ticket_price: safeTicketPrice,
+      upi_id: safeUpiId,
+      external_ticket_link: safeExternalTicketLink,
+      venue_official_email: safeVenueEmail,
+      venue_official_phone: safeVenuePhone,
+      venue_section_hall: safeVenueHall,
+      venue_verification_status: venueStatus,
+      venue_auth_token: venueAuthToken,
+      venue_auth_token_expires_at: venueTokenExpiresAt,
+      payment_details_locked: paymentDetailsLocked
+    });
+
+    // Cache venue in persistent directory table if new
+    if (location && city && safeVenueEmail) {
+      pool.query(
+        `INSERT INTO venues (name, city, address, official_email, official_phone, is_verified)
+         VALUES ($1, $2, $3, $4, $5, false)
+         ON CONFLICT DO NOTHING`,
+        [location, city, location, safeVenueEmail, safeVenuePhone || null]
+      ).catch(err => console.warn('[Venues] Auto-cache error:', err.message));
+    }
+
+    // Dispatch Legal Authorization Email to Venue Manager for Paid Events
+    if (safeIsPaid && venueAuthToken && safeVenueEmail) {
+      const auditRef = `VC-AUTH-${new Date().getFullYear()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+      
+      const adminRes = await pool.query('SELECT brand_name, phone_number FROM admins WHERE LOWER(email) = $1', [organizer_email.toLowerCase().trim()]);
+      const brandName = adminRes.rows[0]?.brand_name || organizer_email;
+      const orgPhone = adminRes.rows[0]?.phone_number || contact_info || 'Verified on VibeCheck';
+
+      sendVenueAuthorizationEmail({
+        auditReferenceId: auditRef,
+        token: venueAuthToken,
+        venueName: location || 'Venue',
+        venueAddress: location || '',
+        venueSectionHall: safeVenueHall,
+        venueOfficialEmail: safeVenueEmail,
+        organizerBrandName: brandName,
+        organizerLegalName: brandName,
+        organizerPhone: orgPhone,
+        organizerEmail: organizer_email,
+        eventTitle: title,
+        eventCategory: category,
+        eventStartTimeIST: new Date(date_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'short' }),
+        eventEndTimeIST: end_time ? new Date(end_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', timeStyle: 'short' }) : undefined,
+        participantLimit: req.body.participant_limit || req.body.participantLimit,
+        isPaid: true,
+        ticketPrice: safeTicketPrice,
+        tokenExpiresAtIST: venueTokenExpiresAt!.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })
+      }).catch(err => console.error('[VenueAuth] Background email dispatch error:', err));
+    }
 
     // Process VIP guest list if event is invite_only
     const rawList = guest_list || guestList;
@@ -98,6 +199,15 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
           }).catch(err => console.warn('[Notifications] VIP FCM push error:', err.message));
         }
       }
+    }
+
+    if (initialStatus === 'pending_venue_auth') {
+      return res.json({
+        success: true,
+        data: event,
+        status: 'pending_venue_auth',
+        message: `📧 Legal verification email sent to ${safeVenueEmail}. Your event will be published with the 'Venue Confirmed' badge once the venue manager approves!`,
+      });
     }
 
     if (initialStatus === 'approved') {

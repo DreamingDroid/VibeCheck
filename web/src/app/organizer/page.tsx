@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
-import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode, Send, Calendar, Clock, MapPin, Users, ChevronDown, ChevronUp, Key, MessageSquare, Plus, Backpack, ListChecks, PhoneCall, Compass, CheckCircle2, Globe } from "lucide-react";
+import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode, Send, Calendar, Clock, MapPin, Users, ChevronDown, ChevronUp, Key, MessageSquare, Plus, Backpack, ListChecks, PhoneCall, Compass, CheckCircle2, Globe, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import OrganizerInsightsDashboard from "@/components/OrganizerInsightsDashboard";
@@ -113,6 +113,8 @@ export default function OrganizerDashboard() {
     title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
     startDate: "", endDate: "", startTime: "", endTime: "",
     participantLimit: "", isPaid: false,
+    ticketPrice: "", upiId: "", externalTicketLink: "",
+    venueOfficialEmail: "", venueOfficialPhone: "", venueSectionHall: "",
     visibility: "public" as "public" | "invite_only",
     guestList: "",
     eventType: "in_person" as "in_person" | "online",
@@ -474,6 +476,12 @@ export default function OrganizerDashboard() {
       startTime: fTime(start), endTime: fTime(end),
       participantLimit: ev.participant_limit ? String(ev.participant_limit) : "",
       isPaid: ev.is_paid || false,
+      ticketPrice: ev.ticket_price ? String(ev.ticket_price) : "",
+      upiId: ev.upi_id || "",
+      externalTicketLink: ev.external_ticket_link || "",
+      venueOfficialEmail: ev.venue_official_email || "",
+      venueOfficialPhone: ev.venue_official_phone || "",
+      venueSectionHall: ev.venue_section_hall || "",
       visibility: ev.visibility || "public",
       guestList: "",
       eventType: (ev.event_type || "in_person") as "in_person" | "online",
@@ -507,6 +515,8 @@ export default function OrganizerDashboard() {
       title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
       startDate: "", endDate: "", startTime: "", endTime: "",
       participantLimit: "", isPaid: false,
+      ticketPrice: "", upiId: "", externalTicketLink: "",
+      venueOfficialEmail: "", venueOfficialPhone: "", venueSectionHall: "",
       visibility: "public",
       guestList: "",
       eventType: "in_person",
@@ -535,9 +545,29 @@ export default function OrganizerDashboard() {
     if (formData.eventType === 'in_person' && !formData.location) newErrors.location = true;
     if (!formData.description) newErrors.description = true;
 
+    // Strict 7-Day Advance Notice & Venue Email Validation for Paid Events
+    if (formData.isPaid) {
+      if (formData.startDate) {
+        const eventDate = new Date(formData.startDate);
+        const minLeadTime = new Date();
+        minLeadTime.setDate(minLeadTime.getDate() + 7);
+        minLeadTime.setHours(0, 0, 0, 0);
+        if (eventDate < minLeadTime) {
+          toast.error("Paid events must be scheduled at least 7 days in advance to allow venue verification.");
+          newErrors.startDate = true;
+        }
+      }
+      if (!formData.venueOfficialEmail) {
+        newErrors.venueOfficialEmail = true;
+        toast.error("Official venue manager email is required for paid events");
+      }
+      if (!formData.ticketPrice) {
+        newErrors.ticketPrice = true;
+      }
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      // Optional: smooth scroll to first error
       const firstError = Object.keys(newErrors)[0];
       const el = document.getElementsByName(firstError)[0];
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -599,6 +629,12 @@ export default function OrganizerDashboard() {
           city: formData.eventType === 'online' ? (formData.city || 'Global / Online') : formData.city,
           participant_limit: formData.participantLimit ? parseInt(formData.participantLimit, 10) : null,
           is_paid: formData.isPaid,
+          ticket_price: formData.ticketPrice ? parseFloat(formData.ticketPrice) : 0,
+          upi_id: formData.upiId || null,
+          external_ticket_link: formData.externalTicketLink || null,
+          venue_official_email: formData.venueOfficialEmail || null,
+          venue_official_phone: formData.venueOfficialPhone || null,
+          venue_section_hall: formData.venueSectionHall || null,
           visibility: formData.visibility,
           guest_list: formData.visibility === "invite_only" ? formData.guestList : undefined,
           image_url: finalImageUrl || null,
@@ -617,6 +653,8 @@ export default function OrganizerDashboard() {
           title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
           startDate: "", endDate: "", startTime: "", endTime: "",
           participantLimit: "", isPaid: false,
+          ticketPrice: "", upiId: "", externalTicketLink: "",
+          venueOfficialEmail: "", venueOfficialPhone: "", venueSectionHall: "",
           visibility: "public",
           guestList: "",
           eventType: "in_person",
@@ -631,10 +669,15 @@ export default function OrganizerDashboard() {
         setEditingEventId(null);
         setShowForm(false);
         loadMyEvents();
-        toast.success(
-          formData.visibility === 'invite_only' ? "VIP Event submitted & Invitations dispatched!" : "Event submitted!",
-          { id: toastId, description: "Your event is pending review by the VibeCheck team." }
-        );
+        
+        if (data.status === 'pending_venue_auth') {
+          toast.success("📧 Legal verification email dispatched to the venue! Payment details will be unlocked once approved.", { id: toastId, duration: 6000 });
+        } else {
+          toast.success(
+            formData.visibility === 'invite_only' ? "VIP Event submitted & Invitations dispatched!" : "Event submitted!",
+            { id: toastId, description: "Your event has been submitted to the VibeCheck platform." }
+          );
+        }
       } else {
         toast.error("Submission failed.", { id: toastId, description: data.error || "VibeCheck server rejected the request. Please check your details." });
       }
@@ -944,6 +987,8 @@ export default function OrganizerDashboard() {
               title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
               startDate: "", endDate: "", startTime: "", endTime: "",
               participantLimit: "", isPaid: false,
+              ticketPrice: "", upiId: "", externalTicketLink: "",
+              venueOfficialEmail: "", venueOfficialPhone: "", venueSectionHall: "",
               visibility: "public",
               guestList: "",
               eventType: "in_person",
@@ -1227,6 +1272,88 @@ export default function OrganizerDashboard() {
                       Paid Entry
                     </button>
                   </div>
+
+                  {/* Paid Event: Venue Authorization & Direct Payment Details */}
+                  {formData.isPaid && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 space-y-3 animate-in fade-in">
+                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-800">
+                        <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
+                        <span>Venue Authorization &amp; Direct Payment Details</span>
+                      </div>
+                      <p className="text-[11px] text-amber-900/80 font-medium leading-relaxed">
+                        🛡️ To protect guests from fraud, VibeCheck dispatches a legal authorization email to the venue management. Your payment details (UPI QR / link) will be unlocked for attendees once the venue confirms this booking.
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">Official Venue Email *</Label>
+                          <Input
+                            type="email"
+                            required
+                            placeholder="e.g. manager@ironhill.in"
+                            value={formData.venueOfficialEmail}
+                            onChange={e => { setFormData({ ...formData, venueOfficialEmail: e.target.value }); if (errors.venueOfficialEmail) setErrors({ ...errors, venueOfficialEmail: false }); }}
+                            className={cn("bg-white border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.venueOfficialEmail && "border-red-500 ring-red-500/20")}
+                          />
+                          <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Where VibeCheck will send the legal authorization request</p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">Venue Manager Phone / WA (Optional)</Label>
+                          <Input
+                            placeholder="e.g. +91 86885 15102"
+                            value={formData.venueOfficialPhone}
+                            onChange={e => setFormData({ ...formData, venueOfficialPhone: e.target.value })}
+                            className="bg-white border-black/5 focus:ring-primary rounded-xl text-xs font-bold"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">Venue Hall / Area Name</Label>
+                          <Input
+                            placeholder="e.g. Rooftop Lounge, Banquet Hall A"
+                            value={formData.venueSectionHall}
+                            onChange={e => setFormData({ ...formData, venueSectionHall: e.target.value })}
+                            className="bg-white border-black/5 focus:ring-primary rounded-xl text-xs font-bold"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">Ticket Price per Person (₹) *</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            required
+                            placeholder="e.g. 499"
+                            value={formData.ticketPrice}
+                            onChange={e => { setFormData({ ...formData, ticketPrice: e.target.value }); if (errors.ticketPrice) setErrors({ ...errors, ticketPrice: false }); }}
+                            className={cn("bg-white border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.ticketPrice && "border-red-500 ring-red-500/20")}
+                          />
+                        </div>
+
+                        <div className="space-y-1 sm:col-span-2">
+                          <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">Your Organizer UPI VPA (For Direct Guest Payment)</Label>
+                          <Input
+                            placeholder="e.g. vizagboardgamers@okhdfcbank or 9876543210@paytm"
+                            value={formData.upiId}
+                            onChange={e => setFormData({ ...formData, upiId: e.target.value })}
+                            className="bg-white border-black/5 focus:ring-primary rounded-xl text-xs font-bold"
+                          />
+                          <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Attendees will see a direct UPI QR code and payment button to transfer ticket fees to you.</p>
+                        </div>
+
+                        <div className="space-y-1 sm:col-span-2">
+                          <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">External Ticket Link (Optional)</Label>
+                          <Input
+                            placeholder="e.g. https://rzp.io/l/my-event-tickets"
+                            value={formData.externalTicketLink}
+                            onChange={e => setFormData({ ...formData, externalTicketLink: e.target.value })}
+                            className="bg-white border-black/5 focus:ring-primary rounded-xl text-xs font-bold"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-1">
                     <Input

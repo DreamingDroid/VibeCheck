@@ -6,7 +6,7 @@ import {
   X, CheckCircle2, Calendar, MapPin, Phone, 
   ExternalLink, Sparkles, Clock, Check, Copy,
   AlertCircle, CalendarPlus, Backpack,
-  ShieldCheck, QrCode, Send, Globe
+  ShieldCheck, QrCode, Send, Globe, IndianRupee
 } from "lucide-react";
 import { formatTelegramLink } from "@/lib/telegramGroup";
 import { formatEventTimeWithTimezone } from "@/lib/timezone";
@@ -59,7 +59,9 @@ export function AttendeeBriefingModal({
 }: AttendeeBriefingModalProps) {
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const [upiQrUrl, setUpiQrUrl] = useState<string>("");
   const [copied, setCopied] = useState<boolean>(false);
+  const [copiedUpi, setCopiedUpi] = useState<boolean>(false);
 
   useEffect(() => {
     if (passCode) {
@@ -76,6 +78,20 @@ export function AttendeeBriefingModal({
         .catch((err) => console.error("Error generating pass QR code:", err));
     }
   }, [passCode]);
+
+  useEffect(() => {
+    if (event?.upi_id && !event?.payment_details_locked) {
+      const upiString = `upi://pay?pa=${encodeURIComponent(event.upi_id)}&pn=${encodeURIComponent(event.organizer_name || 'Organizer')}&am=${event.ticket_price || ''}&cu=INR&tn=${encodeURIComponent(`VibeCheck: ${event.title}`)}`;
+      QRCode.toDataURL(upiString, {
+        width: 240,
+        margin: 2,
+        color: { dark: "#000000", light: "#ffffff" },
+        errorCorrectionLevel: "M",
+      })
+        .then((url) => setUpiQrUrl(url))
+        .catch((err) => console.error("Error generating UPI QR code:", err));
+    }
+  }, [event?.upi_id, event?.ticket_price, event?.title, event?.organizer_name, event?.payment_details_locked]);
 
   if (!event) return null;
 
@@ -291,44 +307,118 @@ export function AttendeeBriefingModal({
         {/* Scrollable Briefing Content */}
         <div className="overflow-y-auto p-6 sm:p-8 space-y-8 flex-1 custom-scrollbar bg-zinc-50/50">
 
-          {/* Pending Payment Callout Box for Paid Events */}
-          {isPendingPayment && (
-            <div className="bg-amber-50 border-2 border-amber-200 p-5 sm:p-6 rounded-3xl space-y-4 shadow-xs">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <h3 className="text-sm font-black uppercase tracking-wider text-amber-950">
-                    Complete Payment with Organizer to Unlock Official Pass
-                  </h3>
-                  <p className="text-xs font-medium text-amber-800 leading-relaxed">
-                    Your spot registration has been recorded! For paid events with limited slots, the organizer issues your verified pass once payment is received.
-                  </p>
-                  {(guide.feeNote || event.price) && (
-                    <p className="text-xs font-black text-amber-900 pt-1">
-                      Event Fee: {guide.feeNote || `₹${event.price}/- per participant`}
-                    </p>
-                  )}
+          {/* Payment Card for Paid Events */}
+          {isPaid && !isConfirmedPass && (
+            <div className="bg-amber-50/90 border-2 border-amber-200/80 p-5 sm:p-6 rounded-3xl space-y-4 shadow-xs">
+              
+              {event.payment_details_locked ? (
+                /* Locked State: Awaiting Venue Verification */
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Clock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-200/60 text-amber-900 text-[10px] font-black uppercase tracking-wider">
+                        <span>⏳ Venue Authorization in Progress</span>
+                      </div>
+                      <h3 className="text-sm font-black uppercase tracking-wider text-amber-950">
+                        Payment Details Locked
+                      </h3>
+                      <p className="text-xs font-medium text-amber-800 leading-relaxed">
+                        To protect guests from fake events, payment details (UPI QR / link) will unlock once the physical venue management officially approves this booking on VibeCheck.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* Unlocked State: Venue Verified & Ready to Pay */
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-2 border-b border-amber-200/60 pb-3">
+                    <div className="space-y-1">
+                      <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
+                        <ShieldCheck className="h-3 w-3" />
+                        <span>🛡️ Venue Verified Booking</span>
+                      </div>
+                      <h3 className="text-sm font-black uppercase tracking-wider text-amber-950">
+                        Complete Payment with Organizer
+                      </h3>
+                    </div>
+                    {event.ticket_price > 0 && (
+                      <div className="text-right">
+                        <span className="text-[10px] font-bold text-amber-800 uppercase block">Ticket Fee</span>
+                        <span className="text-lg font-black text-amber-950">₹{event.ticket_price}</span>
+                      </div>
+                    )}
+                  </div>
 
-              {organizerPhone && (
-                <div className="flex flex-wrap items-center gap-3 pt-1">
-                  <a
-                    href={whatsappPayUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ringer-button bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase px-5 py-2.5 flex items-center gap-2 transition-transform active:scale-95 shadow-sm"
-                  >
-                    <Phone className="h-3.5 w-3.5" />
-                    <span>Contact Organizer to Pay (WhatsApp) →</span>
-                  </a>
-                  <a
-                    href={`tel:${organizerPhone.replace(/[^0-9+]/g, "")}`}
-                    className="ringer-button bg-white hover:bg-zinc-100 text-black border border-black/10 text-xs font-black uppercase px-4 py-2.5 flex items-center gap-2"
-                  >
-                    <Phone className="h-3.5 w-3.5 text-zinc-600" />
-                    <span>Call {organizerContactName} ({organizerPhone})</span>
-                  </a>
+                  {/* QR Code and UPI Buttons */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                    {upiQrUrl && (
+                      <div className="bg-white p-4 rounded-2xl border border-black/5 shadow-xs flex flex-col items-center text-center space-y-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={upiQrUrl} alt="UPI QR Code" className="w-36 h-36 rounded-xl" />
+                        <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                          Scan with GPay / PhonePe / Paytm
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="space-y-2.5">
+                      {event.upi_id && (
+                        <>
+                          <a
+                            href={`upi://pay?pa=${encodeURIComponent(event.upi_id)}&pn=${encodeURIComponent(event.organizer_name || 'Organizer')}&am=${event.ticket_price || ''}&cu=INR&tn=${encodeURIComponent(`Pass: ${event.title}`)}`}
+                            className="w-full py-3 px-4 bg-black hover:bg-zinc-800 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-sm"
+                          >
+                            <IndianRupee className="h-4 w-4" />
+                            <span>Pay ₹{event.ticket_price || ''} via UPI App</span>
+                          </a>
+
+                          <div className="flex items-center gap-2 bg-white/80 p-2.5 rounded-xl border border-amber-200/80">
+                            <span className="text-xs font-mono font-bold text-zinc-700 flex-1 truncate">
+                              {event.upi_id}
+                            </span>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(event.upi_id);
+                                setCopiedUpi(true);
+                                setTimeout(() => setCopiedUpi(false), 2000);
+                              }}
+                              className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-600 transition-colors cursor-pointer"
+                              title="Copy UPI ID"
+                            >
+                              {copiedUpi ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                            </button>
+                          </div>
+                        </>
+                      )}
+
+                      {event.external_ticket_link && (
+                        <a
+                          href={event.external_ticket_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-sm"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          <span>Buy on Official Ticketing Page →</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  {organizerPhone && (
+                    <div className="pt-2 border-t border-amber-200/60 flex flex-wrap items-center gap-2">
+                      <a
+                        href={whatsappPayUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-sm"
+                      >
+                        <Phone className="h-3.5 w-3.5" />
+                        <span>Send Payment Screenshot on WhatsApp →</span>
+                      </a>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

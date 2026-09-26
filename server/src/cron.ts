@@ -7,6 +7,7 @@ import { getRecentEvents } from './queries/events';
 import { getTelegramSubscribers } from './queries/users';
 import { config } from './config';
 import { deleteImage } from './cloudinary';
+import { sendVenueReminderToOrganizer } from './services/venueAuthEmail';
 
 /**
  * Proactive Push Alerts — core job logic on Telegram (Zero Messaging Fees).
@@ -148,9 +149,17 @@ export function startPushAlertCron(pool: Pool) {
     console.log(result);
   });
 
+  // Venue pending authorization 48-hour reminder check (runs every 6 hours)
+  cron.schedule('0 */6 * * *', async () => {
+    console.log('[Cron] Checking for events with pending venue verification over 48h...');
+    const result = await runVenuePendingReminderJob(pool);
+    console.log(result);
+  });
+
   console.log('[Cron] Daily push alert job scheduled for 9:00 AM IST.');
   console.log('[Cron] Daily post-event feedback rating request job scheduled for 5:00 PM IST.');
   console.log('[Cron] Daily expired event cleanup job scheduled for 2:00 AM UTC.');
+  console.log('[Cron] Venue authorization reminder check scheduled every 6 hours.');
 }
 
 function escapeHtml(text: string): string {
@@ -304,3 +313,55 @@ export async function runExpiredEventCleanupJob(pool: Pool): Promise<string> {
   }
   return log.join('\n');
 }
+
+export async function runVenuePendingReminderJob(pool: Pool): Promise<string> {
+  const log: string[] = [];
+  try {
+    // Find events pending venue auth for >= 48 hours without a recent reminder
+    const { rows } = await pool.query(`
+      SELECT e.id, e.title, e.location, e.date_time, e.organizer_email,
+             a.brand_name as organizer_name
+      FROM events e
+      LEFT JOIN admins a ON a.email = e.organizer_email
+      WHERE e.venue_verification_status = 'pending_venue_auth'
+        AND e.created_at <= NOW() - INTERVAL '48 hours'
+        AND e.date_time > NOW()
+    `);
+
+    if (rows.length === 0) {
+      log.push('[Cron Venue Reminder] No events pending venue verification past 48h.');
+      return log.join('\n');
+    }
+
+    log.push(`[Cron Venue Reminder] Found ${rows.length} event(s) pending venue verification past 48h.`);
+
+    let reminderCount = 0;
+    for (const ev of rows) {
+      const dateStr = new Date(ev.date_time).toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        dateStyle: 'full',
+        timeStyle: 'short'
+      });
+
+      const sent = await sendVenueReminderToOrganizer({
+        organizerEmail: ev.organizer_email,
+        organizerName: ev.organizer_name || 'Organizer',
+        eventTitle: ev.title,
+        venueName: ev.location || 'Venue',
+        eventDateIST: dateStr
+      });
+
+      if (sent) {
+        reminderCount++;
+        log.push(`[Cron Venue Reminder] Sent reminder to organizer ${ev.organizer_email} for "${ev.title}"`);
+      }
+    }
+
+    log.push(`[Cron Venue Reminder] Dispatched ${reminderCount} organizer reminder(s).`);
+  } catch (err: any) {
+    log.push(`[Cron Venue Reminder] Error: ${err.message}`);
+    console.error('[Cron Venue Reminder] Error:', err);
+  }
+  return log.join('\n');
+}
+
