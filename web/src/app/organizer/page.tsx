@@ -1273,15 +1273,15 @@ export default function OrganizerDashboard() {
                     </button>
                   </div>
 
-                  {/* Paid Event: Venue Authorization & Direct Payment Details */}
+                  {/* Paid Event: Venue Authorization & External Ticketing */}
                   {formData.isPaid && (
                     <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 space-y-3 animate-in fade-in">
                       <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-800">
                         <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
-                        <span>Venue Authorization &amp; Direct Payment Details</span>
+                        <span>Venue Authorization &amp; Ticketing Information</span>
                       </div>
                       <p className="text-[11px] text-amber-900/80 font-medium leading-relaxed">
-                        🛡️ To protect guests from fraud, VibeCheck dispatches a legal authorization email to the venue management. Your payment details (UPI QR / link) will be unlocked for attendees once the venue confirms this booking.
+                        🛡️ To protect guests from fraud, VibeCheck dispatches a legal authorization email to the venue management. Your ticketing link and contact info will be unlocked for attendees once the venue verifies this booking.
                       </p>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
@@ -1332,24 +1332,14 @@ export default function OrganizerDashboard() {
                         </div>
 
                         <div className="space-y-1 sm:col-span-2">
-                          <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">Your Organizer UPI VPA (For Direct Guest Payment)</Label>
+                          <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">External Ticketing Page URL (Optional)</Label>
                           <Input
-                            placeholder="e.g. vizagboardgamers@okhdfcbank or 9876543210@paytm"
-                            value={formData.upiId}
-                            onChange={e => setFormData({ ...formData, upiId: e.target.value })}
-                            className="bg-white border-black/5 focus:ring-primary rounded-xl text-xs font-bold"
-                          />
-                          <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Attendees will see a direct UPI QR code and payment button to transfer ticket fees to you.</p>
-                        </div>
-
-                        <div className="space-y-1 sm:col-span-2">
-                          <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">External Ticket Link (Optional)</Label>
-                          <Input
-                            placeholder="e.g. https://rzp.io/l/my-event-tickets"
+                            placeholder="e.g. https://insider.in/event-link or https://mywebsite.com/tickets"
                             value={formData.externalTicketLink}
                             onChange={e => setFormData({ ...formData, externalTicketLink: e.target.value })}
                             className="bg-white border-black/5 focus:ring-primary rounded-xl text-xs font-bold"
                           />
+                          <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">If provided, attendees will be redirected here to purchase official tickets. VibeCheck does not handle payments.</p>
                         </div>
                       </div>
                     </div>
