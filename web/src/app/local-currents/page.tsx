@@ -220,7 +220,7 @@ export default function LocalCurrentsPage() {
 
   if (status === "loading" || checkingRole) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-background">
+      <main className="min-h-screen flex items-center justify-center bg-transparent">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-zinc-500 text-xs font-black uppercase tracking-widest">Opening Archives...</p>
@@ -430,7 +430,7 @@ export default function LocalCurrentsPage() {
   }) : null;
 
   return (
-    <div className="min-h-screen bg-background pb-24 text-black font-helvetica select-none">
+    <div className="min-h-screen bg-transparent pb-24 text-black font-helvetica select-none">
       {articleJsonLd && (
         <script
           type="application/ld+json"

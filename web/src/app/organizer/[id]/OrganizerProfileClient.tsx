@@ -386,7 +386,7 @@ function EventCard({
   return (
     <div className={`ringer-card group overflow-hidden flex flex-col bg-white border transition-all duration-300 rounded-[22px] sm:rounded-[32px] ${
       countdown.isPast
-        ? "border-black/5 opacity-80 bg-zinc-50/50 shadow-sm"
+        ? "border-black/5 bg-zinc-50 shadow-sm"
         : "border-black/8 hover:border-black/20 hover:shadow-xl"
     }`}>
       {/* Poster Image Area - Mobile Optimized Aspect Ratio */}
@@ -815,7 +815,7 @@ export function OrganizerProfileClient({
   const instagramHandle = organizer.instagram_handle || socialLinks.instagram;
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-24">
+    <div className="min-h-screen bg-transparent text-foreground pb-24">
       {/* ─── 1. Continuous Top Marquee Ticker ─── */}
       <div className="bg-black text-white text-[11px] font-black uppercase tracking-widest py-2 px-4 overflow-hidden border-b border-white/10 select-none">
         <div className="inline-flex gap-8 whitespace-nowrap animate-marquee">
@@ -997,7 +997,7 @@ export function OrganizerProfileClient({
 
       {/* ─── 4. Segmented Tabs Bar ─── */}
       <div className="max-w-6xl mx-auto px-3 sm:px-6">
-        <div className="flex items-center gap-1.5 sm:gap-2 p-1 sm:p-1.5 rounded-full bg-zinc-200/80 border border-black/5 max-w-md mx-auto sm:mx-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 p-1 sm:p-1.5 rounded-full bg-zinc-200 border border-black/5 max-w-md mx-auto sm:mx-0">
           <button
             type="button"
             onClick={() => setActiveTab("upcoming")}

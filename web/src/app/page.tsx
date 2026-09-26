@@ -233,7 +233,7 @@ export default function Home() {
 
   if (status === "loading" || status === "authenticated") {
     return (
-      <main className="flex flex-1 items-center justify-center bg-background">
+      <main className="flex flex-1 items-center justify-center bg-transparent">
          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </main>
     )

@@ -1357,11 +1357,11 @@ export default function OrganizerDashboard() {
   };
 
   if (loading || !isOrganizer) {
-    return <div className="min-h-screen bg-background flex items-center justify-center text-zinc-400 font-black uppercase tracking-widest text-[10px]">Synchronizing Vibes...</div>;
+    return <div className="min-h-screen bg-transparent flex items-center justify-center text-zinc-400 font-black uppercase tracking-widest text-[10px]">Synchronizing Vibes...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-background text-black p-3 sm:p-6 animate-in fade-in duration-700">
+    <div className="min-h-screen bg-transparent text-black p-3 sm:p-6 animate-in fade-in duration-700">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 mt-1 sm:mt-2">
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-black/5 pb-3.5 sm:pb-4 gap-3 sm:gap-4">

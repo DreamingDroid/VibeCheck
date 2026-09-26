@@ -103,7 +103,7 @@ export default async function OrganizerPage({
   if (!data || !data.organizer) {
     // Return friendly error / not found fallback
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 text-center bg-background text-foreground">
+      <div className="min-h-screen flex items-center justify-center p-6 text-center bg-transparent text-foreground">
         <div className="ringer-card p-10 max-w-md w-full rounded-[40px] space-y-4 border border-black/10">
           <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-2xl mx-auto">
             ?
