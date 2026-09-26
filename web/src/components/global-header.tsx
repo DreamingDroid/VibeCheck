@@ -10,7 +10,7 @@ import {
   Trophy, Palette, BookOpen, Compass, Heart,
   Activity, Wine, Smile, Briefcase, Sparkles, Bell,
   SunMoon, X, CheckCircle2, AlertCircle, Clock, ExternalLink, Calendar, User,
-  Sliders, LogOut, Shield, Newspaper, LifeBuoy, Star, Loader2, ArrowRight, Tag
+  Sliders, LogOut, Shield, Newspaper, LifeBuoy, Star, Loader2, ArrowRight, Tag, Mountain, UtensilsCrossed
 } from "lucide-react"
 import { SupportTicketModal } from "@/components/SupportTicketModal"
 import { useTheme } from "@/context/ThemeContext"
@@ -132,7 +132,7 @@ function getNotificationModalTheme(type: string, customIcon?: string) {
     case 'approved':
     case 'event_approved':
       return {
-        cardBorder: 'border-emerald-500 shadow-[0_20px_50px_rgba(16,185,129,0.2)] ring-4 ring-emerald-500/10',
+        cardBorder: 'border-emerald-500 shadow-[0_20px_50px_rgba(160,185,129,0.2)] ring-4 ring-emerald-500/10',
         headerBg: 'bg-gradient-to-br from-emerald-500/20 via-emerald-50 to-white',
         headerBorder: 'border-emerald-200',
         iconBox: 'bg-emerald-100/90 text-emerald-700 border-emerald-300',
@@ -187,41 +187,38 @@ function getNotificationModalTheme(type: string, customIcon?: string) {
 }
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  "Music": <Music className="h-3 w-3" />,
-  "Live Music": <Mic2 className="h-3 w-3" />,
-  "Podcasts": <Tv className="h-3 w-3" />,
+  "Adventure": <Mountain className="h-3 w-3" />,
   "Sports": <Trophy className="h-3 w-3" />,
-  "Arts": <Palette className="h-3 w-3" />,
-  "Education": <BookOpen className="h-3 w-3" />,
-  "Spiritual": <Compass className="h-3 w-3" />,
-  "Wellness": <Heart className="h-3 w-3" />,
-  "Indie": <Activity className="h-3 w-3" />,
-  "Techno": <Music className="h-3 w-3" />,
-  "Food": <Wine className="h-3 w-3" />,
-  "Comedy": <Smile className="h-3 w-3" />,
-  "Workshops": <Briefcase className="h-3 w-3" />,
+  "Music": <Music className="h-3 w-3" />,
   "Nightlife": <Wine className="h-3 w-3" />,
-  "Night Life": <Wine className="h-3 w-3" />,
+  "Arts & Culture": <Palette className="h-3 w-3" />,
+  "Arts": <Palette className="h-3 w-3" />,
+  "Food & Drink": <UtensilsCrossed className="h-3 w-3" />,
+  "Food": <Wine className="h-3 w-3" />,
+  "Wellness": <Heart className="h-3 w-3" />,
+  "Workshops": <Briefcase className="h-3 w-3" />,
+  "Comedy": <Smile className="h-3 w-3" />,
+  "Spiritual": <Compass className="h-3 w-3" />,
   "General": <Sparkles className="h-3 w-3" />,
+  "Education": <BookOpen className="h-3 w-3" />,
 };
 
 // Category-specific active colors for vibrant theme
 const VIBRANT_PILL_COLORS: Record<string, string> = {
-  "Music": "bg-amber-400 text-black",
-  "Live Music": "bg-amber-400 text-black",
-  "Arts": "bg-purple-400 text-white",
+  "Adventure": "bg-emerald-500 text-white",
   "Sports": "bg-orange-400 text-black",
-  "Education": "bg-blue-400 text-white",
-  "Spiritual": "bg-violet-400 text-white",
-  "Wellness": "bg-teal-400 text-black",
-  "Indie": "bg-pink-400 text-white",
-  "Techno": "bg-cyan-400 text-black",
-  "Food": "bg-emerald-400 text-black",
-  "Comedy": "bg-yellow-400 text-black",
-  "Workshops": "bg-indigo-400 text-white",
+  "Music": "bg-amber-400 text-black",
   "Nightlife": "bg-indigo-500 text-white",
-  "Night Life": "bg-indigo-500 text-white",
+  "Arts & Culture": "bg-purple-400 text-white",
+  "Arts": "bg-purple-400 text-white",
+  "Food & Drink": "bg-emerald-400 text-black",
+  "Food": "bg-emerald-400 text-black",
+  "Wellness": "bg-teal-400 text-black",
+  "Workshops": "bg-blue-400 text-white",
+  "Comedy": "bg-yellow-400 text-black",
+  "Spiritual": "bg-violet-400 text-white",
   "General": "bg-zinc-400 text-white",
+  "Education": "bg-blue-400 text-white",
 };
 
 export function GlobalHeader() {
@@ -726,7 +723,7 @@ export function GlobalHeader() {
                       Popular Vibe Searches
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {["Trekking", "Live Music", "Techno", "Comedy", "Sports", "Food", "Wellness", "Indie"].map((tag) => (
+                      {["Adventure", "Trekking", "Music", "Nightlife", "Arts & Culture", "Food & Drink", "Wellness", "Comedy", "Sports"].map((tag) => (
                         <button
                           key={tag}
                           onClick={() => {

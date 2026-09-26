@@ -767,6 +767,44 @@ export interface PublicSearchParams {
   limitOrganizers?: number;
 }
 
+export function getSearchTerms(query: string): string[] {
+  const clean = query.trim().toLowerCase();
+  const terms = new Set<string>([clean]);
+
+  if (clean.endsWith('ing') && clean.length > 4) {
+    const base = clean.slice(0, -3);
+    terms.add(base);
+    if (base.length >= 3 && base[base.length - 1] === base[base.length - 2]) {
+      terms.add(base.slice(0, -1));
+    }
+    terms.add(base + 'e');
+  }
+
+  if (clean.endsWith('ies') && clean.length > 4) {
+    terms.add(clean.slice(0, -3) + 'y');
+  } else if (clean.endsWith('es') && clean.length > 4) {
+    terms.add(clean.slice(0, -2));
+    terms.add(clean.slice(0, -1));
+  } else if (clean.endsWith('s') && clean.length > 3) {
+    terms.add(clean.slice(0, -1));
+  }
+
+  if ((clean.endsWith('er') || clean.endsWith('ers')) && clean.length > 4) {
+    const base = clean.replace(/ers?$/, '');
+    terms.add(base);
+    if (base.length >= 3 && base[base.length - 1] === base[base.length - 2]) {
+      terms.add(base.slice(0, -1));
+    }
+  }
+
+  const words = clean.split(/\s+/).filter(w => w.length >= 3);
+  if (words.length > 1) {
+    words.forEach(w => terms.add(w));
+  }
+
+  return Array.from(terms).filter(t => t.length >= 2);
+}
+
 export async function searchPublic(pool: Pool, params: PublicSearchParams) {
   const {
     q,
@@ -791,16 +829,7 @@ export async function searchPublic(pool: Pool, params: PublicSearchParams) {
   let eventIdx = 1;
 
   if (cleanQ) {
-    const qLower = cleanQ.toLowerCase();
-    const terms = [cleanQ];
-    if (qLower.endsWith('ing') && qLower.length > 4) {
-      terms.push(qLower.slice(0, -3));
-      if (qLower.endsWith('king')) terms.push(qLower.slice(0, -4) + 'k');
-    }
-    if (qLower.endsWith('s') && qLower.length > 3) {
-      terms.push(qLower.slice(0, -1));
-    }
-
+    const terms = getSearchTerms(cleanQ);
     const termConditions = terms.map(term => {
       const idx = eventIdx++;
       eventValues.push(`%${term}%`);

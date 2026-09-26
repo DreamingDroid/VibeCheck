@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { getSearchTerms } from './search';
 
 export async function insertEventRSVP(pool: Pool, eventId: string, phone: string) {
   try {
@@ -132,15 +133,7 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
     }
     if (search) {
       const cleanSearch = String(search).trim();
-      const qLower = cleanSearch.toLowerCase();
-      const terms = [cleanSearch];
-      if (qLower.endsWith('ing') && qLower.length > 4) {
-        terms.push(qLower.slice(0, -3));
-        if (qLower.endsWith('king')) terms.push(qLower.slice(0, -4) + 'k');
-      }
-      if (qLower.endsWith('s') && qLower.length > 3) {
-        terms.push(qLower.slice(0, -1));
-      }
+      const terms = getSearchTerms(cleanSearch);
       const searchClauses = terms.map(t => {
         queryParams.push(`%${t}%`);
         const idx = paramIndex++;

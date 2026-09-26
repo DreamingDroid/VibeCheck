@@ -41,14 +41,15 @@ import {
 } from "@/types/broadcast";
 
 const CATEGORIES = [
-  "Music",
-  "Arts",
+  "Adventure",
   "Sports",
-  "Food",
+  "Music",
+  "Nightlife",
+  "Arts & Culture",
+  "Food & Drink",
   "Wellness",
-  "Indie",
-  "Techno",
-  "Education",
+  "Workshops",
+  "Comedy",
   "Spiritual",
   "General",
 ];

@@ -9,9 +9,15 @@ export async function initializeDatabaseSchema(pool: Pool) {
   // 2. Create Enums
   await pool.query(`
     CREATE TYPE event_category AS ENUM (
-      'Sports', 'Arts', 'Education', 'Spiritual', 'Music', 'Food', 'Wellness', 'Indie', 'Techno', 'General'
+      'Adventure', 'Sports', 'Music', 'Nightlife', 'Arts & Culture', 'Food & Drink', 'Wellness', 'Workshops', 'Comedy', 'Spiritual', 'General', 'Arts', 'Food', 'Education', 'Indie', 'Techno'
     );
   `).catch(() => {}); // Ignore if already exists
+
+  // Ensure all category enum values exist in existing databases
+  const allCategories = ['Adventure', 'Nightlife', 'Arts & Culture', 'Food & Drink', 'Workshops', 'Comedy'];
+  for (const cat of allCategories) {
+    await pool.query(`ALTER TYPE event_category ADD VALUE IF NOT EXISTS '${cat}';`).catch(() => {});
+  }
 
   await pool.query(`
     CREATE TYPE admin_role AS ENUM ('SuperAdmin', 'Editor', 'organizer');

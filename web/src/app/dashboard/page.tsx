@@ -292,12 +292,20 @@ function DashboardContent() {
   // Color mapping for Joyful vibe
   const getCategoryColor = (cat: string) => {
     const map: Record<string, string> = {
-      "Music": "bg-yellow-400",
-      "Techno": "bg-primary",
-      "Arts": "bg-purple-500",
-      "Education": "bg-blue-500",
+      "Adventure": "bg-emerald-500",
       "Sports": "bg-orange-500",
+      "Music": "bg-yellow-400",
+      "Nightlife": "bg-indigo-500",
+      "Arts & Culture": "bg-purple-500",
+      "Arts": "bg-purple-500",
+      "Food & Drink": "bg-emerald-400",
       "Food": "bg-emerald-400",
+      "Wellness": "bg-teal-400",
+      "Workshops": "bg-blue-500",
+      "Comedy": "bg-yellow-400",
+      "Spiritual": "bg-violet-400",
+      "Education": "bg-blue-500",
+      "Techno": "bg-primary",
       "Indie": "bg-pink-400",
     };
     return map[cat] || "bg-zinc-200";
@@ -323,19 +331,45 @@ function DashboardContent() {
 
   // 1. Search query filter
   if (searchParamQuery && searchParamQuery.trim()) {
-    const qLower = searchParamQuery.trim().toLowerCase();
-    const queryTerms = [qLower];
-    if (qLower.endsWith('ing') && qLower.length > 4) {
-      queryTerms.push(qLower.slice(0, -3));
-      if (qLower.endsWith('king')) queryTerms.push(qLower.slice(0, -4) + 'k');
+    const clean = searchParamQuery.trim().toLowerCase();
+    const queryTerms = new Set<string>([clean]);
+
+    if (clean.endsWith('ing') && clean.length > 4) {
+      const base = clean.slice(0, -3);
+      queryTerms.add(base);
+      if (base.length >= 3 && base[base.length - 1] === base[base.length - 2]) {
+        queryTerms.add(base.slice(0, -1));
+      }
+      queryTerms.add(base + 'e');
     }
-    if (qLower.endsWith('s') && qLower.length > 3) {
-      queryTerms.push(qLower.slice(0, -1));
+
+    if (clean.endsWith('ies') && clean.length > 4) {
+      queryTerms.add(clean.slice(0, -3) + 'y');
+    } else if (clean.endsWith('es') && clean.length > 4) {
+      queryTerms.add(clean.slice(0, -2));
+      queryTerms.add(clean.slice(0, -1));
+    } else if (clean.endsWith('s') && clean.length > 3) {
+      queryTerms.add(clean.slice(0, -1));
     }
+
+    if ((clean.endsWith('er') || clean.endsWith('ers')) && clean.length > 4) {
+      const base = clean.replace(/ers?$/, '');
+      queryTerms.add(base);
+      if (base.length >= 3 && base[base.length - 1] === base[base.length - 2]) {
+        queryTerms.add(base.slice(0, -1));
+      }
+    }
+
+    const words = clean.split(/\s+/).filter(w => w.length >= 3);
+    if (words.length > 1) {
+      words.forEach(w => queryTerms.add(w));
+    }
+
+    const termsArray = Array.from(queryTerms).filter(t => t.length >= 2);
 
     filteredEvents = filteredEvents.filter(ev => {
       const targetText = `${ev.title || ''} ${ev.description || ''} ${ev.category || ''} ${ev.location || ''} ${ev.city || ''} ${ev.organizer_email || ''}`.toLowerCase();
-      return queryTerms.some(term => targetText.includes(term));
+      return termsArray.some(term => targetText.includes(term));
     });
   }
 
@@ -448,43 +482,7 @@ function DashboardContent() {
 
       <div className={`max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 flex flex-col ${showCalendarView ? 'gap-4' : 'gap-8 md:gap-12'}`}>
 
-        {/* Active Search & Timeframe Filter Banner */}
-        {(searchParamQuery || timeframeParam) && (
-          <div className="w-full bg-gradient-to-r from-primary/15 via-primary/10 to-transparent border border-primary/20 rounded-[24px] p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-8 w-8 rounded-full bg-primary text-black flex items-center justify-center shrink-0 shadow-sm font-black">
-                <Search className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {searchParamQuery && (
-                    <span className="text-xs sm:text-sm font-black text-zinc-900 tracking-tight">
-                      Results for <span className="underline decoration-primary decoration-2 underline-offset-2">"{searchParamQuery}"</span>
-                    </span>
-                  )}
-                  {timeframeParam && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider bg-black text-white px-2.5 py-0.5 rounded-full">
-                      {timeframeParam.replace(/_/g, ' ')}
-                    </span>
-                  )}
-                  <span className="text-[10px] font-bold text-zinc-600 bg-white/80 border border-black/5 px-2 py-0.5 rounded-full">
-                    {displayEvents.length} vibe{displayEvents.length === 1 ? '' : 's'} found
-                  </span>
-                </div>
-                <p className="text-[10px] text-zinc-500 mt-0.5">
-                  Showing matches from events, categories, and locations in {currentCity}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="ringer-button bg-white text-black hover:bg-black hover:text-white text-[10px] py-1.5 px-3.5 border border-black/10 shrink-0 flex items-center gap-1.5 shadow-sm transition-all"
-            >
-              <X className="h-3 w-3" />
-              Clear Filter
-            </button>
-          </div>
-        )}
+
 
       {/* Calendar Empty State / Calendar View */}
       {showCalendarView && (

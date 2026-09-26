@@ -16,7 +16,19 @@ import { VibeDatePicker } from "@/components/vibe-date-picker";
 import { toast } from "sonner";
 import { vibeConfirm } from "@/components/vibe-confirm";
 
-const CATEGORIES = ["Sports", "Arts", "Education", "Spiritual", "Music", "Food", "Wellness", "Indie", "Techno", "General"];
+const CATEGORIES = [
+  "Adventure",
+  "Sports",
+  "Music",
+  "Nightlife",
+  "Arts & Culture",
+  "Food & Drink",
+  "Wellness",
+  "Workshops",
+  "Comedy",
+  "Spiritual",
+  "General"
+];
 
 const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
   const hour = Math.floor(i / 2);

@@ -421,7 +421,7 @@ export async function handleTelegramSmartSearch(
 
   // 2. Clean query extraction
   let cleanQuery = lower
-    .replace(/\b(events?|vibes?|parties|party|shows?|happening|any|show me|find|get|looking for|tell me about|what are the|in vizag|in hyderabad|in bangalore|in chennai|in mumbai|in delhi|in goa|in pune|next weekend|this weekend|today|tomorrow|tonight|this week|this month|next week|next month|january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec|in|on|at|during|for|the|a|an|please)\b/gi, ' ')
+    .replace(/\b(events?|vibes?|parties|party|shows?|happening|any|show me|find|get|looking for|tell me about|what are the|is there|are there|in vizag|in hyderabad|in bangalore|in chennai|in mumbai|in delhi|in goa|in pune|next weekend|this weekend|today|tomorrow|tonight|this week|this month|next week|next month|january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec|in|on|at|during|for|the|a|an|please|are|there|is|some)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 

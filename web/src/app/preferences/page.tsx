@@ -14,8 +14,17 @@ import { useCity } from "@/context/CityContext";
 import { useLanguage, useTranslation, ALL_LANGUAGES, LanguageCode } from "@/context/LanguageContext";
 
 const ALL_CATEGORIES = [
-  "Sports", "Arts", "Education", "Spiritual",
-  "Music", "Food", "Wellness", "Indie", "Techno", "General",
+  "Adventure",
+  "Sports",
+  "Music",
+  "Nightlife",
+  "Arts & Culture",
+  "Food & Drink",
+  "Wellness",
+  "Workshops",
+  "Comedy",
+  "Spiritual",
+  "General",
 ];
 
 export default function PreferencesPage() {

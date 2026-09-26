@@ -17,7 +17,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
-const CATEGORIES = ["Sports", "Arts", "Education", "Spiritual", "Music", "Food", "Wellness", "Indie", "Techno", "General"];
+const CATEGORIES = [
+  "Adventure",
+  "Sports",
+  "Music",
+  "Nightlife",
+  "Arts & Culture",
+  "Food & Drink",
+  "Wellness",
+  "Workshops",
+  "Comedy",
+  "Spiritual",
+  "General"
+];
 
 function SearchContent() {
   const router = useRouter();
