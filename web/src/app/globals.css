@@ -54,7 +54,7 @@
       radial-gradient(at 100% 100%, rgba(228, 255, 0, 0.03) 0px, transparent 50%),
       url('/vibe-doodles.svg');
     background-repeat: no-repeat, no-repeat, repeat;
-    background-size: auto, auto, 480px 480px;
+    background-size: auto, auto, 504px 490px;
     background-attachment: fixed, fixed, fixed;
   }
   
@@ -175,7 +175,7 @@
     radial-gradient(at 100% 100%, rgba(255, 152, 0, 0.03) 0px, transparent 50%),
     url('/vibe-doodles.svg');
   background-repeat: no-repeat, no-repeat, no-repeat, repeat;
-  background-size: auto, auto, auto, 480px 480px;
+  background-size: auto, auto, auto, 504px 490px;
   background-attachment: fixed, fixed, fixed, fixed;
 }
 
