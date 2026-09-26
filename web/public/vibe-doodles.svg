@@ -1,121 +1,121 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 700" width="720" height="700" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.065">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 700" width="720" height="700" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.038">
   <!-- Doodles -->
-  <g transform="translate(0, 0) rotate(-18)">
+  <g transform="translate(0, 0) rotate(-18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 6 30 A 18 18 0 0 1 40 30" stroke-width="2" />
     <rect x="0" y="24" width="9" height="16" rx="4.5" fill="#000000" fill-opacity="0.12" />
     <rect x="37" y="24" width="9" height="16" rx="4.5" fill="#000000" fill-opacity="0.12" />
     <path d="M -4 30 Q -7 34 -4 38" stroke-width="1.2" />
     <path d="M 50 30 Q 53 34 50 38" stroke-width="1.2" />
-  </g><g transform="translate(720, 0) rotate(-18)">
+  </g><g transform="translate(720, 0) rotate(-18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 6 30 A 18 18 0 0 1 40 30" stroke-width="2" />
     <rect x="0" y="24" width="9" height="16" rx="4.5" fill="#000000" fill-opacity="0.12" />
     <rect x="37" y="24" width="9" height="16" rx="4.5" fill="#000000" fill-opacity="0.12" />
     <path d="M -4 30 Q -7 34 -4 38" stroke-width="1.2" />
     <path d="M 50 30 Q 53 34 50 38" stroke-width="1.2" />
-  </g><g transform="translate(0, 700) rotate(-18)">
+  </g><g transform="translate(0, 700) rotate(-18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 6 30 A 18 18 0 0 1 40 30" stroke-width="2" />
     <rect x="0" y="24" width="9" height="16" rx="4.5" fill="#000000" fill-opacity="0.12" />
     <rect x="37" y="24" width="9" height="16" rx="4.5" fill="#000000" fill-opacity="0.12" />
     <path d="M -4 30 Q -7 34 -4 38" stroke-width="1.2" />
     <path d="M 50 30 Q 53 34 50 38" stroke-width="1.2" />
-  </g><g transform="translate(720, 700) rotate(-18)">
+  </g><g transform="translate(720, 700) rotate(-18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 6 30 A 18 18 0 0 1 40 30" stroke-width="2" />
     <rect x="0" y="24" width="9" height="16" rx="4.5" fill="#000000" fill-opacity="0.12" />
     <rect x="37" y="24" width="9" height="16" rx="4.5" fill="#000000" fill-opacity="0.12" />
     <path d="M -4 30 Q -7 34 -4 38" stroke-width="1.2" />
     <path d="M 50 30 Q 53 34 50 38" stroke-width="1.2" />
-  </g><g transform="translate(80, 0) rotate(14)">
+  </g><g transform="translate(80, 0) rotate(14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 8 22 C 4 14 12 5 24 5 C 36 5 43 14 40 24 C 36 32 28 36 21 34 C 17 32 14 29 10 29 C 7 29 7 26 8 22 Z" fill="#000000" fill-opacity="0.08" />
     <circle cx="15" cy="27" r="3" fill="#ffffff" stroke="#000000" stroke-width="1.2" />
     <circle cx="19" cy="12" r="2.2" fill="#000000" stroke="none" />
     <circle cx="29" cy="14" r="2.2" fill="#000000" stroke="none" />
     <circle cx="33" cy="22" r="2.2" fill="#000000" stroke="none" />
     <line x1="2" y1="3" x2="33" y2="34" stroke-width="1.8" />
-  </g><g transform="translate(80, 700) rotate(14)">
+  </g><g transform="translate(80, 700) rotate(14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 8 22 C 4 14 12 5 24 5 C 36 5 43 14 40 24 C 36 32 28 36 21 34 C 17 32 14 29 10 29 C 7 29 7 26 8 22 Z" fill="#000000" fill-opacity="0.08" />
     <circle cx="15" cy="27" r="3" fill="#ffffff" stroke="#000000" stroke-width="1.2" />
     <circle cx="19" cy="12" r="2.2" fill="#000000" stroke="none" />
     <circle cx="29" cy="14" r="2.2" fill="#000000" stroke="none" />
     <circle cx="33" cy="22" r="2.2" fill="#000000" stroke="none" />
     <line x1="2" y1="3" x2="33" y2="34" stroke-width="1.8" />
-  </g><g transform="translate(160, 0) rotate(-10)">
+  </g><g transform="translate(160, 0) rotate(-10, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <polygon points="16,10 30,34 2,34" fill="#000000" fill-opacity="0.08" />
     <polygon points="32,3 52,34 14,34" />
     <polyline points="28,10 32,16 38,12 44,20" stroke-width="1.2" />
     <circle cx="10" cy="7" r="4.5" />
-  </g><g transform="translate(160, 700) rotate(-10)">
+  </g><g transform="translate(160, 700) rotate(-10, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <polygon points="16,10 30,34 2,34" fill="#000000" fill-opacity="0.08" />
     <polygon points="32,3 52,34 14,34" />
     <polyline points="28,10 32,16 38,12 44,20" stroke-width="1.2" />
     <circle cx="10" cy="7" r="4.5" />
-  </g><g transform="translate(240, 0) rotate(22)">
+  </g><g transform="translate(240, 0) rotate(22, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 8 38 L 8 20 C 8 15 12 14 12 8 L 12 5 L 19 5 L 19 8 C 19 14 23 15 23 20 L 23 38 Z" fill="#000000" fill-opacity="0.1" />
     <rect x="13" y="-1" width="5" height="4" rx="1" fill="#000000" />
     <circle cx="8" cy="1" r="1.5" fill="#000000" stroke="none" />
     <circle cx="21" cy="-1" r="1.8" fill="#000000" stroke="none" />
     <circle cx="16" cy="-6" r="1.2" fill="#000000" stroke="none" />
-  </g><g transform="translate(240, 700) rotate(22)">
+  </g><g transform="translate(240, 700) rotate(22, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 8 38 L 8 20 C 8 15 12 14 12 8 L 12 5 L 19 5 L 19 8 C 19 14 23 15 23 20 L 23 38 Z" fill="#000000" fill-opacity="0.1" />
     <rect x="13" y="-1" width="5" height="4" rx="1" fill="#000000" />
     <circle cx="8" cy="1" r="1.5" fill="#000000" stroke="none" />
     <circle cx="21" cy="-1" r="1.8" fill="#000000" stroke="none" />
     <circle cx="16" cy="-6" r="1.2" fill="#000000" stroke="none" />
-  </g><g transform="translate(320, 0) rotate(-15)">
+  </g><g transform="translate(320, 0) rotate(-15, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 8 14 L 17 14 C 19 14 21 16 21 32 C 21 36 17 40 13 40 C 9 40 5 36 5 32 Z" fill="#000000" fill-opacity="0.1" />
     <rect x="11" y="1" width="3.5" height="13" rx="1.2" />
     <circle cx="28" cy="27" r="6" />
     <path d="M 23 24 Q 28 27 33 24" stroke-width="1" stroke-dasharray="2 1" />
-  </g><g transform="translate(320, 700) rotate(-15)">
+  </g><g transform="translate(320, 700) rotate(-15, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 8 14 L 17 14 C 19 14 21 16 21 32 C 21 36 17 40 13 40 C 9 40 5 36 5 32 Z" fill="#000000" fill-opacity="0.1" />
     <rect x="11" y="1" width="3.5" height="13" rx="1.2" />
     <circle cx="28" cy="27" r="6" />
     <path d="M 23 24 Q 28 27 33 24" stroke-width="1" stroke-dasharray="2 1" />
-  </g><g transform="translate(400, 0) rotate(12)">
+  </g><g transform="translate(400, 0) rotate(12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="9" y="2" width="12" height="21" rx="6" fill="#000000" fill-opacity="0.1" />
     <line x1="9" y1="12" x2="21" y2="12" stroke-width="1.1" />
     <path d="M 5 12 C 5 23 25 23 25 12" />
     <line x1="15" y1="23" x2="15" y2="34" stroke-width="1.8" />
     <line x1="8" y1="34" x2="22" y2="34" stroke-width="1.8" />
-  </g><g transform="translate(400, 700) rotate(12)">
+  </g><g transform="translate(400, 700) rotate(12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="9" y="2" width="12" height="21" rx="6" fill="#000000" fill-opacity="0.1" />
     <line x1="9" y1="12" x2="21" y2="12" stroke-width="1.1" />
     <path d="M 5 12 C 5 23 25 23 25 12" />
     <line x1="15" y1="23" x2="15" y2="34" stroke-width="1.8" />
     <line x1="8" y1="34" x2="22" y2="34" stroke-width="1.8" />
-  </g><g transform="translate(480, 0) rotate(-20)">
+  </g><g transform="translate(480, 0) rotate(-20, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <line x1="18" y1="0" x2="18" y2="7" stroke-width="1.6" />
     <circle cx="18" cy="25" r="18" fill="#000000" fill-opacity="0.08" />
     <ellipse cx="18" cy="25" rx="9" ry="18" stroke-width="1" />
     <line x1="0" y1="25" x2="36" y2="25" stroke-width="1" />
-  </g><g transform="translate(480, 700) rotate(-20)">
+  </g><g transform="translate(480, 700) rotate(-20, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <line x1="18" y1="0" x2="18" y2="7" stroke-width="1.6" />
     <circle cx="18" cy="25" r="18" fill="#000000" fill-opacity="0.08" />
     <ellipse cx="18" cy="25" rx="9" ry="18" stroke-width="1" />
     <line x1="0" y1="25" x2="36" y2="25" stroke-width="1" />
-  </g><g transform="translate(560, 0) rotate(16)">
+  </g><g transform="translate(560, 0) rotate(16, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <ellipse cx="14" cy="28" rx="5" ry="4.5" fill="#000000" fill-opacity="0.25" />
     <path d="M 9 28 L 3 9 L 25 9 L 19 28 Z" fill="#000000" fill-opacity="0.08" />
     <line x1="9" y1="9" x2="12" y2="28" stroke-width="1" />
     <line x1="19" y1="9" x2="16" y2="28" stroke-width="1" />
-  </g><g transform="translate(560, 700) rotate(16)">
+  </g><g transform="translate(560, 700) rotate(16, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <ellipse cx="14" cy="28" rx="5" ry="4.5" fill="#000000" fill-opacity="0.25" />
     <path d="M 9 28 L 3 9 L 25 9 L 19 28 Z" fill="#000000" fill-opacity="0.08" />
     <line x1="9" y1="9" x2="12" y2="28" stroke-width="1" />
     <line x1="19" y1="9" x2="16" y2="28" stroke-width="1" />
-  </g><g transform="translate(640, 0) rotate(-12)">
+  </g><g transform="translate(640, 0) rotate(-12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="5" y="9" width="23" height="30" rx="6" fill="#000000" fill-opacity="0.1" />
     <rect x="2" y="3" width="29" height="8" rx="3.5" fill="#000000" fill-opacity="0.2" />
     <rect x="9" y="21" width="15" height="12" rx="2.5" />
-  </g><g transform="translate(640, 700) rotate(-12)">
+  </g><g transform="translate(640, 700) rotate(-12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="5" y="9" width="23" height="30" rx="6" fill="#000000" fill-opacity="0.1" />
     <rect x="2" y="3" width="29" height="8" rx="3.5" fill="#000000" fill-opacity="0.2" />
     <rect x="9" y="21" width="15" height="12" rx="2.5" />
-  </g><g transform="translate(40, 50) rotate(20)">
+  </g><g transform="translate(40, 50) rotate(20, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 3 5 L 32 5 L 18 23 Z" fill="#000000" fill-opacity="0.08" />
     <line x1="18" y1="23" x2="18" y2="38" stroke-width="1.8" />
     <line x1="7" y1="38" x2="28" y2="38" stroke-width="1.8" />
     <circle cx="14" cy="11" r="3" fill="#000000" fill-opacity="0.3" />
-  </g><g transform="translate(120, 50) rotate(-16)">
+  </g><g transform="translate(120, 50) rotate(-16, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="18" cy="18" r="16" />
     <polygon points="18,12 23,16 21,21 14,21 12,16" fill="#000000" />
     <line x1="18" y1="12" x2="18" y2="3" stroke-width="1.1" />
@@ -123,54 +123,54 @@
     <line x1="21" y1="21" x2="28" y2="28" stroke-width="1.1" />
     <line x1="14" y1="21" x2="7" y2="28" stroke-width="1.1" />
     <line x1="12" y1="16" x2="5" y2="13" stroke-width="1.1" />
-  </g><g transform="translate(200, 50) rotate(14)">
+  </g><g transform="translate(200, 50) rotate(14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <line x1="18" y1="2" x2="3" y2="42" stroke-width="1.6" />
     <line x1="18" y1="2" x2="33" y2="42" stroke-width="1.6" />
     <rect x="5" y="9" width="25" height="19" rx="2" fill="#ffffff" stroke="#000000" stroke-width="1.4" />
     <polyline points="9,23 14,17 19,22 23,18 26,23" stroke-width="1.1" />
     <line x1="2" y1="28" x2="34" y2="28" stroke-width="1.8" />
-  </g><g transform="translate(280, 50) rotate(-8)">
+  </g><g transform="translate(280, 50) rotate(-8, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="18" cy="9" r="5.5" fill="#000000" fill-opacity="0.1" />
     <path d="M 18 14 L 18 26" stroke-width="2" />
     <path d="M 4 32 Q 11 26 18 30 Q 25 26 32 32 Q 18 37 4 32 Z" fill="#000000" fill-opacity="0.12" />
     <path d="M 18 17 L 8 23 M 18 17 L 28 23" stroke-width="1.6" />
-  </g><g transform="translate(360, 50) rotate(25)">
+  </g><g transform="translate(360, 50) rotate(25, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 0 4 C 0 1.8 1.8 0 4 0 L 42 0 C 44.2 0 46 1.8 46 4 L 46 10 C 43 10 41 12 41 15 C 41 18 43 20 46 20 L 46 26 C 46 28.2 44.2 30 42 30 L 4 30 C 1.8 30 0 28.2 0 26 L 0 20 C 3 20 5 18 5 15 C 5 12 3 10 0 10 Z" fill="#000000" fill-opacity="0.08" />
     <line x1="14" y1="4" x2="14" y2="26" stroke-dasharray="2 2" stroke-width="1.1" />
     <line x1="6" y1="8" x2="6" y2="22" stroke-width="1.3" />
     <line x1="9" y1="8" x2="9" y2="22" stroke-width="2.2" />
     <path d="M 30 10 L 31 13 L 35 13 L 32 15 L 33 18 L 30 16 L 27 18 L 28 15 L 25 13 L 29 13 Z" fill="#000000" />
-  </g><g transform="translate(440, 50) rotate(-22)">
+  </g><g transform="translate(440, 50) rotate(-22, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="4" y="3" width="26" height="17" rx="2.5" fill="#000000" fill-opacity="0.08" />
     <path d="M 0 20 L 34 20 L 31 25 L 3 25 Z" fill="#000000" fill-opacity="0.2" />
     <path d="M 12 8 Q 9 12 12 15 M 22 8 Q 25 12 22 15" stroke-width="1.4" />
-  </g><g transform="translate(520, 50) rotate(10)">
+  </g><g transform="translate(520, 50) rotate(10, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="3" y="10" width="12" height="19" rx="2.5" fill="#000000" fill-opacity="0.1" />
     <path d="M 3 14 C 0 14 0 22 3 22" stroke-width="1.4" />
     <rect x="18" y="10" width="12" height="19" rx="2.5" fill="#000000" fill-opacity="0.1" />
     <path d="M 30 14 C 33 14 33 22 30 22" stroke-width="1.4" />
     <path d="M 2 10 Q 9 5 17 10 M 17 10 Q 24 5 31 10" stroke-width="1.6" />
-  </g><g transform="translate(600, 50) rotate(-14)">
+  </g><g transform="translate(600, 50) rotate(-14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <polygon points="17,3 2,30 32,30" fill="#000000" fill-opacity="0.08" />
     <polygon points="17,3 17,30 32,30" fill="#000000" fill-opacity="0.15" />
     <polyline points="13,30 17,14 21,30" stroke-width="1.3" />
-  </g><g transform="translate(680, 50) rotate(18)">
+  </g><g transform="translate(680, 50) rotate(18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 4 10 C 4 2 30 2 30 10 C 30 25 24 32 17 32 C 10 32 4 25 4 10 Z" fill="#000000" fill-opacity="0.08" />
     <path d="M 8 12 Q 13 8 16 12 M 19 12 Q 22 8 26 12" stroke-width="1.8" />
     <path d="M 10 20 Q 17 29 24 20 Z" fill="#000000" />
-  </g><g transform="translate(0, 100) rotate(-12)">
+  </g><g transform="translate(0, 100) rotate(-12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="2" y="2" width="26" height="36" rx="5" fill="#000000" fill-opacity="0.1" />
     <circle cx="15" cy="12" r="4" />
     <circle cx="15" cy="26" r="7.5" />
     <circle cx="15" cy="26" r="3.5" fill="#000000" fill-opacity="0.3" />
     <path d="M 31 19 Q 35 26 31 33" stroke-width="1.2" />
-  </g><g transform="translate(720, 100) rotate(-12)">
+  </g><g transform="translate(720, 100) rotate(-12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="2" y="2" width="26" height="36" rx="5" fill="#000000" fill-opacity="0.1" />
     <circle cx="15" cy="12" r="4" />
     <circle cx="15" cy="26" r="7.5" />
     <circle cx="15" cy="26" r="3.5" fill="#000000" fill-opacity="0.3" />
     <path d="M 31 19 Q 35 26 31 33" stroke-width="1.2" />
-  </g><g transform="translate(80, 100) rotate(15)">
+  </g><g transform="translate(80, 100) rotate(15, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <ellipse cx="15" cy="12" rx="11" ry="12" fill="#000000" fill-opacity="0.08" />
     <line x1="10" y1="2" x2="10" y2="22" stroke-width="0.8" />
     <line x1="15" y1="0" x2="15" y2="24" stroke-width="0.8" />
@@ -178,171 +178,171 @@
     <line x1="5" y1="12" x2="25" y2="12" stroke-width="0.8" />
     <rect x="13" y="24" width="3.5" height="15" rx="1.2" fill="#000000" fill-opacity="0.25" />
     <circle cx="30" cy="17" r="4.5" />
-  </g><g transform="translate(160, 100) rotate(-18)">
+  </g><g transform="translate(160, 100) rotate(-18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="5" y="9" width="16" height="29" rx="3.5" fill="#000000" fill-opacity="0.1" />
     <path d="M 8 9 L 8 5 L 18 5 L 18 9" />
     <rect x="10" y="2" width="5" height="3.5" rx="1" fill="#000000" />
     <circle cx="4" cy="0" r="1.1" fill="#000000" stroke="none" />
     <circle cx="0" cy="3" r="1.3" fill="#000000" stroke="none" />
-  </g><g transform="translate(240, 100) rotate(14)">
+  </g><g transform="translate(240, 100) rotate(14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="17" cy="17" r="16" />
     <circle cx="17" cy="17" r="10" stroke-width="0.8" stroke-dasharray="3 2" />
     <circle cx="17" cy="17" r="6" fill="#000000" fill-opacity="0.2" />
     <circle cx="17" cy="17" r="1.8" fill="#000000" />
     <path d="M 31 3 L 24 10 L 20 9" stroke-width="1.3" />
-  </g><g transform="translate(320, 100) rotate(-10)">
+  </g><g transform="translate(320, 100) rotate(-10, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 5 14 L 5 2 C 5 1 12 1 14 2 L 14 10 L 26 14 C 33 15 36 21 33 26 L 2 26 Z" fill="#000000" fill-opacity="0.1" />
     <rect x="1" y="26" width="34" height="4.5" rx="1.2" fill="#000000" fill-opacity="0.3" />
-  </g><g transform="translate(400, 100) rotate(22)">
+  </g><g transform="translate(400, 100) rotate(22, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 2 15 Q 13 25 24 15 L 25 11 L 1 11 Z" fill="#000000" fill-opacity="0.15" />
     <line x1="7" y1="22" x2="20" y2="22" stroke-width="1.8" />
     <path d="M 13 11 C 9 7 9 2 13 0 C 17 2 17 7 13 11 Z" fill="#000000" />
-  </g><g transform="translate(480, 100) rotate(-15)">
+  </g><g transform="translate(480, 100) rotate(-15, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="3" y="3" width="32" height="24" rx="4" fill="#000000" fill-opacity="0.1" />
     <circle cx="19" cy="15" r="7.5" />
     <circle cx="19" cy="15" r="3.5" fill="#000000" />
     <rect x="7" y="5" width="5" height="3" rx="1" />
     <rect x="8" y="27" width="22" height="15" rx="1.5" fill="#ffffff" stroke="#000000" stroke-width="1.1" />
-  </g><g transform="translate(560, 100) rotate(12)">
+  </g><g transform="translate(560, 100) rotate(12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 3 7 Q 10 2 16 7 L 16 15 C 16 19 11 21 7 19 C 3 17 3 12 3 7 Z" fill="#000000" fill-opacity="0.15" />
     <path d="M 23 7 Q 30 2 36 7 L 36 15 C 36 19 31 21 27 19 C 23 17 23 12 23 7 Z" fill="#000000" fill-opacity="0.15" />
     <path d="M 16 8 Q 19.5 5 23 8" stroke-width="1.6" />
-  </g><g transform="translate(640, 100) rotate(-20)">
+  </g><g transform="translate(640, 100) rotate(-20, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="15" cy="19" r="12" fill="#000000" fill-opacity="0.1" />
     <rect x="13" y="3" width="5" height="4" rx="1.2" />
     <line x1="11" y1="7" x2="19" y2="7" stroke-width="1.5" />
     <line x1="4" y1="12" x2="26" y2="26" stroke-width="1" />
-  </g><g transform="translate(40, 150) rotate(16)">
+  </g><g transform="translate(40, 150) rotate(16, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="12" cy="9" r="7.5" fill="#000000" fill-opacity="0.1" />
     <ellipse cx="18" cy="18" rx="11" ry="3" stroke-width="1.6" />
     <path d="M 9 19 L 13 30 L 23 30 L 27 19" stroke-width="1" />
-  </g><g transform="translate(120, 150) rotate(-12)">
+  </g><g transform="translate(120, 150) rotate(-12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 4 8 L 24 8 C 24 20 20 27 14 27 C 8 27 4 20 4 8 Z" fill="#000000" fill-opacity="0.08" />
     <path d="M 24 11 Q 32 11 32 16 Q 32 21 22 21" stroke-width="1.6" />
     <line x1="2" y1="29" x2="26" y2="29" stroke-width="1.8" />
     <path d="M 14 13 C 14 11 12 10 10 11 C 9 13 14 17 14 17 C 14 17 19 13 18 11 C 16 10 14 11 14 13 Z" fill="#000000" />
-  </g><g transform="translate(200, 150) rotate(20)">
+  </g><g transform="translate(200, 150) rotate(20, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 8 24 C 4 28 6 39 12 42 C 19 45 26 38 23 31 C 21 27 25 24 22 20 C 18 16 11 16 9 20 Z" fill="#000000" fill-opacity="0.1" />
     <circle cx="15" cy="31" r="3" fill="#000000" />
     <line x1="19" y1="20" x2="38" y2="2" stroke-width="1.8" />
-  </g><g transform="translate(280, 150) rotate(-16)">
+  </g><g transform="translate(280, 150) rotate(-16, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="2" y="7" width="32" height="20" rx="3.5" fill="#000000" fill-opacity="0.08" />
     <circle cx="9" cy="27" r="3.5" fill="#000000" />
     <circle cx="27" cy="27" r="3.5" fill="#000000" />
     <rect x="8" y="11" width="14" height="9" fill="#ffffff" stroke="#000000" stroke-width="0.9" />
     <path d="M 5 11 Q 9 8 13 11 Q 17 8 21 11 Q 25 8 29 11" stroke-width="1.3" />
-  </g><g transform="translate(360, 150) rotate(14)">
+  </g><g transform="translate(360, 150) rotate(14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 7 26 L 7 16 C 7 14 10 14 10 16 L 10 23" />
     <path d="M 10 16 L 10 4 C 10 1 14 1 14 4 L 14 15" stroke-width="1.6" />
     <path d="M 23 15 L 23 5 C 23 2 27 2 27 5 L 27 20 C 27 27 20 31 13 31 L 7 26 Z" fill="#000000" fill-opacity="0.12" />
     <rect x="6" y="26" width="12" height="4" rx="1.2" fill="#000000" fill-opacity="0.3" stroke="none" />
-  </g><g transform="translate(440, 150) rotate(-8)">
+  </g><g transform="translate(440, 150) rotate(-8, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <line x1="4" y1="14" x2="26" y2="14" stroke-width="2.2" />
     <rect x="2" y="7" width="4.5" height="14" rx="1.2" fill="#000000" />
     <rect x="24" y="7" width="4.5" height="14" rx="1.2" fill="#000000" />
-  </g><g transform="translate(520, 150) rotate(25)">
+  </g><g transform="translate(520, 150) rotate(25, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="3" y="9" width="30" height="20" rx="2" fill="#000000" fill-opacity="0.08" />
     <path d="M 3 4 L 33 0 L 33 9 L 3 9 Z" fill="#000000" fill-opacity="0.15" />
     <line x1="11" y1="3" x2="13" y2="8" stroke-width="1.2" />
     <line x1="19" y1="2" x2="21" y2="7" stroke-width="1.2" />
-  </g><g transform="translate(600, 150) rotate(-22)">
+  </g><g transform="translate(600, 150) rotate(-22, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="4" y="8" width="23" height="19" rx="5" fill="#000000" fill-opacity="0.1" />
     <line x1="15" y1="8" x2="15" y2="2" stroke-width="1.4" />
     <circle cx="15" cy="2" r="2" fill="#000000" />
     <rect x="8" y="13" width="4" height="4" rx="1" fill="#000000" />
     <rect x="18" y="13" width="4" height="4" rx="1" fill="#000000" />
-  </g><g transform="translate(680, 150) rotate(10)">
+  </g><g transform="translate(680, 150) rotate(10, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 16 38 Q 13 19 17 8" stroke-width="2" />
     <path d="M 17 8 Q 6 5 0 11 Q 8 4 17 8" fill="#000000" fill-opacity="0.15" />
     <path d="M 17 8 Q 20 -2 25 -6 Q 24 3 17 8" fill="#000000" fill-opacity="0.15" />
     <path d="M 17 8 Q 30 4 35 13 Q 26 7 17 8" fill="#000000" fill-opacity="0.15" />
-  </g><g transform="translate(0, 200) rotate(-14)">
+  </g><g transform="translate(0, 200) rotate(-14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 2 8 Q 16 11 32 8 C 36 7 36 12 32 12 Q 16 15 2 12 C -1 12 -1 8 2 8 Z" fill="#000000" fill-opacity="0.18" />
     <circle cx="7" cy="16" r="2.8" fill="#000000" />
     <circle cx="27" cy="16" r="2.8" fill="#000000" />
-  </g><g transform="translate(720, 200) rotate(-14)">
+  </g><g transform="translate(720, 200) rotate(-14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 2 8 Q 16 11 32 8 C 36 7 36 12 32 12 Q 16 15 2 12 C -1 12 -1 8 2 8 Z" fill="#000000" fill-opacity="0.18" />
     <circle cx="7" cy="16" r="2.8" fill="#000000" />
     <circle cx="27" cy="16" r="2.8" fill="#000000" />
-  </g><g transform="translate(80, 200) rotate(18)">
+  </g><g transform="translate(80, 200) rotate(18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 14 2 C 7 2 2 7 2 14 C 2 21 14 32 14 32 C 14 32 26 21 26 14 C 26 7 21 2 14 2 Z" fill="#000000" fill-opacity="0.1" />
     <circle cx="14" cy="12" r="4.5" fill="#000000" />
     <ellipse cx="14" cy="33" rx="8" ry="2.5" stroke-dasharray="2 2" stroke-width="0.9" />
-  </g><g transform="translate(160, 200) rotate(-12)">
+  </g><g transform="translate(160, 200) rotate(-12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 3 5 Q 16 0 29 5 L 16 32 Z" fill="#000000" fill-opacity="0.08" />
     <path d="M 3 5 Q 16 0 29 5" stroke-width="2.2" />
     <circle cx="13" cy="12" r="2" fill="#000000" fill-opacity="0.25" />
     <circle cx="18" cy="18" r="2" fill="#000000" fill-opacity="0.25" />
-  </g><g transform="translate(240, 200) rotate(15)">
+  </g><g transform="translate(240, 200) rotate(15, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 5 9 C 8 4 27 4 30 9 C 32 15 36 24 29 27 C 23 29 20 22 17 22 C 15 22 12 29 6 27 C 0 24 3 15 5 9 Z" fill="#000000" fill-opacity="0.1" />
     <path d="M 9 12 L 12 12 M 11 11 L 11 14" stroke-width="1.6" />
     <circle cx="23" cy="12" r="1.3" fill="#000000" />
     <circle cx="26" cy="15" r="1.3" fill="#000000" />
-  </g><g transform="translate(320, 200) rotate(-18)">
+  </g><g transform="translate(320, 200) rotate(-18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <polygon points="12,0 5,5 3,15 4,22 9,19 12,23 15,19 20,22 21,15 19,5" fill="#000000" fill-opacity="0.12" />
     <circle cx="12" cy="9" r="2.5" fill="#000000" />
-  </g><g transform="translate(400, 200) rotate(14)">
+  </g><g transform="translate(400, 200) rotate(14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="2" y="4" width="24" height="29" rx="4" fill="#000000" fill-opacity="0.08" />
     <ellipse cx="14" cy="8" rx="2.8" ry="1.4" />
     <rect x="6" y="12" width="16" height="16" fill="#ffffff" stroke="#000000" stroke-width="0.9" />
     <rect x="8" y="14" width="4" height="4" fill="#000000" />
     <rect x="16" y="14" width="4" height="4" fill="#000000" />
     <rect x="8" y="22" width="4" height="4" fill="#000000" />
-  </g><g transform="translate(480, 200) rotate(-10)">
+  </g><g transform="translate(480, 200) rotate(-10, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 6 30 A 18 18 0 0 1 40 30" stroke-width="2" />
     <rect x="0" y="24" width="9" height="16" rx="4.5" fill="#000000" fill-opacity="0.12" />
     <rect x="37" y="24" width="9" height="16" rx="4.5" fill="#000000" fill-opacity="0.12" />
     <path d="M -4 30 Q -7 34 -4 38" stroke-width="1.2" />
     <path d="M 50 30 Q 53 34 50 38" stroke-width="1.2" />
-  </g><g transform="translate(560, 200) rotate(22)">
+  </g><g transform="translate(560, 200) rotate(22, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 8 22 C 4 14 12 5 24 5 C 36 5 43 14 40 24 C 36 32 28 36 21 34 C 17 32 14 29 10 29 C 7 29 7 26 8 22 Z" fill="#000000" fill-opacity="0.08" />
     <circle cx="15" cy="27" r="3" fill="#ffffff" stroke="#000000" stroke-width="1.2" />
     <circle cx="19" cy="12" r="2.2" fill="#000000" stroke="none" />
     <circle cx="29" cy="14" r="2.2" fill="#000000" stroke="none" />
     <circle cx="33" cy="22" r="2.2" fill="#000000" stroke="none" />
     <line x1="2" y1="3" x2="33" y2="34" stroke-width="1.8" />
-  </g><g transform="translate(640, 200) rotate(-15)">
+  </g><g transform="translate(640, 200) rotate(-15, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <polygon points="16,10 30,34 2,34" fill="#000000" fill-opacity="0.08" />
     <polygon points="32,3 52,34 14,34" />
     <polyline points="28,10 32,16 38,12 44,20" stroke-width="1.2" />
     <circle cx="10" cy="7" r="4.5" />
-  </g><g transform="translate(40, 250) rotate(12)">
+  </g><g transform="translate(40, 250) rotate(12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 8 38 L 8 20 C 8 15 12 14 12 8 L 12 5 L 19 5 L 19 8 C 19 14 23 15 23 20 L 23 38 Z" fill="#000000" fill-opacity="0.1" />
     <rect x="13" y="-1" width="5" height="4" rx="1" fill="#000000" />
     <circle cx="8" cy="1" r="1.5" fill="#000000" stroke="none" />
     <circle cx="21" cy="-1" r="1.8" fill="#000000" stroke="none" />
     <circle cx="16" cy="-6" r="1.2" fill="#000000" stroke="none" />
-  </g><g transform="translate(120, 250) rotate(-20)">
+  </g><g transform="translate(120, 250) rotate(-20, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 8 14 L 17 14 C 19 14 21 16 21 32 C 21 36 17 40 13 40 C 9 40 5 36 5 32 Z" fill="#000000" fill-opacity="0.1" />
     <rect x="11" y="1" width="3.5" height="13" rx="1.2" />
     <circle cx="28" cy="27" r="6" />
     <path d="M 23 24 Q 28 27 33 24" stroke-width="1" stroke-dasharray="2 1" />
-  </g><g transform="translate(200, 250) rotate(16)">
+  </g><g transform="translate(200, 250) rotate(16, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="9" y="2" width="12" height="21" rx="6" fill="#000000" fill-opacity="0.1" />
     <line x1="9" y1="12" x2="21" y2="12" stroke-width="1.1" />
     <path d="M 5 12 C 5 23 25 23 25 12" />
     <line x1="15" y1="23" x2="15" y2="34" stroke-width="1.8" />
     <line x1="8" y1="34" x2="22" y2="34" stroke-width="1.8" />
-  </g><g transform="translate(280, 250) rotate(-12)">
+  </g><g transform="translate(280, 250) rotate(-12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <line x1="18" y1="0" x2="18" y2="7" stroke-width="1.6" />
     <circle cx="18" cy="25" r="18" fill="#000000" fill-opacity="0.08" />
     <ellipse cx="18" cy="25" rx="9" ry="18" stroke-width="1" />
     <line x1="0" y1="25" x2="36" y2="25" stroke-width="1" />
-  </g><g transform="translate(360, 250) rotate(20)">
+  </g><g transform="translate(360, 250) rotate(20, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <ellipse cx="14" cy="28" rx="5" ry="4.5" fill="#000000" fill-opacity="0.25" />
     <path d="M 9 28 L 3 9 L 25 9 L 19 28 Z" fill="#000000" fill-opacity="0.08" />
     <line x1="9" y1="9" x2="12" y2="28" stroke-width="1" />
     <line x1="19" y1="9" x2="16" y2="28" stroke-width="1" />
-  </g><g transform="translate(440, 250) rotate(-16)">
+  </g><g transform="translate(440, 250) rotate(-16, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="5" y="9" width="23" height="30" rx="6" fill="#000000" fill-opacity="0.1" />
     <rect x="2" y="3" width="29" height="8" rx="3.5" fill="#000000" fill-opacity="0.2" />
     <rect x="9" y="21" width="15" height="12" rx="2.5" />
-  </g><g transform="translate(520, 250) rotate(14)">
+  </g><g transform="translate(520, 250) rotate(14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 3 5 L 32 5 L 18 23 Z" fill="#000000" fill-opacity="0.08" />
     <line x1="18" y1="23" x2="18" y2="38" stroke-width="1.8" />
     <line x1="7" y1="38" x2="28" y2="38" stroke-width="1.8" />
     <circle cx="14" cy="11" r="3" fill="#000000" fill-opacity="0.3" />
-  </g><g transform="translate(600, 250) rotate(-8)">
+  </g><g transform="translate(600, 250) rotate(-8, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="18" cy="18" r="16" />
     <polygon points="18,12 23,16 21,21 14,21 12,16" fill="#000000" />
     <line x1="18" y1="12" x2="18" y2="3" stroke-width="1.1" />
@@ -350,53 +350,53 @@
     <line x1="21" y1="21" x2="28" y2="28" stroke-width="1.1" />
     <line x1="14" y1="21" x2="7" y2="28" stroke-width="1.1" />
     <line x1="12" y1="16" x2="5" y2="13" stroke-width="1.1" />
-  </g><g transform="translate(680, 250) rotate(25)">
+  </g><g transform="translate(680, 250) rotate(25, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <line x1="18" y1="2" x2="3" y2="42" stroke-width="1.6" />
     <line x1="18" y1="2" x2="33" y2="42" stroke-width="1.6" />
     <rect x="5" y="9" width="25" height="19" rx="2" fill="#ffffff" stroke="#000000" stroke-width="1.4" />
     <polyline points="9,23 14,17 19,22 23,18 26,23" stroke-width="1.1" />
     <line x1="2" y1="28" x2="34" y2="28" stroke-width="1.8" />
-  </g><g transform="translate(0, 300) rotate(-22)">
+  </g><g transform="translate(0, 300) rotate(-22, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="18" cy="9" r="5.5" fill="#000000" fill-opacity="0.1" />
     <path d="M 18 14 L 18 26" stroke-width="2" />
     <path d="M 4 32 Q 11 26 18 30 Q 25 26 32 32 Q 18 37 4 32 Z" fill="#000000" fill-opacity="0.12" />
     <path d="M 18 17 L 8 23 M 18 17 L 28 23" stroke-width="1.6" />
-  </g><g transform="translate(720, 300) rotate(-22)">
+  </g><g transform="translate(720, 300) rotate(-22, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="18" cy="9" r="5.5" fill="#000000" fill-opacity="0.1" />
     <path d="M 18 14 L 18 26" stroke-width="2" />
     <path d="M 4 32 Q 11 26 18 30 Q 25 26 32 32 Q 18 37 4 32 Z" fill="#000000" fill-opacity="0.12" />
     <path d="M 18 17 L 8 23 M 18 17 L 28 23" stroke-width="1.6" />
-  </g><g transform="translate(80, 300) rotate(10)">
+  </g><g transform="translate(80, 300) rotate(10, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 0 4 C 0 1.8 1.8 0 4 0 L 42 0 C 44.2 0 46 1.8 46 4 L 46 10 C 43 10 41 12 41 15 C 41 18 43 20 46 20 L 46 26 C 46 28.2 44.2 30 42 30 L 4 30 C 1.8 30 0 28.2 0 26 L 0 20 C 3 20 5 18 5 15 C 5 12 3 10 0 10 Z" fill="#000000" fill-opacity="0.08" />
     <line x1="14" y1="4" x2="14" y2="26" stroke-dasharray="2 2" stroke-width="1.1" />
     <line x1="6" y1="8" x2="6" y2="22" stroke-width="1.3" />
     <line x1="9" y1="8" x2="9" y2="22" stroke-width="2.2" />
     <path d="M 30 10 L 31 13 L 35 13 L 32 15 L 33 18 L 30 16 L 27 18 L 28 15 L 25 13 L 29 13 Z" fill="#000000" />
-  </g><g transform="translate(160, 300) rotate(-14)">
+  </g><g transform="translate(160, 300) rotate(-14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="4" y="3" width="26" height="17" rx="2.5" fill="#000000" fill-opacity="0.08" />
     <path d="M 0 20 L 34 20 L 31 25 L 3 25 Z" fill="#000000" fill-opacity="0.2" />
     <path d="M 12 8 Q 9 12 12 15 M 22 8 Q 25 12 22 15" stroke-width="1.4" />
-  </g><g transform="translate(240, 300) rotate(18)">
+  </g><g transform="translate(240, 300) rotate(18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="3" y="10" width="12" height="19" rx="2.5" fill="#000000" fill-opacity="0.1" />
     <path d="M 3 14 C 0 14 0 22 3 22" stroke-width="1.4" />
     <rect x="18" y="10" width="12" height="19" rx="2.5" fill="#000000" fill-opacity="0.1" />
     <path d="M 30 14 C 33 14 33 22 30 22" stroke-width="1.4" />
     <path d="M 2 10 Q 9 5 17 10 M 17 10 Q 24 5 31 10" stroke-width="1.6" />
-  </g><g transform="translate(320, 300) rotate(-12)">
+  </g><g transform="translate(320, 300) rotate(-12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <polygon points="17,3 2,30 32,30" fill="#000000" fill-opacity="0.08" />
     <polygon points="17,3 17,30 32,30" fill="#000000" fill-opacity="0.15" />
     <polyline points="13,30 17,14 21,30" stroke-width="1.3" />
-  </g><g transform="translate(400, 300) rotate(15)">
+  </g><g transform="translate(400, 300) rotate(15, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 4 10 C 4 2 30 2 30 10 C 30 25 24 32 17 32 C 10 32 4 25 4 10 Z" fill="#000000" fill-opacity="0.08" />
     <path d="M 8 12 Q 13 8 16 12 M 19 12 Q 22 8 26 12" stroke-width="1.8" />
     <path d="M 10 20 Q 17 29 24 20 Z" fill="#000000" />
-  </g><g transform="translate(480, 300) rotate(-18)">
+  </g><g transform="translate(480, 300) rotate(-18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="2" y="2" width="26" height="36" rx="5" fill="#000000" fill-opacity="0.1" />
     <circle cx="15" cy="12" r="4" />
     <circle cx="15" cy="26" r="7.5" />
     <circle cx="15" cy="26" r="3.5" fill="#000000" fill-opacity="0.3" />
     <path d="M 31 19 Q 35 26 31 33" stroke-width="1.2" />
-  </g><g transform="translate(560, 300) rotate(14)">
+  </g><g transform="translate(560, 300) rotate(14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <ellipse cx="15" cy="12" rx="11" ry="12" fill="#000000" fill-opacity="0.08" />
     <line x1="10" y1="2" x2="10" y2="22" stroke-width="0.8" />
     <line x1="15" y1="0" x2="15" y2="24" stroke-width="0.8" />
@@ -404,178 +404,178 @@
     <line x1="5" y1="12" x2="25" y2="12" stroke-width="0.8" />
     <rect x="13" y="24" width="3.5" height="15" rx="1.2" fill="#000000" fill-opacity="0.25" />
     <circle cx="30" cy="17" r="4.5" />
-  </g><g transform="translate(640, 300) rotate(-10)">
+  </g><g transform="translate(640, 300) rotate(-10, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="5" y="9" width="16" height="29" rx="3.5" fill="#000000" fill-opacity="0.1" />
     <path d="M 8 9 L 8 5 L 18 5 L 18 9" />
     <rect x="10" y="2" width="5" height="3.5" rx="1" fill="#000000" />
     <circle cx="4" cy="0" r="1.1" fill="#000000" stroke="none" />
     <circle cx="0" cy="3" r="1.3" fill="#000000" stroke="none" />
-  </g><g transform="translate(40, 350) rotate(22)">
+  </g><g transform="translate(40, 350) rotate(22, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="17" cy="17" r="16" />
     <circle cx="17" cy="17" r="10" stroke-width="0.8" stroke-dasharray="3 2" />
     <circle cx="17" cy="17" r="6" fill="#000000" fill-opacity="0.2" />
     <circle cx="17" cy="17" r="1.8" fill="#000000" />
     <path d="M 31 3 L 24 10 L 20 9" stroke-width="1.3" />
-  </g><g transform="translate(120, 350) rotate(-15)">
+  </g><g transform="translate(120, 350) rotate(-15, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 5 14 L 5 2 C 5 1 12 1 14 2 L 14 10 L 26 14 C 33 15 36 21 33 26 L 2 26 Z" fill="#000000" fill-opacity="0.1" />
     <rect x="1" y="26" width="34" height="4.5" rx="1.2" fill="#000000" fill-opacity="0.3" />
-  </g><g transform="translate(200, 350) rotate(12)">
+  </g><g transform="translate(200, 350) rotate(12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 2 15 Q 13 25 24 15 L 25 11 L 1 11 Z" fill="#000000" fill-opacity="0.15" />
     <line x1="7" y1="22" x2="20" y2="22" stroke-width="1.8" />
     <path d="M 13 11 C 9 7 9 2 13 0 C 17 2 17 7 13 11 Z" fill="#000000" />
-  </g><g transform="translate(280, 350) rotate(-20)">
+  </g><g transform="translate(280, 350) rotate(-20, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="3" y="3" width="32" height="24" rx="4" fill="#000000" fill-opacity="0.1" />
     <circle cx="19" cy="15" r="7.5" />
     <circle cx="19" cy="15" r="3.5" fill="#000000" />
     <rect x="7" y="5" width="5" height="3" rx="1" />
     <rect x="8" y="27" width="22" height="15" rx="1.5" fill="#ffffff" stroke="#000000" stroke-width="1.1" />
-  </g><g transform="translate(360, 350) rotate(16)">
+  </g><g transform="translate(360, 350) rotate(16, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 3 7 Q 10 2 16 7 L 16 15 C 16 19 11 21 7 19 C 3 17 3 12 3 7 Z" fill="#000000" fill-opacity="0.15" />
     <path d="M 23 7 Q 30 2 36 7 L 36 15 C 36 19 31 21 27 19 C 23 17 23 12 23 7 Z" fill="#000000" fill-opacity="0.15" />
     <path d="M 16 8 Q 19.5 5 23 8" stroke-width="1.6" />
-  </g><g transform="translate(440, 350) rotate(-12)">
+  </g><g transform="translate(440, 350) rotate(-12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="15" cy="19" r="12" fill="#000000" fill-opacity="0.1" />
     <rect x="13" y="3" width="5" height="4" rx="1.2" />
     <line x1="11" y1="7" x2="19" y2="7" stroke-width="1.5" />
     <line x1="4" y1="12" x2="26" y2="26" stroke-width="1" />
-  </g><g transform="translate(520, 350) rotate(20)">
+  </g><g transform="translate(520, 350) rotate(20, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="12" cy="9" r="7.5" fill="#000000" fill-opacity="0.1" />
     <ellipse cx="18" cy="18" rx="11" ry="3" stroke-width="1.6" />
     <path d="M 9 19 L 13 30 L 23 30 L 27 19" stroke-width="1" />
-  </g><g transform="translate(600, 350) rotate(-16)">
+  </g><g transform="translate(600, 350) rotate(-16, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 4 8 L 24 8 C 24 20 20 27 14 27 C 8 27 4 20 4 8 Z" fill="#000000" fill-opacity="0.08" />
     <path d="M 24 11 Q 32 11 32 16 Q 32 21 22 21" stroke-width="1.6" />
     <line x1="2" y1="29" x2="26" y2="29" stroke-width="1.8" />
     <path d="M 14 13 C 14 11 12 10 10 11 C 9 13 14 17 14 17 C 14 17 19 13 18 11 C 16 10 14 11 14 13 Z" fill="#000000" />
-  </g><g transform="translate(680, 350) rotate(14)">
+  </g><g transform="translate(680, 350) rotate(14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 8 24 C 4 28 6 39 12 42 C 19 45 26 38 23 31 C 21 27 25 24 22 20 C 18 16 11 16 9 20 Z" fill="#000000" fill-opacity="0.1" />
     <circle cx="15" cy="31" r="3" fill="#000000" />
     <line x1="19" y1="20" x2="38" y2="2" stroke-width="1.8" />
-  </g><g transform="translate(0, 400) rotate(-8)">
+  </g><g transform="translate(0, 400) rotate(-8, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="2" y="7" width="32" height="20" rx="3.5" fill="#000000" fill-opacity="0.08" />
     <circle cx="9" cy="27" r="3.5" fill="#000000" />
     <circle cx="27" cy="27" r="3.5" fill="#000000" />
     <rect x="8" y="11" width="14" height="9" fill="#ffffff" stroke="#000000" stroke-width="0.9" />
     <path d="M 5 11 Q 9 8 13 11 Q 17 8 21 11 Q 25 8 29 11" stroke-width="1.3" />
-  </g><g transform="translate(720, 400) rotate(-8)">
+  </g><g transform="translate(720, 400) rotate(-8, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="2" y="7" width="32" height="20" rx="3.5" fill="#000000" fill-opacity="0.08" />
     <circle cx="9" cy="27" r="3.5" fill="#000000" />
     <circle cx="27" cy="27" r="3.5" fill="#000000" />
     <rect x="8" y="11" width="14" height="9" fill="#ffffff" stroke="#000000" stroke-width="0.9" />
     <path d="M 5 11 Q 9 8 13 11 Q 17 8 21 11 Q 25 8 29 11" stroke-width="1.3" />
-  </g><g transform="translate(80, 400) rotate(25)">
+  </g><g transform="translate(80, 400) rotate(25, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 7 26 L 7 16 C 7 14 10 14 10 16 L 10 23" />
     <path d="M 10 16 L 10 4 C 10 1 14 1 14 4 L 14 15" stroke-width="1.6" />
     <path d="M 23 15 L 23 5 C 23 2 27 2 27 5 L 27 20 C 27 27 20 31 13 31 L 7 26 Z" fill="#000000" fill-opacity="0.12" />
     <rect x="6" y="26" width="12" height="4" rx="1.2" fill="#000000" fill-opacity="0.3" stroke="none" />
-  </g><g transform="translate(160, 400) rotate(-22)">
+  </g><g transform="translate(160, 400) rotate(-22, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <line x1="4" y1="14" x2="26" y2="14" stroke-width="2.2" />
     <rect x="2" y="7" width="4.5" height="14" rx="1.2" fill="#000000" />
     <rect x="24" y="7" width="4.5" height="14" rx="1.2" fill="#000000" />
-  </g><g transform="translate(240, 400) rotate(10)">
+  </g><g transform="translate(240, 400) rotate(10, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="3" y="9" width="30" height="20" rx="2" fill="#000000" fill-opacity="0.08" />
     <path d="M 3 4 L 33 0 L 33 9 L 3 9 Z" fill="#000000" fill-opacity="0.15" />
     <line x1="11" y1="3" x2="13" y2="8" stroke-width="1.2" />
     <line x1="19" y1="2" x2="21" y2="7" stroke-width="1.2" />
-  </g><g transform="translate(320, 400) rotate(-14)">
+  </g><g transform="translate(320, 400) rotate(-14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="4" y="8" width="23" height="19" rx="5" fill="#000000" fill-opacity="0.1" />
     <line x1="15" y1="8" x2="15" y2="2" stroke-width="1.4" />
     <circle cx="15" cy="2" r="2" fill="#000000" />
     <rect x="8" y="13" width="4" height="4" rx="1" fill="#000000" />
     <rect x="18" y="13" width="4" height="4" rx="1" fill="#000000" />
-  </g><g transform="translate(400, 400) rotate(18)">
+  </g><g transform="translate(400, 400) rotate(18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 16 38 Q 13 19 17 8" stroke-width="2" />
     <path d="M 17 8 Q 6 5 0 11 Q 8 4 17 8" fill="#000000" fill-opacity="0.15" />
     <path d="M 17 8 Q 20 -2 25 -6 Q 24 3 17 8" fill="#000000" fill-opacity="0.15" />
     <path d="M 17 8 Q 30 4 35 13 Q 26 7 17 8" fill="#000000" fill-opacity="0.15" />
-  </g><g transform="translate(480, 400) rotate(-12)">
+  </g><g transform="translate(480, 400) rotate(-12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 2 8 Q 16 11 32 8 C 36 7 36 12 32 12 Q 16 15 2 12 C -1 12 -1 8 2 8 Z" fill="#000000" fill-opacity="0.18" />
     <circle cx="7" cy="16" r="2.8" fill="#000000" />
     <circle cx="27" cy="16" r="2.8" fill="#000000" />
-  </g><g transform="translate(560, 400) rotate(15)">
+  </g><g transform="translate(560, 400) rotate(15, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 14 2 C 7 2 2 7 2 14 C 2 21 14 32 14 32 C 14 32 26 21 26 14 C 26 7 21 2 14 2 Z" fill="#000000" fill-opacity="0.1" />
     <circle cx="14" cy="12" r="4.5" fill="#000000" />
     <ellipse cx="14" cy="33" rx="8" ry="2.5" stroke-dasharray="2 2" stroke-width="0.9" />
-  </g><g transform="translate(640, 400) rotate(-18)">
+  </g><g transform="translate(640, 400) rotate(-18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 3 5 Q 16 0 29 5 L 16 32 Z" fill="#000000" fill-opacity="0.08" />
     <path d="M 3 5 Q 16 0 29 5" stroke-width="2.2" />
     <circle cx="13" cy="12" r="2" fill="#000000" fill-opacity="0.25" />
     <circle cx="18" cy="18" r="2" fill="#000000" fill-opacity="0.25" />
-  </g><g transform="translate(40, 450) rotate(14)">
+  </g><g transform="translate(40, 450) rotate(14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 5 9 C 8 4 27 4 30 9 C 32 15 36 24 29 27 C 23 29 20 22 17 22 C 15 22 12 29 6 27 C 0 24 3 15 5 9 Z" fill="#000000" fill-opacity="0.1" />
     <path d="M 9 12 L 12 12 M 11 11 L 11 14" stroke-width="1.6" />
     <circle cx="23" cy="12" r="1.3" fill="#000000" />
     <circle cx="26" cy="15" r="1.3" fill="#000000" />
-  </g><g transform="translate(120, 450) rotate(-10)">
+  </g><g transform="translate(120, 450) rotate(-10, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <polygon points="12,0 5,5 3,15 4,22 9,19 12,23 15,19 20,22 21,15 19,5" fill="#000000" fill-opacity="0.12" />
     <circle cx="12" cy="9" r="2.5" fill="#000000" />
-  </g><g transform="translate(200, 450) rotate(22)">
+  </g><g transform="translate(200, 450) rotate(22, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="2" y="4" width="24" height="29" rx="4" fill="#000000" fill-opacity="0.08" />
     <ellipse cx="14" cy="8" rx="2.8" ry="1.4" />
     <rect x="6" y="12" width="16" height="16" fill="#ffffff" stroke="#000000" stroke-width="0.9" />
     <rect x="8" y="14" width="4" height="4" fill="#000000" />
     <rect x="16" y="14" width="4" height="4" fill="#000000" />
     <rect x="8" y="22" width="4" height="4" fill="#000000" />
-  </g><g transform="translate(280, 450) rotate(-15)">
+  </g><g transform="translate(280, 450) rotate(-15, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 6 30 A 18 18 0 0 1 40 30" stroke-width="2" />
     <rect x="0" y="24" width="9" height="16" rx="4.5" fill="#000000" fill-opacity="0.12" />
     <rect x="37" y="24" width="9" height="16" rx="4.5" fill="#000000" fill-opacity="0.12" />
     <path d="M -4 30 Q -7 34 -4 38" stroke-width="1.2" />
     <path d="M 50 30 Q 53 34 50 38" stroke-width="1.2" />
-  </g><g transform="translate(360, 450) rotate(12)">
+  </g><g transform="translate(360, 450) rotate(12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 8 22 C 4 14 12 5 24 5 C 36 5 43 14 40 24 C 36 32 28 36 21 34 C 17 32 14 29 10 29 C 7 29 7 26 8 22 Z" fill="#000000" fill-opacity="0.08" />
     <circle cx="15" cy="27" r="3" fill="#ffffff" stroke="#000000" stroke-width="1.2" />
     <circle cx="19" cy="12" r="2.2" fill="#000000" stroke="none" />
     <circle cx="29" cy="14" r="2.2" fill="#000000" stroke="none" />
     <circle cx="33" cy="22" r="2.2" fill="#000000" stroke="none" />
     <line x1="2" y1="3" x2="33" y2="34" stroke-width="1.8" />
-  </g><g transform="translate(440, 450) rotate(-20)">
+  </g><g transform="translate(440, 450) rotate(-20, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <polygon points="16,10 30,34 2,34" fill="#000000" fill-opacity="0.08" />
     <polygon points="32,3 52,34 14,34" />
     <polyline points="28,10 32,16 38,12 44,20" stroke-width="1.2" />
     <circle cx="10" cy="7" r="4.5" />
-  </g><g transform="translate(520, 450) rotate(16)">
+  </g><g transform="translate(520, 450) rotate(16, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 8 38 L 8 20 C 8 15 12 14 12 8 L 12 5 L 19 5 L 19 8 C 19 14 23 15 23 20 L 23 38 Z" fill="#000000" fill-opacity="0.1" />
     <rect x="13" y="-1" width="5" height="4" rx="1" fill="#000000" />
     <circle cx="8" cy="1" r="1.5" fill="#000000" stroke="none" />
     <circle cx="21" cy="-1" r="1.8" fill="#000000" stroke="none" />
     <circle cx="16" cy="-6" r="1.2" fill="#000000" stroke="none" />
-  </g><g transform="translate(600, 450) rotate(-12)">
+  </g><g transform="translate(600, 450) rotate(-12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 8 14 L 17 14 C 19 14 21 16 21 32 C 21 36 17 40 13 40 C 9 40 5 36 5 32 Z" fill="#000000" fill-opacity="0.1" />
     <rect x="11" y="1" width="3.5" height="13" rx="1.2" />
     <circle cx="28" cy="27" r="6" />
     <path d="M 23 24 Q 28 27 33 24" stroke-width="1" stroke-dasharray="2 1" />
-  </g><g transform="translate(680, 450) rotate(20)">
+  </g><g transform="translate(680, 450) rotate(20, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="9" y="2" width="12" height="21" rx="6" fill="#000000" fill-opacity="0.1" />
     <line x1="9" y1="12" x2="21" y2="12" stroke-width="1.1" />
     <path d="M 5 12 C 5 23 25 23 25 12" />
     <line x1="15" y1="23" x2="15" y2="34" stroke-width="1.8" />
     <line x1="8" y1="34" x2="22" y2="34" stroke-width="1.8" />
-  </g><g transform="translate(0, 500) rotate(-16)">
+  </g><g transform="translate(0, 500) rotate(-16, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <line x1="18" y1="0" x2="18" y2="7" stroke-width="1.6" />
     <circle cx="18" cy="25" r="18" fill="#000000" fill-opacity="0.08" />
     <ellipse cx="18" cy="25" rx="9" ry="18" stroke-width="1" />
     <line x1="0" y1="25" x2="36" y2="25" stroke-width="1" />
-  </g><g transform="translate(720, 500) rotate(-16)">
+  </g><g transform="translate(720, 500) rotate(-16, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <line x1="18" y1="0" x2="18" y2="7" stroke-width="1.6" />
     <circle cx="18" cy="25" r="18" fill="#000000" fill-opacity="0.08" />
     <ellipse cx="18" cy="25" rx="9" ry="18" stroke-width="1" />
     <line x1="0" y1="25" x2="36" y2="25" stroke-width="1" />
-  </g><g transform="translate(80, 500) rotate(14)">
+  </g><g transform="translate(80, 500) rotate(14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <ellipse cx="14" cy="28" rx="5" ry="4.5" fill="#000000" fill-opacity="0.25" />
     <path d="M 9 28 L 3 9 L 25 9 L 19 28 Z" fill="#000000" fill-opacity="0.08" />
     <line x1="9" y1="9" x2="12" y2="28" stroke-width="1" />
     <line x1="19" y1="9" x2="16" y2="28" stroke-width="1" />
-  </g><g transform="translate(160, 500) rotate(-8)">
+  </g><g transform="translate(160, 500) rotate(-8, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="5" y="9" width="23" height="30" rx="6" fill="#000000" fill-opacity="0.1" />
     <rect x="2" y="3" width="29" height="8" rx="3.5" fill="#000000" fill-opacity="0.2" />
     <rect x="9" y="21" width="15" height="12" rx="2.5" />
-  </g><g transform="translate(240, 500) rotate(25)">
+  </g><g transform="translate(240, 500) rotate(25, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 3 5 L 32 5 L 18 23 Z" fill="#000000" fill-opacity="0.08" />
     <line x1="18" y1="23" x2="18" y2="38" stroke-width="1.8" />
     <line x1="7" y1="38" x2="28" y2="38" stroke-width="1.8" />
     <circle cx="14" cy="11" r="3" fill="#000000" fill-opacity="0.3" />
-  </g><g transform="translate(320, 500) rotate(-22)">
+  </g><g transform="translate(320, 500) rotate(-22, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="18" cy="18" r="16" />
     <polygon points="18,12 23,16 21,21 14,21 12,16" fill="#000000" />
     <line x1="18" y1="12" x2="18" y2="3" stroke-width="1.1" />
@@ -583,48 +583,48 @@
     <line x1="21" y1="21" x2="28" y2="28" stroke-width="1.1" />
     <line x1="14" y1="21" x2="7" y2="28" stroke-width="1.1" />
     <line x1="12" y1="16" x2="5" y2="13" stroke-width="1.1" />
-  </g><g transform="translate(400, 500) rotate(10)">
+  </g><g transform="translate(400, 500) rotate(10, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <line x1="18" y1="2" x2="3" y2="42" stroke-width="1.6" />
     <line x1="18" y1="2" x2="33" y2="42" stroke-width="1.6" />
     <rect x="5" y="9" width="25" height="19" rx="2" fill="#ffffff" stroke="#000000" stroke-width="1.4" />
     <polyline points="9,23 14,17 19,22 23,18 26,23" stroke-width="1.1" />
     <line x1="2" y1="28" x2="34" y2="28" stroke-width="1.8" />
-  </g><g transform="translate(480, 500) rotate(-14)">
+  </g><g transform="translate(480, 500) rotate(-14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="18" cy="9" r="5.5" fill="#000000" fill-opacity="0.1" />
     <path d="M 18 14 L 18 26" stroke-width="2" />
     <path d="M 4 32 Q 11 26 18 30 Q 25 26 32 32 Q 18 37 4 32 Z" fill="#000000" fill-opacity="0.12" />
     <path d="M 18 17 L 8 23 M 18 17 L 28 23" stroke-width="1.6" />
-  </g><g transform="translate(560, 500) rotate(18)">
+  </g><g transform="translate(560, 500) rotate(18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 0 4 C 0 1.8 1.8 0 4 0 L 42 0 C 44.2 0 46 1.8 46 4 L 46 10 C 43 10 41 12 41 15 C 41 18 43 20 46 20 L 46 26 C 46 28.2 44.2 30 42 30 L 4 30 C 1.8 30 0 28.2 0 26 L 0 20 C 3 20 5 18 5 15 C 5 12 3 10 0 10 Z" fill="#000000" fill-opacity="0.08" />
     <line x1="14" y1="4" x2="14" y2="26" stroke-dasharray="2 2" stroke-width="1.1" />
     <line x1="6" y1="8" x2="6" y2="22" stroke-width="1.3" />
     <line x1="9" y1="8" x2="9" y2="22" stroke-width="2.2" />
     <path d="M 30 10 L 31 13 L 35 13 L 32 15 L 33 18 L 30 16 L 27 18 L 28 15 L 25 13 L 29 13 Z" fill="#000000" />
-  </g><g transform="translate(640, 500) rotate(-12)">
+  </g><g transform="translate(640, 500) rotate(-12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="4" y="3" width="26" height="17" rx="2.5" fill="#000000" fill-opacity="0.08" />
     <path d="M 0 20 L 34 20 L 31 25 L 3 25 Z" fill="#000000" fill-opacity="0.2" />
     <path d="M 12 8 Q 9 12 12 15 M 22 8 Q 25 12 22 15" stroke-width="1.4" />
-  </g><g transform="translate(40, 550) rotate(15)">
+  </g><g transform="translate(40, 550) rotate(15, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="3" y="10" width="12" height="19" rx="2.5" fill="#000000" fill-opacity="0.1" />
     <path d="M 3 14 C 0 14 0 22 3 22" stroke-width="1.4" />
     <rect x="18" y="10" width="12" height="19" rx="2.5" fill="#000000" fill-opacity="0.1" />
     <path d="M 30 14 C 33 14 33 22 30 22" stroke-width="1.4" />
     <path d="M 2 10 Q 9 5 17 10 M 17 10 Q 24 5 31 10" stroke-width="1.6" />
-  </g><g transform="translate(120, 550) rotate(-18)">
+  </g><g transform="translate(120, 550) rotate(-18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <polygon points="17,3 2,30 32,30" fill="#000000" fill-opacity="0.08" />
     <polygon points="17,3 17,30 32,30" fill="#000000" fill-opacity="0.15" />
     <polyline points="13,30 17,14 21,30" stroke-width="1.3" />
-  </g><g transform="translate(200, 550) rotate(14)">
+  </g><g transform="translate(200, 550) rotate(14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 4 10 C 4 2 30 2 30 10 C 30 25 24 32 17 32 C 10 32 4 25 4 10 Z" fill="#000000" fill-opacity="0.08" />
     <path d="M 8 12 Q 13 8 16 12 M 19 12 Q 22 8 26 12" stroke-width="1.8" />
     <path d="M 10 20 Q 17 29 24 20 Z" fill="#000000" />
-  </g><g transform="translate(280, 550) rotate(-10)">
+  </g><g transform="translate(280, 550) rotate(-10, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="2" y="2" width="26" height="36" rx="5" fill="#000000" fill-opacity="0.1" />
     <circle cx="15" cy="12" r="4" />
     <circle cx="15" cy="26" r="7.5" />
     <circle cx="15" cy="26" r="3.5" fill="#000000" fill-opacity="0.3" />
     <path d="M 31 19 Q 35 26 31 33" stroke-width="1.2" />
-  </g><g transform="translate(360, 550) rotate(22)">
+  </g><g transform="translate(360, 550) rotate(22, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <ellipse cx="15" cy="12" rx="11" ry="12" fill="#000000" fill-opacity="0.08" />
     <line x1="10" y1="2" x2="10" y2="22" stroke-width="0.8" />
     <line x1="15" y1="0" x2="15" y2="24" stroke-width="0.8" />
@@ -632,112 +632,112 @@
     <line x1="5" y1="12" x2="25" y2="12" stroke-width="0.8" />
     <rect x="13" y="24" width="3.5" height="15" rx="1.2" fill="#000000" fill-opacity="0.25" />
     <circle cx="30" cy="17" r="4.5" />
-  </g><g transform="translate(440, 550) rotate(-15)">
+  </g><g transform="translate(440, 550) rotate(-15, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="5" y="9" width="16" height="29" rx="3.5" fill="#000000" fill-opacity="0.1" />
     <path d="M 8 9 L 8 5 L 18 5 L 18 9" />
     <rect x="10" y="2" width="5" height="3.5" rx="1" fill="#000000" />
     <circle cx="4" cy="0" r="1.1" fill="#000000" stroke="none" />
     <circle cx="0" cy="3" r="1.3" fill="#000000" stroke="none" />
-  </g><g transform="translate(520, 550) rotate(12)">
+  </g><g transform="translate(520, 550) rotate(12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="17" cy="17" r="16" />
     <circle cx="17" cy="17" r="10" stroke-width="0.8" stroke-dasharray="3 2" />
     <circle cx="17" cy="17" r="6" fill="#000000" fill-opacity="0.2" />
     <circle cx="17" cy="17" r="1.8" fill="#000000" />
     <path d="M 31 3 L 24 10 L 20 9" stroke-width="1.3" />
-  </g><g transform="translate(600, 550) rotate(-20)">
+  </g><g transform="translate(600, 550) rotate(-20, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 5 14 L 5 2 C 5 1 12 1 14 2 L 14 10 L 26 14 C 33 15 36 21 33 26 L 2 26 Z" fill="#000000" fill-opacity="0.1" />
     <rect x="1" y="26" width="34" height="4.5" rx="1.2" fill="#000000" fill-opacity="0.3" />
-  </g><g transform="translate(680, 550) rotate(16)">
+  </g><g transform="translate(680, 550) rotate(16, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 2 15 Q 13 25 24 15 L 25 11 L 1 11 Z" fill="#000000" fill-opacity="0.15" />
     <line x1="7" y1="22" x2="20" y2="22" stroke-width="1.8" />
     <path d="M 13 11 C 9 7 9 2 13 0 C 17 2 17 7 13 11 Z" fill="#000000" />
-  </g><g transform="translate(0, 600) rotate(-12)">
+  </g><g transform="translate(0, 600) rotate(-12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="3" y="3" width="32" height="24" rx="4" fill="#000000" fill-opacity="0.1" />
     <circle cx="19" cy="15" r="7.5" />
     <circle cx="19" cy="15" r="3.5" fill="#000000" />
     <rect x="7" y="5" width="5" height="3" rx="1" />
     <rect x="8" y="27" width="22" height="15" rx="1.5" fill="#ffffff" stroke="#000000" stroke-width="1.1" />
-  </g><g transform="translate(720, 600) rotate(-12)">
+  </g><g transform="translate(720, 600) rotate(-12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="3" y="3" width="32" height="24" rx="4" fill="#000000" fill-opacity="0.1" />
     <circle cx="19" cy="15" r="7.5" />
     <circle cx="19" cy="15" r="3.5" fill="#000000" />
     <rect x="7" y="5" width="5" height="3" rx="1" />
     <rect x="8" y="27" width="22" height="15" rx="1.5" fill="#ffffff" stroke="#000000" stroke-width="1.1" />
-  </g><g transform="translate(80, 600) rotate(20)">
+  </g><g transform="translate(80, 600) rotate(20, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 3 7 Q 10 2 16 7 L 16 15 C 16 19 11 21 7 19 C 3 17 3 12 3 7 Z" fill="#000000" fill-opacity="0.15" />
     <path d="M 23 7 Q 30 2 36 7 L 36 15 C 36 19 31 21 27 19 C 23 17 23 12 23 7 Z" fill="#000000" fill-opacity="0.15" />
     <path d="M 16 8 Q 19.5 5 23 8" stroke-width="1.6" />
-  </g><g transform="translate(160, 600) rotate(-16)">
+  </g><g transform="translate(160, 600) rotate(-16, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="15" cy="19" r="12" fill="#000000" fill-opacity="0.1" />
     <rect x="13" y="3" width="5" height="4" rx="1.2" />
     <line x1="11" y1="7" x2="19" y2="7" stroke-width="1.5" />
     <line x1="4" y1="12" x2="26" y2="26" stroke-width="1" />
-  </g><g transform="translate(240, 600) rotate(14)">
+  </g><g transform="translate(240, 600) rotate(14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <circle cx="12" cy="9" r="7.5" fill="#000000" fill-opacity="0.1" />
     <ellipse cx="18" cy="18" rx="11" ry="3" stroke-width="1.6" />
     <path d="M 9 19 L 13 30 L 23 30 L 27 19" stroke-width="1" />
-  </g><g transform="translate(320, 600) rotate(-8)">
+  </g><g transform="translate(320, 600) rotate(-8, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 4 8 L 24 8 C 24 20 20 27 14 27 C 8 27 4 20 4 8 Z" fill="#000000" fill-opacity="0.08" />
     <path d="M 24 11 Q 32 11 32 16 Q 32 21 22 21" stroke-width="1.6" />
     <line x1="2" y1="29" x2="26" y2="29" stroke-width="1.8" />
     <path d="M 14 13 C 14 11 12 10 10 11 C 9 13 14 17 14 17 C 14 17 19 13 18 11 C 16 10 14 11 14 13 Z" fill="#000000" />
-  </g><g transform="translate(400, 600) rotate(25)">
+  </g><g transform="translate(400, 600) rotate(25, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 8 24 C 4 28 6 39 12 42 C 19 45 26 38 23 31 C 21 27 25 24 22 20 C 18 16 11 16 9 20 Z" fill="#000000" fill-opacity="0.1" />
     <circle cx="15" cy="31" r="3" fill="#000000" />
     <line x1="19" y1="20" x2="38" y2="2" stroke-width="1.8" />
-  </g><g transform="translate(480, 600) rotate(-22)">
+  </g><g transform="translate(480, 600) rotate(-22, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="2" y="7" width="32" height="20" rx="3.5" fill="#000000" fill-opacity="0.08" />
     <circle cx="9" cy="27" r="3.5" fill="#000000" />
     <circle cx="27" cy="27" r="3.5" fill="#000000" />
     <rect x="8" y="11" width="14" height="9" fill="#ffffff" stroke="#000000" stroke-width="0.9" />
     <path d="M 5 11 Q 9 8 13 11 Q 17 8 21 11 Q 25 8 29 11" stroke-width="1.3" />
-  </g><g transform="translate(560, 600) rotate(10)">
+  </g><g transform="translate(560, 600) rotate(10, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 7 26 L 7 16 C 7 14 10 14 10 16 L 10 23" />
     <path d="M 10 16 L 10 4 C 10 1 14 1 14 4 L 14 15" stroke-width="1.6" />
     <path d="M 23 15 L 23 5 C 23 2 27 2 27 5 L 27 20 C 27 27 20 31 13 31 L 7 26 Z" fill="#000000" fill-opacity="0.12" />
     <rect x="6" y="26" width="12" height="4" rx="1.2" fill="#000000" fill-opacity="0.3" stroke="none" />
-  </g><g transform="translate(640, 600) rotate(-14)">
+  </g><g transform="translate(640, 600) rotate(-14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <line x1="4" y1="14" x2="26" y2="14" stroke-width="2.2" />
     <rect x="2" y="7" width="4.5" height="14" rx="1.2" fill="#000000" />
     <rect x="24" y="7" width="4.5" height="14" rx="1.2" fill="#000000" />
-  </g><g transform="translate(40, 650) rotate(18)">
+  </g><g transform="translate(40, 650) rotate(18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="3" y="9" width="30" height="20" rx="2" fill="#000000" fill-opacity="0.08" />
     <path d="M 3 4 L 33 0 L 33 9 L 3 9 Z" fill="#000000" fill-opacity="0.15" />
     <line x1="11" y1="3" x2="13" y2="8" stroke-width="1.2" />
     <line x1="19" y1="2" x2="21" y2="7" stroke-width="1.2" />
-  </g><g transform="translate(120, 650) rotate(-12)">
+  </g><g transform="translate(120, 650) rotate(-12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="4" y="8" width="23" height="19" rx="5" fill="#000000" fill-opacity="0.1" />
     <line x1="15" y1="8" x2="15" y2="2" stroke-width="1.4" />
     <circle cx="15" cy="2" r="2" fill="#000000" />
     <rect x="8" y="13" width="4" height="4" rx="1" fill="#000000" />
     <rect x="18" y="13" width="4" height="4" rx="1" fill="#000000" />
-  </g><g transform="translate(200, 650) rotate(15)">
+  </g><g transform="translate(200, 650) rotate(15, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 16 38 Q 13 19 17 8" stroke-width="2" />
     <path d="M 17 8 Q 6 5 0 11 Q 8 4 17 8" fill="#000000" fill-opacity="0.15" />
     <path d="M 17 8 Q 20 -2 25 -6 Q 24 3 17 8" fill="#000000" fill-opacity="0.15" />
     <path d="M 17 8 Q 30 4 35 13 Q 26 7 17 8" fill="#000000" fill-opacity="0.15" />
-  </g><g transform="translate(280, 650) rotate(-18)">
+  </g><g transform="translate(280, 650) rotate(-18, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 2 8 Q 16 11 32 8 C 36 7 36 12 32 12 Q 16 15 2 12 C -1 12 -1 8 2 8 Z" fill="#000000" fill-opacity="0.18" />
     <circle cx="7" cy="16" r="2.8" fill="#000000" />
     <circle cx="27" cy="16" r="2.8" fill="#000000" />
-  </g><g transform="translate(360, 650) rotate(14)">
+  </g><g transform="translate(360, 650) rotate(14, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 14 2 C 7 2 2 7 2 14 C 2 21 14 32 14 32 C 14 32 26 21 26 14 C 26 7 21 2 14 2 Z" fill="#000000" fill-opacity="0.1" />
     <circle cx="14" cy="12" r="4.5" fill="#000000" />
     <ellipse cx="14" cy="33" rx="8" ry="2.5" stroke-dasharray="2 2" stroke-width="0.9" />
-  </g><g transform="translate(440, 650) rotate(-10)">
+  </g><g transform="translate(440, 650) rotate(-10, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 3 5 Q 16 0 29 5 L 16 32 Z" fill="#000000" fill-opacity="0.08" />
     <path d="M 3 5 Q 16 0 29 5" stroke-width="2.2" />
     <circle cx="13" cy="12" r="2" fill="#000000" fill-opacity="0.25" />
     <circle cx="18" cy="18" r="2" fill="#000000" fill-opacity="0.25" />
-  </g><g transform="translate(520, 650) rotate(22)">
+  </g><g transform="translate(520, 650) rotate(22, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <path d="M 5 9 C 8 4 27 4 30 9 C 32 15 36 24 29 27 C 23 29 20 22 17 22 C 15 22 12 29 6 27 C 0 24 3 15 5 9 Z" fill="#000000" fill-opacity="0.1" />
     <path d="M 9 12 L 12 12 M 11 11 L 11 14" stroke-width="1.6" />
     <circle cx="23" cy="12" r="1.3" fill="#000000" />
     <circle cx="26" cy="15" r="1.3" fill="#000000" />
-  </g><g transform="translate(600, 650) rotate(-15)">
+  </g><g transform="translate(600, 650) rotate(-15, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <polygon points="12,0 5,5 3,15 4,22 9,19 12,23 15,19 20,22 21,15 19,5" fill="#000000" fill-opacity="0.12" />
     <circle cx="12" cy="9" r="2.5" fill="#000000" />
-  </g><g transform="translate(680, 650) rotate(12)">
+  </g><g transform="translate(680, 650) rotate(12, 18, 18) translate(18, 18) scale(1.32) translate(-18, -18)">
     <rect x="2" y="4" width="24" height="29" rx="4" fill="#000000" fill-opacity="0.08" />
     <ellipse cx="14" cy="8" rx="2.8" ry="1.4" />
     <rect x="6" y="12" width="16" height="16" fill="#ffffff" stroke="#000000" stroke-width="0.9" />
