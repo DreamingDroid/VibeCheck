@@ -52,43 +52,53 @@ export async function discoverVenueIntelligence(
     googleMapsUrl?: string;
   }
 ): Promise<DiscoveredVenueDetails> {
-  const cleanLocation = (params.locationName || '').trim();
-  const cleanCity = (params.city || '').trim();
-
-  // 1. Check existing verified database cache
-  try {
-    const cached = await pool.query(
-      `SELECT name, address, official_email, official_phone, google_place_id 
-       FROM venues 
-       WHERE LOWER(city) = LOWER($1) AND (LOWER(name) = LOWER($2) OR LOWER(address) LIKE LOWER($3))
-       LIMIT 1`,
-      [cleanCity, cleanLocation, `%${cleanLocation}%`]
-    );
-
-    if (cached.rows.length > 0 && cached.rows[0].official_email) {
-      const row = cached.rows[0];
-      return {
-        canonicalName: row.name,
-        address: row.address || `${cleanLocation}, ${cleanCity}`,
-        website: null,
-        officialEmail: row.official_email,
-        officialPhone: row.official_phone || null,
-        verificationChannel: 'email_domain_match',
-        confidenceScore: 95,
-        rationale: 'Retrieved from verified VibeCheck Persistent Venue Directory.'
-      };
-    }
-  } catch (err: any) {
-    console.warn('[VenueIntelligence] Cache lookup warning:', err.message);
-  }
-
-  // 2. Expand Google Maps short link if present
+  // 1. Expand Google Maps short link if present
   let resolvedUrl = params.googleMapsUrl || '';
   if (resolvedUrl && (resolvedUrl.includes('goo.gl') || resolvedUrl.includes('maps.app.goo.gl'))) {
     resolvedUrl = await expandGoogleMapsUrl(resolvedUrl);
   }
 
-  // 3. Autonomous AI Web Discovery via Gemini with Google Search Grounding
+  // 2. Extract Place Name from URL if locationName is empty
+  let cleanLocation = (params.locationName || '').trim();
+  if (!cleanLocation && resolvedUrl) {
+    const match = resolvedUrl.match(/\/place\/([^\/@]+)/i);
+    if (match && match[1]) {
+      cleanLocation = decodeURIComponent(match[1].replace(/\+/g, ' ')).trim();
+    }
+  }
+
+  const cleanCity = (params.city || '').trim();
+
+  // 3. Check existing verified database cache (only if valid search query exists)
+  if (cleanLocation && cleanLocation.length >= 3) {
+    try {
+      const cached = await pool.query(
+        `SELECT name, address, official_email, official_phone, google_place_id 
+         FROM venues 
+         WHERE LOWER(city) = LOWER($1) AND (LOWER(name) = LOWER($2) OR LOWER(address) LIKE LOWER($3))
+         LIMIT 1`,
+        [cleanCity, cleanLocation, `%${cleanLocation}%`]
+      );
+
+      if (cached.rows.length > 0 && cached.rows[0].official_email) {
+        const row = cached.rows[0];
+        return {
+          canonicalName: row.name,
+          address: row.address || `${cleanLocation}, ${cleanCity}`,
+          website: null,
+          officialEmail: row.official_email,
+          officialPhone: row.official_phone || null,
+          verificationChannel: 'email_domain_match',
+          confidenceScore: 95,
+          rationale: 'Retrieved from verified VibeCheck Persistent Venue Directory.'
+        };
+      }
+    } catch (err: any) {
+      console.warn('[VenueIntelligence] Cache lookup warning:', err.message);
+    }
+  }
+
+  // 4. Autonomous AI Web Discovery via Gemini with Google Search Grounding
   const apiKey = config.GEMINI_API_KEY;
   if (!apiKey) {
     console.warn('[VenueIntelligence] No GEMINI_API_KEY configured. Falling back to admin phone queue.');
