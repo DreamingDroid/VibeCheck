@@ -133,8 +133,9 @@ export default function RootLayout({
           <div className="flex-1 flex flex-col">
             {children}
           </div>
-          <footer className="w-full text-center py-8 border-t border-black/5 text-zinc-400 text-xs mt-auto font-medium">
-            © {new Date().getFullYear()} BayBuzz Labs. All rights reserved.
+          <footer className="w-full text-center py-8 border-t border-black/5 text-zinc-400 text-xs mt-auto font-medium space-y-1">
+            <p>© {new Date().getFullYear()} BayBuzz Labs. All rights reserved.</p>
+            <p className="text-[11px] text-zinc-500">VibeCheck Space™ is a product &amp; brand of BayBuzz Labs.</p>
           </footer>
         </Providers>
       </body>

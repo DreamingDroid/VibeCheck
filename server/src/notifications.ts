@@ -121,7 +121,8 @@ export async function notifySuperAdmins(pool: Pool, options: SuperAdminNotificat
       for (const email of adminEmails) {
         resend.emails
           .send({
-            from: 'VibeCheck Notifications <onboarding@resend.dev>',
+            from: config.RESEND_FROM_EMAIL,
+            replyTo: config.RESEND_REPLY_TO,
             to: email,
             subject: options.emailSubject,
             html: options.emailHtml,
@@ -179,7 +180,8 @@ export async function notifyOrganizer(pool: Pool, options: OrganizerNotification
     ) {
       resend.emails
         .send({
-          from: 'VibeCheck <onboarding@resend.dev>',
+          from: config.RESEND_FROM_EMAIL,
+          replyTo: config.RESEND_REPLY_TO,
           to: email,
           subject: options.emailSubject,
           html: options.emailHtml,

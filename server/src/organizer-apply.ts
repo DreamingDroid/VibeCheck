@@ -419,7 +419,8 @@ export async function sendApplyOtpHandler(req: Request, res: Response, pool?: Po
       console.log(`[Verification] [Dev Mode] Email Code for ${value}: ${code}`);
       if (config.RESEND_API_KEY && config.RESEND_API_KEY !== 're_dummy_key_123') {
         resend.emails.send({
-          from: 'VibeCheck <onboarding@resend.dev>',
+          from: config.RESEND_FROM_EMAIL,
+          replyTo: config.RESEND_REPLY_TO,
           to: value,
           subject: 'VibeCheck Verification Code',
           html: `<p>Your VibeCheck verification code is: <strong>${code}</strong></p><p>It will expire in 10 minutes.</p>`

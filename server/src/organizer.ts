@@ -883,7 +883,8 @@ export async function organizerSendWhatsAppGroupInviteHandler(req: Request, res:
         .then(async (recipientEmails) => {
           for (const email of recipientEmails) {
             await resend.emails.send({
-              from: 'VibeCheck <onboarding@resend.dev>',
+              from: config.RESEND_FROM_EMAIL,
+              replyTo: config.RESEND_REPLY_TO,
               to: email,
               subject: `Join the WhatsApp Group for ${event.title}`,
               html: `
