@@ -95,7 +95,7 @@ export default function OrganizerDashboard() {
   const [tagFilter, setTagFilter] = useState("all");
   const [eventFilter, setEventFilter] = useState("all");
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
-  
+
   const [editingContact, setEditingContact] = useState<any | null>(null);
   const [editedNotes, setEditedNotes] = useState("");
   const [editedTags, setEditedTags] = useState<string[]>([]);
@@ -376,7 +376,7 @@ export default function OrganizerDashboard() {
       headers.join(","),
       ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
     ].join("\n");
-    
+
     const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -545,7 +545,7 @@ export default function OrganizerDashboard() {
     if (formData.eventType === 'in_person' && !formData.location) newErrors.location = true;
     if (!formData.description) newErrors.description = true;
 
-    // Strict 7-Day Advance Notice & Venue Email Validation for Paid Events
+    // Strict 7-Day Advance Notice for Paid Events
     if (formData.isPaid) {
       if (formData.startDate) {
         const eventDate = new Date(formData.startDate);
@@ -553,13 +553,13 @@ export default function OrganizerDashboard() {
         minLeadTime.setDate(minLeadTime.getDate() + 7);
         minLeadTime.setHours(0, 0, 0, 0);
         if (eventDate < minLeadTime) {
-          toast.error("Paid events must be scheduled at least 7 days in advance to allow venue verification.");
+          toast.error("Paid events must be scheduled at least 7 days in advance to allow autonomous venue verification.");
           newErrors.startDate = true;
         }
       }
-      if (!formData.venueOfficialEmail) {
-        newErrors.venueOfficialEmail = true;
-        toast.error("Official venue manager email is required for paid events");
+      if (!formData.location) {
+        newErrors.location = true;
+        toast.error("Venue location is required for paid events");
       }
       if (!formData.ticketPrice) {
         newErrors.ticketPrice = true;
@@ -669,7 +669,7 @@ export default function OrganizerDashboard() {
         setEditingEventId(null);
         setShowForm(false);
         loadMyEvents();
-        
+
         if (data.status === 'pending_venue_auth') {
           toast.success("📧 Legal verification email dispatched to the venue! Payment details will be unlocked once approved.", { id: toastId, duration: 6000 });
         } else {
@@ -761,7 +761,7 @@ export default function OrganizerDashboard() {
         {activeTab === 'crm' && (
           <div className="ringer-card p-4 sm:p-6">
             <h2 className="text-2xl sm:text-3xl font-black italic tracking-tighter uppercase leading-none mb-3 sm:mb-4">Your Community CRM</h2>
-            
+
             {/* Metrics Strip */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3.5 mb-4 sm:mb-5">
               <div className="bg-zinc-50 p-3.5 sm:p-4 rounded-2xl border border-black/5 hover:border-black/10 transition-colors shadow-xs">
@@ -888,7 +888,7 @@ export default function OrganizerDashboard() {
                     {filteredContacts.map((c, i) => {
                       const initial = (c.name || c.email || '?').charAt(0).toUpperCase();
                       const tags = getTagsArray(c.tags);
-                      
+
                       let badge = null;
                       if (c.is_follower && c.is_attendee) {
                         badge = <span className="sticker-badge bg-black text-[#C1FF00] border-black text-[8px] font-bold whitespace-nowrap">Follower & Attendee</span>;
@@ -1013,11 +1013,11 @@ export default function OrganizerDashboard() {
 
       {/* Side-sheet Form Drawer Overlay */}
       {showForm && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={handleCancelEdit}
         >
-          <div 
+          <div
             className="w-full max-w-xl h-full bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-black/5"
             onClick={e => e.stopPropagation()}
           >
@@ -1029,9 +1029,9 @@ export default function OrganizerDashboard() {
                 </h2>
                 <p className="text-[10px] font-bold text-zinc-400 mt-1 uppercase">Awaiting platform guardian approval</p>
               </div>
-              <button 
-                type="button" 
-                onClick={handleCancelEdit} 
+              <button
+                type="button"
+                onClick={handleCancelEdit}
                 className="ringer-button border border-black/5 hover:bg-black/5 text-black text-[10px]"
               >
                 CLOSE
@@ -1057,15 +1057,14 @@ export default function OrganizerDashboard() {
                         type="button"
                         onClick={() => {
                           const matchedCity = supportedCities.find(c => c.name === formData.city);
-                          setFormData({ 
-                            ...formData, 
+                          setFormData({
+                            ...formData,
                             eventType: 'in_person',
                             timezone: matchedCity?.timezone || formData.timezone || "Asia/Kolkata"
                           });
                         }}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                          formData.eventType === 'in_person' ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'
-                        }`}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${formData.eventType === 'in_person' ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'
+                          }`}
                       >
                         <MapPin className="h-3.5 w-3.5" />
                         <span>In-Person Vibe</span>
@@ -1073,9 +1072,8 @@ export default function OrganizerDashboard() {
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, eventType: 'online' })}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                          formData.eventType === 'online' ? 'bg-sky-600 text-white font-black shadow-lg shadow-sky-600/20' : 'text-zinc-400 hover:text-black'
-                        }`}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${formData.eventType === 'online' ? 'bg-sky-600 text-white font-black shadow-lg shadow-sky-600/20' : 'text-zinc-400 hover:text-black'
+                          }`}
                       >
                         <Globe className="h-3.5 w-3.5" />
                         <span>Online Event</span>
@@ -1099,16 +1097,16 @@ export default function OrganizerDashboard() {
                     </div>
 
                     <div className="space-y-1">
-                      <Select 
-                        value={formData.city} 
-                        onValueChange={v => { 
+                      <Select
+                        value={formData.city}
+                        onValueChange={v => {
                           const matchedCity = supportedCities.find(c => c.name === v);
                           const cityTz = matchedCity?.timezone || "Asia/Kolkata";
-                          setFormData({ 
-                            ...formData, 
+                          setFormData({
+                            ...formData,
                             city: v || "",
                             ...(formData.eventType === 'in_person' ? { timezone: cityTz } : {})
-                          }); 
+                          });
                           if (errors.city) setErrors({ ...errors, city: false });
                         }}
                       >
@@ -1215,18 +1213,16 @@ export default function OrganizerDashboard() {
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, visibility: 'public' })}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                          formData.visibility === 'public' ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'
-                        }`}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${formData.visibility === 'public' ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'
+                          }`}
                       >
                         <span>🌍 Public Vibe</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, visibility: 'invite_only' })}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                          formData.visibility === 'invite_only' ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-black font-black shadow-lg shadow-amber-500/20' : 'text-zinc-400 hover:text-black'
-                        }`}
+                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${formData.visibility === 'invite_only' ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-black font-black shadow-lg shadow-amber-500/20' : 'text-zinc-400 hover:text-black'
+                          }`}
                       >
                         <span>✨ 🔒 Invite-Only VIP</span>
                       </button>
@@ -1273,49 +1269,27 @@ export default function OrganizerDashboard() {
                     </button>
                   </div>
 
-                  {/* Paid Event: Venue Authorization & External Ticketing */}
+                  {/* Paid Event: Autonomous Venue Authorization & External Ticketing */}
                   {formData.isPaid && (
                     <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 space-y-3 animate-in fade-in">
                       <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-800">
                         <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
-                        <span>Venue Authorization &amp; Ticketing Information</span>
+                        <span>Autonomous Venue Authorization &amp; Ticketing Information</span>
                       </div>
                       <p className="text-[11px] text-amber-900/80 font-medium leading-relaxed">
-                        🛡️ To protect guests from fraud, VibeCheck dispatches a legal authorization email to the venue management. Your ticketing link and contact info will be unlocked for attendees once the venue verifies this booking.
+                        🛡️ <strong>Autonomous Verification:</strong> To eliminate unauthorized events and protect community members, VibeCheck autonomously discovers and verifies the official venue management contacts. Pass ticketing links remain locked until verified.
                       </p>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                         <div className="space-y-1">
-                          <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">Official Venue Email *</Label>
-                          <Input
-                            type="email"
-                            required
-                            placeholder="e.g. manager@ironhill.in"
-                            value={formData.venueOfficialEmail}
-                            onChange={e => { setFormData({ ...formData, venueOfficialEmail: e.target.value }); if (errors.venueOfficialEmail) setErrors({ ...errors, venueOfficialEmail: false }); }}
-                            className={cn("bg-white border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.venueOfficialEmail && "border-red-500 ring-red-500/20")}
-                          />
-                          <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Where VibeCheck will send the legal authorization request</p>
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">Venue Manager Phone / WA (Optional)</Label>
-                          <Input
-                            placeholder="e.g. +91 86885 15102"
-                            value={formData.venueOfficialPhone}
-                            onChange={e => setFormData({ ...formData, venueOfficialPhone: e.target.value })}
-                            className="bg-white border-black/5 focus:ring-primary rounded-xl text-xs font-bold"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">Venue Hall / Area Name</Label>
+                          <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">Venue Hall / Area Name (Optional)</Label>
                           <Input
                             placeholder="e.g. Rooftop Lounge, Banquet Hall A"
                             value={formData.venueSectionHall}
                             onChange={e => setFormData({ ...formData, venueSectionHall: e.target.value })}
                             className="bg-white border-black/5 focus:ring-primary rounded-xl text-xs font-bold"
                           />
+                          <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Specific reserved section or hall</p>
                         </div>
 
                         <div className="space-y-1">
@@ -1339,7 +1313,7 @@ export default function OrganizerDashboard() {
                             onChange={e => setFormData({ ...formData, externalTicketLink: e.target.value })}
                             className="bg-white border-black/5 focus:ring-primary rounded-xl text-xs font-bold"
                           />
-                          <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">If provided, attendees will be redirected here to purchase official tickets. VibeCheck does not handle payments.</p>
+                          <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">If provided, attendees will be redirected here to purchase official tickets once venue is verified.</p>
                         </div>
                       </div>
                     </div>
@@ -1372,10 +1346,10 @@ export default function OrganizerDashboard() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1"><ImageIcon className="h-3 w-3"/> Event Cover Image</Label>
+                    <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1"><ImageIcon className="h-3 w-3" /> Event Cover Image</Label>
                     <div className="flex flex-col gap-3">
-                      <Input 
-                        type="file" 
+                      <Input
+                        type="file"
                         accept="image/*"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
@@ -1450,7 +1424,7 @@ export default function OrganizerDashboard() {
 
                     {showGuideFields && (
                       <div className="space-y-6 pt-2 border-t border-black/5 animate-in fade-in-50 duration-200">
-                        
+
                         {/* 1. The Day's Schedule / Itinerary */}
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
@@ -1746,17 +1720,17 @@ export default function OrganizerDashboard() {
 
             {/* Footer */}
             <div className="border-t border-black/5 p-6 bg-zinc-50 flex justify-end gap-3 shrink-0">
-              <button 
-                type="button" 
-                onClick={handleCancelEdit} 
+              <button
+                type="button"
+                onClick={handleCancelEdit}
                 className="ringer-button border border-black/5 hover:bg-black/5 text-black text-[10px]"
               >
                 CANCEL
               </button>
-              <button 
-                type="submit" 
-                form="organizer-event-form" 
-                disabled={submitting} 
+              <button
+                type="submit"
+                form="organizer-event-form"
+                disabled={submitting}
                 className="ringer-button bg-gradient-to-br from-[#22C55E] to-[#16A34A] text-white hover:from-[#16A34A] hover:to-[#15803D] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-green-500/20 text-[10px]"
               >
                 {submitting ? "SUBMITTING..." : editingEventId ? "SUBMIT EDITS" : "SUBMIT FOR REVIEW"}

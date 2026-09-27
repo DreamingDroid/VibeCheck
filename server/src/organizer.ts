@@ -19,19 +19,19 @@ const resend = new Resend(config.RESEND_API_KEY);
 
 import crypto from 'crypto';
 import { sendVenueAuthorizationEmail } from './services/venueAuthEmail';
+import { discoverVenueIntelligence } from './services/venueIntelligence';
 
 export async function organizerCreateEventHandler(req: Request, res: Response, pool: Pool) {
-  const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email, visibility, guest_list, guestList, is_paid, isPaid, ticket_price, ticketPrice, venue_official_email, venueOfficialEmail, venue_official_phone, venueOfficialPhone, venue_section_hall, venueSectionHall, upi_id, upiId, external_ticket_link, externalTicketLink } = req.body;
+  const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, googleMapsLink, contact_info, organizer_email, visibility, guest_list, guestList, is_paid, isPaid, ticket_price, ticketPrice, venue_section_hall, venueSectionHall, upi_id, upiId, external_ticket_link, externalTicketLink } = req.body;
 
   if (!organizer_email) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
   const safeIsPaid = Boolean(is_paid ?? isPaid ?? false);
-  const safeVenueEmail = venue_official_email || venueOfficialEmail;
-  const safeVenuePhone = venue_official_phone || venueOfficialPhone;
   const safeVenueHall = venue_section_hall || venueSectionHall;
   const safeUpiId = upi_id || upiId;
   const safeTicketPrice = ticket_price ?? ticketPrice ?? 0;
   const safeExternalTicketLink = external_ticket_link || externalTicketLink;
+  const safeGoogleMapsUrl = google_maps_link || googleMapsLink;
 
   // 1. Strict 7-Day Advance Submission Rule for Paid Events
   if (safeIsPaid) {
@@ -43,14 +43,14 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
     if (eventDate.getTime() - Date.now() < minLeadTimeMs) {
       return res.status(400).json({
         success: false,
-        error: 'Paid events must be scheduled at least 7 days in advance to allow sufficient time for venue authorization, security verification, and attendee ticket sales.'
+        error: 'Paid events must be scheduled at least 7 days in advance to allow sufficient time for autonomous venue authorization, security verification, and attendee ticket sales.'
       });
     }
 
-    if (!safeVenueEmail) {
+    if (!location) {
       return res.status(400).json({
         success: false,
-        error: 'Official Venue Manager Email is required for paid events to complete legal venue authorization.'
+        error: 'Venue Name or Physical Location is required for paid events.'
       });
     }
   }
@@ -86,19 +86,36 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
     });
   }
 
-  // For paid events: Status is always 'pending_venue_auth' until venue approves
+  // 3. Autonomous Venue Discovery & Verification Routing
   let initialStatus: string;
   let venueAuthToken: string | null = null;
   let venueTokenExpiresAt: Date | null = null;
   let venueStatus = 'unverified';
   let paymentDetailsLocked = false;
+  let safeVenueEmail: string | null = null;
+  let safeVenuePhone: string | null = null;
 
-  if (safeIsPaid && safeVenueEmail) {
+  if (safeIsPaid) {
     initialStatus = 'pending_venue_auth';
     venueStatus = 'pending_venue_auth';
-    venueAuthToken = crypto.randomBytes(32).toString('hex');
-    venueTokenExpiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48-hour window
     paymentDetailsLocked = true;
+
+    // Autonomously discover authentic venue details via AI & Google Maps/Search Grounding
+    const discovered = await discoverVenueIntelligence(pool, {
+      locationName: location || '',
+      city: city || 'Visakhapatnam',
+      googleMapsUrl: safeGoogleMapsUrl
+    });
+
+    safeVenueEmail = discovered.officialEmail;
+    safeVenuePhone = discovered.officialPhone;
+
+    if (discovered.officialEmail) {
+      venueAuthToken = crypto.randomBytes(32).toString('hex');
+      venueTokenExpiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48-hour window
+    } else {
+      venueStatus = 'pending_admin_phone_auth';
+    }
   } else {
     initialStatus = moderationResult.decision === 'auto_approve' ? 'approved' : 'pending';
   }
@@ -111,6 +128,7 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
       ticket_price: safeTicketPrice,
       upi_id: safeUpiId,
       external_ticket_link: safeExternalTicketLink,
+      google_maps_link: safeGoogleMapsUrl,
       venue_official_email: safeVenueEmail,
       venue_official_phone: safeVenuePhone,
       venue_section_hall: safeVenueHall,
@@ -120,17 +138,7 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
       payment_details_locked: paymentDetailsLocked
     });
 
-    // Cache venue in persistent directory table if new
-    if (location && city && safeVenueEmail) {
-      pool.query(
-        `INSERT INTO venues (name, city, address, official_email, official_phone, is_verified)
-         VALUES ($1, $2, $3, $4, $5, false)
-         ON CONFLICT DO NOTHING`,
-        [location, city, location, safeVenueEmail, safeVenuePhone || null]
-      ).catch(err => console.warn('[Venues] Auto-cache error:', err.message));
-    }
-
-    // Dispatch Legal Authorization Email to Venue Manager for Paid Events
+    // Dispatch Legal Authorization Email if authentic domain email was discovered
     if (safeIsPaid && venueAuthToken && safeVenueEmail) {
       const auditRef = `VC-AUTH-${new Date().getFullYear()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
       
