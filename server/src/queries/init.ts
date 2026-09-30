@@ -9,9 +9,15 @@ export async function initializeDatabaseSchema(pool: Pool) {
   // 2. Create Enums
   await pool.query(`
     CREATE TYPE event_category AS ENUM (
-      'Sports', 'Arts', 'Education', 'Spiritual', 'Music', 'Food', 'Wellness', 'Indie', 'Techno', 'General'
+      'Adventure', 'Sports', 'Music', 'Nightlife', 'Arts & Culture', 'Food & Drink', 'Wellness', 'Workshops', 'Comedy', 'Spiritual', 'General', 'Arts', 'Food', 'Education', 'Indie', 'Techno'
     );
   `).catch(() => {}); // Ignore if already exists
+
+  // Ensure all category enum values exist in existing databases
+  const allCategories = ['Adventure', 'Nightlife', 'Arts & Culture', 'Food & Drink', 'Workshops', 'Comedy'];
+  for (const cat of allCategories) {
+    await pool.query(`ALTER TYPE event_category ADD VALUE IF NOT EXISTS '${cat}';`).catch(() => {});
+  }
 
   await pool.query(`
     CREATE TYPE admin_role AS ENUM ('SuperAdmin', 'Editor', 'organizer');
@@ -196,6 +202,7 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN DEFAULT false`);
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS instagram_verified BOOLEAN DEFAULT false`);
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS instagram_handle VARCHAR(255)`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS instagram_metadata JSONB DEFAULT '{}'::jsonb`);
   await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_unique_instagram 
     ON admins (LOWER(instagram_handle)) 
@@ -204,6 +211,18 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS rejection_reason TEXT`);
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS image_url TEXT`);
   await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS rating NUMERIC(3,1) DEFAULT 4.5`);
+  await pool.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS slug VARCHAR(255)`);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_unique_slug 
+    ON admins (LOWER(slug)) 
+    WHERE slug IS NOT NULL
+  `).catch(() => {});
+  // Auto-generate slugs for existing approved organizers without a slug
+  await pool.query(`
+    UPDATE admins 
+    SET slug = LOWER(REGEXP_REPLACE(REGEXP_REPLACE(COALESCE(brand_name, split_part(email, '@', 1)), '[^a-zA-Z0-9]+', '-', 'g'), '^-|-$', '', 'g'))
+    WHERE slug IS NULL AND (brand_name IS NOT NULL OR email IS NOT NULL);
+  `).catch(() => {});
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS organizer_email TEXT`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS end_time TIMESTAMP WITH TIME ZONE`).catch(() => {});
@@ -239,6 +258,9 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false`).catch(() => {});
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_events_is_featured ON events (is_featured)`).catch(() => {});
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS attendee_guide JSONB DEFAULT '{}'::jsonb`).catch(() => {});
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_type VARCHAR(20) DEFAULT 'in_person'`).catch(() => {});
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Asia/Kolkata'`).catch(() => {});
+  await pool.query(`ALTER TABLE cities ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Asia/Kolkata'`).catch(() => {});
 
   // Web Users Telegram columns migration
   await pool.query(`ALTER TABLE web_users ADD COLUMN IF NOT EXISTS telegram_chat_id BIGINT`).catch(() => {});

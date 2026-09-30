@@ -6,9 +6,10 @@ import {
   X, CheckCircle2, Calendar, MapPin, Phone, 
   ExternalLink, Sparkles, Clock, Check, Copy,
   AlertCircle, CalendarPlus, Backpack,
-  ShieldCheck, QrCode, Send
+  ShieldCheck, QrCode, Send, Globe
 } from "lucide-react";
 import { formatTelegramLink } from "@/lib/telegramGroup";
+import { formatEventTimeWithTimezone } from "@/lib/timezone";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface ScheduleItem {
@@ -102,17 +103,13 @@ export function AttendeeBriefingModal({
 
   const mapsLink = event.google_maps_link || guide.assemblyMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.location || guide.assemblyPoint || ""}, ${event.city || "Vizag"}`)}`;
 
+  const tzInfo = formatEventTimeWithTimezone(event.date_time, event.end_time, event.timezone || 'Asia/Kolkata');
+
   const eventDateStr = event.date_time 
-    ? new Date(event.date_time).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })
+    ? new Date(event.date_time).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric", timeZone: event.timezone || 'Asia/Kolkata' })
     : "Event Date";
 
-  const eventTimeStr = event.date_time
-    ? new Date(event.date_time).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
-    : "";
-
-  const endTimeStr = event.end_time
-    ? ` → ${new Date(event.end_time).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`
-    : "";
+  const eventTimeStr = tzInfo.timeRangeDisplay ? `${tzInfo.timeRangeDisplay} ${tzInfo.tzAbbr}` : "";
 
   // Contact details for payment coordination if paid
   const organizerPhone = event.organizer_phone || event.phone || (guide.contacts && guide.contacts[0]?.phone) || "";
@@ -179,14 +176,14 @@ export function AttendeeBriefingModal({
 
             <div className="flex items-center gap-2.5 px-2 py-1 bg-white/5 sm:bg-transparent rounded-xl">
               <div className="p-1.5 rounded-lg bg-primary/15 text-primary shrink-0">
-                <MapPin className="h-4 w-4" />
+                {event.event_type === 'online' ? <Globe className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
               </div>
               <div className="min-w-0">
                 <span className="font-black text-white block text-xs leading-tight truncate">
-                  {event.location || event.city || "Venue Entrance"}
+                  {event.event_type === 'online' ? (event.location || "Online Event") : (event.location || event.city || "Venue Entrance")}
                 </span>
                 <span className="text-[11px] text-zinc-400 font-medium truncate block">
-                  {event.city}
+                  {event.event_type === 'online' ? "Virtual / Online Event" : event.city}
                 </span>
               </div>
             </div>
@@ -366,7 +363,7 @@ export function AttendeeBriefingModal({
                 {eventDateStr}
               </p>
               <p className="text-xs font-bold text-zinc-500">
-                {eventTimeStr} {endTimeStr}
+                {eventTimeStr}
                 {event.timings && <span className="block mt-0.5 text-primary text-[11px] font-bold">{event.timings}</span>}
               </p>
               {onDownloadICS && (

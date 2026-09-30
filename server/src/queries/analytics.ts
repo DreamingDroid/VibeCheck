@@ -188,9 +188,31 @@ export async function getOrganizerDashboardAnalytics(pool: Pool, email: string) 
     value: parseInt(r.value, 10)
   }));
 
-  const conversions = Math.max(1, Math.min(Math.floor(totalRsvps * 0.12), 15));
-  const broadcastSentCount = Math.max(conversions * 8, 12);
-  const broadcastConversionRate = parseFloat(((conversions / broadcastSentCount) * 100).toFixed(1));
+  // 5. Outreach Broadcast Stats
+  const broadcastStatsResult = await pool.query(
+    `SELECT 
+       COALESCE(SUM(recipient_count), 0)::int as total_sent,
+       COUNT(id)::int as broadcast_count
+     FROM broadcasts
+     WHERE sender_email = $1`,
+    [email]
+  );
+  const totalSent = parseInt(broadcastStatsResult.rows[0]?.total_sent || '0', 10);
+
+  // Conversions: Count of distinct RSVPs for the organizer's events from recipients after receiving a broadcast
+  const conversionResult = await pool.query(
+    `SELECT COUNT(DISTINCT er.id)::int as conversions
+     FROM user_notifications un
+     JOIN broadcasts b ON un.broadcast_id = b.id
+     JOIN events e ON e.organizer_email = $1
+     JOIN event_rsvps er ON er.event_id = e.id AND er.user_email = un.user_email AND er.created_at >= b.created_at
+     WHERE b.sender_email = $1`,
+    [email]
+  );
+  const conversions = parseInt(conversionResult.rows[0]?.conversions || '0', 10);
+  const broadcastConversionRate = totalSent > 0 
+    ? parseFloat(Math.min(100, (conversions / totalSent) * 100).toFixed(1)) 
+    : 0;
 
   return {
     aggregates: {
@@ -203,10 +225,10 @@ export async function getOrganizerDashboardAnalytics(pool: Pool, email: string) 
     scheduleInsights,
     freshnessInsights,
     broadcastStats: {
-      sentCount: broadcastSentCount,
+      sentCount: totalSent,
       conversions,
       conversionRate: broadcastConversionRate,
-      costEstimate: broadcastSentCount * 2
+      costEstimate: totalSent * 2
     }
   };
 }

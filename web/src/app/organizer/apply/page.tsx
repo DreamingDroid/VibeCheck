@@ -110,6 +110,14 @@ export default function OrganizerApplyPage() {
   const [instagramVerified, setInstagramVerified] = useState(false);
   const [instagramToken, setInstagramToken] = useState("");
   const [instagramHandle, setInstagramHandle] = useState("");
+  const [instagramMetadata, setInstagramMetadata] = useState<{
+    accountName?: string;
+    accountType?: string;
+    followersCount?: number;
+    followerBucket?: string;
+    tierLabel?: string;
+    scoreRecommendation?: string;
+  } | null>(null);
   const [instagramLoading, setInstagramLoading] = useState(false);
   const [devInstagramModal, setDevInstagramModal] = useState<{ isOpen: boolean; handle: string }>({ isOpen: false, handle: "" });
 
@@ -259,11 +267,22 @@ export default function OrganizerApplyPage() {
             setInstagramVerified(true);
             setInstagramToken(data.token);
             setInstagramHandle(data.handle);
+            if (data.metadata || data.followerBucket) {
+              setInstagramMetadata({
+                accountName: data.accountName || data.metadata?.account_name,
+                accountType: data.accountType || data.metadata?.account_type,
+                followersCount: data.followersCount ?? data.metadata?.followers_count,
+                followerBucket: data.followerBucket || data.metadata?.follower_bucket,
+                tierLabel: data.tierLabel || data.metadata?.tier_label,
+                scoreRecommendation: data.scoreRecommendation || data.metadata?.score_recommendation,
+              });
+            }
             setFormData((prev) => ({
               ...prev,
               instagramUrl: data.instagramUrl || `https://instagram.com/${data.handle}`,
             }));
-            toast.success(`Instagram @${data.handle} verified successfully! 🎉`);
+            const tierStr = data.followerBucket ? ` (${data.followerBucket} followers)` : "";
+            toast.success(`Instagram @${data.handle} verified successfully!${tierStr} 🎉`);
           } else {
             toast.error(data.error || "Failed to verify Instagram account.");
           }
@@ -409,9 +428,20 @@ export default function OrganizerApplyPage() {
         setInstagramVerified(true);
         setInstagramToken(data.token);
         setInstagramHandle(data.handle);
+        if (data.metadata || data.followerBucket) {
+          setInstagramMetadata({
+            accountName: data.accountName || data.metadata?.account_name,
+            accountType: data.accountType || data.metadata?.account_type,
+            followersCount: data.followersCount ?? data.metadata?.followers_count,
+            followerBucket: data.followerBucket || data.metadata?.follower_bucket,
+            tierLabel: data.tierLabel || data.metadata?.tier_label,
+            scoreRecommendation: data.scoreRecommendation || data.metadata?.score_recommendation,
+          });
+        }
         setFormData((prev) => ({ ...prev, instagramUrl: data.instagramUrl || `https://instagram.com/${data.handle}` }));
         setDevInstagramModal({ isOpen: false, handle: "" });
-        toast.success(`Instagram @${data.handle} verified successfully! 🎉`);
+        const tierStr = data.followerBucket ? ` (${data.followerBucket} followers)` : "";
+        toast.success(`Instagram @${data.handle} verified successfully!${tierStr} 🎉`);
       } else {
         toast.error(data.error || "Failed to verify Instagram account.");
       }
@@ -426,6 +456,7 @@ export default function OrganizerApplyPage() {
     setInstagramVerified(false);
     setInstagramToken("");
     setInstagramHandle("");
+    setInstagramMetadata(null);
     setFormData((prev) => ({ ...prev, instagramUrl: "" }));
   };
 
@@ -795,6 +826,23 @@ export default function OrganizerApplyPage() {
                       </Button>
                     )}
                   </div>
+
+                  {instagramVerified && instagramMetadata && (
+                    <div className="mt-3 p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-purple-500/10 to-pink-500/10 border border-emerald-500/20 flex flex-wrap items-center justify-between gap-2 text-xs animate-in fade-in">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        <span className="font-black text-zinc-900">@{instagramHandle}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-emerald-200 text-emerald-800 uppercase">
+                          {instagramMetadata.accountType || 'BUSINESS'} ACCOUNT
+                        </span>
+                      </div>
+                      {instagramMetadata.followerBucket && (
+                        <div className="text-[10px] font-black text-purple-900 uppercase tracking-wider bg-purple-100/80 px-2.5 py-0.5 rounded-full border border-purple-200">
+                          {instagramMetadata.followerBucket} Followers • {instagramMetadata.tierLabel}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {!instagramVerified && formData.instagramUrl.trim().length > 0 && !isValidInstagramInput(formData.instagramUrl) && (
                     <p className="text-[11px] font-bold text-amber-600 mt-2.5 flex items-center gap-1.5">

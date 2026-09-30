@@ -11,7 +11,7 @@ import { useCity, isEventEnded } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useTranslation } from "@/context/LanguageContext";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
-import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock, Send, LayoutGrid } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock, Send, LayoutGrid, Globe, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
@@ -292,12 +292,20 @@ function DashboardContent() {
   // Color mapping for Joyful vibe
   const getCategoryColor = (cat: string) => {
     const map: Record<string, string> = {
-      "Music": "bg-yellow-400",
-      "Techno": "bg-primary",
-      "Arts": "bg-purple-500",
-      "Education": "bg-blue-500",
+      "Adventure": "bg-emerald-500",
       "Sports": "bg-orange-500",
+      "Music": "bg-yellow-400",
+      "Nightlife": "bg-indigo-500",
+      "Arts & Culture": "bg-purple-500",
+      "Arts": "bg-purple-500",
+      "Food & Drink": "bg-emerald-400",
       "Food": "bg-emerald-400",
+      "Wellness": "bg-teal-400",
+      "Workshops": "bg-blue-500",
+      "Comedy": "bg-yellow-400",
+      "Spiritual": "bg-violet-400",
+      "Education": "bg-blue-500",
+      "Techno": "bg-primary",
       "Indie": "bg-pink-400",
     };
     return map[cat] || "bg-zinc-200";
@@ -314,10 +322,96 @@ function DashboardContent() {
     </div>
   );
 
+  const searchParamQuery = searchParams.get("q") || searchParams.get("search");
+  const timeframeParam = searchParams.get("timeframe");
+
   const activeEvents = events.filter(ev => !isEventEnded(ev));
-  const filteredEvents = selectedCategory && selectedCategory !== "The Latest"
-    ? activeEvents.filter(ev => ev.category.toLowerCase() === selectedCategory.toLowerCase())
-    : activeEvents;
+
+  let filteredEvents = activeEvents;
+
+  // 1. Search query filter
+  if (searchParamQuery && searchParamQuery.trim()) {
+    const clean = searchParamQuery.trim().toLowerCase();
+    const queryTerms = new Set<string>([clean]);
+
+    if (clean.endsWith('ing') && clean.length > 4) {
+      const base = clean.slice(0, -3);
+      queryTerms.add(base);
+      if (base.length >= 3 && base[base.length - 1] === base[base.length - 2]) {
+        queryTerms.add(base.slice(0, -1));
+      }
+      queryTerms.add(base + 'e');
+    }
+
+    if (clean.endsWith('ies') && clean.length > 4) {
+      queryTerms.add(clean.slice(0, -3) + 'y');
+    } else if (clean.endsWith('es') && clean.length > 4) {
+      queryTerms.add(clean.slice(0, -2));
+      queryTerms.add(clean.slice(0, -1));
+    } else if (clean.endsWith('s') && clean.length > 3) {
+      queryTerms.add(clean.slice(0, -1));
+    }
+
+    if ((clean.endsWith('er') || clean.endsWith('ers')) && clean.length > 4) {
+      const base = clean.replace(/ers?$/, '');
+      queryTerms.add(base);
+      if (base.length >= 3 && base[base.length - 1] === base[base.length - 2]) {
+        queryTerms.add(base.slice(0, -1));
+      }
+    }
+
+    const words = clean.split(/\s+/).filter(w => w.length >= 3);
+    if (words.length > 1) {
+      words.forEach(w => queryTerms.add(w));
+    }
+
+    const termsArray = Array.from(queryTerms).filter(t => t.length >= 2);
+
+    filteredEvents = filteredEvents.filter(ev => {
+      const targetText = `${ev.title || ''} ${ev.description || ''} ${ev.category || ''} ${ev.location || ''} ${ev.city || ''} ${ev.organizer_email || ''}`.toLowerCase();
+      return termsArray.some(term => targetText.includes(term));
+    });
+  }
+
+  // 2. Timeframe filter
+  if (timeframeParam) {
+    const now = new Date();
+    if (timeframeParam === 'today') {
+      filteredEvents = filteredEvents.filter(ev => isToday(new Date(ev.date_time)));
+    } else if (timeframeParam === 'tomorrow') {
+      const tomorrow = addDays(now, 1);
+      filteredEvents = filteredEvents.filter(ev => isSameDay(new Date(ev.date_time), tomorrow));
+    } else if (timeframeParam === 'this_weekend') {
+      filteredEvents = filteredEvents.filter(ev => {
+        const d = new Date(ev.date_time);
+        const day = d.getDay(); // 0 is Sun, 5 is Fri, 6 is Sat
+        const diffDays = (d.getTime() - now.getTime()) / (1000 * 3600 * 24);
+        return (day === 0 || day === 6 || (day === 5 && d.getHours() >= 16)) && diffDays >= -1 && diffDays <= 7;
+      });
+    } else if (timeframeParam === 'next_weekend') {
+      filteredEvents = filteredEvents.filter(ev => {
+        const d = new Date(ev.date_time);
+        const day = d.getDay(); // 0 is Sun, 5 is Fri, 6 is Sat
+        const diffDays = (d.getTime() - now.getTime()) / (1000 * 3600 * 24);
+        return (day === 0 || day === 6 || (day === 5 && d.getHours() >= 16)) && diffDays > 5 && diffDays <= 14;
+      });
+    } else if (timeframeParam === 'this_week') {
+      filteredEvents = filteredEvents.filter(ev => {
+        const diffDays = (new Date(ev.date_time).getTime() - now.getTime()) / (1000 * 3600 * 24);
+        return diffDays >= 0 && diffDays <= 7;
+      });
+    } else if (timeframeParam === 'this_month') {
+      filteredEvents = filteredEvents.filter(ev => {
+        const diffDays = (new Date(ev.date_time).getTime() - now.getTime()) / (1000 * 3600 * 24);
+        return diffDays >= 0 && diffDays <= 30;
+      });
+    }
+  }
+
+  // 3. Category filter
+  if (selectedCategory && selectedCategory !== "The Latest") {
+    filteredEvents = filteredEvents.filter(ev => ev.category.toLowerCase() === selectedCategory.toLowerCase());
+  }
 
   let displayEvents = filteredEvents;
   if (selectedDate) {
@@ -387,6 +481,8 @@ function DashboardContent() {
       )}
 
       <div className={`max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 flex flex-col ${showCalendarView ? 'gap-4' : 'gap-8 md:gap-12'}`}>
+
+
 
       {/* Calendar Empty State / Calendar View */}
       {showCalendarView && (
@@ -1074,68 +1170,86 @@ function DashboardContent() {
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="sticker-badge border-black text-black">{featuredEvent.category}</div>
+                {featuredEvent.event_type === 'online' && (
+                  <div className="sticker-badge bg-sky-100 text-sky-900 border-none font-black text-[10px] flex items-center gap-1">
+                    <Globe className="h-3 w-3 text-sky-600" /> Online Event
+                  </div>
+                )}
                 <div className="sticker-badge bg-zinc-100 border-none text-zinc-500">
                   {featuredEvent.is_paid ? "Paid Entry" : "Free Entry"}
                 </div>
-                {featuredEvent.status === 'housefull' && (
-                  <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] animate-pulse">Sold Out</div>
-                )}
-                {featuredEvent.status === 'filling_fast' && (
-                  <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] animate-pulse flex items-center gap-1"><Sparkles className="h-3 w-3" /> Filling Fast</div>
-                )}
-                <div className="sticker-badge bg-primary/10 border-none text-primary flex items-center gap-1.5 font-black">
-                  <Users className="h-3 w-3" />
-                  <span>{featuredEvent.rsvp_count || 0} Interested</span>
-                </div>
-              </div>
-              <div className="pt-6 border-t border-black/5 mt-4">
-                <button 
-                  onClick={(e) => toggleFollow(e, featuredEvent.organizer_email)}
-                  className={`ringer-button text-xs ${following.includes(featuredEvent.organizer_email) ? 'bg-zinc-200 text-black' : 'bg-white text-black border border-black hover:bg-zinc-50'}`}
-                >
-                  {following.includes(featuredEvent.organizer_email) ? '✓ FOLLOWING ORGANIZER' : '➕ FOLLOW ORGANIZER'}
-                </button>
-              </div>
-           </div>
-        </section>
-      )}
+                 {featuredEvent.status === 'cancelled' && (
+                   <div className="sticker-badge bg-rose-600 border-none text-white font-black text-[10px] uppercase tracking-wider animate-pulse flex items-center gap-1">🚨 Cancelled</div>
+                 )}
+                 {featuredEvent.status === 'housefull' && (
+                   <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] animate-pulse">Sold Out</div>
+                 )}
+                 {featuredEvent.status === 'filling_fast' && (
+                   <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] animate-pulse flex items-center gap-1"><Sparkles className="h-3 w-3" /> Filling Fast</div>
+                 )}
+                 <div className="sticker-badge bg-primary/10 border-none text-primary flex items-center gap-1.5 font-black">
+                   <Users className="h-3 w-3" />
+                   <span>{featuredEvent.rsvp_count || 0} Interested</span>
+                 </div>
+               </div>
+               <div className="pt-6 border-t border-black/5 mt-4">
+                 <button 
+                   onClick={(e) => toggleFollow(e, featuredEvent.organizer_email)}
+                   className={`ringer-button text-xs ${following.includes(featuredEvent.organizer_email) ? 'bg-zinc-200 text-black' : 'bg-white text-black border border-black hover:bg-zinc-50'}`}
+                 >
+                   {following.includes(featuredEvent.organizer_email) ? '✓ FOLLOWING ORGANIZER' : '➕ FOLLOW ORGANIZER'}
+                 </button>
+               </div>
+            </div>
+         </section>
+       )}
 
-      {/* Bento Grid */}
-      {!showCalendarView && otherEvents.length > 0 && (
-        <section className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-8 auto-rows-min">
-        {otherEvents.map((ev, i) => {
-          const isLarge = i % 5 === 0;
-          return (
-            <div 
-              key={ev.id} 
-              className={`
-                ringer-card p-0 group flex flex-col relative overflow-hidden active:scale-[0.98] transition-transform
-                ${isLarge ? 'md:col-span-6 lg:col-span-8' : 'md:col-span-3 lg:col-span-4'}
-                ${isVibrant ? `${getCategoryCardClass(ev.category)} vibe-hover-lift` : ''}
-              `}
-            >
-              {isVibrant && <CategoryDecorations category={ev.category} showAccent={false} />}
-              <Link href={`/event/${ev.id}`} className="absolute inset-0 z-10" aria-label={`View details for ${ev.title}`} />
-              <div className="p-5 sm:p-8 flex flex-col h-full space-y-6 relative z-10 pointer-events-none">
-                 <div className="flex justify-between items-start">
-                   <div className="flex flex-wrap gap-2">
-                     <div className={`sticker-badge ${getCategoryColor(ev.category)} text-black border-none font-black`}>
-                       {ev.category}
-                     </div>
-                     <div className="sticker-badge bg-zinc-100 border-none text-zinc-500 font-bold text-[10px]">
-                       {ev.is_paid ? "Paid" : "Free"}
-                     </div>
-                     {ev.status === 'housefull' && (
-                       <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] animate-pulse">
-                         Sold Out
-                       </div>
-                     )}
-                     {ev.status === 'filling_fast' && (
-                       <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] animate-pulse flex items-center gap-1">
-                         <Sparkles className="h-3 w-3" /> Filling Fast
-                       </div>
-                     )}
-                   </div>
+       {/* Bento Grid */}
+       {!showCalendarView && otherEvents.length > 0 && (
+         <section className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-8 auto-rows-min">
+         {otherEvents.map((ev, i) => {
+           const isLarge = i % 5 === 0;
+           return (
+             <div 
+               key={ev.id} 
+               className={`
+                 ringer-card p-0 group flex flex-col relative overflow-hidden active:scale-[0.98] transition-transform
+                 ${isLarge ? 'md:col-span-6 lg:col-span-8' : 'md:col-span-3 lg:col-span-4'}
+                 ${isVibrant ? `${getCategoryCardClass(ev.category)} vibe-hover-lift` : ''}
+               `}
+             >
+               {isVibrant && <CategoryDecorations category={ev.category} showAccent={false} />}
+               <Link href={`/event/${ev.id}`} className="absolute inset-0 z-10" aria-label={`View details for ${ev.title}`} />
+               <div className="p-5 sm:p-8 flex flex-col h-full space-y-6 relative z-10 pointer-events-none">
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-wrap gap-2">
+                      <div className={`sticker-badge ${getCategoryColor(ev.category)} text-black border-none font-black`}>
+                        {ev.category}
+                      </div>
+                      {ev.event_type === 'online' && (
+                        <div className="sticker-badge bg-sky-100 text-sky-900 border-none font-black text-[10px] flex items-center gap-1">
+                          <Globe className="h-3 w-3 text-sky-600" /> Online
+                        </div>
+                      )}
+                      <div className="sticker-badge bg-zinc-100 border-none text-zinc-500 font-bold text-[10px]">
+                        {ev.is_paid ? "Paid" : "Free"}
+                      </div>
+                      {ev.status === 'cancelled' && (
+                        <div className="sticker-badge bg-rose-600 border-none text-white font-black text-[10px] uppercase tracking-wider animate-pulse flex items-center gap-1">
+                          🚨 Cancelled
+                        </div>
+                      )}
+                      {ev.status === 'housefull' && (
+                        <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] animate-pulse">
+                          Sold Out
+                        </div>
+                      )}
+                      {ev.status === 'filling_fast' && (
+                        <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] animate-pulse flex items-center gap-1">
+                          <Sparkles className="h-3 w-3" /> Filling Fast
+                        </div>
+                      )}
+                    </div>
                    <div className="flex items-center gap-2">
                      <button 
                        onClick={(e) => toggleFollow(e, ev.organizer_email)}

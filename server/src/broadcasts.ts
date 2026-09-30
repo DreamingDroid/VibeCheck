@@ -185,6 +185,36 @@ export async function organizerSendEventBroadcastHandler(req: Request, res: Resp
       return res.status(403).json({ success: false, error: 'Forbidden: You are not the organizer of this event' });
     }
 
+    // Fast content filter on broadcast message
+    const { runFastFilter } = require('./moderation');
+    const filterCheck = runFastFilter(`${title} ${message}`);
+    if (!filterCheck.passed) {
+      return res.status(400).json({
+        success: false,
+        error: `Broadcast rejected: ${filterCheck.reason}`,
+      });
+    }
+
+    // Guardrail #3: Organizer Broadcast Frequency Throttling (Spam Shield)
+    const lastBroadcastCheck = await pool.query(
+      `SELECT created_at FROM broadcasts 
+       WHERE target_event_id = $1 AND LOWER(sender_email) = $2 
+       ORDER BY created_at DESC LIMIT 1`,
+      [id, organizer_email.toLowerCase().trim()]
+    );
+
+    if (lastBroadcastCheck.rows.length > 0) {
+      const lastTime = new Date(lastBroadcastCheck.rows[0].created_at).getTime();
+      const hoursSince = (Date.now() - lastTime) / (1000 * 60 * 60);
+      if (hoursSince < 4 && type !== 'emergency_alert') {
+        const hoursLeft = Math.ceil(4 - hoursSince);
+        return res.status(429).json({
+          success: false,
+          error: `Broadcast Cooldown Active: To prevent attendee notification fatigue, updates are limited to once every 4 hours per event (Cooldown remaining: ~${hoursLeft} hour(s)). For critical urgent notices, choose 'Emergency Alert'.`
+        });
+      }
+    }
+
     // 24-Hour window validation for post-event rating requests
     if (type === 'rating_request') {
       const eventEndTime = event.end_time ? new Date(event.end_time).getTime() : new Date(event.date_time).getTime();

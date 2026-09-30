@@ -14,8 +14,17 @@ import { useCity } from "@/context/CityContext";
 import { useLanguage, useTranslation, ALL_LANGUAGES, LanguageCode } from "@/context/LanguageContext";
 
 const ALL_CATEGORIES = [
-  "Sports", "Arts", "Education", "Spiritual",
-  "Music", "Food", "Wellness", "Indie", "Techno", "General",
+  "Adventure",
+  "Sports",
+  "Music",
+  "Nightlife",
+  "Arts & Culture",
+  "Food & Drink",
+  "Wellness",
+  "Workshops",
+  "Comedy",
+  "Spiritual",
+  "General",
 ];
 
 export default function PreferencesPage() {
@@ -98,7 +107,7 @@ export default function PreferencesPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );

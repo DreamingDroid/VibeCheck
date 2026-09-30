@@ -7,7 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   Users, CheckCircle2, XCircle, ChevronDown, ChevronUp, 
-  Mail, Phone, Calendar, ExternalLink, Trash2, ShieldCheck
+  Mail, Phone, Calendar, ExternalLink, Trash2, ShieldCheck,
+  TrendingUp, Award, Sparkles, BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
 import { vibeConfirm } from "@/components/vibe-confirm";
@@ -30,6 +31,18 @@ type Organizer = {
   phone_number?: string;
   instagram_verified?: boolean;
   instagram_handle?: string;
+  instagram_metadata?: {
+    account_name?: string;
+    account_type?: string;
+    followers_count?: number;
+    follower_bucket?: string;
+    tier_level?: number;
+    tier_label?: string;
+    score_recommendation?: string;
+    media_count?: number;
+    profile_picture_url?: string;
+    verified_at?: string;
+  };
   social_links?: {
     instagram?: string;
     facebook?: string;
@@ -247,6 +260,12 @@ function AdminOrganizersPageContent() {
                         <h3 className="text-2xl font-black italic tracking-tighter uppercase leading-none group-hover:text-primary transition-colors">
                           {req.brand_name || req.email}
                         </h3>
+                        {req.instagram_metadata?.follower_bucket && (
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border border-purple-200 text-[10px] font-black uppercase tracking-wider shadow-sm">
+                            <InstagramIcon className="h-3 w-3 text-pink-600" />
+                            {req.instagram_metadata.follower_bucket} Followers • {req.instagram_metadata.tier_label || 'Verified Host'}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-wrap gap-x-6 gap-y-2 items-center text-[10px] font-black uppercase tracking-widest text-zinc-400">
@@ -308,6 +327,71 @@ function AdminOrganizersPageContent() {
                           {req.description || "No profile description provided."}
                         </p>
                       </div>
+
+                      {/* Application Assessment & Instagram Scorecard */}
+                      {req.instagram_metadata && (
+                        <div className="bg-gradient-to-br from-purple-900/5 via-pink-900/5 to-amber-900/5 rounded-[24px] border border-purple-500/20 p-6 space-y-4">
+                          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-purple-500/10 pb-3">
+                            <div className="flex items-center gap-2">
+                              <BarChart3 className="h-4 w-4 text-purple-600" />
+                              <h4 className="text-xs font-black uppercase tracking-widest text-purple-950">
+                                Applicant Assessment & Instagram Scorecard
+                              </h4>
+                            </div>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[9px] font-black uppercase tracking-wider border border-emerald-500/20">
+                              <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                              OAuth Authenticated
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {/* Metric 1: Follower Tier */}
+                            <div className="bg-white/80 backdrop-blur-sm p-4 rounded-[16px] border border-purple-100 shadow-sm space-y-1">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Follower Reach Tier</span>
+                              <div className="text-lg font-black text-purple-900 tracking-tight">
+                                {req.instagram_metadata.follower_bucket || 'N/A'}
+                              </div>
+                              <span className="text-[10px] font-bold text-purple-700 block">
+                                {req.instagram_metadata.tier_label || 'Tier Host'}
+                              </span>
+                            </div>
+
+                            {/* Metric 2: Account Classification */}
+                            <div className="bg-white/80 backdrop-blur-sm p-4 rounded-[16px] border border-purple-100 shadow-sm space-y-1">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Account Classification</span>
+                              <div className="text-lg font-black text-zinc-900 tracking-tight">
+                                {req.instagram_metadata.account_type || 'BUSINESS'}
+                              </div>
+                              <span className="text-[10px] font-bold text-zinc-600 block truncate" title={req.instagram_metadata.account_name}>
+                                Name: {req.instagram_metadata.account_name || req.brand_name || 'N/A'}
+                              </span>
+                            </div>
+
+                            {/* Metric 3: Media & Content Footprint */}
+                            <div className="bg-white/80 backdrop-blur-sm p-4 rounded-[16px] border border-purple-100 shadow-sm space-y-1">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Content Footprint</span>
+                              <div className="text-lg font-black text-zinc-900 tracking-tight">
+                                {req.instagram_metadata.followers_count != null ? req.instagram_metadata.followers_count.toLocaleString() : 'N/A'} <span className="text-xs font-semibold text-zinc-500">followers</span>
+                              </div>
+                              <span className="text-[10px] font-bold text-zinc-600 block">
+                                {req.instagram_metadata.media_count ?? 0} published posts
+                              </span>
+                            </div>
+
+                            {/* Metric 4: Recommendation Score */}
+                            <div className="bg-white/80 backdrop-blur-sm p-4 rounded-[16px] border border-purple-100 shadow-sm space-y-1">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-zinc-400 block">Decision Assessment</span>
+                              <div className="text-sm font-black text-emerald-700 tracking-tight flex items-center gap-1">
+                                <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                                <span className="truncate">{req.instagram_metadata.score_recommendation || 'Standard Candidate'}</span>
+                              </div>
+                              <span className="text-[10px] font-semibold text-zinc-500 block">
+                                {req.instagram_metadata.tier_level ? `Tier ${req.instagram_metadata.tier_level} Rating` : 'Verified Profile'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Info grid */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-50/50 p-6 rounded-[24px] border border-black/5 text-xs font-bold text-zinc-600">

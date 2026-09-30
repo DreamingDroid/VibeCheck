@@ -1,4 +1,3 @@
-import 'web-streams-polyfill/polyfill';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -18,9 +17,9 @@ import { Pool } from 'pg';
 import { registerType } from 'pgvector/pg';
 import { handleEventQuery, saveUserPreferences } from './rag';
 import { verifyWebhook, handleIncomingMessage } from './whatsapp';
-import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHandler, getUserVipInvitesHandler } from './events';
+import { getEventsHandler, getSingleEventHandler, rsvpEventHandler, checkRsvpHandler, getUserVipInvitesHandler, reportEventHandler, publicSearchHandler } from './events';
 import { getWebUserHandler, saveWebUserHandler } from './webPreferences';
-import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler, organizerGetEventAnalyticsHandler, organizerToggleHousefullHandler, organizerUpdateStatusHandler, organizerGetCrmContactsHandler, organizerUpsertCrmNotesHandler, organizerCrmBroadcastHandler, organizerGetDashboardAnalyticsHandler, organizerIssuePassHandler, organizerBulkIssuePassesHandler, organizerCancelRsvpHandler, organizerUpdateWhatsAppGroupLinkHandler, organizerSendWhatsAppGroupInviteHandler, organizerGetEventInvitesHandler } from './organizer';
+import { organizerCreateEventHandler, organizerGetEventsHandler, organizerGetEventRsvpsHandler, getBroadcastStatsHandler, broadcastMessageHandler, organizerUpdateEventHandler, organizerGeneratePromoHandler, organizerGetEventAnalyticsHandler, organizerToggleHousefullHandler, organizerUpdateStatusHandler, organizerGetCrmContactsHandler, organizerUpsertCrmNotesHandler, organizerCrmBroadcastHandler, organizerGetDashboardAnalyticsHandler, organizerIssuePassHandler, organizerBulkIssuePassesHandler, organizerCancelRsvpHandler, organizerUpdateWhatsAppGroupLinkHandler, organizerSendWhatsAppGroupInviteHandler, organizerGetEventInvitesHandler, getPublicOrganizerHandler, getPublicOrganizersListHandler } from './organizer';
 import { getCitiesHandler } from './cities';
 import { checkAdminHandler, adminGetEventsHandler, adminCreateEventHandler, adminUpdateEventHandler, adminDeleteEventHandler, adminAnalyticsHandler, adminGetSettingsHandler, adminUpdateSettingsHandler, adminGetEventRsvpsHandler, adminAddOrganizerHandler, adminGetOrganizersHandler, adminGetPendingOrganizersHandler, adminApproveOrganizerHandler, adminRejectOrganizerHandler, adminDeleteOrganizerHandler, adminGetPendingEventsHandler, adminReviewEventHandler, adminToggleEventFeaturedHandler, adminGetEventsByStatusHandler, adminAddCityHandler, adminDeleteCityHandler, adminGetAdminsHandler, adminAddAdminHandler, adminRemoveAdminHandler, adminSearchHandler, adminAttendeeDetailsHandler, adminOrganizerDetailsHandler, adminEventDetailsHandler, adminDeleteAttendeeHandler } from './admin';
 import { startPushAlertCron, runMatchmakerJob, runPostEventFeedbackJob } from './cron';
@@ -61,6 +60,11 @@ import {
   createScannerPinHandler,
   getTelegramPassLinkHandler
 } from './passes';
+import {
+  submitTicketHandler,
+  getTicketStatusHandler,
+  adminListTicketsHandler
+} from './tickets';
 import { config } from './config';
 
 import rateLimit from 'express-rate-limit';
@@ -308,7 +312,11 @@ app.get('/api/events', (req, res) => getEventsHandler(req, res, pool));
 app.get('/api/events/:id', (req, res) => getSingleEventHandler(req, res, pool));
 app.post('/api/events/:id/rsvp', (req, res) => rsvpEventHandler(req, res, pool));
 app.get('/api/events/:id/rsvp/check', (req, res) => checkRsvpHandler(req, res, pool));
+app.post('/api/events/:id/report', (req, res) => reportEventHandler(req, res, pool));
 app.get('/api/user/vip-invites', (req, res) => getUserVipInvitesHandler(req, res, pool));
+
+// Public Search API (Events & Organizers)
+app.get('/api/search', (req, res) => publicSearchHandler(req, res, pool));
 
 // Ratings API (Event & Organizer Star Ratings)
 app.post('/api/events/:id/ratings', (req, res) => submitRatingHandler(req, res, pool));
@@ -424,6 +432,10 @@ app.post('/api/organizer/crm/notes', (req, res) => organizerUpsertCrmNotesHandle
 app.post('/api/organizer/crm/broadcast', (req, res) => organizerCrmBroadcastHandler(req, res, pool));
 app.get('/api/organizer/analytics/dashboard', (req, res) => organizerGetDashboardAnalyticsHandler(req, res, pool));
 
+// Public Organizers API (Public Profile & Public Event Showcases)
+app.get('/api/organizers', (req, res) => getPublicOrganizersListHandler(req, res, pool));
+app.get('/api/organizers/:identifier', (req, res) => getPublicOrganizerHandler(req, res, pool));
+
 // Followers API
 app.post('/api/followers', (req, res) => followOrganizerHandler(req, res, pool));
 app.delete('/api/followers', (req, res) => unfollowOrganizerHandler(req, res, pool));
@@ -461,6 +473,11 @@ app.post('/api/passes/manual-checkin', (req, res) => manualCheckInHandler(req, r
 app.post('/api/passes/telegram-link', (req, res) => getTelegramPassLinkHandler(req, res, pool));
 app.get('/api/organizer/events/:id/attendance', (req, res) => getAttendanceStatsHandler(req, res, pool));
 app.post('/api/organizer/events/:id/scanner-pin', (req, res) => createScannerPinHandler(req, res, pool));
+
+// AI Support Ticketing API
+app.post('/api/tickets', (req, res) => submitTicketHandler(req, res, pool));
+app.get('/api/tickets/:ticketNumber', (req, res) => getTicketStatusHandler(req, res, pool));
+app.get('/api/admin/tickets', (req, res) => adminListTicketsHandler(req, res, pool));
 
 // ── Dev-only: manually trigger the AI Matchmaker for testing ─────────────────
 app.post('/admin/trigger-cron', async (req, res) => {

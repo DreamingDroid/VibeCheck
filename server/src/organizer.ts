@@ -3,7 +3,8 @@ import { Pool } from 'pg';
 import { Resend } from 'resend';
 import { sendWhatsAppMessage } from './whatsapp';
 import { sendTelegramMessage, sendTelegramEventPass } from './telegram';
-import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull, updateEventStatusByOrganizer, issueOrganizerEventPass, issueBulkOrganizerEventPasses, cancelOrganizerEventRSVP, updateEventWhatsAppGroupLink, getEventById, addEventInvites, getEventInvites } from './queries/events';
+import { createOrganizerEvent, getEventsByOrganizerEmail, getEventByOrganizer, getOrganizerEventRSVPs, getBroadcastAttendees, updateOrganizerEvent, getOrganizerEventAnalytics, getOrganizerAverageVelocity, toggleEventHousefull, updateEventStatusByOrganizer, issueOrganizerEventPass, issueBulkOrganizerEventPasses, cancelOrganizerEventRSVP, updateEventWhatsAppGroupLink, getEventById, addEventInvites, getEventInvites, getPublicOrganizerEvents } from './queries/events';
+import { getPublicOrganizerProfile, getPublicOrganizersList } from './queries/admins';
 import { createBroadcastAndDispatch, getAudienceRecipientEmails, CreateBroadcastInput } from './queries/broadcasts';
 import { sendFcmTopicBroadcast, sanitizeTopicName } from './firebaseAdmin';
 import { getSystemSetting, getOrganizerDashboardAnalytics } from './queries/analytics';
@@ -12,6 +13,7 @@ import { getChatModel } from './rag';
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { getOrganizerCrmContacts, upsertOrganizerCrmNotes, getPhoneNumbersForEmails, getContactsForBroadcast } from './queries/crm';
 import { notifySuperAdmins, createUserNotification } from './notifications';
+import { evaluateContentWithAI, logModerationResult } from './moderation';
 
 const resend = new Resend(config.RESEND_API_KEY);
 
@@ -20,8 +22,42 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
 
   if (!organizer_email) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
+  // 1. AI Guardrails & Moderation Scrutiny
+  const moderationPayload = {
+    title,
+    description,
+    category,
+    location,
+    city,
+    timings,
+    external_link,
+    organizer_email,
+  };
+
+  const moderationResult = await evaluateContentWithAI('event', moderationPayload);
+
+  // Log moderation check asynchronously
+  logModerationResult(pool, {
+    entity_type: 'event',
+    submitted_by: organizer_email,
+    content_payload: moderationPayload,
+    result: moderationResult,
+  });
+
+  // Rejection check for abusive language / scam
+  if (!moderationResult.fast_filter_passed || moderationResult.decision === 'auto_reject') {
+    return res.status(400).json({
+      success: false,
+      error: `Event submission rejected by Trust & Safety Guardrail: ${moderationResult.reason}`,
+      flags: moderationResult.flags,
+    });
+  }
+
+  // Auto-Approve if high AI score (>= 80)
+  const initialStatus = moderationResult.decision === 'auto_approve' ? 'approved' : 'pending';
+
   try {
-    const event = await createOrganizerEvent(pool, req.body);
+    const event = await createOrganizerEvent(pool, { ...req.body, status: initialStatus });
 
     // Process VIP guest list if event is invite_only
     const rawList = guest_list || guestList;
@@ -64,37 +100,53 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
       }
     }
 
-    // Notify SuperAdmins of the pending event application
+    if (initialStatus === 'approved') {
+      return res.json({
+        success: true,
+        data: event,
+        status: 'approved',
+        message: '🎉 Event approved automatically by Trust & Safety AI! Your event is live.',
+      });
+    }
+
+    // Notify SuperAdmins of the pending event for manual review (with AI Score & Flags)
     notifySuperAdmins(pool, {
-      title: `New Event Pending Approval: ${title}`,
-      message: `Organizer (${organizer_email}) submitted "${title}" for review.${visibility === 'invite_only' ? ' (Invite-Only VIP)' : ''}`,
+      title: `Event Review Required (AI Score: ${moderationResult.quality_score}/100): ${title}`,
+      message: `Organizer (${organizer_email}) submitted "${title}". AI Review: ${moderationResult.reason}`,
       type: 'event_pending_approval',
       link: '/admin/events?tab=pending',
-      metadata: { event_id: event?.id, title, organizer_email, city, category, visibility: visibility || 'public', type: 'event_pending_approval' },
-      emailSubject: `[VibeCheck Admin] New Event Submitted for Approval: ${title}`,
+      metadata: { 
+        event_id: event?.id, 
+        title, 
+        organizer_email, 
+        city, 
+        category, 
+        visibility: visibility || 'public', 
+        ai_score: moderationResult.quality_score,
+        ai_flags: moderationResult.flags,
+        type: 'event_pending_approval' 
+      },
+      emailSubject: `[VibeCheck Admin] Event Submitted for Review: ${title} (AI Score: ${moderationResult.quality_score})`,
       emailHtml: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #6366f1; margin-top: 0;">New Event Submitted for Approval</h2>
-          <p>An organizer has created and submitted a new event for review on VibeCheck.</p>
+          <h2 style="color: #6366f1; margin-top: 0;">Event Review Required</h2>
+          <p><strong>AI Quality Score:</strong> ${moderationResult.quality_score}/100</p>
+          <p><strong>AI Reason:</strong> ${moderationResult.reason}</p>
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
-            <p style="margin: 6px 0;"><strong>Event Title:</strong> ${title}</p>
+            <p style="margin: 6px 0;"><strong>Title:</strong> ${title}</p>
             <p style="margin: 6px 0;"><strong>Organizer:</strong> ${organizer_email}</p>
-            <p style="margin: 6px 0;"><strong>Access Type:</strong> ${visibility === 'invite_only' ? '🔒 Invite-Only / VIP' : '🌍 Public'}</p>
             <p style="margin: 6px 0;"><strong>Category:</strong> ${category || 'General'}</p>
-            <p style="margin: 6px 0;"><strong>Location / City:</strong> ${location || 'TBA'} (${city || 'Unspecified'})</p>
-            <p style="margin: 6px 0;"><strong>Date & Time:</strong> ${date_time ? new Date(date_time).toLocaleString() : 'TBA'}</p>
+            <p style="margin: 6px 0;"><strong>Location:</strong> ${location || 'TBA'} (${city || 'Unspecified'})</p>
           </div>
-          <div style="margin-top: 24px;">
-            <a href="${config.WEB_APP_URL}/admin/events?tab=pending" style="display: inline-block; background: #6366f1; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Review Event in Admin Portal &rarr;</a>
-          </div>
+          <a href="${config.WEB_APP_URL}/admin/events?tab=pending" style="display: inline-block; background: #6366f1; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Review in Admin Portal &rarr;</a>
         </div>
       `
     }).catch(err => console.warn('[Notifications] Error in notifySuperAdmins on event create:', err.message));
 
-    res.json({ success: true, data: event, message: 'Event submitted for approval.' });
+    return res.json({ success: true, data: event, status: 'pending', message: 'Event submitted for review.' });
   } catch (error) {
     console.error('Error creating event:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -386,6 +438,64 @@ export async function organizerUpdateStatusHandler(req: Request, res: Response, 
     if (result.success === false) {
       return res.status(400).json({ success: false, error: result.error });
     }
+
+    // Cancellation Cascade: notify all attendees and superadmins ($0 zero WhatsApp charges)
+    if (status === 'cancelled') {
+      try {
+        const attendeesRes = await pool.query(
+          `SELECT er.user_email, u.telegram_chat_id, u.name 
+           FROM event_rsvps er 
+           LEFT JOIN web_users u ON LOWER(er.user_email) = LOWER(u.email) 
+           WHERE er.event_id = $1`,
+          [id]
+        );
+
+        const eventTitle = result.title || 'Event';
+
+        // 1. In-App Notifications & Telegram Alerts
+        for (const attendee of attendeesRes.rows) {
+          if (attendee.user_email) {
+            await createUserNotification(pool, {
+              userEmail: attendee.user_email,
+              title: `Event Cancelled: ${eventTitle}`,
+              message: `The organizer has cancelled "${eventTitle}". Your pass has been cancelled and voided.`,
+              type: 'event_cancelled',
+              link: `/event/${id}`,
+              metadata: { event_id: id },
+            });
+          }
+
+          if (attendee.telegram_chat_id) {
+            const guestName = attendee.name || 'Friend';
+            await sendTelegramMessage(
+              attendee.telegram_chat_id,
+              `⚠️ *Event Cancellation Notice*\n\nHi ${guestName},\n\nThe organizer has cancelled *${eventTitle}*.\n\nYour digital pass has been cancelled and voided. Please do not head to the venue.`
+            );
+          }
+        }
+
+        // 2. Firebase Cloud Messaging Topic Broadcast
+        const topic = sanitizeTopicName(`event_${id}`);
+        await sendFcmTopicBroadcast({
+          topic,
+          title: `⚠️ Event Cancelled: ${eventTitle}`,
+          message: `The organizer has cancelled "${eventTitle}". All passes have been voided.`,
+          type: 'event_cancelled',
+          link: `/event/${id}`,
+        });
+
+        // 3. SuperAdmin Alert
+        await notifySuperAdmins(pool, {
+          title: `Event Cancelled by Host: ${eventTitle}`,
+          message: `Organizer (${organizer_email}) cancelled event ID ${id}. All ${attendeesRes.rows.length} attendee passes have been voided and notified via In-App + Telegram.`,
+          type: 'event_cancelled',
+          link: `/event/${id}`,
+        });
+      } catch (cascadeErr) {
+        console.error('[Event Cancellation Cascade Error]:', cascadeErr);
+      }
+    }
+
     res.json({ success: true, status: result.status, message: `Event status updated to ${result.status}.` });
   } catch (error) {
     console.error('Error updating status:', error);
@@ -708,3 +818,61 @@ export async function organizerSendWhatsAppGroupInviteHandler(req: Request, res:
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
+
+/**
+ * Public Organizer Profile & Events Showcase API
+ * GET /api/organizers/:identifier
+ */
+export async function getPublicOrganizerHandler(req: Request, res: Response, pool: Pool) {
+  const identifier = req.params.identifier as string;
+  const userEmail = (req.query.userEmail as string)?.trim()?.toLowerCase();
+
+  if (!identifier) {
+    return res.status(400).json({ success: false, error: 'Missing organizer identifier' });
+  }
+
+  try {
+    const organizer = await getPublicOrganizerProfile(pool, identifier);
+    if (!organizer) {
+      return res.status(404).json({ success: false, error: 'Organizer not found' });
+    }
+
+    const events = await getPublicOrganizerEvents(pool, organizer.email, userEmail);
+
+    let isFollowing = false;
+    if (userEmail) {
+      const followCheck = await pool.query(
+        `SELECT 1 FROM organizer_followers WHERE LOWER(user_email) = $1 AND LOWER(organizer_email) = $2 LIMIT 1`,
+        [userEmail, organizer.email.toLowerCase()]
+      );
+      isFollowing = followCheck.rows.length > 0;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        organizer,
+        events,
+        isFollowing
+      }
+    });
+  } catch (error: any) {
+    console.error('Get public organizer error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
+/**
+ * Public List of Verified Organizers
+ * GET /api/organizers
+ */
+export async function getPublicOrganizersListHandler(req: Request, res: Response, pool: Pool) {
+  try {
+    const organizers = await getPublicOrganizersList(pool);
+    res.json({ success: true, data: organizers });
+  } catch (error: any) {
+    console.error('Get public organizers list error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+

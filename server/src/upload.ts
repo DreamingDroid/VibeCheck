@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { uploadImage } from './cloudinary';
+import { evaluateImageWithAI, logModerationResult } from './moderation';
 
 export async function uploadImageHandler(req: Request, res: Response, pool: Pool) {
   const { email, image } = req.body;
@@ -29,6 +30,23 @@ export async function uploadImageHandler(req: Request, res: Response, pool: Pool
 
     if (!isAllowed) {
       return res.status(403).json({ success: false, error: 'Unauthorized: Permission required to upload images' });
+    }
+
+    // Visual Trust & Safety Guardrail Check
+    const imageModeration = await evaluateImageWithAI(image);
+    logModerationResult(pool, {
+      entity_type: 'image_upload',
+      submitted_by: email,
+      content_payload: { email },
+      result: imageModeration,
+    });
+
+    if (!imageModeration.is_safe || imageModeration.decision === 'auto_reject') {
+      return res.status(400).json({
+        success: false,
+        error: `Image rejected by Visual Safety AI Guardrail: ${imageModeration.reason}`,
+        flags: imageModeration.flags,
+      });
     }
 
     // Upload to Cloudinary

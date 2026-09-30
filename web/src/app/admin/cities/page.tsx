@@ -5,20 +5,48 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, MapPin, Sparkles } from "lucide-react";
+import { Trash2, Plus, MapPin, Sparkles, Clock, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { vibeConfirm } from "@/components/vibe-confirm";
+import { getAllWorldTimezones, getTimezoneAbbr } from "@/lib/timezone";
+import { WorldTimezoneSelector } from "@/components/WorldTimezoneSelector";
 
 type City = {
   id: number;
   name: string;
+  timezone?: string;
   created_at: string;
+};
+
+// Common alias map for cities whose canonical IANA timezone differs in city name
+const CITY_TIMEZONE_ALIASES: Record<string, string> = {
+  "hyderabad": "Asia/Kolkata",
+  "visakhapatnam": "Asia/Kolkata",
+  "vizag": "Asia/Kolkata",
+  "bengaluru": "Asia/Kolkata",
+  "bangalore": "Asia/Kolkata",
+  "mumbai": "Asia/Kolkata",
+  "bombay": "Asia/Kolkata",
+  "delhi": "Asia/Kolkata",
+  "new delhi": "Asia/Kolkata",
+  "chennai": "Asia/Kolkata",
+  "madras": "Asia/Kolkata",
+  "pune": "Asia/Kolkata",
+  "san francisco": "America/Los_Angeles",
+  "sf": "America/Los_Angeles",
+  "seattle": "America/Los_Angeles",
+  "boston": "America/New_York",
+  "miami": "America/New_York",
+  "dallas": "America/Chicago",
+  "houston": "America/Chicago",
+  "austin": "America/Chicago",
 };
 
 export default function AdminCitiesPage() {
   const [cities, setCities] = useState<City[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCityName, setNewCityName] = useState("");
+  const [newCityTimezone, setNewCityTimezone] = useState("");
   const [saving, setSaving] = useState(false);
 
   const fetchCities = () => {
@@ -33,9 +61,37 @@ export default function AdminCitiesPage() {
 
   useEffect(() => { fetchCities(); }, []);
 
+  const handleCityNameChange = (name: string) => {
+    setNewCityName(name);
+    const cleaned = name.trim().toLowerCase();
+    if (!cleaned) return;
+
+    // 1. Check alias dictionary
+    if (CITY_TIMEZONE_ALIASES[cleaned]) {
+      setNewCityTimezone(CITY_TIMEZONE_ALIASES[cleaned]);
+      return;
+    }
+
+    // 2. Search against all 400+ world timezones by city/location name
+    const normalized = cleaned.replace(/[^a-z0-9]/g, "");
+    const match = getAllWorldTimezones().find(tz => {
+      const tzCity = tz.city.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const tzVal = tz.value.toLowerCase().replace(/[^a-z0-9]/g, "");
+      return tzCity === normalized || tzVal.includes(normalized);
+    });
+
+    if (match) {
+      setNewCityTimezone(match.value);
+    }
+  };
+
   const handleAddCity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCityName.trim()) return;
+    if (!newCityTimezone) {
+      toast.error("Please select a valid timezone for this city.");
+      return;
+    }
     
     setSaving(true);
     try {
@@ -43,11 +99,16 @@ export default function AdminCitiesPage() {
       const res = await fetch(`${baseUrl}/api/admin/cities`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newCityName.trim() }),
+        body: JSON.stringify({ 
+          name: newCityName.trim(),
+          timezone: newCityTimezone
+        }),
       });
       const data = await res.json();
       if (data.success) {
         setNewCityName("");
+        setNewCityTimezone("");
+        toast.success(`City "${newCityName.trim()}" established with timezone (${newCityTimezone}).`);
         fetchCities();
       } else {
         toast.error(data.error || "Failed to add city.");
@@ -113,12 +174,24 @@ export default function AdminCitiesPage() {
                   <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">City Identity</Label>
                   <Input 
                     value={newCityName} 
-                    onChange={e => setNewCityName(e.target.value)}
+                    onChange={e => handleCityNameChange(e.target.value)}
                     placeholder="e.g. TOKYO" 
                     required
                     className="bg-white border-black/5 rounded-xl h-12 text-sm font-bold uppercase tracking-widest focus:ring-primary focus:border-primary"
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1">
+                    <Clock className="h-3 w-3 text-primary" /> City Timezone
+                  </Label>
+                  <WorldTimezoneSelector
+                    value={newCityTimezone}
+                    onChange={tz => setNewCityTimezone(tz)}
+                  />
+                  <p className="text-[9px] text-zinc-400 font-bold ml-1">In-person events in this city will automatically use this timezone.</p>
+                </div>
+
                 <button 
                   type="submit" 
                   disabled={saving}
@@ -145,26 +218,37 @@ export default function AdminCitiesPage() {
               <div className="ringer-card p-12 text-center text-zinc-400 text-xs font-bold italic">No territories established yet.</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {cities.map(city => (
-                  <div key={city.id} className="ringer-card p-6 flex items-center justify-between hover:border-primary/30 transition-all group overflow-hidden relative">
-                    <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-full blur-2xl -z-10 group-hover:bg-primary/10 transition-all"></div>
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-[15px] bg-zinc-50 border border-black/5 flex items-center justify-center group-hover:bg-white transition-all">
-                        <MapPin className="h-5 w-5 text-primary" />
+                {cities.map(city => {
+                  const tz = city.timezone || "Asia/Kolkata";
+                  const tzAbbr = getTimezoneAbbr(tz);
+                  return (
+                    <div key={city.id} className="ringer-card p-6 flex items-center justify-between hover:border-primary/30 transition-all group overflow-hidden relative">
+                      <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-full blur-2xl -z-10 group-hover:bg-primary/10 transition-all"></div>
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-[15px] bg-zinc-50 border border-black/5 flex items-center justify-center group-hover:bg-white transition-all shrink-0">
+                          <MapPin className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-black font-black uppercase italic tracking-tighter text-xl">{city.name}</h3>
+                            <span className="sticker-badge bg-zinc-100 border-zinc-200 text-zinc-700 text-[8px] font-black uppercase py-0.5 px-2">
+                              {tzAbbr}
+                            </span>
+                          </div>
+                          <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">
+                            {tz} • EST. {new Date(city.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-black font-black uppercase italic tracking-tighter text-xl">{city.name}</h3>
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">EST. {new Date(city.created_at).toLocaleDateString()}</p>
-                      </div>
+                      <button 
+                        onClick={() => handleDeleteCity(city.id, city.name)}
+                        className="h-10 w-10 rounded-full flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100 shrink-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
-                    <button 
-                      onClick={() => handleDeleteCity(city.id, city.name)}
-                      className="h-10 w-10 rounded-full flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

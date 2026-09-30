@@ -94,9 +94,11 @@ CREATE TABLE IF NOT EXISTS admins (
     rejection_reason TEXT,
     image_url TEXT,
     rating NUMERIC(3,1) DEFAULT 4.5,
+    slug VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_unique_slug ON admins (LOWER(slug)) WHERE slug IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_unique_instagram ON admins (LOWER(instagram_handle)) 
 WHERE status != 'rejected' AND instagram_handle IS NOT NULL;
 
@@ -140,6 +142,8 @@ CREATE TABLE IF NOT EXISTS events (
     image_url VARCHAR(1000),
     image_public_id VARCHAR(255),
     whatsapp_group_link TEXT,                    -- WhatsApp group invite link for RSVP'd attendees
+    event_type VARCHAR(20) DEFAULT 'in_person',  -- in_person | online
+    timezone VARCHAR(50) DEFAULT 'Asia/Kolkata', -- event timezone (e.g. Asia/Kolkata, UTC, etc.)
     average_rating NUMERIC(3,1),
     ratings_count INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -208,11 +212,12 @@ CREATE INDEX IF NOT EXISTS idx_scanner_pins_event ON event_scanner_pins(event_id
 CREATE TABLE IF NOT EXISTS cities (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
+    timezone VARCHAR(50) DEFAULT 'Asia/Kolkata',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Seed default cities
-INSERT INTO cities (name) VALUES ('Vizag'), ('Bangalore'), ('London')
+INSERT INTO cities (name, timezone) VALUES ('Vizag', 'Asia/Kolkata'), ('Bangalore', 'Asia/Kolkata'), ('London', 'Europe/London')
 ON CONFLICT (name) DO NOTHING;
 
 -- 8. Organizer Followers (CRM)
@@ -275,5 +280,74 @@ CREATE TABLE IF NOT EXISTS event_ratings (
 
 CREATE INDEX IF NOT EXISTS idx_event_ratings_event_id ON event_ratings (event_id);
 CREATE INDEX IF NOT EXISTS idx_event_ratings_organizer_email ON event_ratings (organizer_email);
+
+-- 12. Moderation Logs (AI Scrutiny, Audit Trail & Guardrails)
+CREATE TABLE IF NOT EXISTS moderation_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    entity_type VARCHAR(50) NOT NULL,            -- 'event' | 'organizer' | 'ticket' | 'review'
+    entity_id VARCHAR(255),                      -- Foreign identifier of the entity
+    submitted_by VARCHAR(255),                   -- Email or Phone
+    content_payload JSONB NOT NULL,              -- Title, description, links analyzed
+    fast_filter_passed BOOLEAN DEFAULT true,
+    ai_score INTEGER,                            -- 0 to 100
+    ai_decision VARCHAR(50) NOT NULL,            -- 'auto_approve' | 'flag_for_review' | 'auto_reject'
+    flags JSONB DEFAULT '[]'::jsonb,             -- e.g. ['profanity', 'scam_link', 'vague_details']
+    ai_reason TEXT,
+    admin_override VARCHAR(50),                  -- 'approved' | 'rejected'
+    admin_override_by VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_mod_logs_entity ON moderation_logs (entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_mod_logs_created ON moderation_logs (created_at DESC);
+
+-- 13. Support Tickets (User Help Desk & AI First-Responder)
+DO $$ BEGIN
+    CREATE TYPE ticket_status AS ENUM ('open', 'ai_resolved', 'escalated', 'closed');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE ticket_category AS ENUM ('pass_booking', 'event_issue', 'organizer_inquiry', 'bug_report', 'other');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE IF NOT EXISTS support_tickets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_number VARCHAR(50) UNIQUE NOT NULL,    -- E.g. TC-849201
+    user_email VARCHAR(255),
+    phone_number VARCHAR(50),
+    category ticket_category DEFAULT 'other',
+    subject VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    status ticket_status DEFAULT 'open',
+    ai_response TEXT,
+    ai_confidence NUMERIC(3,2),                  -- 0.00 to 1.00
+    resolved_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_tickets_status ON support_tickets (status);
+CREATE INDEX IF NOT EXISTS idx_tickets_email ON support_tickets (user_email);
+CREATE INDEX IF NOT EXISTS idx_tickets_created ON support_tickets (created_at DESC);
+
+-- 14. Event Community Reports & Safety Audit Table
+CREATE TABLE IF NOT EXISTS event_reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    reporter_email VARCHAR(255),
+    reporter_ip VARCHAR(100),
+    reason VARCHAR(100) NOT NULL,
+    details TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_reports_event_id ON event_reports (event_id);
+CREATE INDEX IF NOT EXISTS idx_event_reports_created ON event_reports (created_at DESC);
+
+
 
 

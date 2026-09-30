@@ -26,11 +26,11 @@ export const config = {
   APP_ENV: appEnv,
   PORT: process.env.PORT || 4000,
   DATABASE_URL: process.env.DATABASE_URL || 'postgresql://lead_arch:password123@localhost:5433/vibecheck_db',
-  WEB_APP_URL: process.env.WEB_APP_URL || 'https://vibecheck.space',
+  WEB_APP_URL: (process.env.WEB_APP_URL || (appEnv === 'production' ? 'https://vibecheckspace.com' : 'https://vibecheck-uat.vercel.app')).replace(/\/+$/, ''),
   ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
     : [],
-  
+
   // WhatsApp Settings
   WHATSAPP_VERIFY_TOKEN: process.env.WHATSAPP_VERIFY_TOKEN || '',
   WHATSAPP_ACCESS_TOKEN: process.env.WHATSAPP_ACCESS_TOKEN || '',
@@ -39,11 +39,11 @@ export const config = {
   WHATSAPP_OTP_TEMPLATE_LANGUAGE: process.env.WHATSAPP_OTP_TEMPLATE_LANGUAGE || 'en_US',
   WHATSAPP_OTP_TEMPLATE_HAS_BUTTON: process.env.WHATSAPP_OTP_TEMPLATE_HAS_BUTTON !== 'false',
 
-  
-  // LLM Settings
-  RUN_MODE: (process.env.RUN_MODE || 'cloud').trim(),
+
+  // LLM Settings (Google Gemini Cloud)
   GEMINI_API_KEY: process.env.GEMINI_API_KEY?.trim() || '',
-  CHAT_MODEL: process.env.CHAT_MODEL || 'gemini-1.5-flash',
+  GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+  CHAT_MODEL: process.env.CHAT_MODEL || process.env.GEMINI_MODEL || 'gemini-1.5-flash',
   EMBED_MODEL: process.env.EMBED_MODEL || 'text-embedding-004',
   RESEND_API_KEY: process.env.RESEND_API_KEY || 're_dummy_key_123',
 
@@ -59,7 +59,7 @@ export const config = {
   // Instagram OAuth Settings
   INSTAGRAM_CLIENT_ID: process.env.INSTAGRAM_CLIENT_ID || process.env.INSTAGRAM_APP_ID || '',
   INSTAGRAM_CLIENT_SECRET: process.env.INSTAGRAM_CLIENT_SECRET || process.env.INSTAGRAM_APP_SECRET || '',
-  INSTAGRAM_REDIRECT_URI: process.env.INSTAGRAM_REDIRECT_URI || `${process.env.WEB_APP_URL || 'http://localhost:3000'}/organizer/apply/instagram-callback`,
+  INSTAGRAM_REDIRECT_URI: process.env.INSTAGRAM_REDIRECT_URI || `${(process.env.WEB_APP_URL || (appEnv === 'production' ? 'https://vibecheckspace.com' : 'https://vibecheck-uat.vercel.app')).replace(/\/+$/, '')}/organizer/apply/instagram-callback`,
 
   // Security / Smart Proxy Token
   PRIVATE_BACKEND_TOKEN: process.env.PRIVATE_BACKEND_TOKEN || ''

@@ -31,7 +31,7 @@ export async function addOrganizer(pool: Pool, email: string) {
 export async function getOrganizers(pool: Pool) {
   await ensureOrganizerRole(pool);
   const { rows } = await pool.query(
-    `SELECT id, email, role, status, brand_name, description, social_links, phone_number, instagram_verified, instagram_handle, created_at
+    `SELECT id, email, role, status, brand_name, description, social_links, phone_number, instagram_verified, instagram_handle, instagram_metadata, created_at
      FROM admins
      WHERE LOWER(role::text) = 'organizer' AND status = 'approved'
      ORDER BY created_at DESC`
@@ -42,7 +42,7 @@ export async function getOrganizers(pool: Pool) {
 export async function getPendingOrganizers(pool: Pool) {
   await ensureOrganizerRole(pool);
   const { rows } = await pool.query(
-    `SELECT id, email, role, status, brand_name, description, social_links, phone_number, instagram_verified, instagram_handle, created_at
+    `SELECT id, email, role, status, brand_name, description, social_links, phone_number, instagram_verified, instagram_handle, instagram_metadata, created_at
      FROM admins
      WHERE LOWER(role::text) = 'organizer' AND status = 'pending_approval'
      ORDER BY created_at DESC`
@@ -100,5 +100,74 @@ export async function deleteOrganizer(pool: Pool, id: string) {
     [id]
   );
   return rows[0] || null;
+}
+
+export async function getPublicOrganizerProfile(pool: Pool, identifier: string) {
+  const clean = identifier.trim().toLowerCase().replace(/^@/, '');
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clean);
+
+  let whereClause = `
+    (
+      LOWER(slug) = $1 
+      OR LOWER(instagram_handle) = $1 
+      OR LOWER(email) = $1 
+      OR LOWER(REGEXP_REPLACE(brand_name, '[^a-zA-Z0-9]+', '-', 'g')) = $1
+      OR LOWER(brand_name) = $1
+  `;
+  const params: any[] = [clean];
+
+  if (isUuid) {
+    whereClause += ` OR id = $2`;
+    params.push(clean);
+  }
+  whereClause += `) AND (status = 'approved' OR role::text = 'SuperAdmin' OR role::text = 'Editor')`;
+
+  const queryText = `
+    SELECT 
+      id,
+      email,
+      COALESCE(brand_name, split_part(email, '@', 1)) as brand_name,
+      COALESCE(slug, LOWER(REGEXP_REPLACE(COALESCE(brand_name, split_part(email, '@', 1)), '[^a-zA-Z0-9]+', '-', 'g'))) as slug,
+      description,
+      social_links,
+      phone_number,
+      COALESCE(image_url, (SELECT image_url FROM web_users WHERE LOWER(web_users.email) = LOWER(admins.email))) as image_url,
+      COALESCE(rating, 4.5)::float as rating,
+      instagram_handle,
+      instagram_verified,
+      created_at,
+      (SELECT COUNT(*)::int FROM organizer_followers WHERE LOWER(organizer_email) = LOWER(admins.email)) as followers_count,
+      (SELECT COUNT(*)::int FROM events WHERE LOWER(organizer_email) = LOWER(admins.email) AND (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status = 'ended')) as total_events_count,
+      (SELECT COUNT(*)::int FROM events WHERE LOWER(organizer_email) = LOWER(admins.email) AND (status = 'approved' OR status = 'housefull' OR status = 'filling_fast') AND (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW()))) as upcoming_events_count,
+      (SELECT city FROM events WHERE LOWER(organizer_email) = LOWER(admins.email) AND city IS NOT NULL ORDER BY date_time DESC LIMIT 1) as primary_city
+    FROM admins
+    WHERE ${whereClause}
+    LIMIT 1
+  `;
+
+  const { rows } = await pool.query(queryText, params);
+  return rows[0] || null;
+}
+
+export async function getPublicOrganizersList(pool: Pool) {
+  const { rows } = await pool.query(`
+    SELECT 
+      id,
+      email,
+      COALESCE(brand_name, split_part(email, '@', 1)) as brand_name,
+      COALESCE(slug, LOWER(REGEXP_REPLACE(COALESCE(brand_name, split_part(email, '@', 1)), '[^a-zA-Z0-9]+', '-', 'g'))) as slug,
+      description,
+      image_url,
+      COALESCE(rating, 4.5)::float as rating,
+      instagram_handle,
+      instagram_verified,
+      (SELECT COUNT(*)::int FROM organizer_followers WHERE LOWER(organizer_email) = LOWER(admins.email)) as followers_count,
+      (SELECT COUNT(*)::int FROM events WHERE LOWER(organizer_email) = LOWER(admins.email) AND (status = 'approved' OR status = 'housefull' OR status = 'filling_fast') AND (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW()))) as upcoming_events_count
+    FROM admins
+    WHERE status = 'approved' AND LOWER(role::text) = 'organizer'
+    ORDER BY followers_count DESC, upcoming_events_count DESC
+    LIMIT 50
+  `);
+  return rows;
 }
 

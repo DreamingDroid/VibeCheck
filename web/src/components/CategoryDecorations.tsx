@@ -12,7 +12,7 @@ import {
   Compass, Sun, Moon,
   Heart, Leaf, Droplets,
   Smile, PartyPopper, Drama,
-  Sparkles, Globe, Gem,
+  Sparkles, Globe, Gem, Mountain, Footprints, Trees, Briefcase
 } from "lucide-react"
 
 type IconPlacement = {
@@ -37,6 +37,15 @@ const ICON_SIZE_MD = "h-5 w-5"
 const ICON_SIZE_ACCENT = "h-7 w-7"
 
 const categoryConfigs: Record<string, CategoryConfig> = {
+  Adventure: {
+    floatingIcons: [
+      { icon: <Mountain className={ICON_SIZE_SM} />, top: "14%", right: "16%", rotate: "-10deg", animation: "float-gentle", size: ICON_SIZE_SM },
+      { icon: <Footprints className={ICON_SIZE_MD} />, top: "38%", right: "8%", rotate: "15deg", animation: "float-slow", size: ICON_SIZE_MD },
+      { icon: <Trees className={ICON_SIZE_SM} />, bottom: "32%", right: "24%", rotate: "-20deg", animation: "float-drift", size: ICON_SIZE_SM },
+    ],
+    accentIcon: <Mountain className={ICON_SIZE_ACCENT} />,
+    accentColor: "#10B981",
+  },
   Music: {
     floatingIcons: [
       { icon: <Music className={ICON_SIZE_SM} />, top: "12%", right: "18%", rotate: "-15deg", animation: "float-gentle", size: ICON_SIZE_SM },
@@ -45,6 +54,24 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Music className={ICON_SIZE_ACCENT} />,
     accentColor: "#F59E0B",
+  },
+  Nightlife: {
+    floatingIcons: [
+      { icon: <Wine className={ICON_SIZE_SM} />, top: "12%", right: "18%", rotate: "-10deg", animation: "float-gentle", size: ICON_SIZE_SM },
+      { icon: <PartyPopper className={ICON_SIZE_MD} />, top: "38%", right: "10%", rotate: "15deg", animation: "float-slow", size: ICON_SIZE_MD },
+      { icon: <Flame className={ICON_SIZE_SM} />, bottom: "30%", right: "22%", rotate: "-15deg", animation: "float-drift", size: ICON_SIZE_SM },
+    ],
+    accentIcon: <Wine className={ICON_SIZE_ACCENT} />,
+    accentColor: "#6366F1",
+  },
+  "Arts & Culture": {
+    floatingIcons: [
+      { icon: <Palette className={ICON_SIZE_SM} />, top: "15%", right: "15%", rotate: "12deg", animation: "float-gentle", size: ICON_SIZE_SM },
+      { icon: <PenTool className={ICON_SIZE_MD} />, top: "40%", right: "10%", rotate: "-8deg", animation: "float-slow", size: ICON_SIZE_MD },
+      { icon: <Brush className={ICON_SIZE_SM} />, bottom: "28%", right: "20%", rotate: "25deg", animation: "float-drift", size: ICON_SIZE_SM },
+    ],
+    accentIcon: <Palette className={ICON_SIZE_ACCENT} />,
+    accentColor: "#9C27B0",
   },
   Arts: {
     floatingIcons: [
@@ -64,6 +91,15 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     accentIcon: <Trophy className={ICON_SIZE_ACCENT} />,
     accentColor: "#F97316",
   },
+  "Food & Drink": {
+    floatingIcons: [
+      { icon: <Wine className={ICON_SIZE_SM} />, top: "12%", right: "20%", rotate: "8deg", animation: "float-gentle", size: ICON_SIZE_SM },
+      { icon: <UtensilsCrossed className={ICON_SIZE_MD} />, top: "36%", right: "10%", rotate: "-12deg", animation: "float-slow", size: ICON_SIZE_MD },
+      { icon: <ChefHat className={ICON_SIZE_SM} />, bottom: "30%", right: "18%", rotate: "18deg", animation: "float-drift", size: ICON_SIZE_SM },
+    ],
+    accentIcon: <UtensilsCrossed className={ICON_SIZE_ACCENT} />,
+    accentColor: "#10B981",
+  },
   Food: {
     floatingIcons: [
       { icon: <Wine className={ICON_SIZE_SM} />, top: "12%", right: "20%", rotate: "8deg", animation: "float-gentle", size: ICON_SIZE_SM },
@@ -73,23 +109,23 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     accentIcon: <UtensilsCrossed className={ICON_SIZE_ACCENT} />,
     accentColor: "#10B981",
   },
-  Techno: {
+  Wellness: {
     floatingIcons: [
-      { icon: <Code className={ICON_SIZE_SM} />, top: "15%", right: "14%", rotate: "-5deg", animation: "float-gentle", size: ICON_SIZE_SM },
-      { icon: <Cpu className={ICON_SIZE_MD} />, top: "40%", right: "8%", rotate: "12deg", animation: "float-slow", size: ICON_SIZE_MD },
-      { icon: <Zap className={ICON_SIZE_SM} />, bottom: "28%", right: "22%", rotate: "-15deg", animation: "float-drift", size: ICON_SIZE_SM },
+      { icon: <Heart className={ICON_SIZE_SM} />, top: "14%", right: "16%", rotate: "-10deg", animation: "float-gentle", size: ICON_SIZE_SM },
+      { icon: <Leaf className={ICON_SIZE_MD} />, top: "40%", right: "8%", rotate: "8deg", animation: "float-slow", size: ICON_SIZE_MD },
+      { icon: <Droplets className={ICON_SIZE_SM} />, bottom: "28%", right: "22%", rotate: "16deg", animation: "float-drift", size: ICON_SIZE_SM },
     ],
-    accentIcon: <Cpu className={ICON_SIZE_ACCENT} />,
-    accentColor: "#06B6D4",
+    accentIcon: <Leaf className={ICON_SIZE_ACCENT} />,
+    accentColor: "#14B8A6",
   },
-  Indie: {
+  Workshops: {
     floatingIcons: [
-      { icon: <Star className={ICON_SIZE_SM} />, top: "12%", right: "18%", rotate: "15deg", animation: "float-gentle", size: ICON_SIZE_SM },
-      { icon: <Flame className={ICON_SIZE_MD} />, top: "38%", right: "10%", rotate: "-10deg", animation: "float-slow", size: ICON_SIZE_MD },
-      { icon: <Guitar className={ICON_SIZE_SM} />, bottom: "30%", right: "20%", rotate: "20deg", animation: "float-drift", size: ICON_SIZE_SM },
+      { icon: <Briefcase className={ICON_SIZE_SM} />, top: "14%", right: "16%", rotate: "-8deg", animation: "float-gentle", size: ICON_SIZE_SM },
+      { icon: <Lightbulb className={ICON_SIZE_MD} />, top: "40%", right: "8%", rotate: "10deg", animation: "float-slow", size: ICON_SIZE_MD },
+      { icon: <BookOpen className={ICON_SIZE_SM} />, bottom: "28%", right: "22%", rotate: "-18deg", animation: "float-drift", size: ICON_SIZE_SM },
     ],
-    accentIcon: <Star className={ICON_SIZE_ACCENT} />,
-    accentColor: "#EC4899",
+    accentIcon: <Briefcase className={ICON_SIZE_ACCENT} />,
+    accentColor: "#3B82F6",
   },
   Education: {
     floatingIcons: [
@@ -108,15 +144,6 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Compass className={ICON_SIZE_ACCENT} />,
     accentColor: "#7C3AED",
-  },
-  Wellness: {
-    floatingIcons: [
-      { icon: <Heart className={ICON_SIZE_SM} />, top: "14%", right: "16%", rotate: "-10deg", animation: "float-gentle", size: ICON_SIZE_SM },
-      { icon: <Leaf className={ICON_SIZE_MD} />, top: "40%", right: "8%", rotate: "8deg", animation: "float-slow", size: ICON_SIZE_MD },
-      { icon: <Droplets className={ICON_SIZE_SM} />, bottom: "28%", right: "22%", rotate: "16deg", animation: "float-drift", size: ICON_SIZE_SM },
-    ],
-    accentIcon: <Leaf className={ICON_SIZE_ACCENT} />,
-    accentColor: "#14B8A6",
   },
   Comedy: {
     floatingIcons: [
@@ -191,17 +218,21 @@ export function CategoryDecorations({ category, showAccent = true }: { category:
 export function getCategoryCardClass(category: string): string {
   const key = category.toLowerCase().replace(/\s+/g, "")
   const map: Record<string, string> = {
+    adventure: "vibe-card-sports",
     music: "vibe-card-music",
+    nightlife: "vibe-card-nightlife",
+    "arts&culture": "vibe-card-arts",
     arts: "vibe-card-arts",
     sports: "vibe-card-sports",
+    "food&drink": "vibe-card-food",
     food: "vibe-card-food",
     techno: "vibe-card-techno",
     indie: "vibe-card-indie",
     education: "vibe-card-education",
     spiritual: "vibe-card-spiritual",
     wellness: "vibe-card-wellness",
+    workshops: "vibe-card-education",
     comedy: "vibe-card-comedy",
-    nightlife: "vibe-card-nightlife",
     general: "vibe-card-general",
   }
   return map[key] || "vibe-card-general"
