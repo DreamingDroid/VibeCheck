@@ -265,11 +265,12 @@ export default function OrganizerDashboard() {
 
   const loadMyEvents = () => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-    fetch(`${baseUrl}/api/organizer/events?email=${encodeURIComponent(session!.user!.email!)}`)
+    fetch(`${baseUrl}/api/organizer/events?email=${encodeURIComponent(session!.user!.email!)}&limit=100`)
       .then(r => r.json())
       .then(data => {
-        if (data.success) setMyEvents(data.data);
-      });
+        if (data.success) setMyEvents(data.data || []);
+      })
+      .catch(err => console.error("Failed to load organizer events", err));
   };
 
   const loadContacts = (email: string) => {
@@ -694,23 +695,12 @@ export default function OrganizerDashboard() {
             <div className="space-y-3 sm:space-y-4">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl sm:text-3xl vibecheck_font_style leading-none">Deployment Log</h2>
-                <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-zinc-400 bg-zinc-100 px-3 py-1 rounded-full border border-black/5">
-                  {myEvents.length} {myEvents.length === 1 ? 'Vibe' : 'Vibes'}
-                </span>
               </div>
-              {myEvents.length === 0 ? (
-                <div className="text-center py-16 text-zinc-400 ringer-card border-dashed p-8">
-                  <p className="text-xs font-black uppercase tracking-widest mb-1 text-black">No active vibes detected.</p>
-                  <p className="text-[11px] text-zinc-400 font-medium">Deploy your next event experience using the green action button.</p>
-                </div>
-              ) : (
-                <OrganizerEventsGrid
-                  events={myEvents}
-                  organizerEmail={session?.user?.email || ""}
-                  onEditEvent={(ev) => handleEditInit(ev)}
-                  onRefreshEvents={() => loadMyEvents()}
-                />
-              )}
+              <OrganizerEventsGrid
+                organizerEmail={session?.user?.email || ""}
+                onEditEvent={(ev) => handleEditInit(ev)}
+                onRefreshEvents={() => loadMyEvents()}
+              />
             </div>
           </div>
         )}

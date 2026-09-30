@@ -438,16 +438,133 @@ export async function createOrganizerEvent(pool: Pool, data: any) {
     return rows[0];
 }
 
-export async function getEventsByOrganizerEmail(pool: Pool, email: string) {
-    const { rows } = await pool.query(
-      `SELECT id, title, category, location, city, date_time, end_time, timings, description,
-              external_link, google_maps_link, whatsapp_group_link, contact_info, status, admin_comment, participant_limit, is_paid, visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone, created_at,
-              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
-              (SELECT COUNT(*)::int FROM event_invites WHERE event_id = events.id) AS invite_count
-       FROM events WHERE organizer_email = $1 ORDER BY created_at DESC`,
-      [email]
-    );
-    return rows;
+export interface OrganizerEventsQueryOptions {
+  page?: number;
+  limit?: number;
+  status?: string;
+  category?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export async function getEventsByOrganizerEmail(
+  pool: Pool,
+  email: string,
+  options: OrganizerEventsQueryOptions = {}
+) {
+  const cleanEmail = email.trim().toLowerCase();
+  const page = Math.max(1, options.page ? Number(options.page) : 1);
+  const limit = options.limit ? Math.min(100, Math.max(1, Number(options.limit))) : 10;
+  const offset = (page - 1) * limit;
+
+  // 1. Fetch Global Summary Counts & Categories for this organizer (for tab badges and dropdowns)
+  const summaryRes = await pool.query(
+    `SELECT 
+       COUNT(*)::int AS total_count,
+       COUNT(*) FILTER (WHERE (end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW())) AND (status = 'approved' OR status = 'filling_fast' OR status = 'housefull'))::int AS active_count,
+       COUNT(*) FILTER (WHERE (end_time < NOW() OR (end_time IS NULL AND date_time < NOW()) OR status = 'ended'))::int AS past_count,
+       COUNT(*) FILTER (WHERE (status = 'pending' OR status IS NULL))::int AS pending_count,
+       COUNT(*) FILTER (WHERE (status = 'needs_changes' OR status = 'rejected'))::int AS needs_changes_count
+     FROM events
+     WHERE LOWER(organizer_email) = $1`,
+    [cleanEmail]
+  );
+
+  const categoriesRes = await pool.query(
+    `SELECT DISTINCT category::text AS category 
+     FROM events 
+     WHERE LOWER(organizer_email) = $1 AND category IS NOT NULL 
+     ORDER BY category ASC`,
+    [cleanEmail]
+  );
+
+  const counts = {
+    all: summaryRes.rows[0]?.total_count || 0,
+    active: summaryRes.rows[0]?.active_count || 0,
+    past: summaryRes.rows[0]?.past_count || 0,
+    pending: summaryRes.rows[0]?.pending_count || 0,
+    needs_changes: summaryRes.rows[0]?.needs_changes_count || 0,
+  };
+
+  const categories: string[] = categoriesRes.rows.map((r: any) => r.category);
+
+  // 2. Build Filtered Query
+  const params: any[] = [cleanEmail];
+  let paramIdx = 2;
+  const whereClauses = [`LOWER(organizer_email) = $1`];
+
+  // Status Filter
+  if (options.status && options.status !== 'all') {
+    if (options.status === 'active') {
+      whereClauses.push(`(end_time >= NOW() OR (end_time IS NULL AND date_time >= NOW())) AND (status = 'approved' OR status = 'filling_fast' OR status = 'housefull')`);
+    } else if (options.status === 'past') {
+      whereClauses.push(`(end_time < NOW() OR (end_time IS NULL AND date_time < NOW()) OR status = 'ended')`);
+    } else if (options.status === 'pending') {
+      whereClauses.push(`(status = 'pending' OR status IS NULL)`);
+    } else if (options.status === 'needs_changes') {
+      whereClauses.push(`(status = 'needs_changes' OR status = 'rejected')`);
+    }
+  }
+
+  // Category Filter
+  if (options.category && options.category !== 'all' && options.category !== 'All' && options.category !== 'All Categories') {
+    whereClauses.push(`category::text = $${paramIdx}`);
+    params.push(options.category);
+    paramIdx++;
+  }
+
+  // Search Filter
+  if (options.search && options.search.trim()) {
+    const searchParam = `%${options.search.trim()}%`;
+    whereClauses.push(`(title ILIKE $${paramIdx} OR description ILIKE $${paramIdx} OR location ILIKE $${paramIdx} OR city ILIKE $${paramIdx} OR category::text ILIKE $${paramIdx})`);
+    params.push(searchParam);
+    paramIdx++;
+  }
+
+  const whereSql = whereClauses.join(' AND ');
+
+  // Filtered Count
+  const filteredCountRes = await pool.query(
+    `SELECT COUNT(*)::int AS count FROM events WHERE ${whereSql}`,
+    params
+  );
+  const filteredTotal = filteredCountRes.rows[0]?.count || 0;
+
+  // Sorting
+  let sortColumn = 'date_time';
+  if (options.sortBy === 'title') sortColumn = 'title';
+  else if (options.sortBy === 'created_at') sortColumn = 'created_at';
+  else if (options.sortBy === 'date_time') sortColumn = 'date_time';
+
+  const sortDirection = options.sortOrder?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+
+  // Data Query
+  const dataParams = [...params, limit, offset];
+  const querySql = `
+    SELECT id, title, category, location, city, date_time, end_time, timings, description,
+           external_link, google_maps_link, whatsapp_group_link, contact_info, status, admin_comment, participant_limit, is_paid, visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone, created_at,
+           (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
+           (SELECT COUNT(*)::int FROM event_invites WHERE event_id = events.id) AS invite_count
+    FROM events
+    WHERE ${whereSql}
+    ORDER BY ${sortColumn} ${sortDirection}
+    LIMIT $${paramIdx} OFFSET $${paramIdx + 1}
+  `;
+
+  const { rows } = await pool.query(querySql, dataParams);
+
+  return {
+    events: rows,
+    pagination: {
+      page,
+      limit,
+      total: filteredTotal,
+      totalPages: Math.ceil(filteredTotal / limit) || 1,
+    },
+    counts,
+    categories,
+  };
 }
 
 export function maskEmail(email: string | null): string {

@@ -165,12 +165,27 @@ export async function organizerGetEventInvitesHandler(req: Request, res: Respons
 }
 
 export async function organizerGetEventsHandler(req: Request, res: Response, pool: Pool) {
-  const { email } = req.query;
-  if (!email) return res.status(401).json({ success: false, error: 'Unauthorized' });
+  const { email, page, limit, status, category, search, sortBy, sortOrder } = req.query;
+  if (!email || typeof email !== 'string') return res.status(401).json({ success: false, error: 'Unauthorized' });
 
   try {
-    const rows = await getEventsByOrganizerEmail(pool, email as string);
-    res.json({ success: true, data: rows });
+    const result = await getEventsByOrganizerEmail(pool, email, {
+      page: page ? parseInt(page as string, 10) : 1,
+      limit: limit ? parseInt(limit as string, 10) : 10,
+      status: status as string | undefined,
+      category: category as string | undefined,
+      search: search as string | undefined,
+      sortBy: sortBy as string | undefined,
+      sortOrder: (sortOrder as 'asc' | 'desc') || 'desc',
+    });
+
+    res.json({
+      success: true,
+      data: result.events,
+      pagination: result.pagination,
+      counts: result.counts,
+      categories: result.categories,
+    });
   } catch (error) {
     console.error('Error fetching organizer events:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });

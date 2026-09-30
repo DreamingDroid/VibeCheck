@@ -62,23 +62,44 @@ export interface OrganizerEvent {
 }
 
 interface OrganizerEventsGridProps {
-  events: OrganizerEvent[];
   organizerEmail: string;
   onEditEvent: (event: OrganizerEvent) => void;
-  onRefreshEvents: () => void;
+  onRefreshEvents?: () => void;
+  initialEvents?: OrganizerEvent[];
 }
 
 export function OrganizerEventsGrid({
-  events,
   organizerEmail,
   onEditEvent,
   onRefreshEvents,
+  initialEvents = [],
 }: OrganizerEventsGridProps) {
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [events, setEvents] = useState<OrganizerEvent[]>(initialEvents);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [tabCounts, setTabCounts] = useState<{
+    all: number;
+    active: number;
+    past: number;
+    pending: number;
+    needs_changes: number;
+  }>({
+    all: initialEvents.length,
+    active: 0,
+    past: 0,
+    pending: 0,
+    needs_changes: 0,
+  });
+  const [categories, setCategories] = useState<string[]>([]);
+
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "date_time", desc: false }, // Upcoming/earliest first
+    { id: "date_time", desc: true }, // Newest / latest event first
   ]);
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
 
@@ -95,51 +116,90 @@ export function OrganizerEventsGrid({
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoData, setPromoData] = useState("");
 
-  const [smsBroadcastEvent, setSmsBroadcastEvent] = useState<OrganizerEvent | null>(null);
-  const [smsBroadcastOpen, setSmsBroadcastOpen] = useState(false);
-  const [broadcastStats, setBroadcastStats] = useState<{ eligibleCount: number; costPerMessage: number; totalCost: number } | null>(null);
-  const [broadcastMessage, setBroadcastMessage] = useState("");
-  const [broadcasting, setBroadcasting] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "success">("idle");
+  // Debounce search input
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
-  // Filtered dataset
-  const filteredData = useMemo(() => {
-    const now = Date.now();
-    return events.filter((ev) => {
-      const eventEndMs = ev.end_time ? new Date(ev.end_time).getTime() : new Date(ev.date_time).getTime();
-      const isPast = !isNaN(eventEndMs) && now > eventEndMs;
+  // Server-side Fetcher
+  const fetchEvents = React.useCallback(
+    async (
+      targetPage = page,
+      currentStatus = statusFilter,
+      currentCategory = categoryFilter,
+      currentSearch = searchQuery,
+      currentSorting = sorting
+    ) => {
+      if (!organizerEmail) return;
+      setLoading(true);
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const sortCol = currentSorting[0]?.id || "date_time";
+        const sortDir = currentSorting[0]?.desc ? "desc" : "asc";
 
-      // Category filter
-      if (categoryFilter !== "all" && ev.category !== categoryFilter) {
-        return false;
-      }
+        const queryParams = new URLSearchParams({
+          email: organizerEmail,
+          page: String(targetPage),
+          limit: "10",
+          status: currentStatus,
+          category: currentCategory,
+          search: currentSearch,
+          sortBy: sortCol,
+          sortOrder: sortDir,
+        });
 
-      // Status tab filter
-      if (statusFilter === "active") {
-        return !isPast && (ev.status === "approved" || ev.status === "filling_fast" || ev.status === "housefull");
+        const res = await fetch(`${baseUrl}/api/organizer/events?${queryParams.toString()}`);
+        const data = await res.json();
+        if (data.success) {
+          setEvents(data.data || []);
+          if (data.pagination) {
+            setPage(data.pagination.page);
+            setTotalPages(data.pagination.totalPages || 1);
+            setTotalCount(data.pagination.total || 0);
+          }
+          if (data.counts) {
+            setTabCounts(data.counts);
+          }
+          if (Array.isArray(data.categories)) {
+            setCategories(data.categories);
+          }
+        } else {
+          toast.error(data.error || "Failed to load events");
+        }
+      } catch (err) {
+        console.error("Error fetching organizer events:", err);
+        toast.error("Failed to load events");
+      } finally {
+        setLoading(false);
       }
-      if (statusFilter === "past") {
-        return isPast || ev.status === "ended";
-      }
-      if (statusFilter === "pending") {
-        return ev.status === "pending" || !ev.status;
-      }
-      if (statusFilter === "needs_changes") {
-        return ev.status === "needs_changes" || ev.status === "rejected";
-      }
+    },
+    [organizerEmail, page, statusFilter, categoryFilter, searchQuery, sorting]
+  );
 
-      return true;
-    });
-  }, [events, statusFilter, categoryFilter]);
+  // Initial and reactive fetch on filters/sorting/search change
+  React.useEffect(() => {
+    setPage(1);
+    fetchEvents(1, statusFilter, categoryFilter, searchQuery, sorting);
+  }, [organizerEmail, statusFilter, categoryFilter, searchQuery, sorting]);
 
-  // Categories list for filtering
-  const categories = useMemo(() => {
-    const cats = new Set<string>();
-    events.forEach((e) => {
-      if (e.category) cats.add(e.category);
-    });
-    return Array.from(cats);
-  }, [events]);
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || newPage === page) return;
+    setPage(newPage);
+    fetchEvents(newPage, statusFilter, categoryFilter, searchQuery, sorting);
+  };
+
+  const handleStatusTabChange = (newStatus: string) => {
+    if (statusFilter === newStatus) return;
+    setStatusFilter(newStatus);
+  };
+
+  const handleCategoryChange = (newCategory: string) => {
+    if (categoryFilter === newCategory) return;
+    setCategoryFilter(newCategory);
+  };
 
   const copyBouncerScannerLink = async (eventId: string) => {
     try {
@@ -188,7 +248,8 @@ export function OrganizerEventsGrid({
       const d = await res.json();
       if (d.success) {
         toast.success(d.message);
-        onRefreshEvents();
+        fetchEvents(page);
+        if (onRefreshEvents) onRefreshEvents();
 
         if (newStatus === "filling_fast" || newStatus === "housefull") {
           const ev = events.find((e) => e.id === eventId);
@@ -240,7 +301,7 @@ export function OrganizerEventsGrid({
         header: ({ column }) => (
           <button
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="flex items-center gap-1.5 font-black uppercase text-[10px] tracking-wider text-zinc-500 hover:text-black transition-colors"
+            className="flex items-center gap-1.5 font-black uppercase text-[10px] tracking-wider text-zinc-500 hover:text-black transition-colors cursor-pointer"
           >
             <span>Event & Details</span>
             {column.getIsSorted() === "asc" ? (
@@ -287,10 +348,15 @@ export function OrganizerEventsGrid({
       {
         id: "date_time",
         accessorKey: "date_time",
+        sortingFn: (rowA, rowB, columnId) => {
+          const a = new Date(rowA.getValue(columnId) as string).getTime() || 0;
+          const b = new Date(rowB.getValue(columnId) as string).getTime() || 0;
+          return a - b;
+        },
         header: ({ column }) => (
           <button
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="flex items-center gap-1.5 font-black uppercase text-[10px] tracking-wider text-zinc-500 hover:text-black transition-colors"
+            className="flex items-center gap-1.5 font-black uppercase text-[10px] tracking-wider text-zinc-500 hover:text-black transition-colors cursor-pointer"
           >
             <span>Schedule</span>
             {column.getIsSorted() === "asc" ? (
@@ -364,7 +430,6 @@ export function OrganizerEventsGrid({
           const now = Date.now();
           const isPast = !isNaN(eventEndMs) && now > eventEndMs;
 
-          // Crucial Validation: An expired event should NEVER show "Tickets Live"
           let effectiveStatus = ev.status;
           if (isPast && ev.status !== "rejected" && ev.status !== "needs_changes") {
             effectiveStatus = "ended";
@@ -534,7 +599,7 @@ export function OrganizerEventsGrid({
               <button
                 onClick={() => setExpandedEventId(isExpanded ? null : ev.id)}
                 className={cn(
-                  "ringer-button py-1.5 px-3 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-xs rounded-xl",
+                  "ringer-button py-1.5 px-3 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-xs rounded-xl cursor-pointer",
                   isExpanded
                     ? "bg-black text-white"
                     : "bg-zinc-100 hover:bg-zinc-200 text-black border border-black/10"
@@ -552,25 +617,21 @@ export function OrganizerEventsGrid({
     [expandedEventId, organizerEmail, events]
   );
 
-  // TanStack Table Instance
+  // TanStack Table Instance (Manual Pagination & Sorting)
   const table = useReactTable({
-    data: filteredData,
+    data: events,
     columns,
     state: {
       sorting,
-      globalFilter,
     },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
+    onSortingChange: (updater) => {
+      const newSorting = typeof updater === "function" ? updater(sorting) : updater;
+      setSorting(newSorting);
+    },
+    manualSorting: true,
+    manualPagination: true,
+    pageCount: totalPages,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
-    },
   });
 
   return (
@@ -583,8 +644,8 @@ export function OrganizerEventsGrid({
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
             <input
               type="text"
-              value={globalFilter ?? ""}
-              onChange={(e) => setGlobalFilter(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search by event name, venue, city, or category..."
               className="w-full bg-zinc-50 border border-black/10 rounded-2xl pl-10 pr-4 py-2 text-xs font-bold text-black placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-black"
             />
@@ -598,8 +659,8 @@ export function OrganizerEventsGrid({
             </div>
             <select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="bg-zinc-50 border border-black/10 rounded-xl px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-black focus:outline-none"
+              onChange={(e) => handleCategoryChange(e.target.value)}
+              className="bg-zinc-50 border border-black/10 rounded-xl px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-black focus:outline-none cursor-pointer"
             >
               <option value="all">All Categories</option>
               {categories.map((c) => (
@@ -614,35 +675,17 @@ export function OrganizerEventsGrid({
         {/* Status Filter Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-t border-black/5 pt-3">
           {[
-            { id: "all", label: `All Events (${events.length})` },
-            {
-              id: "active",
-              label: `Live & Upcoming (${events.filter((e) => {
-                const ms = e.end_time ? new Date(e.end_time).getTime() : new Date(e.date_time).getTime();
-                return Date.now() <= ms && (e.status === "approved" || e.status === "filling_fast" || e.status === "housefull");
-              }).length})`,
-            },
-            {
-              id: "past",
-              label: `Concluded / Ended (${events.filter((e) => {
-                const ms = e.end_time ? new Date(e.end_time).getTime() : new Date(e.date_time).getTime();
-                return Date.now() > ms || e.status === "ended";
-              }).length})`,
-            },
-            {
-              id: "pending",
-              label: `Pending Review (${events.filter((e) => e.status === "pending" || !e.status).length})`,
-            },
-            {
-              id: "needs_changes",
-              label: `Action Required (${events.filter((e) => e.status === "needs_changes" || e.status === "rejected").length})`,
-            },
+            { id: "all", label: `All Events (${tabCounts.all})` },
+            { id: "active", label: `Live & Upcoming (${tabCounts.active})` },
+            { id: "past", label: `Concluded / Ended (${tabCounts.past})` },
+            { id: "pending", label: `Pending Review (${tabCounts.pending})` },
+            { id: "needs_changes", label: `Action Required (${tabCounts.needs_changes})` },
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setStatusFilter(tab.id)}
+              onClick={() => handleStatusTabChange(tab.id)}
               className={cn(
-                "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all",
+                "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer",
                 statusFilter === tab.id
                   ? "bg-black text-white shadow-xs"
                   : "bg-zinc-100 hover:bg-zinc-200 text-zinc-600"
@@ -655,7 +698,16 @@ export function OrganizerEventsGrid({
       </div>
 
       {/* TanStack Table Container */}
-      <div className="bg-white rounded-3xl border border-black/5 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-3xl border border-black/5 shadow-xs overflow-hidden relative">
+        {loading && (
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
+            <div className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">
+              <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <span>Fetching Vibes...</span>
+            </div>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -672,7 +724,7 @@ export function OrganizerEventsGrid({
               ))}
             </thead>
             <tbody className="divide-y divide-black/5">
-              {table.getRowModel().rows.length === 0 ? (
+              {table.getRowModel().rows.length === 0 && !loading ? (
                 <tr>
                   <td colSpan={columns.length} className="py-12 text-center text-zinc-400">
                     <p className="text-xs font-black uppercase tracking-widest mb-1 text-black">No events match your search criteria.</p>
@@ -719,30 +771,61 @@ export function OrganizerEventsGrid({
           </table>
         </div>
 
-        {/* Pagination Strip */}
-        {table.getPageCount() > 1 && (
-          <div className="p-3.5 px-5 bg-zinc-50/60 border-t border-black/5 flex items-center justify-between text-xs">
-            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()} ({filteredData.length} events)
-            </span>
+        {/* Server-side Pagination Strip */}
+        <div className="p-3.5 px-5 bg-zinc-50/60 border-t border-black/5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+            {totalCount > 0
+              ? `Showing ${(page - 1) * 10 + 1} to ${Math.min(page * 10, totalCount)} of ${totalCount} vibes (Page ${page} of ${totalPages})`
+              : "0 vibes found"}
+          </span>
+
+          {totalPages > 1 && (
             <div className="flex items-center gap-1.5">
               <button
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-                className="p-1.5 rounded-lg border border-black/10 bg-white hover:bg-zinc-100 disabled:opacity-30 cursor-pointer"
+                onClick={() => handlePageChange(page - 1)}
+                disabled={page <= 1 || loading}
+                className="px-2.5 py-1.5 rounded-lg border border-black/10 bg-white hover:bg-zinc-100 disabled:opacity-30 disabled:pointer-events-none text-[10px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-colors"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-3.5 w-3.5" /> Prev
               </button>
+
+              {/* Page Number Pills */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                  .map((p, idx, arr) => {
+                    const prevP = arr[idx - 1];
+                    const showEllipsis = prevP && p - prevP > 1;
+                    return (
+                      <React.Fragment key={p}>
+                        {showEllipsis && <span className="px-1 text-zinc-400 text-[10px] font-bold">...</span>}
+                        <button
+                          onClick={() => handlePageChange(p)}
+                          disabled={loading}
+                          className={cn(
+                            "w-7 h-7 rounded-lg text-[10px] font-black flex items-center justify-center transition-all cursor-pointer",
+                            page === p
+                              ? "bg-black text-white shadow-xs"
+                              : "bg-white border border-black/10 hover:bg-zinc-100 text-zinc-700"
+                          )}
+                        >
+                          {p}
+                        </button>
+                      </React.Fragment>
+                    );
+                  })}
+              </div>
+
               <button
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-                className="p-1.5 rounded-lg border border-black/10 bg-white hover:bg-zinc-100 disabled:opacity-30 cursor-pointer"
+                onClick={() => handlePageChange(page + 1)}
+                disabled={page >= totalPages || loading}
+                className="px-2.5 py-1.5 rounded-lg border border-black/10 bg-white hover:bg-zinc-100 disabled:opacity-30 disabled:pointer-events-none text-[10px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-colors"
               >
-                <ChevronRight className="h-4 w-4" />
+                Next <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* AI Promo Modal */}
@@ -805,7 +888,10 @@ export function OrganizerEventsGrid({
           eventTitle={telegramEvent.title}
           organizerEmail={organizerEmail}
           initialLink={telegramEvent.whatsapp_group_link || ""}
-          onLinkUpdated={() => onRefreshEvents()}
+          onLinkUpdated={() => {
+            fetchEvents(page);
+            if (onRefreshEvents) onRefreshEvents();
+          }}
         />
       )}
     </div>
