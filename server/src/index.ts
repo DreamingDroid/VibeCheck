@@ -70,6 +70,9 @@ console.log('Loaded VERIFY_TOKEN:', config.WHATSAPP_VERIFY_TOKEN);
 const app = express();
 const port = config.PORT;
 
+// Trust proxy headers for accurate client IP tracking behind Next.js and reverse proxies
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps, curl, or server-to-server)
@@ -105,6 +108,53 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Too many requests, please try again later.' }
+});
+
+// Dedicated strict rate limiter for OTP & SMS verification endpoints (max 5 per day from the same IP)
+const otpLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours (1 day)
+  max: isDev ? 100 : 5, // max 5 verification attempts per day per IP in production
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (typeof forwarded === 'string') {
+      return forwarded.split(',')[0].trim();
+    }
+    return req.ip || '127.0.0.1';
+  },
+  message: { success: false, error: 'Daily verification limit exceeded (maximum 5 requests per day). Please try again tomorrow.' }
+});
+
+// Dedicated rate limiter for AI / RAG query endpoints (short-term burst protection)
+const aiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: isDev ? 100 : 20, // max 20 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'AI rate limit reached, please wait a moment.' }
+});
+
+// Daily quota limiter for AI queries (max 10 queries per day per user/IP)
+const aiDailyQuotaLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours (1 day)
+  max: isDev ? 200 : 10, // max 10 AI queries per day in production
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.body && typeof req.body.userId === 'string' && req.body.userId.trim()) {
+      return `ai_user_${req.body.userId.trim()}`;
+    }
+    const forwarded = req.headers['x-forwarded-for'];
+    if (typeof forwarded === 'string') {
+      return `ai_ip_${forwarded.split(',')[0].trim()}`;
+    }
+    return `ai_ip_${req.ip || '127.0.0.1'}`;
+  },
+  message: {
+    success: false,
+    error: 'Daily VibeCheck AI limit reached (10 queries/day). Check our full calendar at vibecheck.space or come back tomorrow!'
+  }
 });
 
 // Apply rate limiter to all /api routes
@@ -191,6 +241,9 @@ app.get('/health', async (_req, res) => {
 });
 
 app.get('/debug/db', async (_req, res) => {
+  if (!isDev) {
+    return res.status(404).json({ success: false, error: 'Not found' });
+  }
   try {
     const tablesResult = await pool.query(`
       SELECT table_name 
@@ -211,7 +264,13 @@ app.get('/debug/db', async (_req, res) => {
   }
 });
 
-app.post('/query', async (req, res) => {
+app.post('/query', aiLimiter, aiDailyQuotaLimiter, async (req, res) => {
+  if (!isDev && config.PRIVATE_BACKEND_TOKEN) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || authHeader.split(' ')[1] !== config.PRIVATE_BACKEND_TOKEN) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid backend access token' });
+    }
+  }
   try {
     const result = await handleEventQuery(pool, req.body);
     res.json(result);
@@ -223,7 +282,13 @@ app.post('/query', async (req, res) => {
   }
 });
 
-app.post('/preferences', async (req, res) => {
+app.post('/preferences', aiLimiter, async (req, res) => {
+  if (!isDev && config.PRIVATE_BACKEND_TOKEN) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || authHeader.split(' ')[1] !== config.PRIVATE_BACKEND_TOKEN) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid backend access token' });
+    }
+  }
   try {
     const result = await saveUserPreferences(pool, req.body);
     res.json(result);
@@ -280,8 +345,8 @@ app.get('/api/settings', async (req, res) => {
 // Organizer Application & Verification API
 app.get('/api/apply/instagram/auth-url', getInstagramAuthUrlHandler);
 app.post('/api/apply/instagram/exchange', (req, res) => exchangeInstagramCodeHandler(req, res, pool));
-app.post('/api/apply/send-otp', (req, res) => sendApplyOtpHandler(req, res, pool));
-app.post('/api/apply/verify-otp', verifyApplyOtpHandler);
+app.post('/api/apply/send-otp', otpLimiter, (req, res) => sendApplyOtpHandler(req, res, pool));
+app.post('/api/apply/verify-otp', otpLimiter, verifyApplyOtpHandler);
 app.post('/api/apply/submit', (req, res) => submitApplicationHandler(req, res, pool));
 
 // Admin API
@@ -383,8 +448,8 @@ app.post('/api/notifications/fcm/subscribe-event', (req, res) => subscribeEventF
 app.post('/api/notifications/fcm/unregister', (req, res) => unregisterFcmTokenHandler(req, res, pool));
 
 // Verification API
-app.post('/api/verify/send-code', (req, res) => sendVerificationCodeHandler(req, res, pool));
-app.post('/api/verify/confirm-code', (req, res) => verifyPhoneNumberHandler(req, res, pool));
+app.post('/api/verify/send-code', otpLimiter, (req, res) => sendVerificationCodeHandler(req, res, pool));
+app.post('/api/verify/confirm-code', otpLimiter, (req, res) => verifyPhoneNumberHandler(req, res, pool));
 
 // Telegram Webhook API
 app.post('/api/telegram/webhook', (req, res) => handleTelegramWebhook(req, res, pool));
@@ -399,6 +464,12 @@ app.post('/api/organizer/events/:id/scanner-pin', (req, res) => createScannerPin
 
 // ── Dev-only: manually trigger the AI Matchmaker for testing ─────────────────
 app.post('/admin/trigger-cron', async (req, res) => {
+  if (!isDev && config.PRIVATE_BACKEND_TOKEN) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || authHeader.split(' ')[1] !== config.PRIVATE_BACKEND_TOKEN) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+  }
   try {
     console.log('[Dev] Manually triggering AI Matchmaker Cron...');
     const result = await runMatchmakerJob(pool);
@@ -411,6 +482,12 @@ app.post('/admin/trigger-cron', async (req, res) => {
 
 // ── Dev-only: manually trigger Post-Event Feedback Job for testing ───────────
 app.post('/admin/trigger-feedback-cron', async (req, res) => {
+  if (!isDev && config.PRIVATE_BACKEND_TOKEN) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || authHeader.split(' ')[1] !== config.PRIVATE_BACKEND_TOKEN) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+  }
   try {
     console.log('[Dev] Manually triggering Post-Event Feedback Job...');
     const result = await runPostEventFeedbackJob(pool);

@@ -76,7 +76,6 @@ function isPublicRoute(method: string, endpointPath: string): boolean {
       normalizedPath.startsWith("/api/cities") ||
       normalizedPath.startsWith("/api/news") ||
       normalizedPath.startsWith("/api/settings") ||
-      normalizedPath === "/api/admin/settings" ||
       normalizedPath.startsWith("/api/apply/instagram/auth-url")
     ) {
       return true;
