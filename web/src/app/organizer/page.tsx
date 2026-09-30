@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
-import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode, Send, Calendar, Clock, MapPin, Users, ChevronDown, ChevronUp, Key, MessageSquare, Plus, Backpack, ListChecks, PhoneCall, Compass, CheckCircle2, Globe } from "lucide-react";
+import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode, Send, Calendar, Clock, MapPin, Users, ChevronDown, ChevronUp, Key, MessageSquare, Plus, Backpack, ListChecks, PhoneCall, Compass, CheckCircle2, Globe, X, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import OrganizerInsightsDashboard from "@/components/OrganizerInsightsDashboard";
@@ -23,6 +23,14 @@ import { BroadcastType } from "@/types/broadcast";
 import { COMMON_TIMEZONES, getTimezoneAbbr, getUserTimezone, getTimezoneOptions } from "@/lib/timezone";
 import { WorldTimezoneSelector } from "@/components/WorldTimezoneSelector";
 import { OrganizerEventsGrid } from "@/components/OrganizerEventsGrid";
+
+const FORM_STEPS = [
+  { id: 1, label: "Overview & Format", shortLabel: "Overview", icon: Sparkles },
+  { id: 2, label: "Schedule & Timings", shortLabel: "Schedule", icon: Clock },
+  { id: 3, label: "Venue & Access", shortLabel: "Venue", icon: MapPin },
+  { id: 4, label: "Media & Details", shortLabel: "Details", icon: ImageIcon },
+  { id: 5, label: "Attendee Guide", shortLabel: "Guide", icon: Compass, optional: true },
+];
 
 interface ScheduleItem {
   time: string;
@@ -122,6 +130,46 @@ export default function OrganizerDashboard() {
   const [imagePublicId, setImagePublicId] = useState("");
   const [selectedImageBase64, setSelectedImageBase64] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+
+  const validateStep = (step: number): boolean => {
+    const newErrors: Record<string, boolean> = {};
+    if (step === 1) {
+      if (!formData.title?.trim()) newErrors.title = true;
+      if (!formData.category) newErrors.category = true;
+      if (formData.eventType === 'in_person' && !formData.city) newErrors.city = true;
+    } else if (step === 2) {
+      if (!formData.startDate) newErrors.startDate = true;
+      if (isMultiDay && !formData.endDate) newErrors.endDate = true;
+      if (!formData.startTime) newErrors.startTime = true;
+      if (!formData.endTime) newErrors.endTime = true;
+    } else if (step === 3) {
+      if (formData.eventType === 'in_person' && !formData.location?.trim()) newErrors.location = true;
+    } else if (step === 4) {
+      if (!formData.description?.trim()) newErrors.description = true;
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(prev => ({ ...prev, ...newErrors }));
+      toast.error("Please fill in the required fields to continue.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleNextStep = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, FORM_STEPS.length));
+    }
+  };
+
+  const handlePrevStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleStepClick = (targetStep: number) => {
+    setCurrentStep(targetStep);
+  };
 
   // Attendee Guide state
   const [guideData, setGuideData] = useState<AttendeeGuideState>(emptyGuideState);
@@ -499,6 +547,8 @@ export default function OrganizerDashboard() {
     setImagePublicId(ev.image_public_id || "");
     setSelectedImageBase64("");
     setEditingEventId(ev.id);
+    setErrors({});
+    setCurrentStep(1);
     setShowForm(true);
   };
 
@@ -518,30 +568,35 @@ export default function OrganizerDashboard() {
     setImageUrl("");
     setImagePublicId("");
     setSelectedImageBase64("");
+    setErrors({});
+    setCurrentStep(1);
     setShowForm(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate
+    // Validate all steps
     const newErrors: Record<string, boolean> = {};
-    if (!formData.title) newErrors.title = true;
-    if (!formData.startDate) newErrors.startDate = true;
-    if (isMultiDay && !formData.endDate) newErrors.endDate = true;
-    if (!formData.startTime) newErrors.startTime = true;
-    if (!formData.endTime) newErrors.endTime = true;
-    if (!formData.category) newErrors.category = true;
-    if (formData.eventType === 'in_person' && !formData.city) newErrors.city = true;
-    if (formData.eventType === 'in_person' && !formData.location) newErrors.location = true;
-    if (!formData.description) newErrors.description = true;
+    let firstFailedStep = 0;
+
+    if (!formData.title?.trim()) { newErrors.title = true; if (!firstFailedStep) firstFailedStep = 1; }
+    if (!formData.category) { newErrors.category = true; if (!firstFailedStep) firstFailedStep = 1; }
+    if (formData.eventType === 'in_person' && !formData.city) { newErrors.city = true; if (!firstFailedStep) firstFailedStep = 1; }
+    
+    if (!formData.startDate) { newErrors.startDate = true; if (!firstFailedStep) firstFailedStep = 2; }
+    if (isMultiDay && !formData.endDate) { newErrors.endDate = true; if (!firstFailedStep) firstFailedStep = 2; }
+    if (!formData.startTime) { newErrors.startTime = true; if (!firstFailedStep) firstFailedStep = 2; }
+    if (!formData.endTime) { newErrors.endTime = true; if (!firstFailedStep) firstFailedStep = 2; }
+    
+    if (formData.eventType === 'in_person' && !formData.location?.trim()) { newErrors.location = true; if (!firstFailedStep) firstFailedStep = 3; }
+    
+    if (!formData.description?.trim()) { newErrors.description = true; if (!firstFailedStep) firstFailedStep = 4; }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      // Optional: smooth scroll to first error
-      const firstError = Object.keys(newErrors)[0];
-      const el = document.getElementsByName(firstError)[0];
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (firstFailedStep) setCurrentStep(firstFailedStep);
+      toast.error("Please complete all required fields.");
       return;
     }
 
@@ -942,6 +997,8 @@ export default function OrganizerDashboard() {
             setImageUrl("");
             setImagePublicId("");
             setSelectedImageBase64("");
+            setErrors({});
+            setCurrentStep(1);
             setShowForm(true);
           }}
           className="fixed bottom-8 right-8 z-40 bg-gradient-to-br from-[#22C55E] to-[#16A34A] text-white h-14 w-14 hover:w-48 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(34,197,94,0.4)] hover:scale-105 transition-all duration-300 ease-in-out border border-white/20 group overflow-hidden"
@@ -956,225 +1013,239 @@ export default function OrganizerDashboard() {
         </button>
       )}
 
-      {/* Side-sheet Form Drawer Overlay */}
+      {/* Event Creation & Edit Modal */}
       {showForm && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-6 md:p-8 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
           onClick={handleCancelEdit}
         >
           <div 
-            className="w-full max-w-xl h-full bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-black/5"
+            className="w-full max-w-4xl max-h-[92vh] bg-white rounded-[28px] sm:rounded-[36px] shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 border border-black/10 overflow-hidden my-auto"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="bg-primary/5 border-b border-black/5 p-6 flex justify-between items-center shrink-0">
-              <div>
-                <h2 className="vibecheck_font_style text-2xl text-black">
-                  {editingEventId ? "EDIT EVENT" : "NEW EVENT"}
+            <div className="bg-gradient-to-r from-zinc-50 via-white to-zinc-50 border-b border-black/5 px-6 sm:px-8 py-4 sm:py-5 flex justify-between items-center shrink-0">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="sticker-badge bg-primary/10 text-primary border-primary/20 text-[9px] font-black uppercase tracking-wider px-2 py-0.5">
+                    {editingEventId ? "EDIT MODE" : "CREATION STUDIO"}
+                  </span>
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest hidden sm:inline">
+                    Step {currentStep} of {FORM_STEPS.length}
+                  </span>
+                </div>
+                <h2 className="vibecheck_font_style text-2xl sm:text-3xl text-black">
+                  {editingEventId ? "EDIT EVENT DETAILS" : "CREATE NEW VIBE"}
                 </h2>
-                <p className="text-[10px] font-bold text-zinc-400 mt-1 uppercase">Awaiting platform guardian approval</p>
               </div>
               <button 
                 type="button" 
                 onClick={handleCancelEdit} 
-                className="ringer-button border border-black/5 hover:bg-black/5 text-black text-[10px]"
+                className="ringer-button border border-black/10 hover:bg-black/5 text-black text-[11px] font-black px-4 py-2 flex items-center gap-1.5 transition-all"
               >
-                CLOSE
+                <X className="h-4 w-4" />
+                <span className="hidden sm:inline">CLOSE</span>
               </button>
             </div>
 
+            {/* Step Milestone Stepper */}
+            <div className="bg-zinc-50 border-b border-black/5 px-4 sm:px-8 py-3.5 shrink-0">
+              <div className="flex items-center justify-between max-w-2xl mx-auto">
+                {FORM_STEPS.map((step, idx) => {
+                  const isCompleted = currentStep > step.id;
+                  const isCurrent = currentStep === step.id;
+
+                  return (
+                    <div key={step.id} className="flex items-center flex-1 last:flex-none">
+                      <button
+                        type="button"
+                        onClick={() => handleStepClick(step.id)}
+                        className={`flex items-center gap-2 group transition-all text-left ${
+                          isCurrent 
+                            ? 'opacity-100' 
+                            : isCompleted 
+                              ? 'opacity-90 hover:opacity-100 cursor-pointer' 
+                              : 'opacity-40 hover:opacity-75 cursor-pointer'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs transition-all ${
+                          isCurrent
+                            ? 'bg-black text-white ring-4 ring-black/10 scale-105 shadow-sm'
+                            : isCompleted
+                              ? 'bg-[#22C55E] text-white shadow-sm'
+                              : 'bg-zinc-200 text-zinc-600'
+                        }`}>
+                          {isCompleted ? (
+                            <Check className="h-4 w-4 stroke-[3]" />
+                          ) : (
+                            <span>{step.id}</span>
+                          )}
+                        </div>
+                        <div className="hidden sm:block">
+                          <p className={`text-[10px] font-black uppercase tracking-wider leading-tight ${
+                            isCurrent ? 'text-black' : isCompleted ? 'text-zinc-700' : 'text-zinc-400'
+                          }`}>
+                            {step.shortLabel}
+                          </p>
+                          {step.optional && (
+                            <span className="text-[8px] font-bold text-zinc-400 uppercase">Optional</span>
+                          )}
+                        </div>
+                      </button>
+
+                      {idx < FORM_STEPS.length - 1 && (
+                        <div className="flex-1 mx-2 sm:mx-3 h-[2px] bg-zinc-200 overflow-hidden rounded-full">
+                          <div className={`h-full transition-all duration-300 ${
+                            currentStep > step.id ? 'bg-[#22C55E]' : 'bg-transparent'
+                          }`} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Form Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto p-5 sm:p-8 bg-zinc-50/50 space-y-6">
               <form id="organizer-event-form" onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <Input name="title" placeholder="Event Title" value={formData.title} onChange={e => { setFormData({ ...formData, title: e.target.value }); if (errors.title) setErrors({ ...errors, title: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.title && "border-red-500 ring-red-500/20")} />
-                    {errors.title && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Title is required</p>}
-                  </div>
 
-                  {/* Event Format: In-Person vs Online */}
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1">
-                      <Globe className="h-3 w-3" /> Event Format
-                    </Label>
-                    <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const matchedCity = supportedCities.find(c => c.name === formData.city);
-                          setFormData({ 
-                            ...formData, 
-                            eventType: 'in_person',
-                            timezone: matchedCity?.timezone || formData.timezone || "Asia/Kolkata"
-                          });
-                        }}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                          formData.eventType === 'in_person' ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'
-                        }`}
-                      >
-                        <MapPin className="h-3.5 w-3.5" />
-                        <span>In-Person Vibe</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, eventType: 'online' })}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                          formData.eventType === 'online' ? 'bg-sky-600 text-white font-black shadow-lg shadow-sky-600/20' : 'text-zinc-400 hover:text-black'
-                        }`}
-                      >
-                        <Globe className="h-3.5 w-3.5" />
-                        <span>Online Event</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Select value={formData.category} onValueChange={v => { setFormData({ ...formData, category: v || "" }); if (errors.category) setErrors({ ...errors, category: false }) }}>
-                        <SelectTrigger className={cn("w-full bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.category && "border-red-500 ring-red-500/20")}>
-                          <SelectValue placeholder="Category" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white border-black/5 rounded-[20px] shadow-2xl p-2">
-                          {CATEGORIES.map(cat => (
-                            <SelectItem key={cat} value={cat} className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer">{cat}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.category && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Pick a category</p>}
+                {/* Step 1: Overview & Format */}
+                {currentStep === 1 && (
+                  <div className="bg-white rounded-[24px] p-5 sm:p-6 border border-black/5 shadow-xs space-y-5 animate-in fade-in-50 duration-200">
+                    <div className="flex items-center gap-2 pb-2 border-b border-black/5">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <h3 className="text-xs font-black uppercase tracking-wider text-black">1. Event Overview &amp; Format</h3>
                     </div>
 
-                    <div className="space-y-1">
-                      <Select 
-                        value={formData.city} 
-                        onValueChange={v => { 
-                          const matchedCity = supportedCities.find(c => c.name === v);
-                          const cityTz = matchedCity?.timezone || "Asia/Kolkata";
-                          setFormData({ 
-                            ...formData, 
-                            city: v || "",
-                            ...(formData.eventType === 'in_person' ? { timezone: cityTz } : {})
-                          }); 
-                          if (errors.city) setErrors({ ...errors, city: false });
-                        }}
-                      >
-                        <SelectTrigger className={cn("w-full bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.city && "border-red-500 ring-red-500/20")}>
-                          <SelectValue placeholder="Select City" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white border-black/5 rounded-[20px] shadow-2xl p-2">
-                          {supportedCities.map(c => (
-                            <SelectItem key={c.id} value={c.name} className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer">{c.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.city && <p className="text-[9px] text-red-500 font-black uppercase ml-1">City is required</p>}
-                    </div>
-                  </div>
-
-                  {/* Single vs Multi Day Switcher */}
-                  <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/5">
-                    <button
-                      type="button"
-                      onClick={() => setIsMultiDay(false)}
-                      className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${!isMultiDay ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
-                    >
-                      Single Day
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsMultiDay(true)}
-                      className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${isMultiDay ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
-                    >
-                      Multi Day
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <VibeDatePicker
-                      label={isMultiDay ? "From Date" : "Date"}
-                      value={formData.startDate}
-                      onChange={v => { setFormData({ ...formData, startDate: v }); if (errors.startDate) setErrors({ ...errors, startDate: false }) }}
-                      error={errors.startDate}
-                    />
-                    {isMultiDay && (
-                      <VibeDatePicker
-                        label="To Date"
-                        value={formData.endDate}
-                        onChange={v => { setFormData({ ...formData, endDate: v }); if (errors.endDate) setErrors({ ...errors, endDate: false }) }}
-                        error={errors.endDate}
-                      />
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <VibeTimePicker
-                      label="Begins At"
-                      value={formData.startTime}
-                      onChange={v => { setFormData({ ...formData, startTime: v }); if (errors.startTime) setErrors({ ...errors, startTime: false }) }}
-                      error={errors.startTime}
-                    />
-                    <VibeTimePicker
-                      label="Ends At"
-                      value={formData.endTime}
-                      onChange={v => { setFormData({ ...formData, endTime: v }); if (errors.endTime) setErrors({ ...errors, endTime: false }) }}
-                      error={errors.endTime}
-                    />
-                  </div>
-
-                  {/* Event Timezone */}
-                  {formData.eventType === 'online' ? (
-                    <div className="space-y-1">
-                      <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1">
-                        <Clock className="h-3 w-3 text-sky-600" /> Event Timezone (Virtual Event)
+                    {/* Title */}
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center justify-between">
+                        <span>Event Title <span className="text-red-500">*</span></span>
                       </Label>
-                      <WorldTimezoneSelector
-                        value={formData.timezone}
-                        onChange={tz => setFormData({ ...formData, timezone: tz })}
+                      <Input 
+                        name="title" 
+                        placeholder="e.g. Sunset Acoustic Jam Session, Vizag Beach Cleanup..." 
+                        value={formData.title} 
+                        onChange={e => { setFormData({ ...formData, title: e.target.value }); if (errors.title) setErrors({ ...errors, title: false }) }} 
+                        className={cn("bg-zinc-50 border-black/10 focus:ring-primary rounded-xl text-sm font-bold h-11", errors.title && "border-red-500 ring-red-500/20")} 
                       />
-                      <p className="text-[9px] text-zinc-400 font-bold ml-1">Search across 400+ worldwide timezones. Virtual attendees will see timings converted to their local zones.</p>
+                      {errors.title && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Title is required</p>}
                     </div>
-                  ) : (
-                    <div className="bg-zinc-50 border border-black/5 rounded-xl p-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <Clock className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-                        <div>
-                          <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">City-Inferred Timezone</span>
-                          <span className="text-xs font-black text-black">
-                            {formData.timezone || "Asia/Kolkata"} <span className="text-primary">({getTimezoneAbbr(formData.timezone || "Asia/Kolkata")})</span>
-                          </span>
+
+                    {/* Category & City */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">
+                          Category <span className="text-red-500">*</span>
+                        </Label>
+                        <Select value={formData.category} onValueChange={v => { setFormData({ ...formData, category: v || "" }); if (errors.category) setErrors({ ...errors, category: false }) }}>
+                          <SelectTrigger className={cn("w-full bg-zinc-50 border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11", errors.category && "border-red-500 ring-red-500/20")}>
+                            <SelectValue placeholder="Select Category" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border-black/5 rounded-[20px] shadow-2xl p-2 max-h-60 z-[250]">
+                            {CATEGORIES.map(cat => (
+                              <SelectItem key={cat} value={cat} className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer">{cat}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {errors.category && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Pick a category</p>}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">
+                          City / Region <span className="text-red-500">*</span>
+                        </Label>
+                        <Select 
+                          value={formData.city} 
+                          onValueChange={v => { 
+                            const matchedCity = supportedCities.find(c => c.name === v);
+                            const cityTz = matchedCity?.timezone || "Asia/Kolkata";
+                            setFormData({ 
+                              ...formData, 
+                              city: v || "",
+                              ...(formData.eventType === 'in_person' ? { timezone: cityTz } : {})
+                            }); 
+                            if (errors.city) setErrors({ ...errors, city: false });
+                          }}
+                        >
+                          <SelectTrigger className={cn("w-full bg-zinc-50 border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11", errors.city && "border-red-500 ring-red-500/20")}>
+                            <SelectValue placeholder="Select City" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border-black/5 rounded-[20px] shadow-2xl p-2 max-h-60 z-[250]">
+                            {supportedCities.map(c => (
+                              <SelectItem key={c.id} value={c.name} className="rounded-xl text-xs font-bold hover:bg-zinc-50 cursor-pointer">{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {errors.city && <p className="text-[9px] text-red-500 font-black uppercase ml-1">City is required</p>}
+                      </div>
+                    </div>
+
+                    {/* Format & Privacy switches in 2-col */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Event Format: In-Person vs Online */}
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1">
+                          <Globe className="h-3 w-3" /> Event Format
+                        </Label>
+                        <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/10">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const matchedCity = supportedCities.find(c => c.name === formData.city);
+                              setFormData({ 
+                                ...formData, 
+                                eventType: 'in_person',
+                                timezone: matchedCity?.timezone || formData.timezone || "Asia/Kolkata"
+                              });
+                            }}
+                            className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                              formData.eventType === 'in_person' ? 'bg-black text-white shadow-md' : 'text-zinc-400 hover:text-black'
+                            }`}
+                          >
+                            <MapPin className="h-3.5 w-3.5" />
+                            <span>In-Person Vibe</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, eventType: 'online' })}
+                            className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                              formData.eventType === 'online' ? 'bg-sky-600 text-white font-black shadow-md shadow-sky-600/20' : 'text-zinc-400 hover:text-black'
+                            }`}
+                          >
+                            <Globe className="h-3.5 w-3.5" />
+                            <span>Online Event</span>
+                          </button>
                         </div>
                       </div>
-                      <span className="sticker-badge bg-primary/10 text-primary border-primary/20 text-[9px] font-black uppercase">
-                        📍 {formData.city || "Auto"}
-                      </span>
-                    </div>
-                  )}
 
-                  <Input placeholder="Extra Timings Note (Optional)" value={formData.timings} onChange={e => setFormData({ ...formData, timings: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
-
-                  {/* Access & Privacy Switcher: Public vs Invite-Only */}
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1">
-                      <Lock className="h-3 w-3" /> Event Privacy &amp; Access Level
-                    </Label>
-                    <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/5">
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, visibility: 'public' })}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                          formData.visibility === 'public' ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'
-                        }`}
-                      >
-                        <span>🌍 Public Vibe</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, visibility: 'invite_only' })}
-                        className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                          formData.visibility === 'invite_only' ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-black font-black shadow-lg shadow-amber-500/20' : 'text-zinc-400 hover:text-black'
-                        }`}
-                      >
-                        <span>✨ 🔒 Invite-Only VIP</span>
-                      </button>
+                      {/* Access & Privacy Switcher: Public vs Invite-Only */}
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1">
+                          <Lock className="h-3 w-3" /> Privacy &amp; Access Level
+                        </Label>
+                        <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/10">
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, visibility: 'public' })}
+                            className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                              formData.visibility === 'public' ? 'bg-black text-white shadow-md' : 'text-zinc-400 hover:text-black'
+                            }`}
+                          >
+                            <span>🌍 Public Vibe</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, visibility: 'invite_only' })}
+                            className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                              formData.visibility === 'invite_only' ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-black font-black shadow-md shadow-amber-500/20' : 'text-zinc-400 hover:text-black'
+                            }`}
+                          >
+                            <span>✨ 🔒 Invite-Only VIP</span>
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
                     {formData.visibility === 'invite_only' && (
@@ -1199,441 +1270,644 @@ export default function OrganizerDashboard() {
                       </div>
                     )}
                   </div>
+                )}
 
-                  {/* Free vs Paid Switcher */}
-                  <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/5">
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, isPaid: false })}
-                      className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${!formData.isPaid ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
-                    >
-                      Free Entry
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, isPaid: true })}
-                      className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${formData.isPaid ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
-                    >
-                      Paid Entry
-                    </button>
+                {/* Step 2: Date & Timings */}
+                {currentStep === 2 && (
+                  <div className="bg-white rounded-[24px] p-5 sm:p-6 border border-black/5 shadow-xs space-y-5 animate-in fade-in-50 duration-200">
+                    <div className="flex items-center justify-between pb-2 border-b border-black/5">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-primary" />
+                        <h3 className="text-xs font-black uppercase tracking-wider text-black">2. Schedule &amp; Timings</h3>
+                      </div>
+                      {/* Single vs Multi Day Switcher */}
+                      <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/10">
+                        <button
+                          type="button"
+                          onClick={() => setIsMultiDay(false)}
+                          className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${!isMultiDay ? 'bg-black text-white shadow-sm' : 'text-zinc-400 hover:text-black'}`}
+                        >
+                          Single Day
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsMultiDay(true)}
+                          className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${isMultiDay ? 'bg-black text-white shadow-sm' : 'text-zinc-400 hover:text-black'}`}
+                        >
+                          Multi Day
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className={isMultiDay ? "grid grid-cols-2 gap-3" : ""}>
+                        <VibeDatePicker
+                          label={isMultiDay ? "From Date" : "Event Date"}
+                          value={formData.startDate}
+                          onChange={v => { setFormData({ ...formData, startDate: v }); if (errors.startDate) setErrors({ ...errors, startDate: false }) }}
+                          error={errors.startDate}
+                        />
+                        {isMultiDay && (
+                          <VibeDatePicker
+                            label="To Date"
+                            value={formData.endDate}
+                            onChange={v => { setFormData({ ...formData, endDate: v }); if (errors.endDate) setErrors({ ...errors, endDate: false }) }}
+                            error={errors.endDate}
+                          />
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <VibeTimePicker
+                          label="Begins At"
+                          value={formData.startTime}
+                          onChange={v => { setFormData({ ...formData, startTime: v }); if (errors.startTime) setErrors({ ...errors, startTime: false }) }}
+                          error={errors.startTime}
+                        />
+                        <VibeTimePicker
+                          label="Ends At"
+                          value={formData.endTime}
+                          onChange={v => { setFormData({ ...formData, endTime: v }); if (errors.endTime) setErrors({ ...errors, endTime: false }) }}
+                          error={errors.endTime}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Event Timezone & Note */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                      {formData.eventType === 'online' ? (
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1">
+                            <Clock className="h-3 w-3 text-sky-600" /> Event Timezone (Virtual Event)
+                          </Label>
+                          <WorldTimezoneSelector
+                            value={formData.timezone}
+                            onChange={tz => setFormData({ ...formData, timezone: tz })}
+                          />
+                          <p className="text-[9px] text-zinc-400 font-bold ml-1">Attendees will see timings converted to their local zones.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1">
+                            <Clock className="h-3 w-3 text-zinc-400" /> City Timezone
+                          </Label>
+                          <div className="bg-zinc-50 border border-black/10 rounded-xl p-3 flex items-center justify-between h-11">
+                            <span className="text-xs font-black text-black">
+                              {formData.timezone || "Asia/Kolkata"} <span className="text-primary font-bold">({getTimezoneAbbr(formData.timezone || "Asia/Kolkata")})</span>
+                            </span>
+                            <span className="sticker-badge bg-primary/10 text-primary border-primary/20 text-[9px] font-black uppercase">
+                              📍 {formData.city || "Auto"}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">
+                          Extra Timings Note (Optional)
+                        </Label>
+                        <Input 
+                          placeholder="e.g. Gates open 30 mins prior to start time" 
+                          value={formData.timings} 
+                          onChange={e => setFormData({ ...formData, timings: e.target.value })} 
+                          className="bg-zinc-50 border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11" 
+                        />
+                      </div>
+                    </div>
                   </div>
+                )}
 
-                  <div className="space-y-1">
-                    <Input
-                      type="number"
-                      min="1"
-                      placeholder="Event Capacity Limit (Optional)"
-                      value={formData.participantLimit}
-                      onChange={e => setFormData({ ...formData, participantLimit: e.target.value })}
-                      className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold"
-                    />
-                    <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Leave blank for no limit.</p>
-                  </div>
+                {/* Step 3: Venue, Ticketing & Capacity */}
+                {currentStep === 3 && (
+                  <div className="bg-white rounded-[24px] p-5 sm:p-6 border border-black/5 shadow-xs space-y-5 animate-in fade-in-50 duration-200">
+                    <div className="flex items-center gap-2 pb-2 border-b border-black/5">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      <h3 className="text-xs font-black uppercase tracking-wider text-black">3. Venue, Capacity &amp; Access</h3>
+                    </div>
 
-                  <div className="space-y-1">
-                    <Input
-                      name="location"
-                      placeholder={formData.eventType === 'online' ? "Platform / Virtual Link (e.g. Google Meet, Zoom, YouTube Live, or 'Link in Pass')" : "Location Name (e.g. Rushikonda Beach)"}
-                      value={formData.location}
-                      onChange={e => { setFormData({ ...formData, location: e.target.value }); if (errors.location) setErrors({ ...errors, location: false }) }}
-                      className={cn("bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold", errors.location && "border-red-500 ring-red-500/20")}
-                    />
-                    {errors.location && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Location is required for in-person events</p>}
-                    {formData.eventType === 'online' && (
-                      <p className="text-[9px] text-sky-600 font-bold uppercase ml-1">Virtual events can specify the platform (Zoom, Meet, Discord) or provide link in the Attendee Guide.</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1"><ImageIcon className="h-3 w-3"/> Event Cover Image</Label>
-                    <div className="flex flex-col gap-3">
-                      <Input 
-                        type="file" 
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            if (file.size > 5 * 1024 * 1024) {
-                              toast.error("Image size must be less than 5MB");
-                              e.target.value = "";
-                              return;
-                            }
-                            const reader = new FileReader();
-                            reader.onloadend = () => setSelectedImageBase64(reader.result as string);
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                        className="bg-white border-black/5 rounded-xl h-10 text-xs font-bold pt-2 cursor-pointer"
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">
+                        {formData.eventType === 'online' ? "Platform / Meeting Link" : "Venue / Location Name"} <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        name="location"
+                        placeholder={formData.eventType === 'online' ? "e.g. Google Meet, Zoom, YouTube Live, or 'Link shared upon registration'" : "e.g. Vuda Childrens Arena, Siripuram, Visakhapatnam"}
+                        value={formData.location}
+                        onChange={e => { setFormData({ ...formData, location: e.target.value }); if (errors.location) setErrors({ ...errors, location: false }) }}
+                        className={cn("bg-zinc-50 border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11", errors.location && "border-red-500 ring-red-500/20")}
                       />
-                      {(selectedImageBase64 || imageUrl) && (
-                        <div className="relative h-32 w-full md:w-1/2 rounded-xl overflow-hidden border border-black/10">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={selectedImageBase64 || imageUrl} alt="Preview" className="object-cover w-full h-full" />
+                      {errors.location && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Location is required for in-person events</p>}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">
+                          Google Maps Location Link (Optional)
+                        </Label>
+                        <Input 
+                          name="google_maps_link" 
+                          placeholder="e.g. https://maps.app.goo.gl/..." 
+                          value={formData.google_maps_link} 
+                          onChange={e => setFormData({ ...formData, google_maps_link: e.target.value })} 
+                          className="bg-zinc-50 border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11" 
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">
+                          Attendee Chat / Telegram Link (Optional)
+                        </Label>
+                        <Input 
+                          name="whatsapp_group_link" 
+                          placeholder="e.g. https://t.me/your_event_community" 
+                          value={formData.whatsapp_group_link} 
+                          onChange={e => setFormData({ ...formData, whatsapp_group_link: e.target.value })} 
+                          className="bg-zinc-50 border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Free vs Paid Switcher */}
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">
+                          Ticketing &amp; Entry Type
+                        </Label>
+                        <div className="flex bg-zinc-50 p-1 rounded-xl border border-black/10">
                           <button
                             type="button"
-                            onClick={() => {
-                              setSelectedImageBase64("");
-                              setImageUrl("");
-                              setImagePublicId("");
-                            }}
-                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow hover:bg-red-600 transition-colors"
+                            onClick={() => setFormData({ ...formData, isPaid: false })}
+                            className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${!formData.isPaid ? 'bg-black text-white shadow-md' : 'text-zinc-400 hover:text-black'}`}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            Free Entry
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, isPaid: true })}
+                            className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${formData.isPaid ? 'bg-black text-white shadow-md' : 'text-zinc-400 hover:text-black'}`}
+                          >
+                            Paid Entry
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Participant limit */}
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">
+                          Capacity Limit (Optional)
+                        </Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          placeholder="Leave blank for unlimited"
+                          value={formData.participantLimit}
+                          onChange={e => setFormData({ ...formData, participantLimit: e.target.value })}
+                          className="bg-zinc-50 border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 4: Media & Manifest Description */}
+                {currentStep === 4 && (
+                  <div className="bg-white rounded-[24px] p-5 sm:p-6 border border-black/5 shadow-xs space-y-5 animate-in fade-in-50 duration-200">
+                    <div className="flex items-center gap-2 pb-2 border-b border-black/5">
+                      <ImageIcon className="h-4 w-4 text-primary" />
+                      <h3 className="text-xs font-black uppercase tracking-wider text-black">4. Cover Media &amp; Details</h3>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1 flex items-center gap-1">
+                        Event Cover Image
+                      </Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start">
+                        <div className="sm:col-span-7 space-y-2">
+                          <Input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                if (file.size > 5 * 1024 * 1024) {
+                                  toast.error("Image size must be less than 5MB");
+                                  e.target.value = "";
+                                  return;
+                                }
+                                const reader = new FileReader();
+                                reader.onloadend = () => setSelectedImageBase64(reader.result as string);
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="bg-zinc-50 border-black/10 rounded-xl h-12 text-xs font-bold pt-3 cursor-pointer"
+                          />
+                          <p className="text-[10px] text-zinc-400 font-bold ml-1">Supported formats: JPG, PNG, WEBP up to 5MB.</p>
+                        </div>
+
+                        <div className="sm:col-span-5">
+                          {(selectedImageBase64 || imageUrl) ? (
+                            <div className="relative h-32 w-full rounded-2xl overflow-hidden border border-black/10 shadow-inner group">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={selectedImageBase64 || imageUrl} alt="Preview" className="object-cover w-full h-full" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedImageBase64("");
+                                  setImageUrl("");
+                                  setImagePublicId("");
+                                }}
+                                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-all cursor-pointer"
+                                title="Remove image"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="h-32 w-full rounded-2xl border-2 border-dashed border-zinc-200 flex flex-col items-center justify-center text-zinc-400 bg-zinc-50/50">
+                              <ImageIcon className="h-6 w-6 mb-1 text-zinc-300" />
+                              <span className="text-[10px] font-bold">No cover image uploaded</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">
+                        Vibe Manifest (Description) <span className="text-red-500">*</span>
+                      </Label>
+                      <Textarea 
+                        name="description" 
+                        placeholder="Write an engaging and vivid description of what attendees can expect, what to bring, and why they should join this vibe..." 
+                        value={formData.description} 
+                        onChange={e => { setFormData({ ...formData, description: e.target.value }); if (errors.description) setErrors({ ...errors, description: false }) }} 
+                        className={cn("bg-zinc-50 border-black/10 focus:ring-primary min-h-[160px] rounded-2xl p-4 text-xs font-bold leading-relaxed", errors.description && "border-red-500 ring-red-500/20")} 
+                      />
+                      {errors.description && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Vibe manifest is empty</p>}
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 5: Attendee Guide & Briefing Configuration */}
+                {currentStep === 5 && (
+                  <div className="border border-black/5 rounded-[24px] bg-white p-5 sm:p-6 space-y-6 shadow-xs animate-in fade-in-50 duration-200">
+                    <div className="flex items-center justify-between pb-2 border-b border-black/5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                          <Compass className="h-4.5 w-4.5" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-black uppercase tracking-wider text-black">
+                            5. Attendee Guide &amp; What to Expect (Optional)
+                          </h4>
+                          <p className="text-[10px] text-zinc-400 font-bold">
+                            Equip attendees with itinerary milestones, carry checklist, meeting spot, and helpline.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6 pt-1">
+                      {/* 1. The Day's Schedule / Itinerary */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5 text-primary" />
+                            The Day&apos;s Itinerary / Milestones
+                          </Label>
+                          <span className="text-[9px] font-bold text-zinc-400">{guideData.schedule.length} Milestones added</span>
+                        </div>
+
+                        {guideData.schedule.length > 0 && (
+                          <div className="space-y-2">
+                            {guideData.schedule.map((item, idx) => (
+                              <div key={idx} className="p-3.5 rounded-2xl bg-zinc-50 border border-black/5 flex items-start justify-between gap-3">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-black px-2.5 py-0.5 rounded-md bg-black text-white">
+                                      {item.time}
+                                    </span>
+                                    <span className="text-xs font-black text-black">{item.title}</span>
+                                  </div>
+                                  {item.description && (
+                                    <p className="text-[11px] text-zinc-500 font-medium pl-0.5">{item.description}</p>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveScheduleItem(idx)}
+                                  className="text-zinc-400 hover:text-red-500 p-1.5 transition-colors cursor-pointer shrink-0"
+                                  title="Delete milestone"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 p-3.5 bg-zinc-50/80 rounded-2xl border border-black/5">
+                          <div className="sm:col-span-3">
+                            <Input
+                              placeholder="Time (e.g. 09:00 AM)"
+                              value={newSchedTime}
+                              onChange={e => setNewSchedTime(e.target.value)}
+                              className="bg-white border-black/10 text-xs font-bold rounded-xl h-10"
+                            />
+                          </div>
+                          <div className="sm:col-span-4">
+                            <Input
+                              placeholder="Milestone Title"
+                              value={newSchedTitle}
+                              onChange={e => setNewSchedTitle(e.target.value)}
+                              className="bg-white border-black/10 text-xs font-bold rounded-xl h-10"
+                            />
+                          </div>
+                          <div className="sm:col-span-3">
+                            <Input
+                              placeholder="Short Details (Optional)"
+                              value={newSchedDesc}
+                              onChange={e => setNewSchedDesc(e.target.value)}
+                              className="bg-white border-black/10 text-xs font-bold rounded-xl h-10"
+                            />
+                          </div>
+                          <div className="sm:col-span-2 flex items-center">
+                            <button
+                              type="button"
+                              onClick={handleAddScheduleItem}
+                              className="ringer-button w-full bg-black hover:bg-zinc-800 text-white text-[10px] font-black uppercase h-10 flex items-center justify-center gap-1"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              Add
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 2. Program Highlights */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <Sparkles className="h-3.5 w-3.5 text-primary" />
+                            Program Highlights
+                          </Label>
+                          <span className="text-[9px] font-bold text-zinc-400">{guideData.highlights.length} Highlights</span>
+                        </div>
+
+                        {guideData.highlights.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {guideData.highlights.map((highlight, idx) => (
+                              <span key={idx} className="sticker-badge bg-primary/10 text-black border-primary/20 flex items-center gap-2 text-[10px] pl-3 pr-2 py-1">
+                                <span>{highlight}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveHighlight(idx)}
+                                  className="text-zinc-500 hover:text-black font-black font-sans ml-1 cursor-pointer"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="e.g. Hands-on outdoor experiential workshop"
+                            value={newHighlight}
+                            onChange={e => setNewHighlight(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddHighlight();
+                              }
+                            }}
+                            className="bg-zinc-50 border-black/10 text-xs font-bold rounded-xl h-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddHighlight}
+                            className="ringer-button bg-black hover:bg-zinc-800 text-white text-[10px] font-black uppercase px-5 h-10 flex items-center gap-1 shrink-0"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Add
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 3. What to Carry Checklist */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <Backpack className="h-3.5 w-3.5 text-primary" />
+                            What to Carry Checklist
+                          </Label>
+                          <span className="text-[9px] font-bold text-zinc-400">{guideData.whatToCarry.length} Items</span>
+                        </div>
+
+                        {guideData.whatToCarry.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {guideData.whatToCarry.map((item, idx) => (
+                              <span key={idx} className="sticker-badge bg-zinc-200/80 text-black border-none flex items-center gap-2 text-[10px] pl-3 pr-2 py-1">
+                                <span>{item}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveCarryItem(idx)}
+                                  className="text-zinc-500 hover:text-black font-black font-sans ml-1 cursor-pointer"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="e.g. 1 Litre reusable water bottle, sunscreen"
+                            value={newCarryItem}
+                            onChange={e => setNewCarryItem(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddCarryItem();
+                              }
+                            }}
+                            className="bg-zinc-50 border-black/10 text-xs font-bold rounded-xl h-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddCarryItem}
+                            className="ringer-button bg-black hover:bg-zinc-800 text-white text-[10px] font-black uppercase px-5 h-10 flex items-center gap-1 shrink-0"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Add
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 4. Assembly Point Landmark & URL */}
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-primary" />
+                          Specific Assembly Point / Meeting Spot
+                        </Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <Input
+                            placeholder="Assembly Point Details (e.g. Gate 2, North Lawn Pavilion)"
+                            value={guideData.assemblyPoint}
+                            onChange={e => setGuideData({ ...guideData, assemblyPoint: e.target.value })}
+                            className="bg-zinc-50 border-black/10 text-xs font-bold rounded-xl h-10"
+                          />
+                          <Input
+                            placeholder="Assembly Google Maps URL (Optional)"
+                            value={guideData.assemblyMapsUrl}
+                            onChange={e => setGuideData({ ...guideData, assemblyMapsUrl: e.target.value })}
+                            className="bg-zinc-50 border-black/10 text-xs font-bold rounded-xl h-10"
+                          />
+                        </div>
+                      </div>
+
+                      {/* 5. Organizer & Helpline Contacts */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <PhoneCall className="h-3.5 w-3.5 text-primary" />
+                            Organizer / Helpline Contacts
+                          </Label>
+                          <span className="text-[9px] font-bold text-zinc-400">{guideData.contacts.length} Contacts</span>
+                        </div>
+
+                        {guideData.contacts.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {guideData.contacts.map((c, idx) => (
+                              <div key={idx} className="px-3 py-1.5 rounded-xl bg-zinc-50 border border-black/5 flex items-center gap-2 text-xs font-bold shadow-2xs">
+                                <span>{c.name}: <span className="font-mono text-zinc-600">{c.phone}</span></span>
+                                {c.role && <span className="text-[10px] text-zinc-400">({c.role})</span>}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveContact(idx)}
+                                  className="text-zinc-400 hover:text-red-500 ml-1 cursor-pointer"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 p-3.5 bg-zinc-50/80 rounded-2xl border border-black/5">
+                          <div className="sm:col-span-4">
+                            <Input
+                              placeholder="Contact Name (e.g. Ramesh)"
+                              value={newContactName}
+                              onChange={e => setNewContactName(e.target.value)}
+                              className="bg-white border-black/10 text-xs font-bold rounded-xl h-10"
+                            />
+                          </div>
+                          <div className="sm:col-span-3">
+                            <Input
+                              placeholder="Phone (e.g. +91 9876543210)"
+                              value={newContactPhone}
+                              onChange={e => setNewContactPhone(e.target.value)}
+                              className="bg-white border-black/10 text-xs font-bold rounded-xl h-10"
+                            />
+                          </div>
+                          <div className="sm:col-span-3">
+                            <Input
+                              placeholder="Role (e.g. Lead)"
+                              value={newContactRole}
+                              onChange={e => setNewContactRole(e.target.value)}
+                              className="bg-white border-black/10 text-xs font-bold rounded-xl h-10"
+                            />
+                          </div>
+                          <div className="sm:col-span-2 flex items-center">
+                            <button
+                              type="button"
+                              onClick={handleAddContact}
+                              className="ringer-button w-full bg-black hover:bg-zinc-800 text-white text-[10px] font-black uppercase h-10 flex items-center justify-center gap-1"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              Add
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 6. Fee Note (Paid Events only) */}
+                      {formData.isPaid && (
+                        <div className="space-y-2 p-4 bg-amber-50/70 border border-amber-200/60 rounded-2xl">
+                          <Label className="text-[10px] font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                            Fee &amp; Payment Inclusions Note (Paid Events)
+                          </Label>
+                          <Input
+                            placeholder="e.g. ₹500/- per person | Includes workshop kit, lunch & certificate"
+                            value={guideData.feeNote}
+                            onChange={e => setGuideData({ ...guideData, feeNote: e.target.value })}
+                            className="bg-white border-amber-200 text-xs font-bold rounded-xl h-10"
+                          />
                         </div>
                       )}
                     </div>
                   </div>
+                )}
 
-                  <div className="space-y-1">
-                    <Input name="google_maps_link" placeholder="Google Maps Link / URL (Optional)" value={formData.google_maps_link} onChange={e => setFormData({ ...formData, google_maps_link: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
-                    <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Copy & paste a Google Maps sharing URL so users can navigate exactly to your location.</p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <Input name="whatsapp_group_link" placeholder="Telegram Group Invite Link / URL (Optional, e.g. https://t.me/your_group)" value={formData.whatsapp_group_link} onChange={e => setFormData({ ...formData, whatsapp_group_link: e.target.value })} className="bg-zinc-50 border-black/5 focus:ring-primary rounded-xl text-xs font-bold" />
-                    <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Optional Telegram group invite for confirmed attendees to chat and coordinate.</p>
-                  </div>
-
-                  {/* Attendee Guide & Briefing Configuration */}
-                  <div className="border border-black/5 rounded-[28px] bg-zinc-50/70 p-5 sm:p-6 space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                          <Compass className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-black uppercase tracking-wider text-black">
-                            Attendee Guide &amp; What to Expect (Optional)
-                          </h4>
-                          <p className="text-[10px] text-zinc-400 font-bold">
-                            Equip attendees with itinerary milestones, checklist, and helpline.
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowGuideFields(!showGuideFields)}
-                        className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border border-black/10 hover:bg-white transition-all text-black flex items-center gap-1 cursor-pointer"
-                      >
-                        {showGuideFields ? "Hide Guide Fields" : "Configure Guide"}
-                        {showGuideFields ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                      </button>
-                    </div>
-
-                    {showGuideFields && (
-                      <div className="space-y-6 pt-2 border-t border-black/5 animate-in fade-in-50 duration-200">
-                        
-                        {/* 1. The Day's Schedule / Itinerary */}
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                              <Clock className="h-3.5 w-3.5 text-primary" />
-                              The Day&apos;s Itinerary / Milestones
-                            </Label>
-                            <span className="text-[9px] font-bold text-zinc-400">{guideData.schedule.length} Milestones added</span>
-                          </div>
-
-                          {guideData.schedule.length > 0 && (
-                            <div className="space-y-2">
-                              {guideData.schedule.map((item, idx) => (
-                                <div key={idx} className="p-3 rounded-2xl bg-white border border-black/5 flex items-start justify-between gap-3 shadow-2xs">
-                                  <div className="space-y-0.5">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[10px] font-black px-2 py-0.5 rounded bg-zinc-100 text-zinc-700">
-                                        {item.time}
-                                      </span>
-                                      <span className="text-xs font-black text-black">{item.title}</span>
-                                    </div>
-                                    {item.description && (
-                                      <p className="text-[11px] text-zinc-500 font-medium pl-0.5">{item.description}</p>
-                                    )}
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveScheduleItem(idx)}
-                                    className="text-zinc-400 hover:text-red-500 p-1 transition-colors cursor-pointer shrink-0"
-                                    title="Delete milestone"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 p-3 bg-white/70 rounded-2xl border border-black/5">
-                            <div className="sm:col-span-4">
-                              <Input
-                                placeholder="Time (e.g. 09:00 AM – 10:30 AM)"
-                                value={newSchedTime}
-                                onChange={e => setNewSchedTime(e.target.value)}
-                                className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
-                              />
-                            </div>
-                            <div className="sm:col-span-4">
-                              <Input
-                                placeholder="Milestone Title (e.g. Welcome & Keynote)"
-                                value={newSchedTitle}
-                                onChange={e => setNewSchedTitle(e.target.value)}
-                                className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
-                              />
-                            </div>
-                            <div className="sm:col-span-4">
-                              <Input
-                                placeholder="Short Details (Optional)"
-                                value={newSchedDesc}
-                                onChange={e => setNewSchedDesc(e.target.value)}
-                                className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
-                              />
-                            </div>
-                            <div className="sm:col-span-12 flex justify-end pt-1">
-                              <button
-                                type="button"
-                                onClick={handleAddScheduleItem}
-                                className="ringer-button bg-black hover:bg-zinc-800 text-white text-[10px] font-black uppercase px-4 py-1.5 flex items-center gap-1"
-                              >
-                                <Plus className="h-3 w-3" />
-                                Add Milestone
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* 2. Program Highlights */}
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                              <Sparkles className="h-3.5 w-3.5 text-primary" />
-                              Program Highlights
-                            </Label>
-                            <span className="text-[9px] font-bold text-zinc-400">{guideData.highlights.length} Highlights</span>
-                          </div>
-
-                          {guideData.highlights.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {guideData.highlights.map((highlight, idx) => (
-                                <span key={idx} className="sticker-badge bg-primary/10 text-black border-primary/20 flex items-center gap-2 text-[10px] pl-3 pr-2 py-1">
-                                  <span>{highlight}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveHighlight(idx)}
-                                    className="text-zinc-500 hover:text-black font-black font-sans ml-1 cursor-pointer"
-                                  >
-                                    ×
-                                  </button>
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="e.g. Hands-on outdoor experiential workshop"
-                              value={newHighlight}
-                              onChange={e => setNewHighlight(e.target.value)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  handleAddHighlight();
-                                }
-                              }}
-                              className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
-                            />
-                            <button
-                              type="button"
-                              onClick={handleAddHighlight}
-                              className="ringer-button bg-black hover:bg-zinc-800 text-white text-[10px] font-black uppercase px-4 py-1.5 flex items-center gap-1 shrink-0"
-                            >
-                              <Plus className="h-3 w-3" />
-                              Add
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* 3. What to Carry Checklist */}
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                              <Backpack className="h-3.5 w-3.5 text-primary" />
-                              What to Carry Checklist
-                            </Label>
-                            <span className="text-[9px] font-bold text-zinc-400">{guideData.whatToCarry.length} Items</span>
-                          </div>
-
-                          {guideData.whatToCarry.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {guideData.whatToCarry.map((item, idx) => (
-                                <span key={idx} className="sticker-badge bg-zinc-200/80 text-black border-none flex items-center gap-2 text-[10px] pl-3 pr-2 py-1">
-                                  <span>{item}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveCarryItem(idx)}
-                                    className="text-zinc-500 hover:text-black font-black font-sans ml-1 cursor-pointer"
-                                  >
-                                    ×
-                                  </button>
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="e.g. 1 Litre reusable water bottle"
-                              value={newCarryItem}
-                              onChange={e => setNewCarryItem(e.target.value)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  handleAddCarryItem();
-                                }
-                              }}
-                              className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
-                            />
-                            <button
-                              type="button"
-                              onClick={handleAddCarryItem}
-                              className="ringer-button bg-black hover:bg-zinc-800 text-white text-[10px] font-black uppercase px-4 py-1.5 flex items-center gap-1 shrink-0"
-                            >
-                              <Plus className="h-3 w-3" />
-                              Add
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* 4. Assembly Point Landmark & URL */}
-                        <div className="space-y-3">
-                          <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                            <MapPin className="h-3.5 w-3.5 text-primary" />
-                            Specific Assembly Point / Meeting Spot
-                          </Label>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <Input
-                              placeholder="Assembly Point Details (e.g. Gate 2, North Lawn Pavilion)"
-                              value={guideData.assemblyPoint}
-                              onChange={e => setGuideData({ ...guideData, assemblyPoint: e.target.value })}
-                              className="bg-zinc-50 border-black/5 text-xs font-bold rounded-xl h-9"
-                            />
-                            <Input
-                              placeholder="Assembly Google Maps URL (Optional)"
-                              value={guideData.assemblyMapsUrl}
-                              onChange={e => setGuideData({ ...guideData, assemblyMapsUrl: e.target.value })}
-                              className="bg-zinc-50 border-black/5 text-xs font-bold rounded-xl h-9"
-                            />
-                          </div>
-                        </div>
-
-                        {/* 5. Organizer & Helpline Contacts */}
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                              <PhoneCall className="h-3.5 w-3.5 text-primary" />
-                              Organizer / Helpline Contacts
-                            </Label>
-                            <span className="text-[9px] font-bold text-zinc-400">{guideData.contacts.length} Contacts</span>
-                          </div>
-
-                          {guideData.contacts.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {guideData.contacts.map((c, idx) => (
-                                <div key={idx} className="px-3 py-1.5 rounded-xl bg-white border border-black/5 flex items-center gap-2 text-xs font-bold shadow-2xs">
-                                  <span>{c.name}: <span className="font-mono text-zinc-600">{c.phone}</span></span>
-                                  {c.role && <span className="text-[10px] text-zinc-400">({c.role})</span>}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveContact(idx)}
-                                    className="text-zinc-400 hover:text-red-500 ml-1 cursor-pointer"
-                                  >
-                                    ×
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 p-3 bg-white/70 rounded-2xl border border-black/5">
-                            <div className="sm:col-span-4">
-                              <Input
-                                placeholder="Contact Name (e.g. Ramesh)"
-                                value={newContactName}
-                                onChange={e => setNewContactName(e.target.value)}
-                                className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
-                              />
-                            </div>
-                            <div className="sm:col-span-4">
-                              <Input
-                                placeholder="Phone Number (e.g. +91 9876543210)"
-                                value={newContactPhone}
-                                onChange={e => setNewContactPhone(e.target.value)}
-                                className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
-                              />
-                            </div>
-                            <div className="sm:col-span-4">
-                              <Input
-                                placeholder="Role (e.g. Program Lead)"
-                                value={newContactRole}
-                                onChange={e => setNewContactRole(e.target.value)}
-                                className="bg-white border-black/5 text-xs font-bold rounded-xl h-9"
-                              />
-                            </div>
-                            <div className="sm:col-span-12 flex justify-end pt-1">
-                              <button
-                                type="button"
-                                onClick={handleAddContact}
-                                className="ringer-button bg-black hover:bg-zinc-800 text-white text-[10px] font-black uppercase px-4 py-1.5 flex items-center gap-1"
-                              >
-                                <Plus className="h-3 w-3" />
-                                Add Contact
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* 6. Fee Note (Paid Events only) */}
-                        {formData.isPaid && (
-                          <div className="space-y-2 p-3.5 bg-amber-50/70 border border-amber-200/60 rounded-2xl">
-                            <Label className="text-[10px] font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
-                              Fee &amp; Payment Inclusions Note (Paid Events)
-                            </Label>
-                            <Input
-                              placeholder="e.g. ₹500/- per person | Includes workshop kit, lunch & certificate"
-                              value={guideData.feeNote}
-                              onChange={e => setGuideData({ ...guideData, feeNote: e.target.value })}
-                              className="bg-white border-amber-200 text-xs font-bold rounded-xl h-9"
-                            />
-                          </div>
-                        )}
-
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <Textarea name="description" placeholder="Vibe Manifest (Description)..." value={formData.description} onChange={e => { setFormData({ ...formData, description: e.target.value }); if (errors.description) setErrors({ ...errors, description: false }) }} className={cn("bg-zinc-50 border-black/5 focus:ring-primary min-h-[140px] rounded-[24px] p-4 text-xs font-bold", errors.description && "border-red-500 ring-red-500/20")} />
-                    {errors.description && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Vibe manifest is empty</p>}
-                  </div>
-                </div>
               </form>
             </div>
 
-            {/* Footer */}
-            <div className="border-t border-black/5 p-6 bg-zinc-50 flex justify-end gap-3 shrink-0">
-              <button 
-                type="button" 
-                onClick={handleCancelEdit} 
-                className="ringer-button border border-black/5 hover:bg-black/5 text-black text-[10px]"
-              >
-                CANCEL
-              </button>
-              <button 
-                type="submit" 
-                form="organizer-event-form" 
-                disabled={submitting} 
-                className="ringer-button bg-gradient-to-br from-[#22C55E] to-[#16A34A] text-white hover:from-[#16A34A] hover:to-[#15803D] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-green-500/20 text-[10px]"
-              >
-                {submitting ? "SUBMITTING..." : editingEventId ? "SUBMIT EDITS" : "SUBMIT FOR REVIEW"}
-              </button>
+            {/* Footer Navigation */}
+            <div className="border-t border-black/5 px-6 sm:px-8 py-4 bg-white flex justify-between items-center gap-3 shrink-0">
+              <div>
+                {currentStep > 1 ? (
+                  <button
+                    type="button"
+                    onClick={handlePrevStep}
+                    className="ringer-button border border-black/10 hover:bg-black/5 text-black text-[11px] font-black px-4 sm:px-5 py-2.5 flex items-center gap-1.5"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>PREVIOUS</span>
+                  </button>
+                ) : (
+                  <button 
+                    type="button" 
+                    onClick={handleCancelEdit} 
+                    className="ringer-button border border-black/10 hover:bg-black/5 text-black text-[11px] font-black px-5 py-2.5"
+                  >
+                    CANCEL
+                  </button>
+                )}
+              </div>
+
+              <div className="hidden sm:flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                  Step {currentStep} of {FORM_STEPS.length}:
+                </span>
+                <span className="text-[11px] font-black text-black uppercase">
+                  {FORM_STEPS[currentStep - 1].label}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {currentStep < 5 ? (
+                  <button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="ringer-button bg-black hover:bg-zinc-800 text-white text-[11px] font-black px-6 py-2.5 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md"
+                  >
+                    <span>NEXT STEP</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <button 
+                    type="submit" 
+                    form="organizer-event-form" 
+                    disabled={submitting} 
+                    className="ringer-button bg-gradient-to-br from-[#22C55E] to-[#16A34A] text-white hover:from-[#16A34A] hover:to-[#15803D] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-green-500/20 text-[11px] font-black px-6 py-2.5 min-w-[160px]"
+                  >
+                    {submitting ? "SUBMITTING..." : editingEventId ? "SAVE EDITS" : "SUBMIT FOR REVIEW"}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1641,7 +1915,7 @@ export default function OrganizerDashboard() {
 
       {/* Edit Notes Modal */}
       {editingContact && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setEditingContact(null)}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onClick={() => setEditingContact(null)}>
           <div className="bg-white rounded-[40px] p-10 max-w-lg w-full shadow-2xl border border-black/5 animate-in zoom-in-95 duration-200 text-black" onClick={e => e.stopPropagation()}>
             <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-2">Edit Contact Details</h3>
             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-6">CRM context for {editingContact.name || editingContact.email}</p>
@@ -1721,7 +1995,7 @@ export default function OrganizerDashboard() {
 
       {/* CRM Selected Broadcast Modal */}
       {crmBroadcastOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setCrmBroadcastOpen(false)}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onClick={() => setCrmBroadcastOpen(false)}>
           <div className="bg-white rounded-[40px] p-10 max-w-md w-full shadow-2xl border border-black/5 animate-in zoom-in-95 duration-200 text-black" onClick={e => e.stopPropagation()}>
             <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-none mb-2">Selective Outreach</h3>
             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-8">Send custom WhatsApp update to selected contacts</p>
