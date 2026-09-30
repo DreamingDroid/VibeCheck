@@ -1,15 +1,45 @@
 import { Pool } from 'pg';
+import crypto from 'crypto';
 
 export async function insertEventRSVP(pool: Pool, eventId: string, phone: string) {
+  const cleanPhone = phone.trim();
+  const qrToken = 'vc_pass_' + crypto.randomBytes(12).toString('hex');
+  const client = await pool.connect();
   try {
-    await pool.query(
-      `INSERT INTO event_rsvps (event_id, phone_number) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-      [eventId, phone]
+    await client.query('BEGIN');
+    const eventRes = await client.query(
+      `SELECT id, status, participant_limit,
+              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = $1 AND status != 'cancelled') AS current_rsvps
+       FROM events WHERE id = $1 FOR UPDATE`,
+      [eventId]
     );
-    return true;
-  } catch (error) {
-    console.error('[DAL] Error inserting event RSVP:', error);
-    throw error;
+
+    if (eventRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return { success: false, error: 'Event not found' };
+    }
+
+    const event = eventRes.rows[0];
+    if (event.status === 'housefull' || (event.participant_limit && event.current_rsvps >= event.participant_limit)) {
+      await client.query('ROLLBACK');
+      return { success: false, error: 'This event is housefull' };
+    }
+
+    await client.query(
+      `INSERT INTO event_rsvps (event_id, phone_number, status, qr_token, checkin_status)
+       VALUES ($1, $2, 'confirmed', $3, 'issued')
+       ON CONFLICT DO NOTHING`,
+      [eventId, cleanPhone, qrToken]
+    );
+
+    await client.query('COMMIT');
+    return { success: true };
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[DAL] Error in atomic insertEventRSVP:', err);
+    throw err;
+  } finally {
+    client.release();
   }
 }
 
@@ -262,29 +292,95 @@ export async function getUserVipInvites(pool: Pool, email: string) {
     return rows;
 }
 
-export async function insertEventRSVPEmail(pool: Pool, eventId: string, email: string, isPaid: boolean = false, phoneNumber?: string) {
-    const status = 'pending';
-    const paymentStatus = isPaid ? 'unpaid' : 'free';
-    const passCode = null;
-    const qrToken = 'vc_pass_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+export async function insertEventRSVPEmail(
+  pool: Pool,
+  eventId: string,
+  email: string,
+  isPaid: boolean = false,
+  phoneNumber?: string
+): Promise<{ success: boolean; error?: string; rsvp?: any }> {
+  const cleanEmail = email.trim().toLowerCase();
+  const status = 'pending';
+  const paymentStatus = isPaid ? 'unpaid' : 'free';
+  const passCode = null;
+  const qrToken = 'vc_pass_' + crypto.randomBytes(12).toString('hex');
 
-    const { rows } = await pool.query(`
-      INSERT INTO event_rsvps (event_id, user_email, phone_number, status, payment_status, pass_code, qr_token, checkin_status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'issued')
-      ON CONFLICT (event_id, user_email) 
-      DO UPDATE SET status = EXCLUDED.status, payment_status = EXCLUDED.payment_status,
-                    qr_token = COALESCE(event_rsvps.qr_token, EXCLUDED.qr_token),
-                    pass_code = event_rsvps.pass_code
-      RETURNING id, event_id, user_email, phone_number, status, payment_status, pass_code, qr_token, checkin_status;
-    `, [eventId, email, phoneNumber || null, status, paymentStatus, passCode, qrToken]);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. Lock the event row to prevent concurrent overselling race conditions
+    const eventRes = await client.query(
+      `SELECT id, status, participant_limit, is_paid,
+              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = $1 AND (status != 'cancelled' OR status IS NULL)) AS current_rsvps
+       FROM events
+       WHERE id = $1
+       FOR UPDATE`,
+      [eventId]
+    );
+
+    if (eventRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return { success: false, error: 'Event not found' };
+    }
+
+    const event = eventRes.rows[0];
+
+    // Check if user already has an active RSVP
+    const existingRsvp = await client.query(
+      `SELECT * FROM event_rsvps WHERE event_id = $1 AND LOWER(user_email) = $2`,
+      [eventId, cleanEmail]
+    );
+
+    if (existingRsvp.rows.length > 0) {
+      await client.query('COMMIT');
+      return { success: true, rsvp: existingRsvp.rows[0] };
+    }
+
+    // Capacity checks
+    if (event.status === 'housefull') {
+      await client.query('ROLLBACK');
+      return { success: false, error: 'This event is housefull' };
+    }
+
+    if (event.participant_limit && event.current_rsvps >= event.participant_limit) {
+      await client.query(`UPDATE events SET status = 'housefull' WHERE id = $1`, [eventId]);
+      await client.query('COMMIT');
+      return { success: false, error: 'This event is housefull' };
+    }
+
+    // Insert new RSVP
+    const { rows } = await client.query(
+      `INSERT INTO event_rsvps (event_id, user_email, phone_number, status, payment_status, pass_code, qr_token, checkin_status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'issued')
+       ON CONFLICT (event_id, user_email) 
+       DO UPDATE SET status = EXCLUDED.status, payment_status = EXCLUDED.payment_status,
+                     qr_token = COALESCE(event_rsvps.qr_token, EXCLUDED.qr_token),
+                     pass_code = event_rsvps.pass_code
+       RETURNING id, event_id, user_email, phone_number, status, payment_status, pass_code, qr_token, checkin_status;`,
+      [eventId, cleanEmail, phoneNumber || null, status, paymentStatus, passCode, qrToken]
+    );
+
+    // If this RSVP reaches the limit, auto-set housefull
+    if (event.participant_limit && event.current_rsvps + 1 >= event.participant_limit) {
+      await client.query(`UPDATE events SET status = 'housefull' WHERE id = $1`, [eventId]);
+    }
 
     // Mark invite as claimed if exists
-    await pool.query(
+    await client.query(
       `UPDATE event_invites SET status = 'claimed', claimed_at = CURRENT_TIMESTAMP WHERE event_id = $1 AND LOWER(user_email) = $2`,
-      [eventId, email.toLowerCase().trim()]
+      [eventId, cleanEmail]
     ).catch(() => {});
 
-    return rows[0];
+    await client.query('COMMIT');
+    return { success: true, rsvp: rows[0] };
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[DAL] Error in atomic insertEventRSVPEmail:', err);
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 export async function checkEventRSVPEmail(pool: Pool, eventId: string, email: string) {

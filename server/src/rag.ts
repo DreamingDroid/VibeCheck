@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { OllamaEmbeddings, ChatOllama } from '@langchain/ollama';
+import { GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { StateGraph, Annotation } from '@langchain/langgraph';
 import { SystemMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
 import { z } from 'zod';
@@ -11,35 +11,24 @@ let embeddings: any = null;
 
 export function getEmbeddings() {
   if (embeddings) return embeddings;
-  embeddings = new OllamaEmbeddings({
-    model: config.EMBED_MODEL || 'mxbai-embed-large',
-    baseUrl: config.OLLAMA_BASE_URL,
+  embeddings = new GoogleGenerativeAIEmbeddings({
+    model: config.EMBED_MODEL || 'text-embedding-004',
+    apiKey: config.GEMINI_API_KEY,
   });
-  console.log('[RAG] Initialized OllamaEmbeddings with', config.EMBED_MODEL || 'mxbai-embed-large');
+  console.log('[RAG] Initialized GoogleGenerativeAIEmbeddings with', config.EMBED_MODEL || 'text-embedding-004');
   return embeddings;
 }
 
-// ── Chat Model: Ollama (local) or Gemini (cloud) ─────────────────────────────
+// ── Chat Model: Gemini (cloud) ───────────────────────────────────────────────
 let chatModel: any = null;
 
 export function getChatModel() {
   if (chatModel) return chatModel;
-  
-  if (config.RUN_MODE === 'cloud') {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
-    chatModel = new ChatGoogleGenerativeAI({
-      model: 'gemini-1.5-flash',
-      apiKey: config.GEMINI_API_KEY
-    });
-    console.log('[RAG] Running with Gemini Flash (cloud mode)');
-  } else {
-    chatModel = new ChatOllama({
-      model: config.CHAT_MODEL,
-      baseUrl: config.OLLAMA_BASE_URL,
-    });
-    console.log('[RAG] Running with Ollama (local mode)');
-  }
+  chatModel = new ChatGoogleGenerativeAI({
+    model: config.CHAT_MODEL || 'gemini-1.5-flash',
+    apiKey: config.GEMINI_API_KEY,
+  });
+  console.log('[RAG] Running with Gemini Flash (cloud mode):', config.CHAT_MODEL || 'gemini-1.5-flash');
   return chatModel;
 }
 

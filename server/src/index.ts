@@ -142,10 +142,11 @@ app.use('/api', (req, res, next) => {
 
 const connectionString = config.DATABASE_URL;
 
-console.log('Using DATABASE_URL for API:', connectionString);
-
 const pool = new Pool({
   connectionString,
+  max: 30,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
 });
 
 pool.on('connect', async (client) => {

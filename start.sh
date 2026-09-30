@@ -109,11 +109,6 @@ else
 fi
 
 COMPOSE_SERVICES=(db appsmith)
-if ss -ltn '( sport = :11434 )' 2>/dev/null | grep -q ':11434'; then
-    echo "[INFO] Port 11434 is already in use. Reusing the existing host Ollama service."
-else
-    COMPOSE_SERVICES+=(ollama)
-fi
 
 echo "[OK] Starting infrastructure services: ${COMPOSE_SERVICES[*]}"
 "${COMPOSE_CMD[@]}" up -d "${COMPOSE_SERVICES[@]}"

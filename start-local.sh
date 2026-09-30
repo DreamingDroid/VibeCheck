@@ -22,11 +22,11 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 # 2. Start Infrastructure
-echo "[OK] Starting DB and Ollama via Docker Compose..."
+echo "[OK] Starting DB and Appsmith via Docker Compose..."
 if command -v docker-compose >/dev/null 2>&1; then
-    docker-compose up -d db ollama appsmith
+    docker-compose up -d db appsmith
 elif docker compose version >/dev/null 2>&1; then
-    docker compose up -d db ollama appsmith
+    docker compose up -d db appsmith
 else
     echo "[ERROR] Neither 'docker-compose' nor 'docker compose' is installed."
     exit 1

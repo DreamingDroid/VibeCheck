@@ -88,7 +88,13 @@ export async function rsvpEventHandler(req: Request, res: Response, pool: Pool) 
       return res.status(400).json({ success: false, error: 'This event is housefull' });
     }
 
-    const rsvp = await insertEventRSVPEmail(pool, id as string, email as string, !!event.is_paid);
+    const rsvpResult = await insertEventRSVPEmail(pool, id as string, email as string, !!event.is_paid);
+
+    if (!rsvpResult.success) {
+      return res.status(400).json({ success: false, error: rsvpResult.error || 'Unable to complete RSVP' });
+    }
+
+    const rsvp = rsvpResult.rsvp;
 
     return res.json({
       success: true,

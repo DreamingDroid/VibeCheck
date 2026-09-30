@@ -169,7 +169,10 @@ CREATE TABLE IF NOT EXISTS event_rsvps (
 );
 
 CREATE INDEX IF NOT EXISTS idx_event_rsvps_qr_token ON event_rsvps(qr_token);
+CREATE INDEX IF NOT EXISTS idx_event_rsvps_pass_code ON event_rsvps(UPPER(pass_code));
+CREATE INDEX IF NOT EXISTS idx_event_rsvps_phone ON event_rsvps(phone_number);
 CREATE INDEX IF NOT EXISTS idx_event_rsvps_checkin ON event_rsvps(event_id, checkin_status);
+CREATE INDEX IF NOT EXISTS idx_event_rsvps_event_status ON event_rsvps(event_id, status);
 
 -- 6b. Event Invites (Guest List for Invite-Only / VIP Events)
 CREATE TABLE IF NOT EXISTS event_invites (
@@ -220,6 +223,8 @@ CREATE TABLE IF NOT EXISTS organizer_followers (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_email, organizer_email)
 );
+
+CREATE INDEX IF NOT EXISTS idx_organizer_followers_org ON organizer_followers (organizer_email);
 
 -- 9. Broadcasts
 CREATE TABLE IF NOT EXISTS broadcasts (

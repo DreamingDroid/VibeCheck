@@ -388,6 +388,12 @@ export async function initializeDatabaseSchema(pool: Pool) {
     CREATE INDEX IF NOT EXISTS idx_scanner_pins_event ON event_scanner_pins (event_id, pin_code);
   `).catch(() => {});
 
+  // High-performance scalability indexes for passes, RSVPs, and CRM
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_event_rsvps_pass_code ON event_rsvps (UPPER(pass_code));`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_event_rsvps_phone ON event_rsvps (phone_number);`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_event_rsvps_event_status ON event_rsvps (event_id, status);`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_organizer_followers_org ON organizer_followers (organizer_email);`).catch(() => {});
+
   // Seed default cities if empty
   const { rows: cityRows } = await pool.query('SELECT COUNT(*) FROM cities');
   if (parseInt(cityRows[0].count) === 0) {

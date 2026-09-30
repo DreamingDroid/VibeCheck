@@ -167,16 +167,27 @@ export async function verifyAndCheckInPass(
     };
   }
 
-  // Mark checked in
+  // Atomic update: only mark checked_in if not already checked in
   const updateResult = await pool.query(
     `UPDATE event_rsvps
      SET checkin_status = 'checked_in',
          checked_in_at = CURRENT_TIMESTAMP,
          checked_in_by = $1
-     WHERE id = $2
+     WHERE id = $2 AND (checkin_status != 'checked_in' OR checkin_status IS NULL)
      RETURNING *`,
     [checkedInBy, pass.id]
   );
+
+  if (updateResult.rows.length === 0) {
+    // Another concurrent scanner checked in this pass
+    const freshPass = await getPassByQrToken(pool, qrToken);
+    return {
+      success: false,
+      code: 'ALREADY_CHECKED_IN',
+      message: `Pass already checked in at ${freshPass?.checked_in_at ? new Date(freshPass.checked_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'earlier'}${freshPass?.checked_in_by ? ` by ${freshPass.checked_in_by}` : ''}.`,
+      pass: freshPass || pass
+    };
+  }
 
   const updatedPass = { ...pass, ...updateResult.rows[0] };
 
@@ -254,10 +265,18 @@ export async function manualCheckInById(
      SET checkin_status = 'checked_in',
          checked_in_at = CURRENT_TIMESTAMP,
          checked_in_by = $1
-     WHERE id = $2
+     WHERE id = $2 AND (checkin_status != 'checked_in' OR checkin_status IS NULL)
      RETURNING *`,
     [checkedInBy, rsvpId]
   );
+
+  if (update.rows.length === 0) {
+    return {
+      success: false,
+      message: `Already checked in at ${pass.checked_in_at ? new Date(pass.checked_in_at).toLocaleTimeString('en-IN') : 'earlier'}`,
+      pass
+    };
+  }
 
   return {
     success: true,
