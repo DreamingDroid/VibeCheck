@@ -101,6 +101,8 @@ export async function initializeDatabaseSchema(pool: Pool) {
       location VARCHAR(255),
       city VARCHAR(100),
       age_group int4range,
+      min_age INTEGER,
+      suitable_age VARCHAR(100),
       external_link TEXT,
       google_maps_link TEXT,
       contact_info VARCHAR(255),
@@ -260,6 +262,8 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS attendee_guide JSONB DEFAULT '{}'::jsonb`).catch(() => {});
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_type VARCHAR(20) DEFAULT 'in_person'`).catch(() => {});
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Asia/Kolkata'`).catch(() => {});
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS min_age INTEGER`).catch(() => {});
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS suitable_age VARCHAR(100)`).catch(() => {});
   await pool.query(`ALTER TABLE cities ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Asia/Kolkata'`).catch(() => {});
 
   // ─── Venue Directory & Verification Migrations ──────────────────────────────

@@ -62,12 +62,15 @@ export async function adminGetEventsHandler(req: Request, res: Response, pool: P
 
 // Create a new event
 export async function adminCreateEventHandler(req: Request, res: Response, pool: Pool) {
-  const { title, description, category, date_time } = req.body;
-  if (!title || !description || !category || !date_time) {
-    return res.status(400).json({ success: false, error: 'title, description, category, and date_time are required' });
+  const { title, description, category, date_time, city, event_type, eventType } = req.body;
+  const safeEventType = (event_type || eventType) === 'online' ? 'online' : 'in_person';
+  const safeCity = (city || (safeEventType === 'online' ? 'Global / Online' : '')).trim();
+
+  if (!title || !description || !category || !date_time || !safeCity) {
+    return res.status(400).json({ success: false, error: 'title, description, category, date_time, and city are required' });
   }
   try {
-    const event = await createEvent(pool, req.body);
+    const event = await createEvent(pool, { ...req.body, city: safeCity });
     res.json({ success: true, data: event, message: 'Event created successfully.' });
   } catch (error) {
     console.error('Error creating event:', error);

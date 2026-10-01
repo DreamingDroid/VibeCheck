@@ -83,12 +83,16 @@ export async function rsvpEventHandler(req: Request, res: Response, pool: Pool) 
     }
 
     // 1. Age Verification Gate (Guardrail #5)
-    const isAdultEvent = event.category === 'Techno' || event.category === 'Nightlife' || event.category === 'Clubbing';
-    if (isAdultEvent && req.body.age_confirmed !== true) {
+    const hasMandatoryAge = event.min_age !== null && event.min_age !== undefined && Number(event.min_age) > 0;
+    const isAdultCategory = event.category === 'Techno' || event.category === 'Nightlife' || event.category === 'Clubbing';
+    const requiredMinAge = hasMandatoryAge ? Number(event.min_age) : (isAdultCategory ? 21 : 18);
+
+    if ((hasMandatoryAge || isAdultCategory) && req.body.age_confirmed !== true) {
       return res.status(400).json({
         success: false,
         requires_age_declaration: true,
-        error: 'Age Verification Required: This event is strictly 21+ with mandatory Government Photo ID check at the gate. Please confirm your age before reserving.'
+        min_age: requiredMinAge,
+        error: `Age Verification Required: This event is strictly ${requiredMinAge}+ with mandatory Government Photo ID check at the gate. Please confirm your age before reserving.`
       });
     }
 

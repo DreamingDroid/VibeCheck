@@ -34,6 +34,8 @@ export interface VibeEvent {
   user_pass_code?: string | null;
   event_type?: 'in_person' | 'online';
   timezone?: string;
+  min_age?: number | null;
+  suitable_age?: string | null;
 }
 
 export function isEventEnded(event: { status?: string; end_time?: string; date_time?: string }) {

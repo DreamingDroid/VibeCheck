@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
-import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode, Send, Calendar, Clock, MapPin, Users, ChevronDown, ChevronUp, Key, MessageSquare, Plus, Backpack, ListChecks, PhoneCall, Compass, CheckCircle2, Globe, ShieldCheck, X, ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode, Send, Calendar, Clock, MapPin, Users, ChevronDown, ChevronUp, Key, MessageSquare, Plus, Backpack, ListChecks, PhoneCall, Compass, CheckCircle2, Globe, ShieldCheck, X, ArrowLeft, ArrowRight, Check, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import OrganizerInsightsDashboard from "@/components/OrganizerInsightsDashboard";
@@ -126,20 +126,25 @@ export default function OrganizerDashboard() {
     visibility: "public" as "public" | "invite_only",
     guestList: "",
     eventType: "in_person" as "in_person" | "online",
-    timezone: typeof window !== "undefined" ? getUserTimezone() : "Asia/Kolkata"
+    timezone: typeof window !== "undefined" ? getUserTimezone() : "Asia/Kolkata",
+    minAge: "none",
+    customMinAge: "",
+    suitableAge: ""
   });
   const [imageUrl, setImageUrl] = useState("");
   const [imagePublicId, setImagePublicId] = useState("");
   const [selectedImageBase64, setSelectedImageBase64] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const validateStep = (step: number): boolean => {
     const newErrors: Record<string, boolean> = {};
     if (step === 1) {
       if (!formData.title?.trim()) newErrors.title = true;
       if (!formData.category) newErrors.category = true;
-      if (formData.eventType === 'in_person' && !formData.city) newErrors.city = true;
+      if (formData.eventType === 'in_person' && !formData.city?.trim()) newErrors.city = true;
     } else if (step === 2) {
       if (!formData.startDate) newErrors.startDate = true;
       if (isMultiDay && !formData.endDate) newErrors.endDate = true;
@@ -190,6 +195,9 @@ export default function OrganizerDashboard() {
   };
 
   const handleStepClick = (targetStep: number) => {
+    if (targetStep > currentStep) {
+      if (!validateStep(currentStep)) return;
+    }
     setCurrentStep(targetStep);
   };
 
@@ -554,7 +562,10 @@ export default function OrganizerDashboard() {
       visibility: ev.visibility || "public",
       guestList: "",
       eventType: (ev.event_type || "in_person") as "in_person" | "online",
-      timezone: ev.timezone || getUserTimezone()
+      timezone: ev.timezone || getUserTimezone(),
+      minAge: ev.min_age === 18 ? "18" : ev.min_age === 21 ? "21" : (ev.min_age && Number(ev.min_age) > 0 ? "custom" : "none"),
+      customMinAge: (ev.min_age && ev.min_age !== 18 && ev.min_age !== 21 && Number(ev.min_age) > 0) ? String(ev.min_age) : "",
+      suitableAge: ev.suitable_age || ""
     });
     if (ev.attendee_guide) {
       setGuideData({
@@ -581,6 +592,12 @@ export default function OrganizerDashboard() {
   };
 
   const handleCancelEdit = () => {
+    setShowCancelConfirm(true);
+  };
+
+  const handleConfirmCancel = () => {
+    setShowCancelConfirm(false);
+    setShowSubmitConfirm(false);
     setEditingEventId(null);
     setFormData({
       title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
@@ -591,7 +608,10 @@ export default function OrganizerDashboard() {
       visibility: "public",
       guestList: "",
       eventType: "in_person",
-      timezone: getUserTimezone()
+      timezone: getUserTimezone(),
+      minAge: "none",
+      customMinAge: "",
+      suitableAge: ""
     });
     setGuideData(emptyGuideState);
     setShowGuideFields(false);
@@ -603,8 +623,8 @@ export default function OrganizerDashboard() {
     setShowForm(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleInitiateSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     // Validate all steps
     const newErrors: Record<string, boolean> = {};
@@ -612,7 +632,7 @@ export default function OrganizerDashboard() {
 
     if (!formData.title?.trim()) { newErrors.title = true; if (!firstFailedStep) firstFailedStep = 1; }
     if (!formData.category) { newErrors.category = true; if (!firstFailedStep) firstFailedStep = 1; }
-    if (formData.eventType === 'in_person' && !formData.city) { newErrors.city = true; if (!firstFailedStep) firstFailedStep = 1; }
+    if (formData.eventType === 'in_person' && !formData.city?.trim()) { newErrors.city = true; if (!firstFailedStep) firstFailedStep = 1; }
     
     if (!formData.startDate) { newErrors.startDate = true; if (!firstFailedStep) firstFailedStep = 2; }
     if (isMultiDay && !formData.endDate) { newErrors.endDate = true; if (!firstFailedStep) firstFailedStep = 2; }
@@ -655,6 +675,10 @@ export default function OrganizerDashboard() {
     }
 
     setErrors({});
+    setShowSubmitConfirm(true);
+  };
+
+  const executeSubmitEvent = async () => {
     // Combine date and time
     const combine = (date: string, timeStr: string) => {
       const [time, ampm] = timeStr.split(" ");
@@ -717,6 +741,8 @@ export default function OrganizerDashboard() {
           venue_section_hall: formData.venueSectionHall || null,
           visibility: formData.visibility,
           guest_list: formData.visibility === "invite_only" ? formData.guestList : undefined,
+          min_age: formData.minAge === 'none' ? null : (formData.minAge === 'custom' ? (formData.customMinAge ? parseInt(formData.customMinAge, 10) : null) : parseInt(formData.minAge, 10)),
+          suitable_age: formData.suitableAge?.trim() || null,
           image_url: finalImageUrl || null,
           image_public_id: finalImagePublicId || null,
           date_time: start_iso,
@@ -738,7 +764,10 @@ export default function OrganizerDashboard() {
           visibility: "public",
           guestList: "",
           eventType: "in_person",
-          timezone: getUserTimezone()
+          timezone: getUserTimezone(),
+          minAge: "none",
+          customMinAge: "",
+          suitableAge: ""
         });
         setGuideData(emptyGuideState);
         setShowGuideFields(false);
@@ -747,6 +776,7 @@ export default function OrganizerDashboard() {
         setSelectedImageBase64("");
         setIsMultiDay(false);
         setEditingEventId(null);
+        setShowSubmitConfirm(false);
         setShowForm(false);
         loadMyEvents();
 
@@ -1061,7 +1091,10 @@ export default function OrganizerDashboard() {
               visibility: "public",
               guestList: "",
               eventType: "in_person",
-              timezone: getUserTimezone()
+              timezone: getUserTimezone(),
+              minAge: "none",
+              customMinAge: "",
+              suitableAge: ""
             });
             setImageUrl("");
             setImagePublicId("");
@@ -1089,36 +1122,36 @@ export default function OrganizerDashboard() {
           onClick={handleCancelEdit}
         >
           <div 
-            className="w-full max-w-4xl max-h-[92vh] bg-white rounded-[28px] sm:rounded-[36px] shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 border border-black/10 overflow-hidden my-auto"
+            className="w-full max-w-4xl max-h-[94vh] bg-white rounded-[24px] sm:rounded-[32px] shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 border border-black/10 overflow-hidden my-auto"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-zinc-50 via-white to-zinc-50 border-b border-black/5 px-6 sm:px-8 py-4 sm:py-5 flex justify-between items-center shrink-0">
+            <div className="bg-gradient-to-r from-zinc-50 via-white to-zinc-50 border-b border-black/5 px-5 sm:px-8 py-2.5 sm:py-3 flex justify-between items-center shrink-0">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <span className="sticker-badge bg-primary/10 text-primary border-primary/20 text-[9px] font-black uppercase tracking-wider px-2 py-0.5">
+                  <span className="sticker-badge bg-primary/10 text-primary border-primary/20 text-[8.5px] font-black uppercase tracking-wider px-2 py-0.5">
                     {editingEventId ? "EDIT MODE" : "CREATION STUDIO"}
                   </span>
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest hidden sm:inline">
+                  <span className="text-[9.5px] font-bold text-zinc-400 uppercase tracking-widest hidden sm:inline">
                     Step {currentStep} of {FORM_STEPS.length}
                   </span>
                 </div>
-                <h2 className="vibecheck_font_style text-2xl sm:text-3xl text-black">
+                <h2 className="vibecheck_font_style text-xl sm:text-2xl text-black">
                   {editingEventId ? "EDIT EVENT DETAILS" : "CREATE NEW VIBE"}
                 </h2>
               </div>
               <button 
                 type="button" 
                 onClick={handleCancelEdit} 
-                className="ringer-button border border-black/10 hover:bg-black/5 text-black text-[11px] font-black px-4 py-2 flex items-center gap-1.5 transition-all"
+                className="ringer-button border border-black/10 hover:bg-black/5 text-black text-[10px] font-black px-3.5 py-1.5 flex items-center gap-1.5 transition-all"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">CLOSE</span>
               </button>
             </div>
 
             {/* Step Milestone Stepper */}
-            <div className="bg-zinc-50 border-b border-black/5 px-4 sm:px-8 py-3.5 shrink-0">
+            <div className="bg-zinc-50/80 border-b border-black/5 px-4 sm:px-8 py-2 sm:py-2.5 shrink-0">
               <div className="flex items-center justify-between max-w-2xl mx-auto">
                 {FORM_STEPS.map((step, idx) => {
                   const isCompleted = currentStep > step.id;
@@ -1129,7 +1162,7 @@ export default function OrganizerDashboard() {
                       <button
                         type="button"
                         onClick={() => handleStepClick(step.id)}
-                        className={`flex items-center gap-2 group transition-all text-left ${
+                        className={`flex items-center gap-1.5 group transition-all text-left ${
                           isCurrent 
                             ? 'opacity-100' 
                             : isCompleted 
@@ -1137,33 +1170,33 @@ export default function OrganizerDashboard() {
                               : 'opacity-40 hover:opacity-75 cursor-pointer'
                         }`}
                       >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs transition-all ${
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center font-black text-[10px] sm:text-[11px] transition-all ${
                           isCurrent
-                            ? 'bg-black text-white ring-4 ring-black/10 scale-105 shadow-sm'
+                            ? 'bg-black text-white ring-2 ring-black/10 scale-105 shadow-xs'
                             : isCompleted
-                              ? 'bg-[#22C55E] text-white shadow-sm'
+                              ? 'bg-[#22C55E] text-white shadow-xs'
                               : 'bg-zinc-200 text-zinc-600'
                         }`}>
                           {isCompleted ? (
-                            <Check className="h-4 w-4 stroke-[3]" />
+                            <Check className="h-3.5 w-3.5 stroke-[3]" />
                           ) : (
                             <span>{step.id}</span>
                           )}
                         </div>
                         <div className="hidden sm:block">
-                          <p className={`text-[10px] font-black uppercase tracking-wider leading-tight ${
+                          <p className={`text-[9.5px] font-black uppercase tracking-wider leading-none ${
                             isCurrent ? 'text-black' : isCompleted ? 'text-zinc-700' : 'text-zinc-400'
                           }`}>
                             {step.shortLabel}
                           </p>
                           {step.optional && (
-                            <span className="text-[8px] font-bold text-zinc-400 uppercase">Optional</span>
+                            <span className="text-[7.5px] font-bold text-zinc-400 uppercase leading-none block mt-0.5">Optional</span>
                           )}
                         </div>
                       </button>
 
                       {idx < FORM_STEPS.length - 1 && (
-                        <div className="flex-1 mx-2 sm:mx-3 h-[2px] bg-zinc-200 overflow-hidden rounded-full">
+                        <div className="flex-1 mx-1.5 sm:mx-2.5 h-[2px] bg-zinc-200 overflow-hidden rounded-full">
                           <div className={`h-full transition-all duration-300 ${
                             currentStep > step.id ? 'bg-[#22C55E]' : 'bg-transparent'
                           }`} />
@@ -1176,12 +1209,21 @@ export default function OrganizerDashboard() {
             </div>
 
             {/* Form Content */}
-            <div className="flex-1 overflow-y-auto p-5 sm:p-8 bg-zinc-50/50 space-y-6">
-              <form id="organizer-event-form" onSubmit={handleSubmit} className="space-y-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-zinc-50/50 space-y-4">
+              <form 
+                id="organizer-event-form" 
+                onSubmit={handleInitiateSubmit} 
+                onKeyDown={(e) => { 
+                  if (e.key === 'Enter' && (e.target as HTMLElement)?.tagName === 'INPUT') { 
+                    e.preventDefault(); 
+                  } 
+                }} 
+                className="space-y-4"
+              >
 
                 {/* Step 1: Overview & Format */}
                 {currentStep === 1 && (
-                  <div className="bg-white rounded-[24px] p-5 sm:p-6 border border-black/5 shadow-xs space-y-5 animate-in fade-in-50 duration-200">
+                  <div className="bg-white rounded-[20px] p-4 sm:p-5 border border-black/5 shadow-xs space-y-4 animate-in fade-in-50 duration-200">
                     <div className="flex items-center gap-2 pb-2 border-b border-black/5">
                       <Sparkles className="h-4 w-4 text-primary" />
                       <h3 className="text-xs font-black uppercase tracking-wider text-black">1. Event Overview &amp; Format</h3>
@@ -1343,7 +1385,7 @@ export default function OrganizerDashboard() {
 
                 {/* Step 2: Date & Timings */}
                 {currentStep === 2 && (
-                  <div className="bg-white rounded-[24px] p-5 sm:p-6 border border-black/5 shadow-xs space-y-5 animate-in fade-in-50 duration-200">
+                  <div className="bg-white rounded-[20px] p-4 sm:p-5 border border-black/5 shadow-xs space-y-4 animate-in fade-in-50 duration-200">
                     <div className="flex items-center justify-between pb-2 border-b border-black/5">
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-primary" />
@@ -1448,7 +1490,7 @@ export default function OrganizerDashboard() {
 
                 {/* Step 3: Venue, Capacity & Access */}
                 {currentStep === 3 && (
-                  <div className="bg-white rounded-[24px] p-5 sm:p-6 border border-black/5 shadow-xs space-y-5 animate-in fade-in-50 duration-200">
+                  <div className="bg-white rounded-[20px] p-4 sm:p-5 border border-black/5 shadow-xs space-y-4 animate-in fade-in-50 duration-200">
                     <div className="flex items-center gap-2 pb-2 border-b border-black/5">
                       <MapPin className="h-4 w-4 text-primary" />
                       <h3 className="text-xs font-black uppercase tracking-wider text-black">3. Venue, Capacity &amp; Access</h3>
@@ -1539,6 +1581,120 @@ export default function OrganizerDashboard() {
                       </div>
                     </div>
 
+                    {/* Audience & Age Guidelines Card */}
+                    <div className="p-4 sm:p-5 rounded-2xl bg-zinc-50/90 border border-black/10 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-primary" />
+                        <h4 className="text-xs font-black uppercase tracking-wider text-black">Age Guidelines &amp; Restrictions</h4>
+                      </div>
+
+                      {/* Mandatory Age Requirement */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] font-black uppercase tracking-wider text-zinc-600 flex items-center gap-1">
+                            <span>Mandatory Age Restriction</span>
+                          </Label>
+                          <span className="text-[9px] font-bold text-zinc-500">
+                            {formData.minAge === 'none' ? '👶 Open for All Ages' : formData.minAge === '18' ? '🔞 Strictly 18+' : formData.minAge === '21' ? '🍸 Strictly 21+' : `⚡ Min Age: ${formData.customMinAge || '?'}+`}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {[
+                            { id: 'none', label: 'All Ages (No Restriction)', icon: '👶' },
+                            { id: '18', label: '18+ (Govt ID Mandatory)', icon: '🔞' },
+                            { id: '21', label: '21+ (Nightlife / Pubs)', icon: '🍸' },
+                            { id: 'custom', label: 'Custom Min Age', icon: '⚡' },
+                          ].map((opt) => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => setFormData({ ...formData, minAge: opt.id })}
+                              className={`py-2.5 px-2 text-[10px] font-black rounded-xl border text-left transition-all flex flex-col gap-1 ${
+                                formData.minAge === opt.id
+                                  ? 'bg-black text-white border-black shadow-md'
+                                  : 'bg-white text-zinc-600 border-black/10 hover:border-black/30'
+                              }`}
+                            >
+                              <span className="text-sm">{opt.icon}</span>
+                              <span className="leading-tight">{opt.label}</span>
+                            </button>
+                          ))}
+                        </div>
+
+                        {formData.minAge === 'custom' && (
+                          <div className="pt-2 animate-in fade-in space-y-1">
+                            <Label className="text-[10px] font-bold text-zinc-500 uppercase ml-1">
+                              Specify Minimum Age in Years <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="100"
+                              placeholder="e.g. 16, 25"
+                              value={formData.customMinAge}
+                              onChange={e => setFormData({ ...formData, customMinAge: e.target.value })}
+                              className="bg-white border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11 max-w-xs"
+                            />
+                            <p className="text-[9px] text-zinc-400 font-bold ml-1">
+                              Attendees must be at least this age to attend and RSVP.
+                            </p>
+                          </div>
+                        )}
+
+                        {formData.minAge !== 'none' && (
+                          <p className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200/60 p-2.5 rounded-xl font-bold flex items-center gap-1.5">
+                            <span>⚠️ Attendees will be required to accept an Age Declaration checkbox during RSVP and present government photo ID at the entrance.</span>
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Suitable / Recommended Age Group (Optional) */}
+                      <div className="space-y-2 pt-3 border-t border-black/5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] font-black uppercase tracking-wider text-zinc-600">
+                            Suitable / Target Age Group (Optional)
+                          </Label>
+                          <span className="text-[9px] font-bold text-zinc-400">Demographic Guidance</span>
+                        </div>
+
+                        {/* Quick suggestions pills */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            "All Ages Welcome",
+                            "Families & Kids (5-12)",
+                            "Teens (13-17)",
+                            "Young Adults (18-24)",
+                            "Adults (21-40)",
+                            "Working Professionals (25-45)",
+                            "Seniors (50+)"
+                          ].map((preset) => (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => setFormData({ ...formData, suitableAge: preset })}
+                              className={`px-2.5 py-1 text-[9px] font-bold rounded-lg transition-all border ${
+                                formData.suitableAge === preset
+                                  ? 'bg-primary text-white border-primary shadow-xs'
+                                  : 'bg-white text-zinc-600 border-black/10 hover:bg-zinc-100'
+                              }`}
+                            >
+                              {preset}
+                            </button>
+                          ))}
+                        </div>
+
+                        <Input
+                          placeholder="e.g. 18-35 years, College Students, Young Professionals..."
+                          value={formData.suitableAge}
+                          onChange={e => setFormData({ ...formData, suitableAge: e.target.value })}
+                          className="bg-white border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11"
+                        />
+                        <p className="text-[9px] text-zinc-400 font-bold ml-1">
+                          Optional guidance to help attendees find vibes tailored to their audience demographic.
+                        </p>
+                      </div>
+                    </div>
+
                     {/* Paid Event: Autonomous Venue Authorization & External Ticketing */}
                     {formData.isPaid && (
                       <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 sm:p-5 space-y-3 animate-in fade-in">
@@ -1595,7 +1751,7 @@ export default function OrganizerDashboard() {
 
                 {/* Step 4: Cover Media & Details */}
                 {currentStep === 4 && (
-                  <div className="bg-white rounded-[24px] p-5 sm:p-6 border border-black/5 shadow-xs space-y-5 animate-in fade-in-50 duration-200">
+                  <div className="bg-white rounded-[20px] p-4 sm:p-5 border border-black/5 shadow-xs space-y-4 animate-in fade-in-50 duration-200">
                     <div className="flex items-center gap-2 pb-2 border-b border-black/5">
                       <ImageIcon className="h-4 w-4 text-primary" />
                       <h3 className="text-xs font-black uppercase tracking-wider text-black">4. Cover Media &amp; Details</h3>
@@ -1674,7 +1830,7 @@ export default function OrganizerDashboard() {
 
                 {/* Step 5: Attendee Guide & Briefing Configuration */}
                 {currentStep === 5 && (
-                  <div className="border border-black/5 rounded-[24px] bg-white p-5 sm:p-6 space-y-6 shadow-xs animate-in fade-in-50 duration-200">
+                  <div className="border border-black/5 rounded-[20px] bg-white p-4 sm:p-5 space-y-4 shadow-xs animate-in fade-in-50 duration-200">
                     <div className="flex items-center justify-between pb-2 border-b border-black/5">
                       <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
@@ -1980,22 +2136,22 @@ export default function OrganizerDashboard() {
             </div>
 
             {/* Footer Navigation */}
-            <div className="border-t border-black/5 px-6 sm:px-8 py-4 bg-white flex justify-between items-center gap-3 shrink-0">
+            <div className="border-t border-black/5 px-5 sm:px-8 py-2.5 sm:py-3 bg-white flex justify-between items-center gap-3 shrink-0">
               <div>
                 {currentStep > 1 ? (
                   <button
                     type="button"
                     onClick={handlePrevStep}
-                    className="ringer-button border border-black/10 hover:bg-black/5 text-black text-[11px] font-black px-4 sm:px-5 py-2.5 flex items-center gap-1.5"
+                    className="ringer-button border border-black/10 hover:bg-black/5 text-black text-[10px] sm:text-[11px] font-black px-4 sm:px-5 py-2 flex items-center gap-1.5"
                   >
-                    <ArrowLeft className="h-4 w-4" />
+                    <ArrowLeft className="h-3.5 w-3.5" />
                     <span>PREVIOUS</span>
                   </button>
                 ) : (
                   <button 
                     type="button" 
                     onClick={handleCancelEdit} 
-                    className="ringer-button border border-black/10 hover:bg-black/5 text-black text-[11px] font-black px-5 py-2.5"
+                    className="ringer-button border border-black/10 hover:bg-black/5 text-black text-[10px] sm:text-[11px] font-black px-4 sm:px-5 py-2"
                   >
                     CANCEL
                   </button>
@@ -2003,10 +2159,10 @@ export default function OrganizerDashboard() {
               </div>
 
               <div className="hidden sm:flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                <span className="text-[9.5px] font-black uppercase tracking-widest text-zinc-400">
                   Step {currentStep} of {FORM_STEPS.length}:
                 </span>
-                <span className="text-[11px] font-black text-black uppercase">
+                <span className="text-[10.5px] font-black text-black uppercase">
                   {FORM_STEPS[currentStep - 1].label}
                 </span>
               </div>
@@ -2016,22 +2172,148 @@ export default function OrganizerDashboard() {
                   <button
                     type="button"
                     onClick={handleNextStep}
-                    className="ringer-button bg-black hover:bg-zinc-800 text-white text-[11px] font-black px-6 py-2.5 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md"
+                    className="ringer-button bg-black hover:bg-zinc-800 text-white text-[10px] sm:text-[11px] font-black px-5 sm:px-6 py-2 flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md"
                   >
                     <span>NEXT STEP</span>
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                 ) : (
                   <button 
-                    type="submit" 
-                    form="organizer-event-form" 
+                    type="button" 
+                    onClick={() => handleInitiateSubmit()} 
                     disabled={submitting} 
-                    className="ringer-button bg-gradient-to-br from-[#22C55E] to-[#16A34A] text-white hover:from-[#16A34A] hover:to-[#15803D] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-green-500/20 text-[11px] font-black px-6 py-2.5 min-w-[160px]"
+                    className="ringer-button bg-gradient-to-br from-[#22C55E] to-[#16A34A] text-white hover:from-[#16A34A] hover:to-[#15803D] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-green-500/20 text-[10px] sm:text-[11px] font-black px-5 sm:px-6 py-2 min-w-[150px]"
                   >
                     {submitting ? "SUBMITTING..." : editingEventId ? "SAVE EDITS" : "SUBMIT FOR REVIEW"}
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submit Confirmation Modal */}
+      {showSubmitConfirm && (
+        <div 
+          className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => !submitting && setShowSubmitConfirm(false)}
+        >
+          <div 
+            className="bg-white rounded-[28px] sm:rounded-[32px] p-6 sm:p-8 max-w-md w-full shadow-2xl border border-black/10 animate-in zoom-in-95 duration-200 text-black space-y-5"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-[#22C55E]/10 text-[#22C55E] flex items-center justify-center shrink-0">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="sticker-badge bg-[#22C55E]/10 text-[#16A34A] border-[#22C55E]/20 text-[9px] font-black uppercase tracking-wider px-2 py-0.5">
+                  FINAL CONFIRMATION
+                </span>
+                <h3 className="text-xl font-black italic tracking-tight uppercase leading-tight mt-0.5">
+                  {editingEventId ? "Save Event Changes?" : "Submit Event for Review?"}
+                </h3>
+              </div>
+            </div>
+
+            <p className="text-xs font-medium text-zinc-600 leading-relaxed">
+              Are you sure you want to {editingEventId ? "save the updates to this event" : "submit this event for review"}? 
+              {!editingEventId && " Once submitted, our autonomous verification systems will process and publish your vibe."}
+            </p>
+
+            {/* Event Quick Summary Card */}
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-black/5 space-y-2 text-xs">
+              <div className="flex justify-between items-start gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Event:</span>
+                <span className="font-black text-black text-right line-clamp-1">{formData.title || "Untitled Vibe"}</span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Schedule:</span>
+                <span className="font-bold text-zinc-700 text-right">{formData.startDate} • {formData.startTime}</span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Format / City:</span>
+                <span className="font-bold text-zinc-700 text-right">{formData.eventType === 'online' ? '🌐 Virtual Event' : `📍 ${formData.city || formData.location || "In-Person"}`}</span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Entry:</span>
+                <span className="font-bold text-zinc-700 text-right">{formData.isPaid ? `🎟️ ₹${formData.ticketPrice || '0'}` : '🎉 Free Entry'}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => setShowSubmitConfirm(false)}
+                className="ringer-button flex-1 border border-black/10 hover:bg-black/5 text-black text-xs font-black py-3 rounded-xl transition-all"
+              >
+                BACK TO FORM
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={executeSubmitEvent}
+                className="ringer-button flex-1 bg-gradient-to-br from-[#22C55E] to-[#16A34A] text-white hover:from-[#16A34A] hover:to-[#15803D] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-green-500/20 text-xs font-black py-3 rounded-xl flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <span>SUBMITTING...</span>
+                ) : (
+                  <>
+                    <span>CONFIRM &amp; SUBMIT</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelConfirm && (
+        <div 
+          className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setShowCancelConfirm(false)}
+        >
+          <div 
+            className="bg-white rounded-[28px] sm:rounded-[32px] p-6 sm:p-8 max-w-md w-full shadow-2xl border border-black/10 animate-in zoom-in-95 duration-200 text-black space-y-5"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <div>
+                <span className="sticker-badge bg-amber-500/10 text-amber-700 border-amber-500/20 text-[9px] font-black uppercase tracking-wider px-2 py-0.5">
+                  UNSAVED CHANGES
+                </span>
+                <h3 className="text-xl font-black italic tracking-tight uppercase leading-tight mt-0.5">
+                  Discard Event Draft?
+                </h3>
+              </div>
+            </div>
+
+            <p className="text-xs font-medium text-zinc-600 leading-relaxed">
+              Are you sure you want to cancel? Any information you&apos;ve entered for this event will be lost and cannot be recovered.
+            </p>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowCancelConfirm(false)}
+                className="ringer-button flex-1 border border-black/10 hover:bg-black/5 text-black text-xs font-black py-3 rounded-xl transition-all"
+              >
+                CONTINUE EDITING
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCancel}
+                className="ringer-button flex-1 bg-red-600 hover:bg-red-700 text-white hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-red-600/20 text-xs font-black py-3 rounded-xl"
+              >
+                YES, CANCEL &amp; DISCARD
+              </button>
             </div>
           </div>
         </div>

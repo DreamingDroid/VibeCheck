@@ -40,17 +40,20 @@ const TIME_SLOTS = Array.from({ length: 48 }).map((_, i) => {
 
 type Event = {
   id: string; title: string; description: string; category: string;
-  location: string; date_time: string; end_time?: string; timings?: string; external_link: string; contact_info: string;
+  location: string; city?: string; date_time: string; end_time?: string; timings?: string; external_link: string; contact_info: string;
   status?: string; admin_comment?: string; organizer_email?: string;
   participant_limit?: number; is_paid?: boolean;
   is_featured?: boolean;
+  min_age?: number | null;
+  suitable_age?: string | null;
 };
 
 const emptyForm = { 
-  title: "", description: "", category: "General", location: "", 
+  title: "", description: "", category: "General", location: "", city: "Vizag",
   startDate: "", endDate: "", startTime: "08:00 PM", endTime: "11:00 PM",
   timings: "", external_link: "", contact_info: "",
-  participantLimit: "", isPaid: false, isFeatured: false
+  participantLimit: "", isPaid: false, isFeatured: false,
+  minAge: "none", customMinAge: "", suitableAge: ""
 };
 
 function AdminEventsPageContent() {
@@ -133,6 +136,7 @@ function AdminEventsPageContent() {
     setForm({
       title: ev.title, description: ev.description, category: ev.category,
       location: ev.location || "", 
+      city: ev.city || "Vizag",
       startDate: fDate(start),
       endDate: fDate(end),
       startTime: fTime(start),
@@ -141,7 +145,10 @@ function AdminEventsPageContent() {
       external_link: ev.external_link || "", contact_info: ev.contact_info || "",
       participantLimit: ev.participant_limit ? String(ev.participant_limit) : "",
       isPaid: ev.is_paid || false,
-      isFeatured: Boolean((ev as any).is_featured)
+      isFeatured: Boolean((ev as any).is_featured),
+      minAge: ev.min_age === 18 ? "18" : ev.min_age === 21 ? "21" : (ev.min_age && Number(ev.min_age) > 0 ? "custom" : "none"),
+      customMinAge: (ev.min_age && ev.min_age !== 18 && ev.min_age !== 21 && Number(ev.min_age) > 0) ? String(ev.min_age) : "",
+      suitableAge: ev.suitable_age || ""
     });
     setImageUrl((ev as any).image_url || "");
     setImagePublicId((ev as any).image_public_id || "");
@@ -266,6 +273,7 @@ function AdminEventsPageContent() {
     // Validate
     const newErrors: Record<string, boolean> = {};
     if (!form.title) newErrors.title = true;
+    if (!form.city?.trim()) newErrors.city = true;
     if (!form.startDate) newErrors.startDate = true;
     if (isMultiDay && !form.endDate) newErrors.endDate = true;
     if (!form.category) newErrors.category = true;
@@ -336,6 +344,8 @@ function AdminEventsPageContent() {
         participant_limit: form.participantLimit ? parseInt(form.participantLimit, 10) : null,
         is_paid: form.isPaid,
         is_featured: form.isFeatured,
+        min_age: form.minAge === 'none' ? null : (form.minAge === 'custom' ? (form.customMinAge ? parseInt(form.customMinAge, 10) : null) : parseInt(form.minAge, 10)),
+        suitable_age: form.suitableAge?.trim() || null,
         image_url: finalImageUrl || null,
         image_public_id: finalImagePublicId || null,
         date_time: start_iso,
@@ -465,6 +475,22 @@ function AdminEventsPageContent() {
               </div>
 
               <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
+                  City / Region <span className="text-red-500">*</span>
+                </Label>
+                <Input 
+                  value={form.city} 
+                  onChange={e => {
+                    setForm(f => ({ ...f, city: e.target.value }));
+                    if (errors.city) setErrors(errs => ({ ...errs, city: false }));
+                  }}
+                  placeholder="e.g. Vizag, Hyderabad, Bangalore" 
+                  className={cn("bg-white border-black/5 h-12 rounded-xl text-xs font-bold", errors.city && "border-red-500 ring-red-500/20")} 
+                />
+                {errors.city && <p className="text-[9px] text-red-500 font-bold uppercase ml-1">City is required</p>}
+              </div>
+
+              <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Venue Coordinates</Label>
                 <Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                   placeholder="Venue & Address" className="bg-white border-black/5 h-12 rounded-xl text-xs font-bold" />
@@ -511,7 +537,7 @@ function AdminEventsPageContent() {
 
               <div className="md:col-span-2 space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1 flex items-center gap-1.5">
-                  <Star className="h-3 w-3 text-amber-500" /> Curation & Featured Vibe Status
+                  <Star className="h-3 w-3 text-amber-500" /> Curation &amp; Featured Vibe Status
                 </Label>
                 <button 
                   type="button"
@@ -532,6 +558,93 @@ function AdminEventsPageContent() {
                     {form.isFeatured ? "★ FEATURED" : "STANDARD"}
                   </span>
                 </button>
+              </div>
+
+              {/* Age Guidelines & Restrictions */}
+              <div className="md:col-span-2 p-5 rounded-2xl bg-zinc-50 border border-black/10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Age Guidelines &amp; Restrictions</Label>
+                  <span className="text-[9px] font-bold text-zinc-400">
+                    {form.minAge === 'none' ? '👶 All Ages' : form.minAge === '18' ? '🔞 Strictly 18+' : form.minAge === '21' ? '🍸 Strictly 21+' : `Min Age: ${form.customMinAge || '?'}+`}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[9px] font-bold text-zinc-400 uppercase ml-1">Mandatory Minimum Age Restriction</Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { id: 'none', label: 'All Ages (No Restriction)', icon: '👶' },
+                      { id: '18', label: '18+ (Govt ID Mandatory)', icon: '🔞' },
+                      { id: '21', label: '21+ (Nightlife / Pubs)', icon: '🍸' },
+                      { id: 'custom', label: 'Custom Min Age', icon: '⚡' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, minAge: opt.id }))}
+                        className={`py-2.5 px-2 text-[10px] font-black rounded-xl border text-left transition-all flex flex-col gap-1 ${
+                          form.minAge === opt.id
+                            ? 'bg-black text-white border-black shadow-md'
+                            : 'bg-white text-zinc-600 border-black/10 hover:border-black/30'
+                        }`}
+                      >
+                        <span className="text-sm">{opt.icon}</span>
+                        <span className="leading-tight">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {form.minAge === 'custom' && (
+                    <div className="pt-2 animate-in fade-in space-y-1">
+                      <Label className="text-[10px] font-bold text-zinc-500 uppercase ml-1">
+                        Minimum Age in Years <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="100"
+                        placeholder="e.g. 16, 25"
+                        value={form.customMinAge}
+                        onChange={e => setForm(f => ({ ...f, customMinAge: e.target.value }))}
+                        className="bg-white border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11 max-w-xs"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2 pt-3 border-t border-black/5">
+                  <Label className="text-[9px] font-bold text-zinc-400 uppercase ml-1">Suitable / Target Age Group (Optional)</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      "All Ages Welcome",
+                      "Families & Kids (5-12)",
+                      "Teens (13-17)",
+                      "Young Adults (18-24)",
+                      "Adults (21-40)",
+                      "Working Professionals (25-45)",
+                      "Seniors (50+)"
+                    ].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, suitableAge: preset }))}
+                        className={`px-2.5 py-1 text-[9px] font-bold rounded-lg transition-all border ${
+                          form.suitableAge === preset
+                            ? 'bg-primary text-white border-primary shadow-xs'
+                            : 'bg-white text-zinc-600 border-black/10 hover:bg-zinc-100'
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                  <Input
+                    placeholder="e.g. 18-35 years, College Students, Young Professionals..."
+                    value={form.suitableAge}
+                    onChange={e => setForm(f => ({ ...f, suitableAge: e.target.value }))}
+                    className="bg-white border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11"
+                  />
+                </div>
               </div>
 
               <div className="md:col-span-2 space-y-2">
@@ -644,6 +757,16 @@ function AdminEventsPageContent() {
                         <div className="sticker-badge bg-black text-white px-3 flex items-center gap-1">
                           {ev.category}
                         </div>
+                        {ev.min_age !== null && ev.min_age !== undefined && Number(ev.min_age) > 0 && (
+                          <div className="sticker-badge bg-red-100 text-red-700 border border-red-300 font-black px-2.5 flex items-center gap-1 shadow-xs">
+                            🔞 {ev.min_age}+
+                          </div>
+                        )}
+                        {ev.suitable_age && (
+                          <div className="sticker-badge bg-purple-100 text-purple-700 border border-purple-200 font-bold px-2.5 flex items-center gap-1 shadow-xs">
+                            👥 {ev.suitable_age}
+                          </div>
+                        )}
                         {ev.is_featured && (
                           <div className="sticker-badge bg-amber-400 text-black border border-amber-500 font-black px-2.5 flex items-center gap-1 shadow-sm animate-in fade-in">
                             <Star className="h-3 w-3 fill-black text-black" />

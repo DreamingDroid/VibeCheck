@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
 import { AttendeeBriefingModal } from "@/components/AttendeeBriefingModal";
 import { OrganizerDetailsModal } from "@/components/OrganizerDetailsModal";
@@ -38,10 +39,15 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
   const [showBriefingModal, setShowBriefingModal] = useState(false);
   const [showTelegramPromptModal, setShowTelegramPromptModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showAgeModal, setShowAgeModal] = useState(false);
+  const [ageDeclared, setAgeDeclared] = useState(false);
   const [hasRated, setHasRated] = useState(false);
   const [userRating, setUserRating] = useState<any>(null);
   const [userHasPhone, setUserHasPhone] = useState(false);
   const { isVibrant } = useTheme();
+
+  const hasMandatoryAge = (event?.min_age !== null && event?.min_age !== undefined && Number(event?.min_age) > 0) || ['Techno', 'Nightlife', 'Clubbing'].includes(event?.category || '');
+  const requiredMinAge = (event?.min_age !== null && event?.min_age !== undefined && Number(event?.min_age) > 0) ? Number(event?.min_age) : (['Techno', 'Nightlife', 'Clubbing'].includes(event?.category || '') ? 21 : 18);
 
   useEffect(() => {
     if (!eventId) return;
@@ -138,7 +144,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
     window.open(gcalUrl, '_blank');
   };
 
-  const handleRSVP = async (skipPhoneCheck: boolean = false) => {
+  const handleRSVP = async (skipPhoneCheck: boolean = false, skipAgeCheck: boolean = false) => {
     if (!session?.user?.email) {
       signIn("google", { callbackUrl: window.location.href });
       return;
@@ -147,13 +153,20 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
       setShowPhoneModal(true);
       return;
     }
+    if (!skipAgeCheck && hasMandatoryAge && !ageDeclared) {
+      setShowAgeModal(true);
+      return;
+    }
     
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
       const res = await fetch(`${baseUrl}/api/events/${eventId}/rsvp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: session.user.email })
+        body: JSON.stringify({
+          email: session.user.email,
+          age_confirmed: hasMandatoryAge ? true : undefined
+        })
       });
       const data = await res.json();
       if (data.success) {
@@ -371,6 +384,17 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               {event.visibility === 'invite_only' && (
                 <div className="sticker-badge bg-gradient-to-r from-amber-500 to-yellow-400 text-black border-none font-black shadow-md flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 fill-black text-black" /> VIP Invite-Only
+                </div>
+              )}
+              {event.min_age !== null && event.min_age !== undefined && Number(event.min_age) > 0 && (
+                <div className="sticker-badge bg-red-100 border-red-300 text-red-700 font-black flex items-center gap-1.5 shadow-xs">
+                  <span>🔞 {event.min_age}+ Only</span>
+                </div>
+              )}
+              {event.suitable_age && (
+                <div className="sticker-badge bg-purple-100 border-purple-200 text-purple-800 font-bold flex items-center gap-1.5 shadow-xs">
+                  <Users className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Suitable: {event.suitable_age}</span>
                 </div>
               )}
               <div className="sticker-badge bg-zinc-100 border-none text-zinc-500 font-bold">
@@ -746,6 +770,24 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                  )}
               </div>
 
+              {/* Age Criteria & Suitability Block */}
+              <div className="space-y-1">
+                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Age Guidelines</div>
+                 <div className="flex items-center gap-2 text-black font-black text-xs">
+                   <Users className="h-4 w-4 text-primary shrink-0" />
+                   <span>
+                     {event.min_age !== null && event.min_age !== undefined && Number(event.min_age) > 0
+                       ? `Strictly ${event.min_age}+ (Govt Photo ID Mandatory)`
+                       : (['Techno', 'Nightlife', 'Clubbing'].includes(event.category) ? "Strictly 21+ (Nightlife Policy)" : "All Ages Welcome")}
+                   </span>
+                 </div>
+                 {event.suitable_age && (
+                   <span className="text-xs font-semibold text-zinc-500 block">
+                     Demographic: {event.suitable_age}
+                   </span>
+                 )}
+              </div>
+
               <div className="space-y-1">
                  <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">People Interested</div>
                  <div className="flex items-center gap-2 text-black font-black">
@@ -839,6 +881,76 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
           eventTitle={event.title}
           telegramGroupLink={event.whatsapp_group_link}
         />
+      )}
+
+      {/* Age Verification Declaration Modal */}
+      {showAgeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-black/10 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-black/5">
+              <div className="flex items-center gap-2 text-red-600 font-black text-xs uppercase tracking-wider">
+                <span className="text-xl">🔞</span>
+                <span>Mandatory Age Requirement</span>
+              </div>
+              <button
+                onClick={() => setShowAgeModal(false)}
+                className="h-8 w-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-500 font-black transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-4 rounded-2xl bg-red-50 border border-red-200/80 space-y-1">
+                <div className="text-sm font-black text-red-900 uppercase">
+                  Strictly {requiredMinAge}+ Only
+                </div>
+                <p className="text-xs text-red-800 font-medium leading-relaxed">
+                  This experience is restricted to attendees aged <strong>{requiredMinAge} years or older</strong>. 
+                  A mandatory Government Photo ID verification will be conducted at the venue entrance.
+                </p>
+              </div>
+
+              <label className="flex items-start gap-3 p-3.5 rounded-2xl bg-zinc-50 border border-black/10 cursor-pointer hover:bg-zinc-100/80 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={ageDeclared}
+                  onChange={e => setAgeDeclared(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-primary focus:ring-primary"
+                />
+                <span className="text-xs font-bold text-zinc-800 leading-snug">
+                  I confirm that I am at least <strong>{requiredMinAge} years of age</strong> and will present valid government photo ID at the entrance.
+                </span>
+              </label>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowAgeModal(false)}
+                className="flex-1 py-3 px-4 rounded-xl border border-black/10 text-xs font-black uppercase tracking-wider text-zinc-500 hover:bg-zinc-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!ageDeclared}
+                onClick={() => {
+                  setShowAgeModal(false);
+                  handleRSVP(true, true);
+                }}
+                className={cn(
+                  "flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider text-white transition-all shadow-md",
+                  ageDeclared
+                    ? "bg-black hover:bg-zinc-800 cursor-pointer"
+                    : "bg-zinc-300 text-zinc-500 cursor-not-allowed shadow-none"
+                )}
+              >
+                Confirm &amp; RSVP
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <EventRatingModal

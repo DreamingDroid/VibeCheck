@@ -145,6 +145,8 @@ CREATE TABLE IF NOT EXISTS events (
     location VARCHAR(255),
     city VARCHAR(100),                           -- explicit city for global/multi-city support
     age_group int4range,                         -- PostgreSQL range type [min, max]
+    min_age INTEGER,                             -- Mandatory minimum age requirement (e.g., 18, 21, null for all ages)
+    suitable_age VARCHAR(100),                   -- Optional suggested demographic/audience age criteria (e.g., '18-35', 'Family Friendly')
     external_link TEXT,
     google_maps_link TEXT,
     contact_info VARCHAR(255),

@@ -75,6 +75,8 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
         participant_limit,
         is_paid,
         visibility,
+        min_age,
+        suitable_age,
         1 - (embedding <=> $1::vector) AS similarity,
         CASE WHEN city ILIKE $2 THEN 0 ELSE 1 END AS city_rank
       FROM events
@@ -107,6 +109,8 @@ export async function searchEventsByVector(pool: Pool, queryEmbedding: number[],
         participant_limit,
         is_paid,
         visibility,
+        min_age,
+        suitable_age,
         1 - (embedding <=> $1::vector) AS similarity
       FROM events
       WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)
@@ -142,7 +146,7 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
     }
 
     let queryText = `
-      SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, ticket_price, upi_id, external_ticket_link, venue_verification_status, payment_details_locked, venue_section_hall, is_featured, visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone,
+      SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, ticket_price, upi_id, external_ticket_link, venue_verification_status, payment_details_locked, venue_section_hall, is_featured, visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone, min_age, suitable_age,
              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
              ${userRsvpSelect}
       FROM events
@@ -157,7 +161,16 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
       paramIndex++;
     }
     if (city && city !== 'All' && city !== 'all') {
-      queryText += ` AND (city ILIKE $${paramIndex} OR (city ILIKE 'Vizag%' AND $${paramIndex} ILIKE 'Visakhapatnam%') OR (city ILIKE 'Visakhapatnam%' AND $${paramIndex} ILIKE 'Vizag%'))`;
+      queryText += ` AND (
+        city ILIKE $${paramIndex}
+        OR (city ILIKE 'Vizag%' AND $${paramIndex} ILIKE 'Visakhapatnam%')
+        OR (city ILIKE 'Visakhapatnam%' AND $${paramIndex} ILIKE 'Vizag%')
+        OR (city IS NULL AND (
+          location ILIKE ('%' || $${paramIndex} || '%')
+          OR (location ILIKE '%Visakhapatnam%' AND $${paramIndex} ILIKE 'Vizag%')
+          OR (location ILIKE '%Vizag%' AND $${paramIndex} ILIKE 'Visakhapatnam%')
+        ))
+      )`;
       queryParams.push(city);
       paramIndex++;
     }
@@ -185,7 +198,7 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
 
 export async function getEventById(pool: Pool, id: string) {
     const { rows } = await pool.query(
-      `SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, ticket_price, upi_id, external_ticket_link, venue_verification_status, payment_details_locked, venue_section_hall, venue_official_email, venue_official_phone, is_featured, visibility, contact_info, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone,
+      `SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, ticket_price, upi_id, external_ticket_link, venue_verification_status, payment_details_locked, venue_section_hall, venue_official_email, venue_official_phone, is_featured, visibility, contact_info, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone, min_age, suitable_age,
               (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
               (SELECT brand_name FROM admins WHERE email = events.organizer_email) as organizer_name,
               COALESCE(
@@ -418,7 +431,7 @@ export async function getEventByOrganizer(pool: Pool, eventId: string) {
 }
 
 export async function createOrganizerEvent(pool: Pool, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, organizer_email, participant_limit, is_paid, visibility, image_url, image_public_id, attendee_guide, attendeeGuide, event_type, timezone, venue_official_email, venue_official_phone, venue_section_hall, upi_id, ticket_price, external_ticket_link, venue_verification_status, venue_auth_token, venue_auth_token_expires_at, payment_details_locked } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, organizer_email, participant_limit, is_paid, visibility, image_url, image_public_id, attendee_guide, attendeeGuide, event_type, timezone, venue_official_email, venue_official_phone, venue_section_hall, upi_id, ticket_price, external_ticket_link, venue_verification_status, venue_auth_token, venue_auth_token_expires_at, payment_details_locked, min_age, minAge, suitable_age, suitableAge } = data;
     const validVisibility = visibility === 'invite_only' ? 'invite_only' : 'public';
     const validCategories = ['Sports', 'Arts', 'Education', 'Spiritual', 'Music', 'Food', 'Wellness', 'Indie', 'Techno', 'General'];
     const safeCategory = category && validCategories.includes(category) ? category : 'General';
@@ -427,7 +440,14 @@ export async function createOrganizerEvent(pool: Pool, data: any) {
     const safePrice = ticket_price ? parseFloat(ticket_price) : 0.00;
     const safeGuide = attendee_guide || attendeeGuide || {};
     const safeEventType = event_type === 'online' ? 'online' : 'in_person';
+    const safeCity = (city || (safeEventType === 'online' ? 'Global / Online' : '')).trim();
+    if (!safeCity) {
+      throw new Error('City is mandatory for event creation');
+    }
     const safeTimezone = timezone && typeof timezone === 'string' ? timezone : 'Asia/Kolkata';
+    const rawMinAge = min_age !== undefined ? min_age : minAge;
+    const safeMinAge = rawMinAge !== undefined && rawMinAge !== null && rawMinAge !== '' && !isNaN(parseInt(rawMinAge, 10)) ? parseInt(rawMinAge, 10) : null;
+    const safeSuitableAge = (suitable_age || suitableAge || '').trim() || null;
 
     const initialEventStatus = data.status && ['approved', 'pending', 'rejected'].includes(data.status) ? data.status : 'pending';
 
@@ -438,7 +458,8 @@ export async function createOrganizerEvent(pool: Pool, data: any) {
         organizer_email, participant_limit, is_paid, ticket_price, upi_id, external_ticket_link,
         visibility, image_url, image_public_id, attendee_guide, event_type, timezone,
         venue_official_email, venue_official_phone, venue_section_hall,
-        venue_verification_status, venue_auth_token, venue_auth_token_expires_at, payment_details_locked
+        venue_verification_status, venue_auth_token, venue_auth_token_expires_at, payment_details_locked,
+        min_age, suitable_age
       )
       VALUES (
         $1, $2, $3::event_category, $4, $5, $6, $7, $8,
@@ -446,18 +467,20 @@ export async function createOrganizerEvent(pool: Pool, data: any) {
         $14, $15, $16, $17, $18, $19,
         $20::event_visibility, $21, $22, $23, $24, $25,
         $26, $27, $28,
-        $29, $30, $31, $32
+        $29, $30, $31, $32,
+        $33, $34
       )
-      RETURNING id, title, status, visibility, is_paid, ticket_price, upi_id, venue_verification_status, payment_details_locked, image_url, image_public_id, whatsapp_group_link, attendee_guide, event_type, timezone`,
+      RETURNING id, title, status, visibility, is_paid, ticket_price, upi_id, venue_verification_status, payment_details_locked, image_url, image_public_id, whatsapp_group_link, attendee_guide, event_type, timezone, min_age, suitable_age`,
       [
-        title, description, safeCategory, location || null, city || null, date_time, end_time || null, timings || null,
+        title, description, safeCategory, location || null, safeCity, date_time, end_time || null, timings || null,
         external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, initialEventStatus,
         organizer_email, isNaN(safeLimit as number) ? null : safeLimit, safeIsPaid, safePrice, upi_id || null, external_ticket_link || null,
         validVisibility, image_url || null, image_public_id || null, JSON.stringify(safeGuide), safeEventType, safeTimezone,
         venue_official_email || null, venue_official_phone || null, venue_section_hall || null,
         venue_verification_status || (safeIsPaid ? 'pending_venue_auth' : 'unverified'),
         venue_auth_token || null, venue_auth_token_expires_at || null,
-        payment_details_locked !== undefined ? payment_details_locked : (safeIsPaid ? true : false)
+        payment_details_locked !== undefined ? payment_details_locked : (safeIsPaid ? true : false),
+        safeMinAge, safeSuitableAge
       ]
     );
     return rows[0];
@@ -570,7 +593,7 @@ export async function getEventsByOrganizerEmail(
     SELECT id, title, category, location, city, date_time, end_time, timings, description,
            external_link, google_maps_link, whatsapp_group_link, contact_info, status, admin_comment, participant_limit, is_paid,
            ticket_price, upi_id, external_ticket_link, venue_official_email, venue_official_phone, venue_section_hall, venue_verification_status, payment_details_locked,
-           visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone, created_at,
+           visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone, created_at, min_age, suitable_age,
            (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
            (SELECT COUNT(*)::int FROM event_invites WHERE event_id = events.id) AS invite_count
     FROM events
@@ -747,45 +770,58 @@ export async function getRecentEvents(pool: Pool, hours: number) {
 
 export async function getAllEvents(pool: Pool) {
     const { rows } = await pool.query(
-      `SELECT id, title, category, location, city, date_time, description, external_link, google_maps_link, whatsapp_group_link, contact_info, status, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide
+      `SELECT id, title, category, location, city, date_time, description, external_link, google_maps_link, whatsapp_group_link, contact_info, status, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, min_age, suitable_age
        FROM events ORDER BY is_featured DESC, date_time ASC`
     );
     return rows;
 }
 
 export async function createEvent(pool: Pool, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, attendeeGuide } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, attendeeGuide, min_age, minAge, suitable_age, suitableAge } = data;
     const validVisibility = visibility === 'invite_only' ? 'invite_only' : 'public';
     const safeGuide = attendee_guide || attendeeGuide || {};
     const safeEventType = data.event_type === 'online' ? 'online' : 'in_person';
+    const safeCity = (city || (safeEventType === 'online' ? 'Global / Online' : '')).trim();
+    if (!safeCity) {
+      throw new Error('City is mandatory for event creation');
+    }
     const safeTimezone = data.timezone && typeof data.timezone === 'string' ? data.timezone : 'Asia/Kolkata';
+    const rawMinAge = min_age !== undefined ? min_age : minAge;
+    const safeMinAge = rawMinAge !== undefined && rawMinAge !== null && rawMinAge !== '' && !isNaN(parseInt(rawMinAge, 10)) ? parseInt(rawMinAge, 10) : null;
+    const safeSuitableAge = (suitable_age || suitableAge || '').trim() || null;
 
     const { rows } = await pool.query(
-      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, event_type, timezone)
-       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::event_visibility, $17, $18, $19, $20, $21)
-       RETURNING id, title, category, is_featured, visibility, image_url, image_public_id, whatsapp_group_link, attendee_guide, event_type, timezone`,
-      [title, description, category, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, participant_limit || null, is_paid || false, is_featured || false, validVisibility, image_url || null, image_public_id || null, JSON.stringify(safeGuide), safeEventType, safeTimezone]
+      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, event_type, timezone, min_age, suitable_age)
+       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::event_visibility, $17, $18, $19, $20, $21, $22, $23)
+       RETURNING id, title, category, is_featured, visibility, image_url, image_public_id, whatsapp_group_link, attendee_guide, event_type, timezone, min_age, suitable_age`,
+      [title, description, category, location || null, safeCity, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, participant_limit || null, is_paid || false, is_featured || false, validVisibility, image_url || null, image_public_id || null, JSON.stringify(safeGuide), safeEventType, safeTimezone, safeMinAge, safeSuitableAge]
     );
     return rows[0];
 }
 
 export async function updateEvent(pool: Pool, id: string, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, attendeeGuide, event_type, timezone } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, attendeeGuide, event_type, timezone, min_age, minAge, suitable_age, suitableAge } = data;
     const validVisibility = visibility === 'invite_only' ? 'invite_only' : 'public';
     const safeGuide = attendee_guide !== undefined ? attendee_guide : (attendeeGuide !== undefined ? attendeeGuide : null);
     const safeEventType = event_type === 'online' ? 'online' : (event_type === 'in_person' ? 'in_person' : undefined);
     const safeTimezone = timezone && typeof timezone === 'string' ? timezone : undefined;
+    const rawMinAge = min_age !== undefined ? min_age : minAge;
+    const safeMinAge = rawMinAge !== undefined ? (rawMinAge !== null && rawMinAge !== '' && !isNaN(parseInt(rawMinAge, 10)) ? parseInt(rawMinAge, 10) : null) : undefined;
+    const safeSuitableAge = suitable_age !== undefined ? (suitable_age ? suitable_age.trim() : null) : (suitableAge !== undefined ? (suitableAge ? suitableAge.trim() : null) : undefined);
+    const safeCity = city !== undefined ? (city ? city.trim() : null) : undefined;
 
     await pool.query(
-      `UPDATE events SET title=$1, description=$2, category=$3::event_category, location=$4, city=$5,
+      `UPDATE events SET title=$1, description=$2, category=$3::event_category, location=$4, city=COALESCE($5, city),
        date_time=$6, end_time=$7, timings=$8, external_link=$9, google_maps_link=$10, whatsapp_group_link=$11, contact_info=$12,
        participant_limit=$13, is_paid=$14, is_featured=$15, visibility=$16::event_visibility, image_url=$17, image_public_id=$18,
        attendee_guide=COALESCE($19::jsonb, attendee_guide),
        event_type=COALESCE($20, event_type),
        timezone=COALESCE($21, timezone),
+       min_age=COALESCE($22, min_age),
+       suitable_age=COALESCE($23, suitable_age),
        updated_at=CURRENT_TIMESTAMP
-       WHERE id=$22`,
-      [title, description, category, location, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, participant_limit || null, is_paid || false, is_featured || false, validVisibility, image_url || null, image_public_id || null, safeGuide ? JSON.stringify(safeGuide) : null, safeEventType || null, safeTimezone || null, id]
+       WHERE id=$24`,
+      [title, description, category, location, safeCity !== undefined ? safeCity : null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, participant_limit || null, is_paid || false, is_featured || false, validVisibility, image_url || null, image_public_id || null, safeGuide ? JSON.stringify(safeGuide) : null, safeEventType || null, safeTimezone || null, safeMinAge !== undefined ? safeMinAge : null, safeSuitableAge !== undefined ? safeSuitableAge : null, id]
     );
 }
 
@@ -796,7 +832,7 @@ export async function deleteEvent(pool: Pool, id: string) {
 
 export async function getPendingEvents(pool: Pool) {
     const { rows } = await pool.query(
-      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, google_maps_link, whatsapp_group_link, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, event_type, timezone
+      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, google_maps_link, whatsapp_group_link, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, event_type, timezone, min_age, suitable_age
        FROM events WHERE status = 'pending' ORDER BY created_at ASC`
     );
     return rows;
@@ -810,7 +846,7 @@ export async function getEventsByStatus(pool: Pool, status: string, days?: numbe
 
     if (days) {
         const { rows } = await pool.query(
-          `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at, google_maps_link, whatsapp_group_link, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, event_type, timezone
+          `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at, google_maps_link, whatsapp_group_link, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, event_type, timezone, min_age, suitable_age
            FROM events WHERE ${statusCondition} AND updated_at >= NOW() - INTERVAL '${days} days'
            ORDER BY updated_at DESC`,
           [status]
@@ -818,7 +854,7 @@ export async function getEventsByStatus(pool: Pool, status: string, days?: numbe
         return rows;
     }
     const { rows } = await pool.query(
-      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at, google_maps_link, whatsapp_group_link, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, event_type, timezone
+      `SELECT id, title, description, category, location, city, date_time, organizer_email, admin_comment, status, updated_at, google_maps_link, whatsapp_group_link, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, event_type, timezone, min_age, suitable_age
        FROM events WHERE ${statusCondition} ORDER BY updated_at DESC`,
       [status]
     );
@@ -855,26 +891,34 @@ export async function toggleEventFeatured(pool: Pool, id: string, is_featured?: 
 }
 
 export async function updateOrganizerEvent(pool: Pool, id: string, organizerEmail: string, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, visibility, image_url, image_public_id, attendee_guide, attendeeGuide, event_type, timezone } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, visibility, image_url, image_public_id, attendee_guide, attendeeGuide, event_type, timezone, min_age, minAge, suitable_age, suitableAge } = data;
     const validVisibility = visibility === 'invite_only' ? 'invite_only' : 'public';
     const safeGuide = attendee_guide !== undefined ? attendee_guide : (attendeeGuide !== undefined ? attendeeGuide : null);
     const safeEventType = event_type === 'online' ? 'online' : (event_type === 'in_person' ? 'in_person' : undefined);
     const safeTimezone = timezone && typeof timezone === 'string' ? timezone : undefined;
+    const rawMinAge = min_age !== undefined ? min_age : minAge;
+    const safeMinAge = rawMinAge !== undefined ? (rawMinAge !== null && rawMinAge !== '' && !isNaN(parseInt(rawMinAge, 10)) ? parseInt(rawMinAge, 10) : null) : undefined;
+    const safeSuitableAge = suitable_age !== undefined ? (suitable_age ? suitable_age.trim() : null) : (suitableAge !== undefined ? (suitableAge ? suitableAge.trim() : null) : undefined);
+    const safeCity = city !== undefined ? (city ? city.trim() : null) : undefined;
 
     const { rowCount } = await pool.query(
       `UPDATE events
-       SET title=$1, description=$2, category=$3::event_category, location=$4, city=$5,
+       SET title=$1, description=$2, category=$3::event_category, location=$4, city=COALESCE($5, city),
            date_time=$6, end_time=$7, timings=$8, external_link=$9, google_maps_link=$10, whatsapp_group_link=$11, contact_info=$12,
            status='pending', admin_comment=NULL, updated_at=CURRENT_TIMESTAMP, participant_limit=$13, is_paid=$14,
            visibility=$15::event_visibility, image_url=$16, image_public_id=$17,
            attendee_guide=COALESCE($18::jsonb, attendee_guide),
            event_type=COALESCE($19, event_type),
-           timezone=COALESCE($20, timezone)
-       WHERE id=$21 AND organizer_email=$22 AND status='needs_changes'`,
-      [title, description, category, location || null, city || null,
+           timezone=COALESCE($20, timezone),
+           min_age=COALESCE($21, min_age),
+           suitable_age=COALESCE($22, suitable_age)
+       WHERE id=$23 AND organizer_email=$24 AND status='needs_changes'`,
+      [title, description, category, location || null, safeCity !== undefined ? safeCity : null,
        date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null,
        participant_limit || null, is_paid || false, validVisibility, image_url || null, image_public_id || null,
-       safeGuide ? JSON.stringify(safeGuide) : null, safeEventType || null, safeTimezone || null, id, organizerEmail]
+       safeGuide ? JSON.stringify(safeGuide) : null, safeEventType || null, safeTimezone || null,
+       safeMinAge !== undefined ? safeMinAge : null, safeSuitableAge !== undefined ? safeSuitableAge : null,
+       id, organizerEmail]
     );
     return rowCount;
 }
@@ -940,7 +984,7 @@ export async function toggleEventHousefull(pool: Pool, id: string, organizerEmai
 
 export async function getEventsInNext7Days(pool: Pool, city?: string) {
     let queryText = `
-      SELECT id, title, description, location, city, date_time, category, status, participant_limit, is_paid, whatsapp_group_link,
+      SELECT id, title, description, location, city, date_time, category, status, participant_limit, is_paid, whatsapp_group_link, min_age, suitable_age,
              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count
       FROM events
       WHERE (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status IS NULL)

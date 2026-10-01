@@ -59,6 +59,8 @@ export interface OrganizerEvent {
   admin_comment?: string;
   whatsapp_group_link?: string;
   is_paid?: boolean;
+  min_age?: number | null;
+  suitable_age?: string | null;
 }
 
 interface OrganizerEventsGridProps {
@@ -326,6 +328,16 @@ export function OrganizerEventsGrid({
                 {ev.visibility === "invite_only" && (
                   <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-900 border border-amber-300/40 text-[8px] font-black flex items-center gap-1">
                     <Lock className="h-2.5 w-2.5" /> VIP {ev.invite_count !== undefined ? `(${ev.invite_count})` : ""}
+                  </span>
+                )}
+                {ev.min_age !== null && ev.min_age !== undefined && Number(ev.min_age) > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-700 border border-red-300/40 text-[8px] font-black flex items-center gap-1">
+                    🔞 {ev.min_age}+
+                  </span>
+                )}
+                {ev.suitable_age && (
+                  <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-700 border border-purple-300/40 text-[8px] font-bold">
+                    👥 {ev.suitable_age}
                   </span>
                 )}
               </div>

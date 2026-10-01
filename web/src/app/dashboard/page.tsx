@@ -1191,6 +1191,16 @@ function DashboardContent() {
                   <div className="sticker-badge bg-zinc-100 border-none text-zinc-600 font-bold text-[10px]">
                     {featuredEvent.is_paid ? "Paid Entry" : "Free Entry"}
                   </div>
+                  {featuredEvent.min_age !== null && featuredEvent.min_age !== undefined && Number(featuredEvent.min_age) > 0 && (
+                    <div className="sticker-badge bg-red-100 text-red-700 border-none font-black text-[10px] flex items-center gap-0.5">
+                      🔞 {featuredEvent.min_age}+
+                    </div>
+                  )}
+                  {featuredEvent.suitable_age && (
+                    <div className="sticker-badge bg-purple-50 text-purple-700 border-none font-bold text-[10px] flex items-center gap-0.5">
+                      👥 {featuredEvent.suitable_age}
+                    </div>
+                  )}
                   {featuredEvent.status === 'cancelled' && (
                     <div className="sticker-badge bg-rose-600 border-none text-white font-black text-[10px] uppercase tracking-wider animate-pulse flex items-center gap-1">
                       🚨 Cancelled
@@ -1341,6 +1351,16 @@ function DashboardContent() {
                       <div className="sticker-badge bg-zinc-100 border-none text-zinc-500 font-bold text-[10px]">
                         {ev.is_paid ? "Paid" : "Free"}
                       </div>
+                      {ev.min_age !== null && ev.min_age !== undefined && Number(ev.min_age) > 0 && (
+                        <div className="sticker-badge bg-red-100 text-red-700 border-none font-black text-[10px] flex items-center gap-0.5">
+                          🔞 {ev.min_age}+
+                        </div>
+                      )}
+                      {ev.suitable_age && (
+                        <div className="sticker-badge bg-purple-50 text-purple-700 border-none font-bold text-[10px] flex items-center gap-0.5">
+                          👥 {ev.suitable_age}
+                        </div>
+                      )}
                       {ev.status === 'cancelled' && (
                         <div className="sticker-badge bg-rose-600 border-none text-white font-black text-[10px] uppercase tracking-wider animate-pulse flex items-center gap-1">
                           🚨 Cancelled

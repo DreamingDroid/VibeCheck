@@ -26,6 +26,12 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
 
   if (!organizer_email) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
+  const safeEventType = (req.body.event_type || req.body.eventType) === 'online' ? 'online' : 'in_person';
+  const safeCity = (city || (safeEventType === 'online' ? 'Global / Online' : '')).trim();
+  if (!safeCity) {
+    return res.status(400).json({ success: false, error: 'City / Region is mandatory for event creation.' });
+  }
+
   const safeIsPaid = Boolean(is_paid ?? isPaid ?? false);
   const safeVenueHall = venue_section_hall || venueSectionHall;
   const safeUpiId = upi_id || upiId;
