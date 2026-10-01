@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useCity, isEventEnded, VibeEvent } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useTranslation } from "@/context/LanguageContext";
-import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
+import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor, getCategoryBadgeClass } from "@/components/CategoryDecorations";
 import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock, Send, LayoutGrid, Globe, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { DayPicker } from "react-day-picker";
@@ -299,24 +299,7 @@ function DashboardContent() {
 
   // Color mapping for Joyful vibe
   const getCategoryColor = (cat: string) => {
-    const map: Record<string, string> = {
-      "Adventure": "bg-emerald-500",
-      "Sports": "bg-orange-500",
-      "Music": "bg-yellow-400",
-      "Nightlife": "bg-indigo-500",
-      "Arts & Culture": "bg-purple-500",
-      "Arts": "bg-purple-500",
-      "Food & Drink": "bg-emerald-400",
-      "Food": "bg-emerald-400",
-      "Wellness": "bg-teal-400",
-      "Workshops": "bg-blue-500",
-      "Comedy": "bg-yellow-400",
-      "Spiritual": "bg-violet-400",
-      "Education": "bg-blue-500",
-      "Techno": "bg-primary",
-      "Indie": "bg-pink-400",
-    };
-    return map[cat] || "bg-zinc-200";
+    return getCategoryBadgeClass(cat);
   };
 
   if (loading) return (
@@ -1176,7 +1159,7 @@ function DashboardContent() {
               {/* Top Tags & Quick Action Bar */}
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <div className={`sticker-badge ${getCategoryColor(featuredEvent.category)} text-black border-none font-black shadow-xs`}>
+                  <div className={`sticker-badge ${getCategoryBadgeClass(featuredEvent.category)} border-none shadow-xs`}>
                     {featuredEvent.category}
                   </div>
                   {featuredEvent.event_type === 'online' ? (
@@ -1340,7 +1323,7 @@ function DashboardContent() {
                <div className="p-5 sm:p-8 flex flex-col h-full space-y-6 relative z-10 pointer-events-none">
                   <div className="flex justify-between items-start">
                     <div className="flex flex-wrap gap-2">
-                      <div className={`sticker-badge ${getCategoryColor(ev.category)} text-black border-none font-black`}>
+                      <div className={`sticker-badge ${getCategoryBadgeClass(ev.category)} border-none`}>
                         {ev.category}
                       </div>
                       {ev.event_type === 'online' && (
@@ -1394,7 +1377,7 @@ function DashboardContent() {
                    <h3 className="text-2xl font-black tracking-tighter leading-tight uppercase group-hover:text-primary transition-colors italic">
                      {ev.title}
                    </h3>
-                   <p className="text-xs font-bold text-zinc-500 line-clamp-3 leading-relaxed">
+                   <p className="text-xs font-bold text-zinc-600 line-clamp-3 leading-relaxed">
                      {ev.description}
                    </p>
                  </div>
@@ -1402,7 +1385,7 @@ function DashboardContent() {
                  <div className="pt-6 border-t border-black/5 flex items-center justify-between">
                     <div className="flex flex-col">
                       <div className="flex items-center gap-1.5 text-xs font-black uppercase text-black">
-                        <CalendarIcon className="h-3.5 w-3.5" />
+                        <CalendarIcon className="h-3.5 w-3.5" style={{ color: isVibrant ? getCategoryAccentColor(ev.category) : undefined }} />
                         {new Date(ev.date_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </div>
                       <a
@@ -1424,10 +1407,13 @@ function DashboardContent() {
                     <div 
                       className={`h-10 w-10 flex items-center justify-center rounded-full transition-all group-hover:scale-110 ${
                         isVibrant 
-                          ? 'text-white shadow-lg' 
+                          ? 'text-white shadow-md' 
                           : 'bg-black text-white group-hover:bg-primary'
                       }`}
-                      style={isVibrant ? { backgroundColor: getCategoryAccentColor(ev.category) } : {}}
+                      style={isVibrant ? { 
+                        backgroundColor: getCategoryAccentColor(ev.category),
+                        boxShadow: `0 4px 14px ${getCategoryAccentColor(ev.category)}60` 
+                      } : {}}
                     >
                       <Sparkles className="h-4 w-4" />
                     </div>

@@ -12,7 +12,7 @@ import { OrganizerDetailsModal } from "@/components/OrganizerDetailsModal";
 import { EventRatingModal } from "@/components/EventRatingModal";
 import { JoinTelegramPromptModal } from "@/components/JoinTelegramPromptModal";
 import { formatTelegramLink } from "@/lib/telegramGroup";
-import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
+import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor, getCategoryBadgeClass } from "@/components/CategoryDecorations";
 import { useTheme } from "@/context/ThemeContext";
 import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink, Send, Globe, ShieldCheck } from "lucide-react";
 import { formatEventTimeWithTimezone, getTimezoneAbbr } from "@/lib/timezone";
@@ -365,8 +365,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
           <div className="space-y-4">
             <div className="flex items-center gap-3 flex-wrap">
               <div 
-                className={`sticker-badge text-white border-none ${isVibrant ? '' : 'bg-primary'}`}
-                style={isVibrant ? { backgroundColor: getCategoryAccentColor(event.category) } : {}}
+                className={`sticker-badge ${getCategoryBadgeClass(event.category)} border-none`}
               >
                 {event.category}
               </div>

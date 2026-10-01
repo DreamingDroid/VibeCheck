@@ -6,8 +6,7 @@ import {
   Palette, PenTool, Brush,
   Trophy, Dumbbell, Medal,
   Wine, UtensilsCrossed, ChefHat,
-  Code, Cpu, Zap,
-  Star, Flame, Guitar,
+  Zap, Flame,
   BookOpen, GraduationCap, Lightbulb,
   Compass, Sun, Moon,
   Heart, Leaf, Droplets,
@@ -30,6 +29,8 @@ type CategoryConfig = {
   floatingIcons: IconPlacement[]
   accentIcon: React.ReactNode
   accentColor: string
+  badgeBg: string
+  badgeText: string
 }
 
 const ICON_SIZE_SM = "h-4 w-4"
@@ -37,6 +38,17 @@ const ICON_SIZE_MD = "h-5 w-5"
 const ICON_SIZE_ACCENT = "h-7 w-7"
 
 const categoryConfigs: Record<string, CategoryConfig> = {
+  General: {
+    floatingIcons: [
+      { icon: <Sparkles className={ICON_SIZE_SM} />, top: "12%", right: "16%", rotate: "-10deg", animation: "float-gentle", size: ICON_SIZE_SM },
+      { icon: <Globe className={ICON_SIZE_MD} />, top: "38%", right: "8%", rotate: "12deg", animation: "float-slow", size: ICON_SIZE_MD },
+      { icon: <Gem className={ICON_SIZE_SM} />, bottom: "28%", right: "22%", rotate: "-18deg", animation: "float-drift", size: ICON_SIZE_SM },
+    ],
+    accentIcon: <Sparkles className={ICON_SIZE_ACCENT} />,
+    accentColor: "#6366F1",
+    badgeBg: "bg-indigo-600",
+    badgeText: "text-white",
+  },
   Adventure: {
     floatingIcons: [
       { icon: <Mountain className={ICON_SIZE_SM} />, top: "14%", right: "16%", rotate: "-10deg", animation: "float-gentle", size: ICON_SIZE_SM },
@@ -45,6 +57,8 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Mountain className={ICON_SIZE_ACCENT} />,
     accentColor: "#10B981",
+    badgeBg: "bg-emerald-600",
+    badgeText: "text-white",
   },
   Music: {
     floatingIcons: [
@@ -54,6 +68,8 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Music className={ICON_SIZE_ACCENT} />,
     accentColor: "#F59E0B",
+    badgeBg: "bg-amber-400",
+    badgeText: "text-black",
   },
   Nightlife: {
     floatingIcons: [
@@ -63,6 +79,8 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Wine className={ICON_SIZE_ACCENT} />,
     accentColor: "#6366F1",
+    badgeBg: "bg-indigo-600",
+    badgeText: "text-white",
   },
   "Arts & Culture": {
     floatingIcons: [
@@ -71,7 +89,9 @@ const categoryConfigs: Record<string, CategoryConfig> = {
       { icon: <Brush className={ICON_SIZE_SM} />, bottom: "28%", right: "20%", rotate: "25deg", animation: "float-drift", size: ICON_SIZE_SM },
     ],
     accentIcon: <Palette className={ICON_SIZE_ACCENT} />,
-    accentColor: "#9C27B0",
+    accentColor: "#A855F7",
+    badgeBg: "bg-purple-600",
+    badgeText: "text-white",
   },
   Arts: {
     floatingIcons: [
@@ -80,7 +100,9 @@ const categoryConfigs: Record<string, CategoryConfig> = {
       { icon: <Brush className={ICON_SIZE_SM} />, bottom: "28%", right: "20%", rotate: "25deg", animation: "float-drift", size: ICON_SIZE_SM },
     ],
     accentIcon: <Palette className={ICON_SIZE_ACCENT} />,
-    accentColor: "#9C27B0",
+    accentColor: "#A855F7",
+    badgeBg: "bg-purple-600",
+    badgeText: "text-white",
   },
   Sports: {
     floatingIcons: [
@@ -90,6 +112,8 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Trophy className={ICON_SIZE_ACCENT} />,
     accentColor: "#F97316",
+    badgeBg: "bg-orange-500",
+    badgeText: "text-white",
   },
   "Food & Drink": {
     floatingIcons: [
@@ -98,7 +122,9 @@ const categoryConfigs: Record<string, CategoryConfig> = {
       { icon: <ChefHat className={ICON_SIZE_SM} />, bottom: "30%", right: "18%", rotate: "18deg", animation: "float-drift", size: ICON_SIZE_SM },
     ],
     accentIcon: <UtensilsCrossed className={ICON_SIZE_ACCENT} />,
-    accentColor: "#10B981",
+    accentColor: "#F43F5E",
+    badgeBg: "bg-rose-500",
+    badgeText: "text-white",
   },
   Food: {
     floatingIcons: [
@@ -107,7 +133,9 @@ const categoryConfigs: Record<string, CategoryConfig> = {
       { icon: <ChefHat className={ICON_SIZE_SM} />, bottom: "30%", right: "18%", rotate: "18deg", animation: "float-drift", size: ICON_SIZE_SM },
     ],
     accentIcon: <UtensilsCrossed className={ICON_SIZE_ACCENT} />,
-    accentColor: "#10B981",
+    accentColor: "#F43F5E",
+    badgeBg: "bg-rose-500",
+    badgeText: "text-white",
   },
   Wellness: {
     floatingIcons: [
@@ -117,6 +145,8 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Leaf className={ICON_SIZE_ACCENT} />,
     accentColor: "#14B8A6",
+    badgeBg: "bg-teal-600",
+    badgeText: "text-white",
   },
   Workshops: {
     floatingIcons: [
@@ -124,8 +154,10 @@ const categoryConfigs: Record<string, CategoryConfig> = {
       { icon: <Lightbulb className={ICON_SIZE_MD} />, top: "40%", right: "8%", rotate: "10deg", animation: "float-slow", size: ICON_SIZE_MD },
       { icon: <BookOpen className={ICON_SIZE_SM} />, bottom: "28%", right: "22%", rotate: "-18deg", animation: "float-drift", size: ICON_SIZE_SM },
     ],
-    accentIcon: <Briefcase className={ICON_SIZE_ACCENT} />,
-    accentColor: "#3B82F6",
+    accentIcon: <Lightbulb className={ICON_SIZE_ACCENT} />,
+    accentColor: "#2563EB",
+    badgeBg: "bg-blue-600",
+    badgeText: "text-white",
   },
   Education: {
     floatingIcons: [
@@ -135,6 +167,8 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <BookOpen className={ICON_SIZE_ACCENT} />,
     accentColor: "#3B82F6",
+    badgeBg: "bg-blue-600",
+    badgeText: "text-white",
   },
   Spiritual: {
     floatingIcons: [
@@ -143,7 +177,9 @@ const categoryConfigs: Record<string, CategoryConfig> = {
       { icon: <Moon className={ICON_SIZE_SM} />, bottom: "30%", right: "20%", rotate: "22deg", animation: "float-drift", size: ICON_SIZE_SM },
     ],
     accentIcon: <Compass className={ICON_SIZE_ACCENT} />,
-    accentColor: "#7C3AED",
+    accentColor: "#8B5CF6",
+    badgeBg: "bg-violet-600",
+    badgeText: "text-white",
   },
   Comedy: {
     floatingIcons: [
@@ -153,6 +189,30 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Smile className={ICON_SIZE_ACCENT} />,
     accentColor: "#EAB308",
+    badgeBg: "bg-amber-400",
+    badgeText: "text-black",
+  },
+  Techno: {
+    floatingIcons: [
+      { icon: <Zap className={ICON_SIZE_SM} />, top: "14%", right: "16%", rotate: "-10deg", animation: "float-gentle", size: ICON_SIZE_SM },
+      { icon: <Flame className={ICON_SIZE_MD} />, top: "40%", right: "8%", rotate: "12deg", animation: "float-slow", size: ICON_SIZE_MD },
+      { icon: <Sparkles className={ICON_SIZE_SM} />, bottom: "28%", right: "22%", rotate: "-15deg", animation: "float-drift", size: ICON_SIZE_SM },
+    ],
+    accentIcon: <Zap className={ICON_SIZE_ACCENT} />,
+    accentColor: "#06B6D4",
+    badgeBg: "bg-cyan-500",
+    badgeText: "text-slate-950",
+  },
+  Indie: {
+    floatingIcons: [
+      { icon: <Heart className={ICON_SIZE_SM} />, top: "14%", right: "16%", rotate: "-10deg", animation: "float-gentle", size: ICON_SIZE_SM },
+      { icon: <Sparkles className={ICON_SIZE_MD} />, top: "38%", right: "8%", rotate: "15deg", animation: "float-slow", size: ICON_SIZE_MD },
+      { icon: <Gem className={ICON_SIZE_SM} />, bottom: "28%", right: "22%", rotate: "-15deg", animation: "float-drift", size: ICON_SIZE_SM },
+    ],
+    accentIcon: <Heart className={ICON_SIZE_ACCENT} />,
+    accentColor: "#EC4899",
+    badgeBg: "bg-pink-500",
+    badgeText: "text-white",
   },
 }
 
@@ -163,7 +223,30 @@ const defaultConfig: CategoryConfig = {
     { icon: <Gem className={ICON_SIZE_SM} />, bottom: "28%", right: "22%", rotate: "15deg", animation: "float-drift", size: ICON_SIZE_SM },
   ],
   accentIcon: <Sparkles className={ICON_SIZE_ACCENT} />,
-  accentColor: "#6B7280",
+  accentColor: "#6366F1",
+  badgeBg: "bg-indigo-600",
+  badgeText: "text-white",
+}
+
+function findCategoryConfig(category: string): CategoryConfig {
+  if (!category) return defaultConfig
+  const norm = category.trim().toLowerCase()
+  for (const [key, val] of Object.entries(categoryConfigs)) {
+    if (key.toLowerCase() === norm) return val
+  }
+  if (norm.includes("music") || norm.includes("gig") || norm.includes("concert")) return categoryConfigs.Music
+  if (norm.includes("art") || norm.includes("craft") || norm.includes("paint") || norm.includes("culture")) return categoryConfigs["Arts & Culture"]
+  if (norm.includes("sport") || norm.includes("fitness") || norm.includes("run")) return categoryConfigs.Sports
+  if (norm.includes("adventure") || norm.includes("trek") || norm.includes("camp") || norm.includes("nature")) return categoryConfigs.Adventure
+  if (norm.includes("food") || norm.includes("dining") || norm.includes("drink") || norm.includes("culinary")) return categoryConfigs["Food & Drink"]
+  if (norm.includes("techno") || norm.includes("electronic") || norm.includes("tech") || norm.includes("cyber")) return categoryConfigs.Techno
+  if (norm.includes("indie") || norm.includes("acoustic")) return categoryConfigs.Indie
+  if (norm.includes("workshop") || norm.includes("education") || norm.includes("learn") || norm.includes("bootcamp")) return categoryConfigs.Workshops
+  if (norm.includes("spiritual") || norm.includes("meditat") || norm.includes("mindful")) return categoryConfigs.Spiritual
+  if (norm.includes("wellness") || norm.includes("health") || norm.includes("yoga")) return categoryConfigs.Wellness
+  if (norm.includes("comedy") || norm.includes("standup") || norm.includes("humor")) return categoryConfigs.Comedy
+  if (norm.includes("nightlife") || norm.includes("club") || norm.includes("party")) return categoryConfigs.Nightlife
+  return categoryConfigs.General || defaultConfig
 }
 
 /**
@@ -176,7 +259,7 @@ export function CategoryDecorations({ category, showAccent = true }: { category:
 
   if (!isVibrant) return null
 
-  const config = categoryConfigs[category] || defaultConfig
+  const config = findCategoryConfig(category)
 
   return (
     <>
@@ -216,32 +299,36 @@ export function CategoryDecorations({ category, showAccent = true }: { category:
  * Returns empty string in ringer theme.
  */
 export function getCategoryCardClass(category: string): string {
-  const key = category.toLowerCase().replace(/\s+/g, "")
-  const map: Record<string, string> = {
-    adventure: "vibe-card-sports",
-    music: "vibe-card-music",
-    nightlife: "vibe-card-nightlife",
-    "arts&culture": "vibe-card-arts",
-    arts: "vibe-card-arts",
-    sports: "vibe-card-sports",
-    "food&drink": "vibe-card-food",
-    food: "vibe-card-food",
-    techno: "vibe-card-techno",
-    indie: "vibe-card-indie",
-    education: "vibe-card-education",
-    spiritual: "vibe-card-spiritual",
-    wellness: "vibe-card-wellness",
-    workshops: "vibe-card-education",
-    comedy: "vibe-card-comedy",
-    general: "vibe-card-general",
-  }
-  return map[key] || "vibe-card-general"
+  const norm = (category || "").toLowerCase().replace(/[\s&_]+/g, "")
+  if (norm.includes("adventure") || norm.includes("trek") || norm.includes("nature")) return "vibe-card-adventure"
+  if (norm.includes("music") || norm.includes("gig") || norm.includes("concert")) return "vibe-card-music"
+  if (norm.includes("nightlife") || norm.includes("club") || norm.includes("party")) return "vibe-card-nightlife"
+  if (norm.includes("art") || norm.includes("craft") || norm.includes("culture")) return "vibe-card-arts"
+  if (norm.includes("sport") || norm.includes("fitness") || norm.includes("run")) return "vibe-card-sports"
+  if (norm.includes("food") || norm.includes("drink") || norm.includes("dining")) return "vibe-card-food"
+  if (norm.includes("techno") || norm.includes("tech") || norm.includes("cyber")) return "vibe-card-techno"
+  if (norm.includes("indie") || norm.includes("acoustic")) return "vibe-card-indie"
+  if (norm.includes("workshop") || norm.includes("learn") || norm.includes("bootcamp")) return "vibe-card-workshops"
+  if (norm.includes("education")) return "vibe-card-education"
+  if (norm.includes("spiritual") || norm.includes("mindful") || norm.includes("meditat")) return "vibe-card-spiritual"
+  if (norm.includes("wellness") || norm.includes("health") || norm.includes("yoga")) return "vibe-card-wellness"
+  if (norm.includes("comedy") || norm.includes("standup")) return "vibe-card-comedy"
+  return "vibe-card-general"
 }
 
 /**
- * Returns the accent color for a given category.
+ * Returns the accent color hex for a given category.
  */
 export function getCategoryAccentColor(category: string): string {
-  const config = categoryConfigs[category] || defaultConfig
+  const config = findCategoryConfig(category)
   return config.accentColor
 }
+
+/**
+ * Returns the sticker badge CSS class for category badges.
+ */
+export function getCategoryBadgeClass(category: string): string {
+  const config = findCategoryConfig(category)
+  return `${config.badgeBg} ${config.badgeText} shadow-xs font-black`
+}
+
