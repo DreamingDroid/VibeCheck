@@ -617,40 +617,40 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                   className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 border-2 border-black/5 hover:bg-black/5 active:scale-95 transition-transform rounded-[20px] cursor-pointer"
                 >
                   <CalendarPlus className="h-5 w-5" />
-                  ADD TO CALENDAR
-                </button>
-              </>
-            )}
+                    ADD TO CALENDAR
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Right Side: Meta Info Box */}
-        <div className="w-full md:w-80 bg-zinc-50 border-t md:border-t-0 md:border-l border-black/5 p-6 sm:p-12 space-y-8 sm:space-y-12">
+          {/* Right Side: Meta Info Box */}
+          <div className="w-full md:w-84 bg-white/90 md:bg-white/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-black/10 p-6 sm:p-10 space-y-8 sm:space-y-10 relative z-10 shadow-sm">
            <div className="space-y-6">
               {!isCancelled && !isEventEnded && rsvped && (
                 rsvpStatus === 'pending' ? (
-                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-700">
-                      <Clock className="h-4 w-4" />
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-2 shadow-xs">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-800">
+                      <Clock className="h-4 w-4 text-amber-700" />
                       <span>{event.is_paid ? 'Payment Pending' : 'Approval Pending'}</span>
                     </div>
-                    <p className="text-xs text-amber-900/80 font-bold leading-snug">
+                    <p className="text-xs text-amber-950 font-bold leading-snug">
                       {event.is_paid ? 'Pass pending payment with organizer.' : 'RSVP recorded! Pass pending organizer approval.'}
                     </p>
                     <button
                       onClick={() => setShowBriefingModal(true)}
-                      className="text-xs font-black uppercase tracking-wider text-black underline underline-offset-4 hover:text-amber-700 transition-colors block pt-1 cursor-pointer"
+                      className="text-xs font-black uppercase tracking-wider text-black underline underline-offset-4 hover:text-amber-800 transition-colors block pt-1 cursor-pointer"
                     >
                       {event.is_paid ? 'Contact Organizer & View Guide →' : 'View Event Briefing & Guide →'}
                     </button>
                   </div>
                 ) : (
-                  <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 space-y-2">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
-                      <CheckCircle2 className="h-4 w-4" />
+                  <div className="p-4 rounded-2xl bg-primary/10 border border-primary/25 space-y-2 shadow-xs">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-800">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-700" />
                       <span>Pass Confirmed!</span>
                     </div>
-                    <p className="text-xs text-zinc-600 font-bold leading-snug">
+                    <p className="text-xs text-zinc-900 font-bold leading-snug">
                       {passCode ? `Pass #${passCode} is active.` : "Your spot is locked in."} Access schedule &amp; venue details anytime.
                     </p>
                     <button
@@ -673,13 +673,13 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
 
               {/* Official Attendee Telegram Group (RSVP'd Card) */}
               {!isCancelled && !isEventEnded && rsvped && event.whatsapp_group_link && (
-                <div className="p-4 rounded-2xl bg-sky-50 border border-sky-200 space-y-2.5">
+                <div className="p-4 rounded-2xl bg-sky-50 border border-sky-200 space-y-2.5 shadow-xs">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#229ED9]">
                       <Send className="h-3 w-3 fill-[#229ED9]" />
                       <span>Attendee Telegram Group</span>
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-200/60 text-sky-900">
+                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-200/70 text-sky-950">
                       Active
                     </span>
                   </div>
@@ -702,39 +702,39 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               {(() => {
                 const timeInfo = formatEventTimeWithTimezone(event.date_time, event.end_time, event.timezone || 'Asia/Kolkata');
                 return (
-                  <div className="space-y-1.5">
-                     <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Date & Time</div>
-                     <div className="flex items-center gap-2 text-black font-black">
+                  <div className="space-y-1.5 bg-white/80 p-3.5 rounded-2xl border border-black/5 shadow-2xs">
+                     <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Date &amp; Time</div>
+                     <div className="flex items-center gap-2 text-black font-black text-sm">
                        <Calendar className="h-4 w-4 text-primary shrink-0" />
                        <span>
                          {new Date(event.date_time).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: event.timezone || 'Asia/Kolkata' })}
                          {event.end_time && new Date(event.date_time).toDateString() !== new Date(event.end_time).toDateString() && (
-                           <span className="text-zinc-300 ml-1"> - {new Date(event.end_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: event.timezone || 'Asia/Kolkata' })}</span>
+                           <span className="text-zinc-600 ml-1"> - {new Date(event.end_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: event.timezone || 'Asia/Kolkata' })}</span>
                          )}
                        </span>
                      </div>
-                     <div className="text-sm font-bold text-zinc-800 flex items-center gap-1.5 flex-wrap">
+                     <div className="text-sm font-bold text-zinc-900 flex items-center gap-1.5 flex-wrap">
                         <span>{timeInfo.timeRangeDisplay}</span>
-                        <span className="text-[10px] font-black uppercase text-zinc-700 bg-zinc-200/80 px-1.5 py-0.5 rounded tracking-wider shadow-xs">
+                        <span className="text-[10px] font-black uppercase text-zinc-800 bg-zinc-200 px-1.5 py-0.5 rounded tracking-wider shadow-xs">
                           {timeInfo.tzAbbr}
                         </span>
                      </div>
                      {timeInfo.localTimeNote && (
-                       <div className="text-[11px] font-bold text-sky-800 bg-sky-50 border border-sky-200/80 px-2.5 py-1 rounded-xl w-fit flex items-center gap-1">
+                       <div className="text-[11px] font-bold text-sky-950 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-xl w-fit flex items-center gap-1">
                          <Globe className="h-3 w-3 text-sky-600 shrink-0" />
                          <span>{timeInfo.localTimeNote}</span>
                        </div>
                      )}
-                     {event.timings && <span className="block mt-1 text-primary italic uppercase text-[9px] tracking-widest">{event.timings}</span>}
+                     {event.timings && <span className="block mt-1 text-primary italic uppercase text-[9px] font-black tracking-widest">{event.timings}</span>}
                   </div>
                 );
               })()}
 
-              <div className="space-y-1">
-                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+              <div className="space-y-1.5 bg-white/80 p-3.5 rounded-2xl border border-black/5 shadow-2xs">
+                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
                    {event.event_type === 'online' ? 'Event Mode & Platform' : 'Location'}
                  </div>
-                 <div className="flex items-center gap-2 text-black font-black">
+                 <div className="flex items-center gap-2 text-black font-black text-sm">
                    {event.event_type === 'online' ? (
                      <>
                        <Globe className="h-4 w-4 text-sky-600 shrink-0" />
@@ -749,11 +749,11 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                  </div>
                  {event.event_type === 'online' ? (
                    event.location && event.location !== 'Online Event' && event.location !== 'Online' ? (
-                     <span className="text-xs font-semibold text-zinc-500 block">
+                     <span className="text-xs font-semibold text-zinc-700 block">
                        Platform: {event.location}
                      </span>
                    ) : (
-                     <span className="text-xs font-semibold text-zinc-500 block">
+                     <span className="text-xs font-semibold text-zinc-700 block">
                        Virtual access details available in Attendee Pass.
                      </span>
                    )
@@ -762,16 +762,16 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                      href={event.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.location}, ${event.city || ''}`)}`}
                      target="_blank"
                      rel="noopener noreferrer"
-                     className="text-xs font-bold text-zinc-400 underline hover:text-black block w-fit"
+                     className="text-xs font-bold text-zinc-600 underline hover:text-black block w-fit"
                    >
-                     Open in Maps
+                     Open in Maps ↗
                    </a>
                  )}
               </div>
 
               {/* Age Criteria & Suitability Block */}
-              <div className="space-y-1">
-                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Age Guidelines</div>
+              <div className="space-y-1.5 bg-white/80 p-3.5 rounded-2xl border border-black/5 shadow-2xs">
+                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Age Guidelines</div>
                  <div className="flex items-center gap-2 text-black font-black text-xs">
                    <Users className="h-4 w-4 text-primary shrink-0" />
                    <span>
@@ -781,26 +781,26 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                    </span>
                  </div>
                  {event.suitable_age && (
-                   <span className="text-xs font-semibold text-zinc-500 block">
+                   <span className="text-xs font-semibold text-zinc-600 block">
                      Demographic: {event.suitable_age}
                    </span>
                  )}
               </div>
 
-              <div className="space-y-1">
-                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">People Interested</div>
+              <div className="space-y-1.5 bg-white/80 p-3.5 rounded-2xl border border-black/5 shadow-2xs">
+                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">People Interested</div>
                  <div className="flex items-center gap-2 text-black font-black">
                    <Users className="h-4 w-4 text-primary" />
-                   {event.rsvp_count || 0} {event.rsvp_count === 1 ? 'Vibe Seeker' : 'Vibe Seekers'}
+                   <span>{event.rsvp_count || 0} {event.rsvp_count === 1 ? 'Vibe Seeker' : 'Vibe Seekers'}</span>
                  </div>
               </div>
 
               {event.participant_limit && (
-                <div className="space-y-1">
-                   <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Event Capacity</div>
+                <div className="space-y-1.5 bg-white/80 p-3.5 rounded-2xl border border-black/5 shadow-2xs">
+                   <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Event Capacity</div>
                    <div className="flex items-center gap-2 text-black font-black">
                      <Users className="h-4 w-4 text-primary" />
-                     {event.participant_limit} spots
+                     <span>{event.participant_limit} spots</span>
                    </div>
                 </div>
               )}
@@ -808,8 +808,8 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
 
            {/* Evident 'Join Telegram Group' Action Button (Only visible if Telegram link is configured) */}
            {event.whatsapp_group_link && (
-             <div className="pt-6 sm:pt-8 border-t border-black/5 flex flex-col gap-2">
-                <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Community Group</div>
+             <div className="pt-6 sm:pt-8 border-t border-black/10 flex flex-col gap-2">
+                <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Community Group</div>
                 <button
                   onClick={() => {
                     if (!rsvped) {
@@ -827,26 +827,26 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
              </div>
            )}
 
-           <div className="pt-6 sm:pt-8 border-t border-black/5 flex flex-col gap-4">
-              <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Share This Vibe</div>
+           <div className="pt-6 sm:pt-8 border-t border-black/10 flex flex-col gap-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Share This Vibe</div>
               <div className="flex gap-2">
                  <button 
                    onClick={handleCopyLink} 
                    title="Copy Link"
-                   className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-zinc-50 cursor-pointer"
+                   className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-white shadow-xs cursor-pointer"
                  >
                    <Link2 className="h-4 w-4 text-black" />
                  </button>
                  <button 
                    onClick={handleShare} 
                    title="System Share"
-                   className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-zinc-50 cursor-pointer"
+                   className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-white shadow-xs cursor-pointer"
                  >
                    <Share2 className="h-4 w-4 text-black" />
                  </button>
               </div>
            </div>
-         </div>
+        </div>
       </div>
 
       <OrganizerDetailsModal

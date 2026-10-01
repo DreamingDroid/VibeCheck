@@ -1,6 +1,7 @@
 "use client"
 
 import { useTheme } from "@/context/ThemeContext"
+import { CategoryBackgroundArt } from "./CategoryBackgroundArt"
 import {
   Music, Headphones, Mic2,
   Palette, PenTool, Brush,
@@ -254,7 +255,7 @@ function findCategoryConfig(category: string): CategoryConfig {
  * Only renders in vibrant theme — returns null in ringer theme.
  * Parent must have `position: relative` and `overflow: hidden`.
  */
-export function CategoryDecorations({ category, showAccent = true }: { category: string; showAccent?: boolean }) {
+export function CategoryDecorations({ category, showAccent = false, showArt = true }: { category: string; showAccent?: boolean; showArt?: boolean }) {
   const { isVibrant } = useTheme()
 
   if (!isVibrant) return null
@@ -263,30 +264,12 @@ export function CategoryDecorations({ category, showAccent = true }: { category:
 
   return (
     <>
-      {/* Scattered floating icons */}
-      <div className="hidden sm:block">
-        {config.floatingIcons.map((item, i) => (
-          <div
-            key={i}
-            className={`vibe-float-icon animate-${item.animation}`}
-            style={{
-              top: item.top,
-              bottom: item.bottom,
-              left: item.left,
-              right: item.right,
-              transform: `rotate(${item.rotate})`,
-              animationDelay: `${i * 0.8}s`,
-              color: config.accentColor,
-            }}
-          >
-            {item.icon}
-          </div>
-        ))}
-      </div>
+      {/* Handcrafted Thematic Category Background Art */}
+      {showArt && <CategoryBackgroundArt category={category} />}
 
-      {/* Large accent icon (bottom-right, Hostinger-style) */}
+      {/* Large accent icon (optional) */}
       {showAccent && (
-        <div className="vibe-accent-icon hidden sm:flex" style={{ color: config.accentColor }}>
+        <div className="vibe-accent-icon hidden sm:flex z-[2]" style={{ color: config.accentColor }}>
           {config.accentIcon}
         </div>
       )}
@@ -331,4 +314,6 @@ export function getCategoryBadgeClass(category: string): string {
   const config = findCategoryConfig(category)
   return `${config.badgeBg} ${config.badgeText} shadow-xs font-black`
 }
+
+export { CategoryBackgroundArt }
 

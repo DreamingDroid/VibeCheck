@@ -1212,38 +1212,50 @@ function DashboardContent() {
       {!showCalendarView && featuredEvent && (
         <section className="relative group overflow-hidden ringer-card h-auto flex flex-col md:flex-row shadow-2xl rounded-[24px] md:rounded-[40px] border border-black/10">
            {/* Left Editorial Gradient Card */}
-           <div className="w-full md:w-1/2 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white p-6 sm:p-10 flex flex-col justify-between gap-6 md:gap-8 relative overflow-hidden">
+           <div className={`w-full md:w-1/2 p-6 sm:p-10 flex flex-col justify-between gap-6 md:gap-8 relative overflow-hidden ${
+             isVibrant ? `${getCategoryCardClass(featuredEvent.category)} text-zinc-950` : 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white'
+           }`}>
               {isVibrant && <CategoryDecorations category={featuredEvent.category} showAccent={false} />}
               <div className="flex items-center justify-between relative z-10">
-                <div className="sticker-badge bg-black text-white w-fit px-4 border-none flex items-center gap-2 shadow-lg">
+                <div className="sticker-badge bg-black text-white w-fit px-4 border-none flex items-center gap-2 shadow-lg font-black">
                   <TrendingUp className="h-3.5 w-3.5 text-pink-400" />
                   Featured Vibe
                 </div>
                 {featuredEvent.participant_limit && (
-                  <div className="sticker-badge bg-white/20 backdrop-blur-md text-white border-white/30 text-[10px] font-bold">
+                  <div className={`sticker-badge border text-[10px] font-bold ${
+                    isVibrant ? 'bg-black/5 text-zinc-800 border-black/10' : 'bg-white/20 backdrop-blur-md text-white border-white/30'
+                  }`}>
                     {Math.max(0, featuredEvent.participant_limit - (featuredEvent.rsvp_count || 0))} spots left
                   </div>
                 )}
               </div>
               <div className="space-y-4 relative z-10">
-                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tighter leading-tight uppercase italic break-words hyphens-auto text-white drop-shadow-md">
+                <h2 className={`text-3xl sm:text-4xl lg:text-5xl font-black tracking-tighter leading-tight uppercase italic break-words hyphens-auto ${
+                  isVibrant ? 'text-zinc-950' : 'text-white drop-shadow-md'
+                }`}>
                   {featuredEvent.title}
                 </h2>
-                <p className="font-medium text-white/90 line-clamp-3 text-sm sm:text-base leading-relaxed max-w-lg drop-shadow-sm">
+                <p className={`font-medium line-clamp-3 text-sm sm:text-base leading-relaxed max-w-lg ${
+                  isVibrant ? 'text-zinc-700' : 'text-white/90 drop-shadow-sm'
+                }`}>
                   {featuredEvent.description}
                 </p>
               </div>
               <div className="pt-2 relative z-10">
                 {isFeaturedRsvped ? (
                   <Link href={`/event/${featuredEvent.id}`} className="inline-block">
-                    <button className="ringer-button bg-white text-black hover:bg-zinc-100 px-8 py-3.5 text-sm shadow-xl flex items-center gap-2 font-black tracking-wider transition-transform group-hover:scale-105 active:scale-95">
+                    <button className={`ringer-button px-8 py-3.5 text-sm shadow-xl flex items-center gap-2 font-black tracking-wider transition-transform group-hover:scale-105 active:scale-95 ${
+                      isVibrant ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-zinc-100'
+                    }`}>
                       <span>VIEW YOUR PASS</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </Link>
                 ) : (
                   <Link href={`/event/${featuredEvent.id}`} className="inline-block">
-                    <button className="ringer-button bg-white text-black hover:bg-zinc-100 px-8 py-3.5 text-sm shadow-xl flex items-center gap-2 font-black tracking-wider transition-transform group-hover:scale-105 active:scale-95">
+                    <button className={`ringer-button px-8 py-3.5 text-sm shadow-xl flex items-center gap-2 font-black tracking-wider transition-transform group-hover:scale-105 active:scale-95 ${
+                      isVibrant ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-zinc-100'
+                    }`}>
                       <span>SECURE YOUR SPOT</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
