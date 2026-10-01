@@ -7,7 +7,7 @@ import Link from "next/link";
 import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useCity, isEventEnded } from "@/context/CityContext";
+import { useCity, isEventEnded, VibeEvent } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useTranslation } from "@/context/LanguageContext";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
@@ -28,26 +28,6 @@ function buildWhatsAppUrl(title: string, date: string, location: string, cityPre
   const text = `Hey ${cityPrefix} Vibes! 👋 I saw *${title}* (${formattedDate} @ ${location}) on the website and I'd love to know more. Can you add me to the notification list?`;
   return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
 }
-
-type VibeEvent = {
-  id: string;
-  category: string;
-  title: string;
-  description: string;
-  date_time: string;
-  location: string;
-  organizer_email: string;
-  rsvp_count?: number;
-  google_maps_link?: string;
-  city?: string;
-  participant_limit?: number;
-  is_paid?: boolean;
-  status?: string;
-  is_featured?: boolean;
-  user_rsvped?: boolean;
-  user_rsvp_status?: string | null;
-  user_pass_code?: string | null;
-};
 
 function DashboardContent() {
   const { data: session } = useSession();
@@ -221,6 +201,34 @@ function DashboardContent() {
       try {
         await navigator.clipboard.writeText(window.location.origin);
         toast.success("VibeCheck link copied to clipboard!");
+      } catch (err) {
+        toast.error("Failed to copy link.");
+      }
+    }
+  };
+
+  const handleShareEvent = async (e: React.MouseEvent, event: VibeEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const shareUrl = `${origin}/event/${event.id}`;
+    const shareData = {
+      title: `${event.title} | VibeCheck`,
+      text: `Check out ${event.title} happening on VibeCheck!`,
+      url: shareUrl,
+    };
+    
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        toast.success("Event shared!");
+      } catch (err) {
+        // user cancelled
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Event link copied to clipboard!");
       } catch (err) {
         toast.error("Failed to copy link.");
       }
@@ -1121,88 +1129,187 @@ function DashboardContent() {
 
       {/* Editorial Hero Section */}
       {!showCalendarView && featuredEvent && (
-        <section className="relative group cursor-pointer overflow-hidden ringer-card h-auto flex flex-col md:flex-row shadow-2xl rounded-[24px] md:rounded-[40px]">
-           <div className="w-full md:w-1/2 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white p-6 sm:p-10 flex flex-col justify-center gap-6 md:gap-10 relative overflow-hidden">
+        <section className="relative group overflow-hidden ringer-card h-auto flex flex-col md:flex-row shadow-2xl rounded-[24px] md:rounded-[40px] border border-black/10">
+           {/* Left Editorial Gradient Card */}
+           <div className="w-full md:w-1/2 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white p-6 sm:p-10 flex flex-col justify-between gap-6 md:gap-8 relative overflow-hidden">
               {isVibrant && <CategoryDecorations category={featuredEvent.category} showAccent={false} />}
-              <div className="sticker-badge bg-black text-white w-fit px-4 border-none flex items-center gap-2 relative z-10 shadow-lg">
-                <TrendingUp className="h-3 w-3 text-pink-400" />
-                Featured Vibe
+              <div className="flex items-center justify-between relative z-10">
+                <div className="sticker-badge bg-black text-white w-fit px-4 border-none flex items-center gap-2 shadow-lg">
+                  <TrendingUp className="h-3.5 w-3.5 text-pink-400" />
+                  Featured Vibe
+                </div>
+                {featuredEvent.participant_limit && (
+                  <div className="sticker-badge bg-white/20 backdrop-blur-md text-white border-white/30 text-[10px] font-bold">
+                    {Math.max(0, featuredEvent.participant_limit - (featuredEvent.rsvp_count || 0))} spots left
+                  </div>
+                )}
               </div>
               <div className="space-y-4 relative z-10">
-                <h2 className="text-4xl sm:text-5xl font-black tracking-tighter leading-none uppercase italic break-words hyphens-auto text-white drop-shadow-md">
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tighter leading-tight uppercase italic break-words hyphens-auto text-white drop-shadow-md">
                   {featuredEvent.title}
                 </h2>
-                <p className="font-bold text-white/90 line-clamp-2 max-w-md drop-shadow-sm">
+                <p className="font-medium text-white/90 line-clamp-3 text-sm sm:text-base leading-relaxed max-w-lg drop-shadow-sm">
                   {featuredEvent.description}
                 </p>
-                <div className="flex gap-4 pt-4">
-                  {isFeaturedRsvped ? (
-                    <Link href={`/event/${featuredEvent.id}`}>
-                      <button className="ringer-button bg-white text-black hover:bg-zinc-100 px-8 py-3 text-sm shadow-xl flex items-center gap-2">
-                        <span>VIEW PASS</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </Link>
+              </div>
+              <div className="pt-2 relative z-10">
+                {isFeaturedRsvped ? (
+                  <Link href={`/event/${featuredEvent.id}`} className="inline-block">
+                    <button className="ringer-button bg-white text-black hover:bg-zinc-100 px-8 py-3.5 text-sm shadow-xl flex items-center gap-2 font-black tracking-wider transition-transform group-hover:scale-105 active:scale-95">
+                      <span>VIEW YOUR PASS</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </Link>
+                ) : (
+                  <Link href={`/event/${featuredEvent.id}`} className="inline-block">
+                    <button className="ringer-button bg-white text-black hover:bg-zinc-100 px-8 py-3.5 text-sm shadow-xl flex items-center gap-2 font-black tracking-wider transition-transform group-hover:scale-105 active:scale-95">
+                      <span>SECURE YOUR SPOT</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </Link>
+                )}
+              </div>
+           </div>
+
+           {/* Right Logistics & Experience Hub */}
+           <div className="w-full md:w-1/2 bg-white p-6 sm:p-8 md:p-10 flex flex-col justify-between gap-6 relative">
+              {/* Top Tags & Quick Action Bar */}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className={`sticker-badge ${getCategoryColor(featuredEvent.category)} text-black border-none font-black shadow-xs`}>
+                    {featuredEvent.category}
+                  </div>
+                  {featuredEvent.event_type === 'online' ? (
+                    <div className="sticker-badge bg-sky-100 text-sky-900 border-none font-black text-[10px] flex items-center gap-1">
+                      <Globe className="h-3 w-3 text-sky-600" /> Online
+                    </div>
                   ) : (
-                    <Link href={`/event/${featuredEvent.id}`}>
-                      <button className="ringer-button bg-white text-black hover:bg-zinc-100 px-8 py-3 text-sm shadow-xl">
-                        SECURE YOUR SPOT
-                      </button>
-                    </Link>
+                    <div className="sticker-badge bg-zinc-100 border-none text-zinc-700 font-bold text-[10px]">
+                      {featuredEvent.city || 'In-Person'}
+                    </div>
                   )}
+                  <div className="sticker-badge bg-zinc-100 border-none text-zinc-600 font-bold text-[10px]">
+                    {featuredEvent.is_paid ? "Paid Entry" : "Free Entry"}
+                  </div>
+                  {featuredEvent.status === 'cancelled' && (
+                    <div className="sticker-badge bg-rose-600 border-none text-white font-black text-[10px] uppercase tracking-wider animate-pulse flex items-center gap-1">
+                      🚨 Cancelled
+                    </div>
+                  )}
+                  {featuredEvent.status === 'housefull' && (
+                    <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] animate-pulse">
+                      Sold Out
+                    </div>
+                  )}
+                  {featuredEvent.status === 'filling_fast' && (
+                    <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] animate-pulse flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" /> Filling Fast
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => handleShareEvent(e, featuredEvent)}
+                    title="Share this vibe"
+                    aria-label="Share this vibe"
+                    className="h-9 w-9 rounded-full border border-black/10 flex items-center justify-center text-zinc-600 hover:text-black hover:border-black hover:bg-zinc-50 transition-all active:scale-95 shadow-xs"
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Structured Details Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 my-auto">
+                {/* Location Card */}
+                <div className="bg-zinc-50/90 border border-black/5 rounded-2xl p-4 flex flex-col justify-between gap-3 hover:border-black/20 hover:bg-zinc-100/80 transition-all group/loc">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-rose-500" /> Where
+                    </span>
+                    <a
+                      href={featuredEvent.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${featuredEvent.location}, ${featuredEvent.city || ''}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-[10px] font-black uppercase tracking-wider text-primary hover:underline flex items-center gap-0.5"
+                    >
+                      Maps ↗
+                    </a>
+                  </div>
+                  <div>
+                    <a
+                      href={featuredEvent.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${featuredEvent.location}, ${featuredEvent.city || ''}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-base font-black tracking-tight text-black line-clamp-2 hover:text-primary transition-colors block"
+                    >
+                      {featuredEvent.location}
+                    </a>
+                    <div className="text-xs font-semibold text-zinc-500 mt-0.5">
+                      {featuredEvent.city || "Visakhapatnam"}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Schedule Card */}
+                <div className="bg-zinc-50/90 border border-black/5 rounded-2xl p-4 flex flex-col justify-between gap-3 hover:border-black/20 hover:bg-zinc-100/80 transition-all">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 flex items-center gap-1.5">
+                      <CalendarIcon className="h-3.5 w-3.5 text-indigo-500" /> When
+                    </span>
+                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100/50">
+                      {new Date(featuredEvent.date_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-base font-black tracking-tight text-black line-clamp-1">
+                      {new Date(featuredEvent.date_time).toLocaleDateString(undefined, { weekday: 'long' })}
+                    </div>
+                    <div className="text-xs font-semibold text-zinc-500 flex items-center gap-1 mt-0.5">
+                      <Clock className="h-3 w-3 text-zinc-400" />
+                      {featuredEvent.timings || new Date(featuredEvent.date_time).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Host & Community Strip */}
+              <div className="pt-4 border-t border-black/5 flex items-center justify-between gap-3 flex-wrap">
+                {/* Host Info & Follow */}
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-full bg-black text-white font-black text-xs flex items-center justify-center uppercase shadow-sm shrink-0">
+                    {featuredEvent.organizer_email ? featuredEvent.organizer_email.charAt(0) : "V"}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Host</div>
+                    <div className="text-xs font-black text-black truncate max-w-[120px] sm:max-w-[160px]">
+                      {featuredEvent.organizer_email ? featuredEvent.organizer_email.split('@')[0] : 'Vibe Host'}
+                    </div>
+                  </div>
+                  <button 
+                    onClick={(e) => toggleFollow(e, featuredEvent.organizer_email)}
+                    className={`ringer-button text-[11px] py-1 px-3 ml-1 ${following.includes(featuredEvent.organizer_email) ? 'bg-zinc-200 text-black border border-zinc-300' : 'bg-white text-black border border-black hover:bg-zinc-50 shadow-xs'}`}
+                  >
+                    {following.includes(featuredEvent.organizer_email) ? '✓ FOLLOWING' : '+ FOLLOW'}
+                  </button>
+                </div>
+
+                {/* RSVP / Live Vibe Counter */}
+                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200/60 text-emerald-800 px-3.5 py-1.5 rounded-full font-black text-xs shadow-xs">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                  </span>
+                  <Users className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>{featuredEvent.rsvp_count || 0} Interested</span>
                 </div>
               </div>
            </div>
-           <div className="w-full md:w-1/2 bg-white p-5 sm:p-8 flex flex-col justify-center gap-6">
-              <div className="space-y-2 border-l-4 border-black pl-4 sm:pl-6">
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Where & When</div>
-                <a
-                  href={featuredEvent.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${featuredEvent.location}, ${featuredEvent.city || ''}`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-2xl font-black tracking-tight hover:text-primary hover:underline cursor-pointer block w-fit"
-                >
-                  {featuredEvent.location}
-                </a>
-                <div className="text-xl font-bold text-zinc-600">
-                  {new Date(featuredEvent.date_time).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-                </div>
-              </div>
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="sticker-badge border-black text-black">{featuredEvent.category}</div>
-                {featuredEvent.event_type === 'online' && (
-                  <div className="sticker-badge bg-sky-100 text-sky-900 border-none font-black text-[10px] flex items-center gap-1">
-                    <Globe className="h-3 w-3 text-sky-600" /> Online Event
-                  </div>
-                )}
-                <div className="sticker-badge bg-zinc-100 border-none text-zinc-500">
-                  {featuredEvent.is_paid ? "Paid Entry" : "Free Entry"}
-                </div>
-                 {featuredEvent.status === 'cancelled' && (
-                   <div className="sticker-badge bg-rose-600 border-none text-white font-black text-[10px] uppercase tracking-wider animate-pulse flex items-center gap-1">🚨 Cancelled</div>
-                 )}
-                 {featuredEvent.status === 'housefull' && (
-                   <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] animate-pulse">Sold Out</div>
-                 )}
-                 {featuredEvent.status === 'filling_fast' && (
-                   <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] animate-pulse flex items-center gap-1"><Sparkles className="h-3 w-3" /> Filling Fast</div>
-                 )}
-                 <div className="sticker-badge bg-primary/10 border-none text-primary flex items-center gap-1.5 font-black">
-                   <Users className="h-3 w-3" />
-                   <span>{featuredEvent.rsvp_count || 0} Interested</span>
-                 </div>
-               </div>
-               <div className="pt-6 border-t border-black/5 mt-4">
-                 <button 
-                   onClick={(e) => toggleFollow(e, featuredEvent.organizer_email)}
-                   className={`ringer-button text-xs ${following.includes(featuredEvent.organizer_email) ? 'bg-zinc-200 text-black' : 'bg-white text-black border border-black hover:bg-zinc-50'}`}
-                 >
-                   {following.includes(featuredEvent.organizer_email) ? '✓ FOLLOWING ORGANIZER' : '➕ FOLLOW ORGANIZER'}
-                 </button>
-               </div>
-            </div>
-         </section>
-       )}
+        </section>
+      )}
 
        {/* Bento Grid */}
        {!showCalendarView && otherEvents.length > 0 && (

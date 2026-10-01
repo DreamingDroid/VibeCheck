@@ -25,6 +25,10 @@ export interface VibeEvent {
   is_featured?: boolean;
   status?: string;
   end_time?: string;
+  timings?: string;
+  image_url?: string;
+  average_rating?: number;
+  ratings_count?: number;
   user_rsvped?: boolean;
   user_rsvp_status?: string | null;
   user_pass_code?: string | null;
