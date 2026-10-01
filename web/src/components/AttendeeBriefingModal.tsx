@@ -291,44 +291,98 @@ export function AttendeeBriefingModal({
         {/* Scrollable Briefing Content */}
         <div className="overflow-y-auto p-6 sm:p-8 space-y-8 flex-1 custom-scrollbar bg-zinc-50/50">
 
-          {/* Pending Payment Callout Box for Paid Events */}
-          {isPendingPayment && (
-            <div className="bg-amber-50 border-2 border-amber-200 p-5 sm:p-6 rounded-3xl space-y-4 shadow-xs">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <h3 className="text-sm font-black uppercase tracking-wider text-amber-950">
-                    Complete Payment with Organizer to Unlock Official Pass
-                  </h3>
-                  <p className="text-xs font-medium text-amber-800 leading-relaxed">
-                    Your spot registration has been recorded! For paid events with limited slots, the organizer issues your verified pass once payment is received.
-                  </p>
-                  {(guide.feeNote || event.price) && (
-                    <p className="text-xs font-black text-amber-900 pt-1">
-                      Event Fee: {guide.feeNote || `₹${event.price}/- per participant`}
-                    </p>
-                  )}
+          {/* Payment Info Card for Paid Events */}
+          {isPaid && !isConfirmedPass && (
+            <div className="bg-amber-50/90 border-2 border-amber-200/80 p-5 sm:p-6 rounded-3xl space-y-4 shadow-xs">
+              
+              {event.payment_details_locked ? (
+                /* Locked State: Awaiting Venue Verification */
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Clock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-200/60 text-amber-900 text-[10px] font-black uppercase tracking-wider">
+                        <span>⏳ Venue Authorization in Progress</span>
+                      </div>
+                      <h3 className="text-sm font-black uppercase tracking-wider text-amber-950">
+                        Ticketing &amp; Pass Details Locked
+                      </h3>
+                      <p className="text-xs font-medium text-amber-800 leading-relaxed">
+                        To protect community members from unauthorized events, ticketing instructions and organizer pass links remain locked until the physical venue management officially verifies this booking.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* Unlocked State: Venue Verified - External & Contact Options */
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-2 border-b border-amber-200/60 pb-3">
+                    <div className="space-y-1">
+                      <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
+                        <ShieldCheck className="h-3 w-3" />
+                        <span>🛡️ Venue Verified Event</span>
+                      </div>
+                      <h3 className="text-sm font-black uppercase tracking-wider text-amber-950">
+                        Pass &amp; Ticket Acquisition
+                      </h3>
+                    </div>
+                    {event.ticket_price > 0 && (
+                      <div className="text-right">
+                        <span className="text-[10px] font-bold text-amber-800 uppercase block">Ticket Fee</span>
+                        <span className="text-lg font-black text-amber-950">₹{event.ticket_price}</span>
+                      </div>
+                    )}
+                  </div>
 
-              {organizerPhone && (
-                <div className="flex flex-wrap items-center gap-3 pt-1">
-                  <a
-                    href={whatsappPayUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ringer-button bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase px-5 py-2.5 flex items-center gap-2 transition-transform active:scale-95 shadow-sm"
-                  >
-                    <Phone className="h-3.5 w-3.5" />
-                    <span>Contact Organizer to Pay (WhatsApp) →</span>
-                  </a>
-                  <a
-                    href={`tel:${organizerPhone.replace(/[^0-9+]/g, "")}`}
-                    className="ringer-button bg-white hover:bg-zinc-100 text-black border border-black/10 text-xs font-black uppercase px-4 py-2.5 flex items-center gap-2"
-                  >
-                    <Phone className="h-3.5 w-3.5 text-zinc-600" />
-                    <span>Call {organizerContactName} ({organizerPhone})</span>
-                  </a>
+                  {/* Actions: External Link or Direct Organizer Contact */}
+                  <div className="space-y-3">
+                    {event.external_ticket_link && (
+                      <a
+                        href={event.external_ticket_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-3 px-4 bg-black hover:bg-zinc-800 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-sm"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        <span>Book on Official Ticketing Page →</span>
+                      </a>
+                    )}
+
+                    {organizerPhone && (
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <a
+                          href={`tel:${organizerPhone}`}
+                          className="flex-1 py-2.5 px-3 bg-white border border-amber-200/90 hover:bg-amber-100/60 text-amber-950 rounded-xl text-[11px] font-bold flex items-center justify-center gap-2 transition-colors shadow-2xs"
+                        >
+                          <Phone className="h-3.5 w-3.5 text-amber-700" />
+                          <span>Call Organizer ({organizerPhone})</span>
+                        </a>
+                        <a
+                          href={whatsappPayUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-2xs"
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                          <span>WhatsApp for Passes →</span>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Standard Legal Disclaimer & Warning Box */}
+                  <div className="bg-amber-100/70 border border-amber-300/80 p-3.5 rounded-2xl space-y-1.5 text-left">
+                    <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-amber-950">
+                      <AlertCircle className="h-3.5 w-3.5 text-amber-700 shrink-0" />
+                      <span>Important Payment &amp; Due Diligence Notice</span>
+                    </div>
+                    <p className="text-[11px] font-medium text-amber-900 leading-relaxed">
+                      VibeCheck Space is a community event discovery platform and <strong>does not process, collect, hold, or escrow payments</strong>. All ticket transactions and financial arrangements take place directly between you and the event organizer.
+                    </p>
+                    <p className="text-[10px] text-amber-950 font-bold leading-normal">
+                      ⚠️ Please exercise personal due diligence before making any payments. VibeCheck Space, its founders, and affiliates bear no responsibility or liability for payments, financial fraud, cancellations, event changes, or refund disputes.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

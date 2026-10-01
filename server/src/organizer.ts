@@ -17,12 +17,45 @@ import { evaluateContentWithAI, logModerationResult } from './moderation';
 
 const resend = new Resend(config.RESEND_API_KEY);
 
+import crypto from 'crypto';
+import { sendVenueAuthorizationEmail } from './services/venueAuthEmail';
+import { discoverVenueIntelligence } from './services/venueIntelligence';
+
 export async function organizerCreateEventHandler(req: Request, res: Response, pool: Pool) {
-  const { title, description, category, location, city, date_time, end_time, timings, external_link, contact_info, organizer_email, visibility, guest_list, guestList } = req.body;
+  const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, googleMapsLink, contact_info, organizer_email, visibility, guest_list, guestList, is_paid, isPaid, ticket_price, ticketPrice, venue_section_hall, venueSectionHall, upi_id, upiId, external_ticket_link, externalTicketLink } = req.body;
 
   if (!organizer_email) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
-  // 1. AI Guardrails & Moderation Scrutiny
+  const safeIsPaid = Boolean(is_paid ?? isPaid ?? false);
+  const safeVenueHall = venue_section_hall || venueSectionHall;
+  const safeUpiId = upi_id || upiId;
+  const safeTicketPrice = ticket_price ?? ticketPrice ?? 0;
+  const safeExternalTicketLink = external_ticket_link || externalTicketLink;
+  const safeGoogleMapsUrl = google_maps_link || googleMapsLink;
+
+  // 1. Strict 7-Day Advance Submission Rule for Paid Events
+  if (safeIsPaid) {
+    if (!date_time) {
+      return res.status(400).json({ success: false, error: 'Event date and time is required.' });
+    }
+    const eventDate = new Date(date_time);
+    const minLeadTimeMs = 7 * 24 * 60 * 60 * 1000; // 7 days (168 hours)
+    if (eventDate.getTime() - Date.now() < minLeadTimeMs) {
+      return res.status(400).json({
+        success: false,
+        error: 'Paid events must be scheduled at least 7 days in advance to allow sufficient time for autonomous venue authorization, security verification, and attendee ticket sales.'
+      });
+    }
+
+    if (!location) {
+      return res.status(400).json({
+        success: false,
+        error: 'Venue Name or Physical Location is required for paid events.'
+      });
+    }
+  }
+
+  // 2. AI Guardrails & Moderation Scrutiny
   const moderationPayload = {
     title,
     description,
@@ -53,11 +86,87 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
     });
   }
 
-  // Auto-Approve if high AI score (>= 80)
-  const initialStatus = moderationResult.decision === 'auto_approve' ? 'approved' : 'pending';
+  // 3. Autonomous Venue Discovery & Verification Routing
+  let initialStatus: string;
+  let venueAuthToken: string | null = null;
+  let venueTokenExpiresAt: Date | null = null;
+  let venueStatus = 'unverified';
+  let paymentDetailsLocked = false;
+  let safeVenueEmail: string | null = null;
+  let safeVenuePhone: string | null = null;
+
+  if (safeIsPaid) {
+    initialStatus = 'pending_venue_auth';
+    venueStatus = 'pending_venue_auth';
+    paymentDetailsLocked = true;
+
+    // Autonomously discover authentic venue details via AI & Google Maps/Search Grounding
+    const discovered = await discoverVenueIntelligence(pool, {
+      locationName: location || '',
+      city: city || 'Visakhapatnam',
+      googleMapsUrl: safeGoogleMapsUrl
+    });
+
+    safeVenueEmail = discovered.officialEmail;
+    safeVenuePhone = discovered.officialPhone;
+
+    if (discovered.officialEmail) {
+      venueAuthToken = crypto.randomBytes(32).toString('hex');
+      venueTokenExpiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48-hour window
+    } else {
+      venueStatus = 'pending_admin_phone_auth';
+    }
+  } else {
+    initialStatus = moderationResult.decision === 'auto_approve' ? 'approved' : 'pending';
+  }
 
   try {
-    const event = await createOrganizerEvent(pool, { ...req.body, status: initialStatus });
+    const event = await createOrganizerEvent(pool, {
+      ...req.body,
+      status: initialStatus,
+      is_paid: safeIsPaid,
+      ticket_price: safeTicketPrice,
+      upi_id: safeUpiId,
+      external_ticket_link: safeExternalTicketLink,
+      google_maps_link: safeGoogleMapsUrl,
+      venue_official_email: safeVenueEmail,
+      venue_official_phone: safeVenuePhone,
+      venue_section_hall: safeVenueHall,
+      venue_verification_status: venueStatus,
+      venue_auth_token: venueAuthToken,
+      venue_auth_token_expires_at: venueTokenExpiresAt,
+      payment_details_locked: paymentDetailsLocked
+    });
+
+    // Dispatch Legal Authorization Email if authentic domain email was discovered
+    if (safeIsPaid && venueAuthToken && safeVenueEmail) {
+      const auditRef = `VC-AUTH-${new Date().getFullYear()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+      
+      const adminRes = await pool.query('SELECT brand_name, phone_number FROM admins WHERE LOWER(email) = $1', [organizer_email.toLowerCase().trim()]);
+      const brandName = adminRes.rows[0]?.brand_name || organizer_email;
+      const orgPhone = adminRes.rows[0]?.phone_number || contact_info || 'Verified on VibeCheck';
+
+      sendVenueAuthorizationEmail({
+        auditReferenceId: auditRef,
+        token: venueAuthToken,
+        venueName: location || 'Venue',
+        venueAddress: location || '',
+        venueSectionHall: safeVenueHall,
+        venueOfficialEmail: safeVenueEmail,
+        organizerBrandName: brandName,
+        organizerLegalName: brandName,
+        organizerPhone: orgPhone,
+        organizerEmail: organizer_email,
+        eventTitle: title,
+        eventCategory: category,
+        eventStartTimeIST: new Date(date_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'short' }),
+        eventEndTimeIST: end_time ? new Date(end_time).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', timeStyle: 'short' }) : undefined,
+        participantLimit: req.body.participant_limit || req.body.participantLimit,
+        isPaid: true,
+        ticketPrice: safeTicketPrice,
+        tokenExpiresAtIST: venueTokenExpiresAt!.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })
+      }).catch(err => console.error('[VenueAuth] Background email dispatch error:', err));
+    }
 
     // Process VIP guest list if event is invite_only
     const rawList = guest_list || guestList;
@@ -98,6 +207,15 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
           }).catch(err => console.warn('[Notifications] VIP FCM push error:', err.message));
         }
       }
+    }
+
+    if (initialStatus === 'pending_venue_auth') {
+      return res.json({
+        success: true,
+        data: event,
+        status: 'pending_venue_auth',
+        message: `📧 Legal verification email sent to ${safeVenueEmail}. Your event will be published with the 'Venue Confirmed' badge once the venue manager approves!`,
+      });
     }
 
     if (initialStatus === 'approved') {
@@ -788,7 +906,8 @@ export async function organizerSendWhatsAppGroupInviteHandler(req: Request, res:
         .then(async (recipientEmails) => {
           for (const email of recipientEmails) {
             await resend.emails.send({
-              from: 'VibeCheck <onboarding@resend.dev>',
+              from: config.RESEND_FROM_EMAIL,
+              replyTo: config.RESEND_REPLY_TO,
               to: email,
               subject: `Join the WhatsApp Group for ${event.title}`,
               html: `

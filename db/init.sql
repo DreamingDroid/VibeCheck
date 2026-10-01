@@ -114,6 +114,23 @@ INSERT INTO system_settings (key, value)
 VALUES ('cron_enabled', 'false'::jsonb)
 ON CONFLICT (key) DO NOTHING;
 
+-- 4b. Venues Directory (Verified Physical Locations & Contacts)
+CREATE TABLE IF NOT EXISTS venues (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    address TEXT,
+    google_place_id VARCHAR(255),
+    official_phone VARCHAR(50),
+    official_whatsapp VARCHAR(50),
+    official_email VARCHAR(255),
+    manager_name VARCHAR(150),
+    is_verified BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_venues_city_name ON venues (city, name);
+
 -- 5. Events
 CREATE TYPE event_visibility AS ENUM ('public', 'invite_only');
 
@@ -137,6 +154,9 @@ CREATE TABLE IF NOT EXISTS events (
     admin_comment TEXT,                          -- admin feedback on rejection/review
     participant_limit INTEGER,                   -- max number of allowed participants
     is_paid BOOLEAN DEFAULT false,               -- whether event is free or paid
+    ticket_price NUMERIC(10,2) DEFAULT 0.00,     -- ticket price per person if paid
+    upi_id VARCHAR(100),                         -- organizer UPI VPA for direct peer-to-peer payment
+    external_ticket_link TEXT,                   -- optional external booking/ticket URL
     is_featured BOOLEAN DEFAULT false,           -- whether event is a highlighted Featured Vibe
     visibility event_visibility DEFAULT 'public', -- public | invite_only
     image_url VARCHAR(1000),
@@ -146,6 +166,17 @@ CREATE TABLE IF NOT EXISTS events (
     timezone VARCHAR(50) DEFAULT 'Asia/Kolkata', -- event timezone (e.g. Asia/Kolkata, UTC, etc.)
     average_rating NUMERIC(3,1),
     ratings_count INTEGER DEFAULT 0,
+    
+    -- Venue Verification & Payment Lock
+    venue_id UUID REFERENCES venues(id) ON DELETE SET NULL,
+    venue_official_email VARCHAR(255),
+    venue_official_phone VARCHAR(50),
+    venue_section_hall VARCHAR(255),
+    venue_verification_status VARCHAR(50) DEFAULT 'unverified', -- 'unverified' | 'pending_venue_auth' | 'verified' | 'rejected'
+    venue_auth_token VARCHAR(255),
+    venue_auth_token_expires_at TIMESTAMP WITH TIME ZONE,
+    payment_details_locked BOOLEAN DEFAULT false,
+
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -153,6 +184,40 @@ CREATE TABLE IF NOT EXISTS events (
 -- Fast cosine similarity search on event embeddings
 CREATE INDEX ON events USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX IF NOT EXISTS idx_events_visibility ON events (visibility);
+CREATE INDEX IF NOT EXISTS idx_events_venue_auth_token ON events (venue_auth_token);
+
+-- 5b. Venue Authorization Logs (Immutable Legal Audit Trail)
+CREATE TABLE IF NOT EXISTS venue_authorization_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    audit_reference_id VARCHAR(100) UNIQUE NOT NULL, -- e.g. VC-AUTH-2026-XXXXX
+    
+    -- Venue Signer Info
+    venue_name VARCHAR(255) NOT NULL,
+    venue_official_email VARCHAR(255) NOT NULL,
+    signer_ip_address VARCHAR(100) NOT NULL,
+    signer_user_agent TEXT NOT NULL,
+    
+    -- Organizer Identity Snapshot
+    organizer_brand_name VARCHAR(255),
+    organizer_legal_name VARCHAR(255),
+    organizer_email VARCHAR(255) NOT NULL,
+    organizer_phone VARCHAR(50) NOT NULL,
+    
+    -- Event Snapshot at Signing
+    event_title VARCHAR(255) NOT NULL,
+    event_date_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    event_end_time TIMESTAMP WITH TIME ZONE,
+    participant_limit INTEGER,
+    is_paid BOOLEAN NOT NULL DEFAULT false,
+    ticket_price NUMERIC(10,2) DEFAULT 0.00,
+    
+    -- Verification Result
+    status VARCHAR(50) NOT NULL, -- 'authorized' | 'rejected'
+    rejection_reason TEXT,
+    signed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_venue_auth_logs_event ON venue_authorization_logs (event_id);
 
 -- 6. Event RSVPs
 CREATE TABLE IF NOT EXISTS event_rsvps (

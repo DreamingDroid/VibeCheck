@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
-import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode, Send, Calendar, Clock, MapPin, Users, ChevronDown, ChevronUp, Key, MessageSquare, Plus, Backpack, ListChecks, PhoneCall, Compass, CheckCircle2, Globe, X, ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode, Send, Calendar, Clock, MapPin, Users, ChevronDown, ChevronUp, Key, MessageSquare, Plus, Backpack, ListChecks, PhoneCall, Compass, CheckCircle2, Globe, ShieldCheck, X, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import OrganizerInsightsDashboard from "@/components/OrganizerInsightsDashboard";
@@ -103,7 +103,7 @@ export default function OrganizerDashboard() {
   const [tagFilter, setTagFilter] = useState("all");
   const [eventFilter, setEventFilter] = useState("all");
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
-  
+
   const [editingContact, setEditingContact] = useState<any | null>(null);
   const [editedNotes, setEditedNotes] = useState("");
   const [editedTags, setEditedTags] = useState<string[]>([]);
@@ -121,6 +121,8 @@ export default function OrganizerDashboard() {
     title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
     startDate: "", endDate: "", startTime: "", endTime: "",
     participantLimit: "", isPaid: false,
+    ticketPrice: "", upiId: "", externalTicketLink: "",
+    venueOfficialEmail: "", venueOfficialPhone: "", venueSectionHall: "",
     visibility: "public" as "public" | "invite_only",
     guestList: "",
     eventType: "in_person" as "in_person" | "online",
@@ -143,8 +145,28 @@ export default function OrganizerDashboard() {
       if (isMultiDay && !formData.endDate) newErrors.endDate = true;
       if (!formData.startTime) newErrors.startTime = true;
       if (!formData.endTime) newErrors.endTime = true;
+      if (formData.isPaid && formData.startDate) {
+        const eventDate = new Date(formData.startDate);
+        const minLeadTime = new Date();
+        minLeadTime.setDate(minLeadTime.getDate() + 7);
+        minLeadTime.setHours(0, 0, 0, 0);
+        if (eventDate < minLeadTime) {
+          toast.error("Paid events must be scheduled at least 7 days in advance to allow autonomous venue verification.");
+          newErrors.startDate = true;
+        }
+      }
     } else if (step === 3) {
       if (formData.eventType === 'in_person' && !formData.location?.trim()) newErrors.location = true;
+      if (formData.isPaid) {
+        if (!formData.location?.trim()) {
+          newErrors.location = true;
+          toast.error("Venue location is required for paid events");
+        }
+        if (!formData.ticketPrice) {
+          newErrors.ticketPrice = true;
+          toast.error("Ticket price is required for paid events");
+        }
+      }
     } else if (step === 4) {
       if (!formData.description?.trim()) newErrors.description = true;
     }
@@ -423,7 +445,7 @@ export default function OrganizerDashboard() {
       headers.join(","),
       ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
     ].join("\n");
-    
+
     const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -523,6 +545,12 @@ export default function OrganizerDashboard() {
       startTime: fTime(start), endTime: fTime(end),
       participantLimit: ev.participant_limit ? String(ev.participant_limit) : "",
       isPaid: ev.is_paid || false,
+      ticketPrice: ev.ticket_price ? String(ev.ticket_price) : "",
+      upiId: ev.upi_id || "",
+      externalTicketLink: ev.external_ticket_link || "",
+      venueOfficialEmail: ev.venue_official_email || "",
+      venueOfficialPhone: ev.venue_official_phone || "",
+      venueSectionHall: ev.venue_section_hall || "",
       visibility: ev.visibility || "public",
       guestList: "",
       eventType: (ev.event_type || "in_person") as "in_person" | "online",
@@ -558,6 +586,8 @@ export default function OrganizerDashboard() {
       title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
       startDate: "", endDate: "", startTime: "", endTime: "",
       participantLimit: "", isPaid: false,
+      ticketPrice: "", upiId: "", externalTicketLink: "",
+      venueOfficialEmail: "", venueOfficialPhone: "", venueSectionHall: "",
       visibility: "public",
       guestList: "",
       eventType: "in_person",
@@ -592,6 +622,30 @@ export default function OrganizerDashboard() {
     if (formData.eventType === 'in_person' && !formData.location?.trim()) { newErrors.location = true; if (!firstFailedStep) firstFailedStep = 3; }
     
     if (!formData.description?.trim()) { newErrors.description = true; if (!firstFailedStep) firstFailedStep = 4; }
+
+    // Strict 7-Day Advance Notice for Paid Events
+    if (formData.isPaid) {
+      if (formData.startDate) {
+        const eventDate = new Date(formData.startDate);
+        const minLeadTime = new Date();
+        minLeadTime.setDate(minLeadTime.getDate() + 7);
+        minLeadTime.setHours(0, 0, 0, 0);
+        if (eventDate < minLeadTime) {
+          toast.error("Paid events must be scheduled at least 7 days in advance to allow autonomous venue verification.");
+          newErrors.startDate = true;
+          if (!firstFailedStep) firstFailedStep = 2;
+        }
+      }
+      if (!formData.location) {
+        newErrors.location = true;
+        toast.error("Venue location is required for paid events");
+        if (!firstFailedStep) firstFailedStep = 3;
+      }
+      if (!formData.ticketPrice) {
+        newErrors.ticketPrice = true;
+        if (!firstFailedStep) firstFailedStep = 3;
+      }
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -655,6 +709,12 @@ export default function OrganizerDashboard() {
           city: formData.eventType === 'online' ? (formData.city || 'Global / Online') : formData.city,
           participant_limit: formData.participantLimit ? parseInt(formData.participantLimit, 10) : null,
           is_paid: formData.isPaid,
+          ticket_price: formData.ticketPrice ? parseFloat(formData.ticketPrice) : 0,
+          upi_id: formData.upiId || null,
+          external_ticket_link: formData.externalTicketLink || null,
+          venue_official_email: formData.venueOfficialEmail || null,
+          venue_official_phone: formData.venueOfficialPhone || null,
+          venue_section_hall: formData.venueSectionHall || null,
           visibility: formData.visibility,
           guest_list: formData.visibility === "invite_only" ? formData.guestList : undefined,
           image_url: finalImageUrl || null,
@@ -673,6 +733,8 @@ export default function OrganizerDashboard() {
           title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
           startDate: "", endDate: "", startTime: "", endTime: "",
           participantLimit: "", isPaid: false,
+          ticketPrice: "", upiId: "", externalTicketLink: "",
+          venueOfficialEmail: "", venueOfficialPhone: "", venueSectionHall: "",
           visibility: "public",
           guestList: "",
           eventType: "in_person",
@@ -687,10 +749,15 @@ export default function OrganizerDashboard() {
         setEditingEventId(null);
         setShowForm(false);
         loadMyEvents();
-        toast.success(
-          formData.visibility === 'invite_only' ? "VIP Event submitted & Invitations dispatched!" : "Event submitted!",
-          { id: toastId, description: "Your event is pending review by the VibeCheck team." }
-        );
+
+        if (data.status === 'pending_venue_auth') {
+          toast.success("📧 Legal verification email dispatched to the venue! Payment details will be unlocked once approved.", { id: toastId, duration: 6000 });
+        } else {
+          toast.success(
+            formData.visibility === 'invite_only' ? "VIP Event submitted & Invitations dispatched!" : "Event submitted!",
+            { id: toastId, description: "Your event has been submitted to the VibeCheck platform." }
+          );
+        }
       } else {
         toast.error("Submission failed.", { id: toastId, description: data.error || "VibeCheck server rejected the request. Please check your details." });
       }
@@ -763,7 +830,7 @@ export default function OrganizerDashboard() {
         {activeTab === 'crm' && (
           <div className="ringer-card p-4 sm:p-6">
             <h2 className="text-2xl sm:text-3xl font-black italic tracking-tighter uppercase leading-none mb-3 sm:mb-4">Your Community CRM</h2>
-            
+
             {/* Metrics Strip */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3.5 mb-4 sm:mb-5">
               <div className="bg-zinc-50 p-3.5 sm:p-4 rounded-2xl border border-black/5 hover:border-black/10 transition-colors shadow-xs">
@@ -890,7 +957,7 @@ export default function OrganizerDashboard() {
                     {filteredContacts.map((c, i) => {
                       const initial = (c.name || c.email || '?').charAt(0).toUpperCase();
                       const tags = getTagsArray(c.tags);
-                      
+
                       let badge = null;
                       if (c.is_follower && c.is_attendee) {
                         badge = <span className="sticker-badge bg-black text-[#C1FF00] border-black text-[8px] font-bold whitespace-nowrap">Follower & Attendee</span>;
@@ -989,6 +1056,8 @@ export default function OrganizerDashboard() {
               title: "", description: "", category: "", location: "", city: "", google_maps_link: "", whatsapp_group_link: "", timings: "",
               startDate: "", endDate: "", startTime: "", endTime: "",
               participantLimit: "", isPaid: false,
+              ticketPrice: "", upiId: "", externalTicketLink: "",
+              venueOfficialEmail: "", venueOfficialPhone: "", venueSectionHall: "",
               visibility: "public",
               guestList: "",
               eventType: "in_person",
@@ -1377,7 +1446,7 @@ export default function OrganizerDashboard() {
                   </div>
                 )}
 
-                {/* Step 3: Venue, Ticketing & Capacity */}
+                {/* Step 3: Venue, Capacity & Access */}
                 {currentStep === 3 && (
                   <div className="bg-white rounded-[24px] p-5 sm:p-6 border border-black/5 shadow-xs space-y-5 animate-in fade-in-50 duration-200">
                     <div className="flex items-center gap-2 pb-2 border-b border-black/5">
@@ -1396,7 +1465,10 @@ export default function OrganizerDashboard() {
                         onChange={e => { setFormData({ ...formData, location: e.target.value }); if (errors.location) setErrors({ ...errors, location: false }) }}
                         className={cn("bg-zinc-50 border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11", errors.location && "border-red-500 ring-red-500/20")}
                       />
-                      {errors.location && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Location is required for in-person events</p>}
+                      {errors.location && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Location is required</p>}
+                      {formData.eventType === 'online' && (
+                        <p className="text-[9px] text-sky-600 font-bold uppercase ml-1">Virtual events can specify the platform (Zoom, Meet, Discord) or provide link in the Attendee Guide.</p>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1466,10 +1538,62 @@ export default function OrganizerDashboard() {
                         />
                       </div>
                     </div>
+
+                    {/* Paid Event: Autonomous Venue Authorization & External Ticketing */}
+                    {formData.isPaid && (
+                      <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 sm:p-5 space-y-3 animate-in fade-in">
+                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-800">
+                          <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
+                          <span>Autonomous Venue Authorization &amp; Ticketing Information</span>
+                        </div>
+                        <p className="text-[11px] text-amber-900/80 font-medium leading-relaxed">
+                          🛡️ <strong>Autonomous Verification:</strong> To eliminate unauthorized events and protect community members, VibeCheck autonomously discovers and verifies the official venue management contacts. Pass ticketing links remain locked until verified.
+                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                          <div className="space-y-1">
+                            <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">Venue Hall / Area Name (Optional)</Label>
+                            <Input
+                              placeholder="e.g. Rooftop Lounge, Banquet Hall A"
+                              value={formData.venueSectionHall}
+                              onChange={e => setFormData({ ...formData, venueSectionHall: e.target.value })}
+                              className="bg-white border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11"
+                            />
+                            <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Specific reserved section or hall</p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">Ticket Price per Person (₹) <span className="text-red-500">*</span></Label>
+                            <Input
+                              name="ticketPrice"
+                              type="number"
+                              min="1"
+                              required
+                              placeholder="e.g. 499"
+                              value={formData.ticketPrice}
+                              onChange={e => { setFormData({ ...formData, ticketPrice: e.target.value }); if (errors.ticketPrice) setErrors({ ...errors, ticketPrice: false }); }}
+                              className={cn("bg-white border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11", errors.ticketPrice && "border-red-500 ring-red-500/20")}
+                            />
+                            {errors.ticketPrice && <p className="text-[9px] text-red-500 font-black uppercase ml-1">Ticket price is required</p>}
+                          </div>
+
+                          <div className="space-y-1 sm:col-span-2">
+                            <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">External Ticketing Page URL (Optional)</Label>
+                            <Input
+                              placeholder="e.g. https://insider.in/event-link or https://mywebsite.com/tickets"
+                              value={formData.externalTicketLink}
+                              onChange={e => setFormData({ ...formData, externalTicketLink: e.target.value })}
+                              className="bg-white border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11"
+                            />
+                            <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">If provided, attendees will be redirected here to purchase official tickets once venue is verified.</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Step 4: Media & Manifest Description */}
+                {/* Step 4: Cover Media & Details */}
                 {currentStep === 4 && (
                   <div className="bg-white rounded-[24px] p-5 sm:p-6 border border-black/5 shadow-xs space-y-5 animate-in fade-in-50 duration-200">
                     <div className="flex items-center gap-2 pb-2 border-b border-black/5">

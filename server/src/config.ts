@@ -46,6 +46,8 @@ export const config = {
   CHAT_MODEL: process.env.CHAT_MODEL || process.env.GEMINI_MODEL || 'gemini-1.5-flash',
   EMBED_MODEL: process.env.EMBED_MODEL || 'text-embedding-004',
   RESEND_API_KEY: process.env.RESEND_API_KEY || 're_dummy_key_123',
+  RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || 'VibeCheck Legal & Safety <verify@vibecheckspace.com>',
+  RESEND_REPLY_TO: process.env.RESEND_REPLY_TO || 'frontdesk@baybuzzlabs.com',
 
   // Cloudinary Settings
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',

@@ -142,7 +142,7 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
     }
 
     let queryText = `
-      SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone,
+      SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, ticket_price, upi_id, external_ticket_link, venue_verification_status, payment_details_locked, venue_section_hall, is_featured, visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone,
              (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
              ${userRsvpSelect}
       FROM events
@@ -185,7 +185,7 @@ export async function getEventsList(pool: Pool, category: any, search: any, city
 
 export async function getEventById(pool: Pool, id: string) {
     const { rows } = await pool.query(
-      `SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, is_featured, visibility, contact_info, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone,
+      `SELECT id, title, description, location, city, date_time, end_time, timings, category, organizer_email, google_maps_link, whatsapp_group_link, status, participant_limit, is_paid, ticket_price, upi_id, external_ticket_link, venue_verification_status, payment_details_locked, venue_section_hall, venue_official_email, venue_official_phone, is_featured, visibility, contact_info, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone,
               (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
               (SELECT brand_name FROM admins WHERE email = events.organizer_email) as organizer_name,
               COALESCE(
@@ -198,6 +198,7 @@ export async function getEventById(pool: Pool, id: string) {
               (SELECT instagram_verified FROM admins WHERE email = events.organizer_email) as organizer_instagram_verified,
               (SELECT instagram_handle FROM admins WHERE email = events.organizer_email) as organizer_instagram_handle,
               (SELECT slug FROM admins WHERE email = events.organizer_email) as organizer_slug,
+              (SELECT phone_number FROM admins WHERE email = events.organizer_email) as organizer_phone,
               (SELECT COUNT(*)::int FROM events e2 WHERE e2.organizer_email = events.organizer_email AND (e2.status = 'approved' OR e2.status = 'housefull' OR e2.status = 'filling_fast' OR e2.status = 'ended')) as organizer_events_count,
               (SELECT COUNT(*)::int FROM organizer_followers WHERE organizer_email = events.organizer_email) as organizer_followers_count
        FROM events WHERE id = $1 AND (status = 'approved' OR status = 'housefull' OR status = 'filling_fast' OR status = 'ended' OR status IS NULL)`,
@@ -417,12 +418,13 @@ export async function getEventByOrganizer(pool: Pool, eventId: string) {
 }
 
 export async function createOrganizerEvent(pool: Pool, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, organizer_email, participant_limit, is_paid, visibility, image_url, image_public_id, attendee_guide, attendeeGuide, event_type, timezone } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, organizer_email, participant_limit, is_paid, visibility, image_url, image_public_id, attendee_guide, attendeeGuide, event_type, timezone, venue_official_email, venue_official_phone, venue_section_hall, upi_id, ticket_price, external_ticket_link, venue_verification_status, venue_auth_token, venue_auth_token_expires_at, payment_details_locked } = data;
     const validVisibility = visibility === 'invite_only' ? 'invite_only' : 'public';
     const validCategories = ['Sports', 'Arts', 'Education', 'Spiritual', 'Music', 'Food', 'Wellness', 'Indie', 'Techno', 'General'];
     const safeCategory = category && validCategories.includes(category) ? category : 'General';
     const safeLimit = participant_limit !== undefined && participant_limit !== null && participant_limit !== '' ? parseInt(participant_limit, 10) : (data.participantLimit !== undefined && data.participantLimit !== null && data.participantLimit !== '' ? parseInt(data.participantLimit, 10) : null);
     const safeIsPaid = Boolean(is_paid ?? data.isPaid ?? false);
+    const safePrice = ticket_price ? parseFloat(ticket_price) : 0.00;
     const safeGuide = attendee_guide || attendeeGuide || {};
     const safeEventType = event_type === 'online' ? 'online' : 'in_person';
     const safeTimezone = timezone && typeof timezone === 'string' ? timezone : 'Asia/Kolkata';
@@ -430,10 +432,33 @@ export async function createOrganizerEvent(pool: Pool, data: any) {
     const initialEventStatus = data.status && ['approved', 'pending', 'rejected'].includes(data.status) ? data.status : 'pending';
 
     const { rows } = await pool.query(
-      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, status, organizer_email, participant_limit, is_paid, visibility, image_url, image_public_id, attendee_guide, event_type, timezone)
-       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17::event_visibility, $18, $19, $20, $21, $22)
-       RETURNING id, title, status, visibility, image_url, image_public_id, whatsapp_group_link, attendee_guide, event_type, timezone`,
-      [title, description, safeCategory, location || null, city || null, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, initialEventStatus, organizer_email, isNaN(safeLimit as number) ? null : safeLimit, safeIsPaid, validVisibility, image_url || null, image_public_id || null, JSON.stringify(safeGuide), safeEventType, safeTimezone]
+      `INSERT INTO events (
+        title, description, category, location, city, date_time, end_time, timings,
+        external_link, google_maps_link, whatsapp_group_link, contact_info, status,
+        organizer_email, participant_limit, is_paid, ticket_price, upi_id, external_ticket_link,
+        visibility, image_url, image_public_id, attendee_guide, event_type, timezone,
+        venue_official_email, venue_official_phone, venue_section_hall,
+        venue_verification_status, venue_auth_token, venue_auth_token_expires_at, payment_details_locked
+      )
+      VALUES (
+        $1, $2, $3::event_category, $4, $5, $6, $7, $8,
+        $9, $10, $11, $12, $13,
+        $14, $15, $16, $17, $18, $19,
+        $20::event_visibility, $21, $22, $23, $24, $25,
+        $26, $27, $28,
+        $29, $30, $31, $32
+      )
+      RETURNING id, title, status, visibility, is_paid, ticket_price, upi_id, venue_verification_status, payment_details_locked, image_url, image_public_id, whatsapp_group_link, attendee_guide, event_type, timezone`,
+      [
+        title, description, safeCategory, location || null, city || null, date_time, end_time || null, timings || null,
+        external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, initialEventStatus,
+        organizer_email, isNaN(safeLimit as number) ? null : safeLimit, safeIsPaid, safePrice, upi_id || null, external_ticket_link || null,
+        validVisibility, image_url || null, image_public_id || null, JSON.stringify(safeGuide), safeEventType, safeTimezone,
+        venue_official_email || null, venue_official_phone || null, venue_section_hall || null,
+        venue_verification_status || (safeIsPaid ? 'pending_venue_auth' : 'unverified'),
+        venue_auth_token || null, venue_auth_token_expires_at || null,
+        payment_details_locked !== undefined ? payment_details_locked : (safeIsPaid ? true : false)
+      ]
     );
     return rows[0];
 }
@@ -543,7 +568,9 @@ export async function getEventsByOrganizerEmail(
   const dataParams = [...params, limit, offset];
   const querySql = `
     SELECT id, title, category, location, city, date_time, end_time, timings, description,
-           external_link, google_maps_link, whatsapp_group_link, contact_info, status, admin_comment, participant_limit, is_paid, visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone, created_at,
+           external_link, google_maps_link, whatsapp_group_link, contact_info, status, admin_comment, participant_limit, is_paid,
+           ticket_price, upi_id, external_ticket_link, venue_official_email, venue_official_phone, venue_section_hall, venue_verification_status, payment_details_locked,
+           visibility, image_url, image_public_id, average_rating, ratings_count, attendee_guide, event_type, timezone, created_at,
            (SELECT COUNT(*)::int FROM event_rsvps WHERE event_id = events.id) AS rsvp_count,
            (SELECT COUNT(*)::int FROM event_invites WHERE event_id = events.id) AS invite_count
     FROM events

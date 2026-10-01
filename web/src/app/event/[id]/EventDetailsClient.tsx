@@ -13,7 +13,7 @@ import { JoinTelegramPromptModal } from "@/components/JoinTelegramPromptModal";
 import { formatTelegramLink } from "@/lib/telegramGroup";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor } from "@/components/CategoryDecorations";
 import { useTheme } from "@/context/ThemeContext";
-import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink, Send, Globe } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink, Send, Globe, ShieldCheck } from "lucide-react";
 import { formatEventTimeWithTimezone, getTimezoneAbbr } from "@/lib/timezone";
 import { toast } from "sonner";
 
@@ -373,10 +373,21 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                   <Sparkles className="w-3.5 h-3.5 fill-black text-black" /> VIP Invite-Only
                 </div>
               )}
-              <div className="sticker-badge bg-zinc-100 border-none text-zinc-400">Verified Vibe</div>
               <div className="sticker-badge bg-zinc-100 border-none text-zinc-500 font-bold">
                 {event.is_paid ? "Paid Event" : "Free Entry"}
               </div>
+              {event.venue_verification_status === 'verified' && (
+                <div className="sticker-badge bg-emerald-100 text-emerald-900 border border-emerald-300 font-black flex items-center gap-1.5 shadow-xs">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>🛡️ Venue Confirmed</span>
+                </div>
+              )}
+              {event.venue_verification_status === 'pending_venue_auth' && (
+                <div className="sticker-badge bg-amber-100 text-amber-900 border border-amber-300 font-bold flex items-center gap-1.5 shadow-xs">
+                  <Clock className="w-3.5 h-3.5 text-amber-600" />
+                  <span>⏳ Venue Authorization Pending</span>
+                </div>
+              )}
               {event.average_rating ? (
                 <div className="sticker-badge bg-amber-100/90 text-amber-900 border-amber-300 font-black flex items-center gap-1.5 shadow-xs">
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
