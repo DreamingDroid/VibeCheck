@@ -121,6 +121,7 @@ const otpLimiter = rateLimit({
   max: isDev ? 100 : 5, // max 5 verification attempts per day per IP in production
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false,
   keyGenerator: (req) => {
     const forwarded = req.headers['x-forwarded-for'];
     if (typeof forwarded === 'string') {
@@ -137,6 +138,7 @@ const aiLimiter = rateLimit({
   max: isDev ? 100 : 20, // max 20 requests per minute
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false,
   message: { success: false, error: 'AI rate limit reached, please wait a moment.' }
 });
 
@@ -146,6 +148,7 @@ const aiDailyQuotaLimiter = rateLimit({
   max: isDev ? 200 : 10, // max 10 AI queries per day in production
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false,
   keyGenerator: (req) => {
     if (req.body && typeof req.body.userId === 'string' && req.body.userId.trim()) {
       return `ai_user_${req.body.userId.trim()}`;
@@ -519,10 +522,15 @@ app.post('/admin/trigger-feedback-cron', async (req, res) => {
   }
 });
 
-app.listen(port, async () => {
-  console.log(`[server]: VibeCheck API is running at http://localhost:${port}`);
-  await initializeDatabase();
-  initializeFirebaseAdmin();
-  startPushAlertCron(pool);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(port, async () => {
+    console.log(`[server]: VibeCheck API is running at http://localhost:${port}`);
+    await initializeDatabase();
+    initializeFirebaseAdmin();
+    startPushAlertCron(pool);
+  });
+}
+
+export { app, pool, initializeDatabase };
+export default app;
 

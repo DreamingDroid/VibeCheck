@@ -1,0 +1,13 @@
+{
+  "name": "vibecheck-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:server && npm run test:web",
+    "test:server": "npm --prefix server test",
+    "test:web": "npm --prefix web test",
+    "test:watch:server": "npm --prefix server run test:watch",
+    "test:watch:web": "npm --prefix web run test:watch",
+    "lint": "npm --prefix web run lint"
+  }
+}

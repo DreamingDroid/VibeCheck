@@ -19,7 +19,9 @@
     "seed": "APP_ENV=local ts-node src/seed.ts",
     "seed:dev": "APP_ENV=development ts-node src/seed.ts",
     "setup:telegram": "ts-node src/scripts/setup-telegram-webhook.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "",
@@ -30,9 +32,13 @@
     "@types/node": "^25.5.0",
     "@types/pg": "^8.18.0",
     "@types/qrcode": "^1.5.6",
+    "@types/supertest": "^7.2.1",
+    "@vitest/coverage-v8": "^4.1.11",
     "nodemon": "^3.1.14",
+    "supertest": "^7.3.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
   },
   "dependencies": {
     "@langchain/community": "^1.1.23",

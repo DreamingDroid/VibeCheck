@@ -1,0 +1,104 @@
+name: Dev Branch Automated Testing & Verification
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  backend-testing:
+    name: 🧪 Backend API & Database Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: vibecheck_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: 📦 Install Server Dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: 🧬 Run Server Type Check & Linter
+        working-directory: server
+        run: npm run build
+
+      - name: 🚀 Execute Server Test Suite (Vitest + Supertest)
+        working-directory: server
+        env:
+          APP_ENV: local
+          DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/vibecheck_test_db
+          WHATSAPP_VERIFY_TOKEN: vv2026
+          PRIVATE_BACKEND_TOKEN: ci_test_backend_token_123
+        run: |
+          npx vitest run --coverage --reporter=default --reporter=json --outputFile=test-results.json
+
+      - name: 📊 Generate Backend Test Summary
+        if: always()
+        run: |
+          echo "## 🧪 Backend Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Outcome** | ${{ job.status == 'success' && '✅ PASSED' || '❌ FAILED' }} |" >> $GITHUB_STEP_SUMMARY
+
+  frontend-testing:
+    name: 🎨 Frontend UI & Component Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: 📦 Install Web Dependencies
+        working-directory: web
+        run: npm ci --legacy-peer-deps
+
+      - name: 🔍 Run ESLint
+        working-directory: web
+        run: npm run lint
+
+      - name: 🚀 Execute Web Test Suite
+        working-directory: web
+        run: npm test
+
+      - name: 📊 Generate Frontend Test Summary
+        if: always()
+        run: |
+          echo "## 🎨 Frontend Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Outcome** | ${{ job.status == 'success' && '✅ PASSED' || '❌ FAILED' }} |" >> $GITHUB_STEP_SUMMARY
