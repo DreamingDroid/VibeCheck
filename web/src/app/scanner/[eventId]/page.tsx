@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { 
@@ -68,7 +68,7 @@ function triggerHaptic(type: 'success' | 'error') {
   }
 }
 
-export default function GateScannerPage() {
+function GateScannerPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -523,5 +523,19 @@ export default function GateScannerPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function GateScannerPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-black flex items-center justify-center text-white">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <GateScannerPageContent />
+    </Suspense>
   );
 }

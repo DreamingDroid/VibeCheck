@@ -9,7 +9,7 @@ import React, {
   useRef,
   ReactNode,
 } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 interface LoadingContextType {
   isNavigating: boolean;
@@ -26,7 +26,6 @@ const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 
 export function LoadingProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const [isNavigating, setIsNavigating] = useState(false);
   const [activeRequestsCount, setActiveRequestsCount] = useState(0);
@@ -79,12 +78,13 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
 
   // Detect route / URL changes and finish navigation
   useEffect(() => {
-    const currentUrl = `${pathname}?${searchParams?.toString() || ""}`;
+    const search = typeof window !== "undefined" ? window.location.search : "";
+    const currentUrl = `${pathname}${search}`;
     if (previousUrlRef.current && previousUrlRef.current !== currentUrl) {
       finishNavigation();
     }
     previousUrlRef.current = currentUrl;
-  }, [pathname, searchParams, finishNavigation]);
+  }, [pathname, finishNavigation]);
 
   // Intercept click on internal links for instantaneous navigation feedback
   useEffect(() => {
