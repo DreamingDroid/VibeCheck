@@ -11,6 +11,7 @@ import { useCity, isEventEnded, VibeEvent } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useTranslation } from "@/context/LanguageContext";
 import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor, getCategoryBadgeClass, getCategoryDarkTitleColor } from "@/components/CategoryDecorations";
+import { TicketPerforationDivider } from "@/components/TicketPerforationDivider";
 import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock, Send, LayoutGrid, Globe, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { DayPicker } from "react-day-picker";
@@ -636,7 +637,7 @@ function DashboardContent() {
             </div>
           </div>
           
-          <div className={`w-full p-3 sm:p-5 md:p-6 rounded-[24px] md:rounded-[36px] border-2 md:border-4 border-white shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] overflow-hidden relative bg-gradient-to-br from-white via-zinc-50 to-zinc-100/80 ${isVibrant ? 'vibe-hover-lift' : ''}`}>
+          <div className={`w-full p-3 sm:p-5 md:p-6 rounded-2xl md:rounded-[24px] border-2 md:border-4 border-white shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] overflow-hidden relative bg-gradient-to-br from-white via-zinc-50 to-zinc-100/80 ${isVibrant ? 'vibe-hover-lift' : ''}`}>
             {isVibrant && (
               <div 
                 className="absolute inset-0 pointer-events-none"
@@ -1031,7 +1032,7 @@ function DashboardContent() {
             });
 
             return (
-              <section className="relative overflow-hidden rounded-[24px] md:rounded-[36px] bg-gradient-to-br from-zinc-950 via-zinc-900 to-amber-950/70 border-2 border-amber-400/40 shadow-[0_12px_40px_-5px_rgba(245,158,11,0.25)] animate-in fade-in duration-500 group">
+              <section className="relative overflow-hidden rounded-2xl md:rounded-[24px] bg-gradient-to-br from-zinc-950 via-zinc-900 to-amber-950/70 border-2 border-amber-400/40 shadow-[0_12px_40px_-5px_rgba(245,158,11,0.25)] animate-in fade-in duration-500 group">
                 {/* Ambient glow & VIP watermark */}
                 <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2" />
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-amber-600/10 rounded-full blur-3xl pointer-events-none translate-y-1/2 -translate-x-1/2" />
@@ -1124,7 +1125,7 @@ function DashboardContent() {
           })()
         ) : (
           /* Multiple VIP Invites (2+) */
-          <section className="relative overflow-hidden rounded-[24px] md:rounded-[36px] bg-gradient-to-br from-zinc-950 via-zinc-900 to-amber-950/60 p-6 md:p-8 border-2 border-amber-400/30 shadow-[0_10px_35px_-5px_rgba(245,158,11,0.2)] animate-in fade-in duration-500">
+          <section className="relative overflow-hidden rounded-2xl md:rounded-[24px] bg-gradient-to-br from-zinc-950 via-zinc-900 to-amber-950/60 p-6 md:p-8 border-2 border-amber-400/30 shadow-[0_10px_35px_-5px_rgba(245,158,11,0.2)] animate-in fade-in duration-500">
             <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2" />
             
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
@@ -1210,44 +1211,46 @@ function DashboardContent() {
 
       {/* Editorial Hero Section */}
       {!showCalendarView && featuredEvent && (
-        <section className={`relative group overflow-hidden ringer-card h-auto flex flex-col md:flex-row shadow-2xl rounded-[24px] md:rounded-[40px] ${isVibrant ? 'border-none' : 'border border-black/10'}`}>
+        <section className={`relative group overflow-hidden ringer-card h-auto flex flex-col md:flex-row shadow-2xl rounded-2xl md:rounded-[24px] ${
+          isVibrant ? `${getCategoryCardClass(featuredEvent.category)} border-none text-zinc-950` : 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 border border-black/10 text-white'
+        }`}>
+           {isVibrant && <CategoryDecorations category={featuredEvent.category} showAccent={false} />}
            {/* Left Editorial Gradient Card */}
-           <div className={`w-full md:w-1/2 p-6 sm:p-10 flex flex-col justify-between gap-6 md:gap-8 relative overflow-hidden ${
-             isVibrant ? `${getCategoryCardClass(featuredEvent.category)} text-zinc-950` : 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white'
-           }`}>
-              {isVibrant && <CategoryDecorations category={featuredEvent.category} showAccent={false} />}
-              <div className="flex items-center justify-between relative z-10">
-                <div className="sticker-badge bg-black text-white w-fit px-4 border-none flex items-center gap-2 shadow-lg font-black">
-                  <TrendingUp className="h-3.5 w-3.5 text-pink-400" />
-                  Featured Vibe
-                </div>
-                {featuredEvent.participant_limit && (
-                  <div className={`sticker-badge border text-[10px] font-bold ${
-                    isVibrant ? 'bg-black/5 text-zinc-800 border-black/10' : 'bg-white/20 backdrop-blur-md text-white border-white/30'
-                  }`}>
-                    {Math.max(0, featuredEvent.participant_limit - (featuredEvent.rsvp_count || 0))} spots left
+           <div className="w-full md:w-1/2 p-6 sm:p-8 md:p-10 flex flex-col justify-between gap-4 sm:gap-6 relative overflow-hidden z-10">
+              <div className="space-y-4 sm:space-y-5 relative z-10">
+                <div className="flex items-center justify-between">
+                  <div className="sticker-badge bg-black text-white w-fit px-4 border-none flex items-center gap-2 shadow-lg font-black">
+                    <TrendingUp className="h-3.5 w-3.5 text-pink-400" />
+                    Featured Vibe
                   </div>
-                )}
+                  {featuredEvent.participant_limit && (
+                    <div className={`sticker-badge border text-[10px] font-bold ${
+                      isVibrant ? 'bg-black/5 text-zinc-800 border-black/10' : 'bg-white/20 backdrop-blur-md text-white border-white/30'
+                    }`}>
+                      {Math.max(0, featuredEvent.participant_limit - (featuredEvent.rsvp_count || 0))} spots left
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-3 sm:space-y-3.5">
+                  <h2 
+                    className={`text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-black tracking-tighter leading-tight sm:leading-[1.05] uppercase italic break-words hyphens-auto ${
+                      isVibrant ? '' : 'text-white drop-shadow-md'
+                    }`}
+                    style={isVibrant ? { color: getCategoryDarkTitleColor(featuredEvent.category) } : undefined}
+                  >
+                    {featuredEvent.title}
+                  </h2>
+                  <p className={`italic font-normal line-clamp-3 text-xs sm:text-sm md:text-base leading-relaxed max-w-lg tracking-[-0.01em] ${
+                    isVibrant ? 'text-zinc-600' : 'text-white/90 drop-shadow-sm'
+                  }`}>
+                    {featuredEvent.description}
+                  </p>
+                </div>
               </div>
-              <div className="space-y-4 relative z-10">
-                <h2 
-                  className={`text-3xl sm:text-4xl lg:text-5xl font-black tracking-tighter leading-tight uppercase italic break-words hyphens-auto ${
-                    isVibrant ? '' : 'text-white drop-shadow-md'
-                  }`}
-                  style={isVibrant ? { color: getCategoryDarkTitleColor(featuredEvent.category) } : undefined}
-                >
-                  {featuredEvent.title}
-                </h2>
-                <p className={`italic font-normal line-clamp-3 text-sm sm:text-base leading-relaxed max-w-lg tracking-[-0.01em] ${
-                  isVibrant ? 'text-zinc-600' : 'text-white/90 drop-shadow-sm'
-                }`}>
-                  {featuredEvent.description}
-                </p>
-              </div>
-              <div className="pt-2 relative z-10">
+              <div className="pt-3 sm:pt-4 relative z-10 mt-auto">
                 {isFeaturedRsvped ? (
                   <Link href={`/event/${featuredEvent.id}`} className="inline-block">
-                    <button className={`ringer-button px-8 py-3.5 text-sm shadow-xl flex items-center gap-2 font-black tracking-wider transition-transform group-hover:scale-105 active:scale-95 ${
+                    <button className={`ringer-button px-7 py-3 text-xs sm:text-sm shadow-xl flex items-center gap-2 font-black tracking-wider transition-transform group-hover:scale-105 active:scale-95 ${
                       isVibrant ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-zinc-100'
                     }`}>
                       <span>VIEW YOUR PASS</span>
@@ -1256,7 +1259,7 @@ function DashboardContent() {
                   </Link>
                 ) : (
                   <Link href={`/event/${featuredEvent.id}`} className="inline-block">
-                    <button className={`ringer-button px-8 py-3.5 text-sm shadow-xl flex items-center gap-2 font-black tracking-wider transition-transform group-hover:scale-105 active:scale-95 ${
+                    <button className={`ringer-button px-7 py-3 text-xs sm:text-sm shadow-xl flex items-center gap-2 font-black tracking-wider transition-transform group-hover:scale-105 active:scale-95 ${
                       isVibrant ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-zinc-100'
                     }`}>
                       <span>SECURE YOUR SPOT</span>
@@ -1267,8 +1270,13 @@ function DashboardContent() {
               </div>
            </div>
 
-           {/* Right Logistics & Experience Hub */}
-           <div className="w-full md:w-1/2 bg-white p-6 sm:p-8 md:p-10 flex flex-col justify-between gap-6 relative">
+           {/* Torn Ticket Zig-Zag Perforation Divider */}
+           <TicketPerforationDivider />
+
+           {/* Right Logistics & Experience Hub — Unified Frosted Ticket Stub */}
+           <div className={`w-full md:w-1/2 p-6 sm:p-8 md:p-10 flex flex-col justify-between gap-6 relative z-10 ${
+             isVibrant ? 'bg-white/35 backdrop-blur-md' : 'bg-white'
+           }`}>
               {/* Top Tags & Quick Action Bar */}
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -1329,7 +1337,7 @@ function DashboardContent() {
               {/* Structured Details Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 my-auto">
                 {/* Location Card */}
-                <div className="bg-zinc-50/90 border border-black/5 rounded-2xl p-4 flex flex-col justify-between gap-3 hover:border-black/20 hover:bg-zinc-100/80 transition-all group/loc">
+                <div className="bg-white/75 backdrop-blur-xs border-none rounded-xl p-4 flex flex-col justify-between gap-3 hover:bg-white/90 transition-all shadow-xs group/loc">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 flex items-center gap-1.5">
                       <MapPin className="h-3.5 w-3.5 text-rose-500" /> Where
@@ -1361,7 +1369,7 @@ function DashboardContent() {
                 </div>
 
                 {/* Schedule Card */}
-                <div className="bg-zinc-50/90 border border-black/5 rounded-2xl p-4 flex flex-col justify-between gap-3 hover:border-black/20 hover:bg-zinc-100/80 transition-all">
+                <div className="bg-white/75 backdrop-blur-xs border-none rounded-xl p-4 flex flex-col justify-between gap-3 hover:bg-white/90 transition-all shadow-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 flex items-center gap-1.5">
                       <CalendarIcon className="h-3.5 w-3.5 text-indigo-500" /> When
@@ -1570,7 +1578,7 @@ function DashboardContent() {
 
       {/* Discovery Banner - Hidden if user already accepted Telegram bot */}
       {!userHasTelegram && (
-        <section className={`p-6 sm:p-12 rounded-[24px] sm:rounded-[40px] flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 relative overflow-hidden ${
+        <section className={`p-6 sm:p-12 rounded-2xl sm:rounded-[24px] flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 relative overflow-hidden ${
           isVibrant 
             ? 'bg-gradient-to-br from-zinc-900 via-purple-950 to-zinc-900 text-white' 
             : 'bg-black text-white'

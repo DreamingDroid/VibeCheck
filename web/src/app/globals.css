@@ -76,7 +76,7 @@
 
 @layer components {
   .ringer-card {
-    @apply bg-white border border-black/5 rounded-[40px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300;
+    @apply bg-white border border-black/5 rounded-[20px] md:rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300;
     background-color: #ffffff;
     position: relative;
   }
@@ -108,11 +108,44 @@
   --shadow-card: 0 8px 40px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
-/* Vibrant card variant — luminous pastel gradients & shadow-only styling without borders */
+/* Vibrant card variant — luminous pastel gradients, crisp physical card corners, glossy sheen & enhanced perimeter border shadow */
 [data-theme="vibrant"] .ringer-card,
 [data-theme="vibrant"] [class*="vibe-card-"] {
-  border: none;
-  box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+  border: none !important;
+  border-radius: 20px;
+  box-shadow: 
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.03),
+    0 1px 3px 0 rgba(0, 0, 0, 0.09),
+    0 4px 12px -1px rgba(0, 0, 0, 0.12),
+    0 10px 24px -4px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  [data-theme="vibrant"] .ringer-card,
+  [data-theme="vibrant"] [class*="vibe-card-"] {
+    border-radius: 24px;
+  }
+}
+
+/* Authentic Laminated Card Gloss Highlight (Diagonal specular sheen across card surface) */
+[data-theme="vibrant"] .ringer-card::before,
+[data-theme="vibrant"] [class*="vibe-card-"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    130deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.18) 26%,
+    rgba(255, 255, 255, 0) 52%,
+    rgba(255, 255, 255, 0.06) 78%,
+    rgba(255, 255, 255, 0.25) 100%
+  );
+  z-index: 1;
 }
 
 [data-theme="vibrant"] .vibe-card-music {
@@ -198,7 +231,12 @@
 
 [data-theme="vibrant"] .vibe-hover-lift:hover {
   transform: translateY(-4px);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.04),
+    0 2px 6px 0 rgba(0, 0, 0, 0.10),
+    0 8px 20px -2px rgba(0, 0, 0, 0.16),
+    0 16px 36px -6px rgba(0, 0, 0, 0.10);
 }
 
 /* Vibrant theme body background enhancement */

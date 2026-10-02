@@ -12,7 +12,8 @@ import { OrganizerDetailsModal } from "@/components/OrganizerDetailsModal";
 import { EventRatingModal } from "@/components/EventRatingModal";
 import { JoinTelegramPromptModal } from "@/components/JoinTelegramPromptModal";
 import { formatTelegramLink } from "@/lib/telegramGroup";
-import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor, getCategoryBadgeClass } from "@/components/CategoryDecorations";
+import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor, getCategoryBadgeClass, getCategoryDarkTitleColor } from "@/components/CategoryDecorations";
+import { TicketPerforationDivider } from "@/components/TicketPerforationDivider";
 import { useTheme } from "@/context/ThemeContext";
 import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink, Send, Globe, ShieldCheck } from "lucide-react";
 import { formatEventTimeWithTimezone, getTimezoneAbbr } from "@/lib/timezone";
@@ -358,11 +359,11 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         Back to Explore
       </Link>
       
-      <div className={`ringer-card p-0 overflow-hidden shadow-xl sm:shadow-2xl flex flex-col md:flex-row relative ${isVibrant ? getCategoryCardClass(event.category) : ''}`}>
+      <div className={`ringer-card p-0 overflow-hidden shadow-xl sm:shadow-2xl flex flex-col md:flex-row relative rounded-2xl md:rounded-[24px] ${isVibrant ? `${getCategoryCardClass(event.category)} border-none` : ''}`}>
         {isVibrant && <CategoryDecorations category={event.category} />}
         {/* Left Side: Editorial Content */}
-        <div className="flex-1 p-4 sm:p-8 lg:p-10 space-y-4 sm:space-y-6 relative z-10">
-          <div className="space-y-2.5 sm:space-y-3.5">
+        <div className="flex-1 p-5 sm:p-8 lg:p-10 flex flex-col justify-between relative z-10">
+          <div className="space-y-3.5 sm:space-y-4">
             <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap">
               <div 
                 className={`sticker-badge ${getCategoryBadgeClass(event.category)} border-none`}
@@ -434,10 +435,13 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               )}
             </div>
             
-            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-black leading-tight sm:leading-[0.95] uppercase italic">
+            <h1 
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-black tracking-tighter leading-tight sm:leading-[1.05] uppercase italic break-words"
+              style={isVibrant ? { color: getCategoryDarkTitleColor(event.category) } : undefined}
+            >
               {event.title}
             </h1>
-            <div className="flex items-center gap-1.5 pt-0.5 sm:pt-1 flex-wrap text-xs sm:text-sm">
+            <div className="flex items-center gap-1.5 pt-0.5 flex-wrap text-xs sm:text-sm">
               <span className="font-bold text-zinc-500">Organized by:</span>
               <button 
                 onClick={() => setShowOrganizerModal(true)}
@@ -454,11 +458,10 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                 </Link>
               )}
             </div>
-          </div>
-          
-          <div className="text-zinc-600 text-xs sm:text-sm md:text-base font-normal leading-relaxed whitespace-pre-line">
-            {event.description}
-          </div>
+
+            <div className="italic text-zinc-600 text-xs sm:text-sm md:text-[15px] font-normal leading-relaxed whitespace-pre-line tracking-[-0.01em] pt-1">
+              {event.description}
+            </div>
 
           {/* Attendee Guide Preview Strip (if organizer provided guide info) */}
           {Boolean(
@@ -495,8 +498,9 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               </button>
             </div>
           )}
+          </div>
 
-          <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-4 pt-2 sm:pt-4">
+          <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-4 mt-6 sm:mt-8 pt-4">
             {isCancelled ? (
               <div className="w-full p-4 sm:p-6 rounded-2xl sm:rounded-[24px] bg-rose-50 border-2 border-rose-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="flex items-center gap-3">
@@ -624,12 +628,19 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
           </div>
         </div>
 
-        {/* Right Side: Meta Info Box */}
-        <div className="w-full md:w-80 lg:w-88 bg-white/90 md:bg-white/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-black/10 p-4 sm:p-6 lg:p-7 space-y-3.5 sm:space-y-4 relative z-10 shadow-sm">
+        {/* Torn Ticket Zig-Zag Perforation Divider */}
+        <TicketPerforationDivider />
+
+        {/* Right Side: Meta Info Box — Unified Frosted Ticket Stub */}
+        <div className={`w-full md:w-80 lg:w-88 p-4 sm:p-6 lg:p-7 space-y-3.5 sm:space-y-4 relative z-10 ${
+          isVibrant
+            ? 'bg-white/35 backdrop-blur-md'
+            : 'bg-white/90 md:bg-white/95 backdrop-blur-md shadow-sm'
+        }`}>
           <div className="space-y-3 sm:space-y-3.5">
             {!isCancelled && !isEventEnded && rsvped && (
               rsvpStatus === 'pending' ? (
-                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 space-y-1.5 shadow-xs">
+                <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-200 space-y-1.5 shadow-xs">
                   <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-800">
                     <Clock className="h-3.5 w-3.5 text-amber-700" />
                     <span>{event.is_paid ? 'Payment Pending' : 'Approval Pending'}</span>
@@ -645,7 +656,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                   </button>
                 </div>
               ) : (
-                <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/25 space-y-2 shadow-xs">
+                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-2 shadow-xs">
                   <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-800">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" />
                     <span>Pass Confirmed!</span>
@@ -673,7 +684,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
 
             {/* Official Attendee Telegram Group (RSVP'd Card) */}
             {!isCancelled && !isEventEnded && rsvped && event.whatsapp_group_link && (
-              <div className="p-3.5 rounded-xl bg-sky-50 border border-sky-200 space-y-2 shadow-xs">
+              <div className="p-3.5 rounded-xl bg-sky-50/90 border border-sky-200 space-y-2 shadow-xs">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#229ED9]">
                     <Send className="h-3 w-3 fill-[#229ED9]" />
@@ -702,7 +713,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             {(() => {
               const timeInfo = formatEventTimeWithTimezone(event.date_time, event.end_time, event.timezone || 'Asia/Kolkata');
               return (
-                <div className="space-y-1 bg-white/80 p-3 sm:p-3.5 rounded-xl border border-black/5 shadow-2xs">
+                <div className="space-y-1 bg-white/75 backdrop-blur-xs p-3 sm:p-3.5 rounded-xl border-none shadow-xs hover:bg-white/90 transition-all">
                    <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Date &amp; Time</div>
                    <div className="flex items-center gap-2 text-black font-black text-xs sm:text-sm">
                      <Calendar className="h-4 w-4 text-primary shrink-0" />
@@ -715,12 +726,12 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                    </div>
                    <div className="text-xs sm:text-sm font-bold text-zinc-900 flex items-center gap-1.5 flex-wrap">
                       <span>{timeInfo.timeRangeDisplay}</span>
-                      <span className="text-[10px] font-black uppercase text-zinc-800 bg-zinc-200 px-1.5 py-0.5 rounded tracking-wider shadow-xs">
+                      <span className="text-[10px] font-black uppercase text-zinc-800 bg-zinc-200/80 px-1.5 py-0.5 rounded tracking-wider shadow-xs">
                         {timeInfo.tzAbbr}
                       </span>
                    </div>
                    {timeInfo.localTimeNote && (
-                     <div className="text-[10px] sm:text-[11px] font-bold text-sky-950 bg-sky-50 border border-sky-200 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl w-fit flex items-center gap-1">
+                     <div className="text-[10px] sm:text-[11px] font-bold text-sky-950 bg-sky-50/90 border border-sky-200 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl w-fit flex items-center gap-1">
                        <Globe className="h-3 w-3 text-sky-600 shrink-0" />
                        <span>{timeInfo.localTimeNote}</span>
                      </div>
@@ -730,7 +741,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               );
             })()}
 
-            <div className="space-y-1 bg-white/80 p-3 sm:p-3.5 rounded-xl border border-black/5 shadow-2xs">
+            <div className="space-y-1 bg-white/75 backdrop-blur-xs p-3 sm:p-3.5 rounded-xl border-none shadow-xs hover:bg-white/90 transition-all">
                <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
                  {event.event_type === 'online' ? 'Event Mode & Platform' : 'Location'}
                </div>
@@ -770,9 +781,9 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             </div>
 
             {/* Compact Responsive Meta Stats Grid */}
-            <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+            <div className={`grid ${event.participant_limit ? 'grid-cols-3' : 'grid-cols-2'} gap-2 sm:gap-2.5`}>
               {/* Age Criteria & Suitability Block */}
-              <div className="space-y-1 bg-white/80 p-2.5 sm:p-3 rounded-xl border border-black/5 shadow-2xs flex flex-col justify-between">
+              <div className="space-y-1 bg-white/75 backdrop-blur-xs p-2.5 sm:p-3 rounded-xl border-none shadow-xs hover:bg-white/90 transition-all flex flex-col justify-between">
                  <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Age Policy</div>
                  <div className="flex items-center gap-1.5 text-black font-black text-xs">
                    <Users className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -790,7 +801,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               </div>
 
               {/* People Interested */}
-              <div className="space-y-1 bg-white/80 p-2.5 sm:p-3 rounded-xl border border-black/5 shadow-2xs flex flex-col justify-between">
+              <div className="space-y-1 bg-white/75 backdrop-blur-xs p-2.5 sm:p-3 rounded-xl border-none shadow-xs hover:bg-white/90 transition-all flex flex-col justify-between">
                  <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Interested</div>
                  <div className="flex items-center gap-1.5 text-black font-black text-xs">
                    <Users className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -800,7 +811,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
 
               {/* Event Capacity (if configured) */}
               {event.participant_limit && (
-                <div className="space-y-1 bg-white/80 p-2.5 sm:p-3 rounded-xl border border-black/5 shadow-2xs col-span-2 sm:col-span-1 flex flex-col justify-between">
+                <div className="space-y-1 bg-white/75 backdrop-blur-xs p-2.5 sm:p-3 rounded-xl border-none shadow-xs hover:bg-white/90 transition-all flex flex-col justify-between">
                    <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Capacity</div>
                    <div className="flex items-center gap-1.5 text-black font-black text-xs">
                      <Ticket className="h-3.5 w-3.5 text-primary shrink-0" />
