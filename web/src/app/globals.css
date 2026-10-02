@@ -108,59 +108,52 @@
   --shadow-card: 0 8px 40px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
-/* Vibrant card variant — luminous pastel gradients & themed borders per category */
+/* Vibrant card variant — luminous pastel gradients & shadow-only styling without borders */
+[data-theme="vibrant"] .ringer-card,
+[data-theme="vibrant"] [class*="vibe-card-"] {
+  border: none;
+  box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+}
+
 [data-theme="vibrant"] .vibe-card-music {
   background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 35%, #FFFDF5 75%, #FFFFFF 100%);
-  border-color: rgba(245, 158, 11, 0.35);
 }
 [data-theme="vibrant"] .vibe-card-arts {
   background: linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 35%, #FAF5FF 75%, #FFFFFF 100%);
-  border-color: rgba(168, 85, 247, 0.35);
 }
 [data-theme="vibrant"] .vibe-card-sports {
   background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 35%, #FFFBF5 75%, #FFFFFF 100%);
-  border-color: rgba(249, 115, 22, 0.35);
 }
 [data-theme="vibrant"] .vibe-card-adventure {
   background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 35%, #F0FDF4 75%, #FFFFFF 100%);
-  border-color: rgba(16, 185, 129, 0.35);
 }
 [data-theme="vibrant"] .vibe-card-food {
   background: linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 35%, #FFF5F5 75%, #FFFFFF 100%);
-  border-color: rgba(244, 63, 94, 0.35);
 }
 [data-theme="vibrant"] .vibe-card-techno {
   background: linear-gradient(135deg, #ECFEFF 0%, #CFFAFE 35%, #F0FDFA 75%, #FFFFFF 100%);
-  border-color: rgba(6, 182, 212, 0.35);
 }
 [data-theme="vibrant"] .vibe-card-indie {
   background: linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 35%, #FDF4F9 75%, #FFFFFF 100%);
-  border-color: rgba(236, 72, 153, 0.35);
 }
 [data-theme="vibrant"] .vibe-card-education,
 [data-theme="vibrant"] .vibe-card-workshops {
   background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 35%, #F0F7FF 75%, #FFFFFF 100%);
-  border-color: rgba(59, 130, 246, 0.35);
 }
 [data-theme="vibrant"] .vibe-card-spiritual {
   background: linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 35%, #F5F3FF 75%, #FFFFFF 100%);
-  border-color: rgba(124, 58, 237, 0.35);
 }
 [data-theme="vibrant"] .vibe-card-wellness {
   background: linear-gradient(135deg, #F0FDFA 0%, #CCFBF1 35%, #F2FBF9 75%, #FFFFFF 100%);
-  border-color: rgba(20, 184, 166, 0.35);
 }
 [data-theme="vibrant"] .vibe-card-comedy {
   background: linear-gradient(135deg, #FEFCE8 0%, #FEF9C3 35%, #FFFDEB 75%, #FFFFFF 100%);
-  border-color: rgba(234, 179, 8, 0.35);
 }
 [data-theme="vibrant"] .vibe-card-nightlife {
   background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 35%, #EEF2FF 75%, #FFFFFF 100%);
-  border-color: rgba(99, 102, 241, 0.35);
 }
 [data-theme="vibrant"] .vibe-card-general {
   background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 35%, #F8FAFC 75%, #FFFFFF 100%);
-  border-color: rgba(99, 102, 241, 0.35);
 }
 
 /* Floating decorative icon base */

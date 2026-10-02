@@ -352,18 +352,18 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         />
       )}
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-12 space-y-6 sm:space-y-8 animate-in fade-in duration-700">
+      <div className="max-w-5xl mx-auto px-3.5 sm:px-6 py-4 sm:py-10 space-y-3.5 sm:space-y-6 animate-in fade-in duration-700">
       <Link href="/dashboard" className="group flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
         <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
         Back to Explore
       </Link>
       
-      <div className={`ringer-card p-0 overflow-hidden shadow-2xl flex flex-col md:flex-row relative ${isVibrant ? getCategoryCardClass(event.category) : ''}`}>
+      <div className={`ringer-card p-0 overflow-hidden shadow-xl sm:shadow-2xl flex flex-col md:flex-row relative ${isVibrant ? getCategoryCardClass(event.category) : ''}`}>
         {isVibrant && <CategoryDecorations category={event.category} />}
         {/* Left Side: Editorial Content */}
-        <div className="flex-1 p-6 sm:p-12 space-y-8 sm:space-y-10 relative z-10">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex-1 p-4 sm:p-8 lg:p-10 space-y-4 sm:space-y-6 relative z-10">
+          <div className="space-y-2.5 sm:space-y-3.5">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap">
               <div 
                 className={`sticker-badge ${getCategoryBadgeClass(event.category)} border-none`}
               >
@@ -434,14 +434,14 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               )}
             </div>
             
-            <h1 className="text-4xl sm:text-6xl font-black tracking-tighter text-black leading-[0.9] uppercase italic">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-black leading-tight sm:leading-[0.95] uppercase italic">
               {event.title}
             </h1>
-            <div className="flex items-center gap-2 pt-2 flex-wrap">
-              <span className="text-sm font-bold text-zinc-500">Organized by:</span>
+            <div className="flex items-center gap-1.5 pt-0.5 sm:pt-1 flex-wrap text-xs sm:text-sm">
+              <span className="font-bold text-zinc-500">Organized by:</span>
               <button 
                 onClick={() => setShowOrganizerModal(true)}
-                className="text-sm font-black text-black underline underline-offset-4 decoration-black/20 hover:text-primary hover:decoration-primary active:text-primary active:decoration-primary transition-colors cursor-pointer"
+                className="font-black text-black underline underline-offset-4 decoration-black/20 hover:text-primary hover:decoration-primary active:text-primary active:decoration-primary transition-colors cursor-pointer"
               >
                 {event.organizer_name || "VibeCheck Organizer"}
               </button>
@@ -456,7 +456,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             </div>
           </div>
           
-          <div className="text-zinc-600 text-sm sm:text-base font-normal leading-relaxed whitespace-pre-line">
+          <div className="text-zinc-600 text-xs sm:text-sm md:text-base font-normal leading-relaxed whitespace-pre-line">
             {event.description}
           </div>
 
@@ -471,16 +471,16 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               event.attendee_guide.feeNote
             )
           ) && (
-            <div className="p-5 rounded-2xl bg-zinc-50 border border-black/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-2">
+            <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-zinc-50 border border-black/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mt-2">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Sparkles className="h-5 w-5" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
                 <div>
                   <h4 className="text-xs font-black uppercase tracking-wider text-black">
                     Event Guide &amp; Schedule
                   </h4>
-                  <p className="text-xs font-medium text-zinc-500">
+                  <p className="text-[11px] sm:text-xs font-medium text-zinc-500">
                     Schedule, program highlights, what to carry &amp; assembly details.
                   </p>
                 </div>
@@ -488,7 +488,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               <button
                 type="button"
                 onClick={() => setShowBriefingModal(true)}
-                className="ringer-button bg-white hover:bg-zinc-100 text-black border border-black/10 text-xs font-black uppercase px-5 py-2.5 flex items-center gap-1.5 transition-all active:scale-95 shadow-xs cursor-pointer shrink-0"
+                className="ringer-button bg-white hover:bg-zinc-100 text-black border border-black/10 text-xs font-black uppercase px-4 py-2 sm:px-5 sm:py-2.5 flex items-center gap-1.5 transition-all active:scale-95 shadow-xs cursor-pointer shrink-0"
               >
                 <span>View More Details</span>
                 <ExternalLink className="h-3.5 w-3.5 text-primary" />
@@ -496,15 +496,15 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-4 pt-6">
+          <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-4 pt-2 sm:pt-4">
             {isCancelled ? (
-              <div className="w-full p-6 rounded-[24px] bg-rose-50 border-2 border-rose-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="w-full p-4 sm:p-6 rounded-2xl sm:rounded-[24px] bg-rose-50 border-2 border-rose-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-rose-600 text-white flex items-center justify-center shrink-0">
-                    <AlertCircle className="h-6 w-6" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-rose-600 text-white flex items-center justify-center shrink-0">
+                    <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6" />
                   </div>
                   <div>
-                    <div className="text-base font-black text-rose-950 uppercase tracking-tight">
+                    <div className="text-sm sm:text-base font-black text-rose-950 uppercase tracking-tight">
                       This Event Has Been Cancelled
                     </div>
                     <div className="text-xs font-bold text-rose-800">
@@ -514,7 +514,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                 </div>
                 <Link
                   href="/dashboard"
-                  className="ringer-button text-xs font-black bg-rose-600 hover:bg-rose-700 text-white px-5 py-3 rounded-xl uppercase tracking-wider"
+                  className="ringer-button text-xs font-black bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl uppercase tracking-wider"
                 >
                   Explore Other Vibes
                 </Link>
@@ -522,23 +522,23 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             ) : isEventEnded ? (
               // ENDED EVENT STATE: Only Rating button or "Already Rated" confirmation stays
               hasRated ? (
-                <div className="w-full p-4 sm:p-5 rounded-[20px] bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black">
-                      <CheckCircle2 className="h-6 w-6" />
+                <div className="w-full p-3.5 sm:p-5 rounded-xl sm:rounded-[20px] bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-between gap-3 sm:gap-4">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black">
+                      <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
                     <div>
-                      <div className="text-sm font-black text-emerald-950 uppercase tracking-wide">
+                      <div className="text-xs sm:text-sm font-black text-emerald-950 uppercase tracking-wide">
                         You've Rated This Vibe &amp; Host
                       </div>
-                      <div className="text-xs font-bold text-emerald-700">
+                      <div className="text-[11px] sm:text-xs font-bold text-emerald-700">
                         Thank you for your feedback! This event is completed.
                       </div>
                     </div>
                   </div>
                   {userRating?.event_rating && (
-                    <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-100 font-black text-emerald-900 text-sm shadow-xs">
-                      <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                    <div className="flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl bg-emerald-100 font-black text-emerald-900 text-xs sm:text-sm shadow-xs">
+                      <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-amber-400 text-amber-500" />
                       <span>{userRating.event_rating}/5</span>
                     </div>
                   )}
@@ -552,9 +552,9 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                     }
                     setShowRatingModal(true);
                   }}
-                  className="ringer-button h-16 w-full text-base font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-black shadow-lg shadow-amber-500/25 cursor-pointer uppercase tracking-wider"
+                  className="ringer-button h-12 sm:h-14 md:h-16 w-full text-xs sm:text-base font-black flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-xl sm:rounded-[20px] bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-black shadow-lg shadow-amber-500/25 cursor-pointer uppercase tracking-wider"
                 >
-                  <Star className="h-5 w-5 fill-black text-black" />
+                  <Star className="h-4 w-4 sm:h-5 sm:w-5 fill-black text-black" />
                   <span>⭐ RATE EVENT &amp; HOST</span>
                 </button>
               )
@@ -565,17 +565,17 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                   rsvpStatus === 'pending' ? (
                     <button 
                       onClick={() => setShowBriefingModal(true)}
-                      className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] bg-amber-500 text-black hover:bg-amber-400 shadow-md cursor-pointer"
+                      className="ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-xl sm:rounded-[20px] bg-amber-500 text-black hover:bg-amber-400 shadow-md cursor-pointer"
                     >
-                      <Clock className="h-5 w-5" />
+                      <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
                       {event.is_paid ? 'PAYMENT PENDING • VIEW BRIEFING' : 'APPROVAL PENDING • VIEW BRIEFING'}
                     </button>
                   ) : (
                     <button 
                       onClick={() => setShowBriefingModal(true)}
-                      className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] bg-primary text-black hover:bg-primary/90 shadow-md cursor-pointer"
+                      className="ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-xl sm:rounded-[20px] bg-primary text-black hover:bg-primary/90 shadow-md cursor-pointer"
                     >
-                      <Ticket className="h-5 w-5" />
+                      <Ticket className="h-4 w-4 sm:h-5 sm:w-5" />
                       VIEW CONFIRMED PASS &amp; BRIEFING
                     </button>
                   )
@@ -583,14 +583,14 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                   isHousefull ? (
                     <button 
                       disabled
-                      className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 rounded-[20px] bg-red-500 text-white cursor-not-allowed shadow-none"
+                      className="ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 rounded-xl sm:rounded-[20px] bg-red-500 text-white cursor-not-allowed shadow-none"
                     >
                       HOUSEFULL / SOLD OUT
                     </button>
                   ) : event.is_paid ? (
                     <button 
                       onClick={() => handleRSVP()}
-                      className={`ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] ${
+                      className={`ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-xl sm:rounded-[20px] ${
                         isVibrant 
                           ? 'bg-black text-white hover:bg-zinc-800 vibe-shimmer cursor-pointer'
                           : 'bg-black text-white hover:bg-zinc-800 cursor-pointer'
@@ -601,7 +601,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                   ) : (
                     <button 
                       onClick={() => handleRSVP()}
-                      className={`ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 transition-all active:scale-95 rounded-[20px] ${
+                      className={`ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-xl sm:rounded-[20px] ${
                         isVibrant 
                           ? 'bg-black text-white hover:bg-zinc-800 vibe-shimmer cursor-pointer'
                           : 'bg-black text-white hover:bg-zinc-800 cursor-pointer'
@@ -614,238 +614,243 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                 
                 <button 
                   onClick={handleDownloadICS}
-                  className="ringer-button h-16 flex-1 text-sm font-black flex items-center justify-center gap-3 border-2 border-black/5 hover:bg-black/5 active:scale-95 transition-transform rounded-[20px] cursor-pointer"
+                  className="ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 border-2 border-black/5 hover:bg-black/5 active:scale-95 transition-transform rounded-xl sm:rounded-[20px] cursor-pointer"
                 >
-                  <CalendarPlus className="h-5 w-5" />
-                    ADD TO CALENDAR
-                  </button>
-                </>
-              )}
-            </div>
+                  <CalendarPlus className="h-4 w-4 sm:h-5 sm:w-5" />
+                  ADD TO CALENDAR
+                </button>
+              </>
+            )}
           </div>
+        </div>
 
-          {/* Right Side: Meta Info Box */}
-          <div className="w-full md:w-84 bg-white/90 md:bg-white/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-black/10 p-6 sm:p-10 space-y-8 sm:space-y-10 relative z-10 shadow-sm">
-           <div className="space-y-6">
-              {!isCancelled && !isEventEnded && rsvped && (
-                rsvpStatus === 'pending' ? (
-                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-2 shadow-xs">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-800">
-                      <Clock className="h-4 w-4 text-amber-700" />
-                      <span>{event.is_paid ? 'Payment Pending' : 'Approval Pending'}</span>
-                    </div>
-                    <p className="text-xs text-amber-950 font-bold leading-snug">
-                      {event.is_paid ? 'Pass pending payment with organizer.' : 'RSVP recorded! Pass pending organizer approval.'}
-                    </p>
-                    <button
-                      onClick={() => setShowBriefingModal(true)}
-                      className="text-xs font-black uppercase tracking-wider text-black underline underline-offset-4 hover:text-amber-800 transition-colors block pt-1 cursor-pointer"
-                    >
-                      {event.is_paid ? 'Contact Organizer & View Guide →' : 'View Event Briefing & Guide →'}
-                    </button>
+        {/* Right Side: Meta Info Box */}
+        <div className="w-full md:w-80 lg:w-88 bg-white/90 md:bg-white/95 backdrop-blur-md border-t md:border-t-0 md:border-l border-black/10 p-4 sm:p-6 lg:p-7 space-y-3.5 sm:space-y-4 relative z-10 shadow-sm">
+          <div className="space-y-3 sm:space-y-3.5">
+            {!isCancelled && !isEventEnded && rsvped && (
+              rsvpStatus === 'pending' ? (
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 space-y-1.5 shadow-xs">
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-800">
+                    <Clock className="h-3.5 w-3.5 text-amber-700" />
+                    <span>{event.is_paid ? 'Payment Pending' : 'Approval Pending'}</span>
                   </div>
-                ) : (
-                  <div className="p-4 rounded-2xl bg-primary/10 border border-primary/25 space-y-2 shadow-xs">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-800">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-700" />
-                      <span>Pass Confirmed!</span>
-                    </div>
-                    <p className="text-xs text-zinc-900 font-bold leading-snug">
-                      {passCode ? `Pass #${passCode} is active.` : "Your spot is locked in."} Access schedule &amp; venue details anytime.
-                    </p>
-                    <button
-                      onClick={() => setShowBriefingModal(true)}
-                      className="text-xs font-black uppercase tracking-wider text-black underline underline-offset-4 hover:text-primary transition-colors block pt-1 cursor-pointer"
-                    >
-                      Open Confirmed Pass →
-                    </button>
-
-                    <button
-                      onClick={handleGetTelegramPass}
-                      className="w-full mt-2 py-2.5 px-4 bg-[#229ED9] hover:bg-[#1d8dc3] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-[#229ED9]/20 active:scale-95"
-                    >
-                      <Send className="h-3.5 w-3.5 fill-white" />
-                      <span>Get Pass on Telegram</span>
-                    </button>
-                  </div>
-                )
-              )}
-
-              {/* Official Attendee Telegram Group (RSVP'd Card) */}
-              {!isCancelled && !isEventEnded && rsvped && event.whatsapp_group_link && (
-                <div className="p-4 rounded-2xl bg-sky-50 border border-sky-200 space-y-2.5 shadow-xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#229ED9]">
-                      <Send className="h-3 w-3 fill-[#229ED9]" />
-                      <span>Attendee Telegram Group</span>
-                    </div>
-                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-200/70 text-sky-950">
-                      Active
-                    </span>
-                  </div>
-                  <p className="text-xs text-sky-950 font-bold leading-snug">
-                    Connect and chat with the organizer and fellow attendees!
+                  <p className="text-xs text-amber-950 font-bold leading-snug">
+                    {event.is_paid ? 'Pass pending payment with organizer.' : 'RSVP recorded! Pass pending organizer approval.'}
                   </p>
-                  <a
-                    href={formatTelegramLink(event.whatsapp_group_link)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2.5 px-4 bg-[#229ED9] hover:bg-[#1d8dc3] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-[#229ED9]/20 active:scale-95"
+                  <button
+                    onClick={() => setShowBriefingModal(true)}
+                    className="text-xs font-black uppercase tracking-wider text-black underline underline-offset-4 hover:text-amber-800 transition-colors block pt-0.5 cursor-pointer"
+                  >
+                    {event.is_paid ? 'Contact Organizer & View Guide →' : 'View Event Briefing & Guide →'}
+                  </button>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/25 space-y-2 shadow-xs">
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-800">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" />
+                    <span>Pass Confirmed!</span>
+                  </div>
+                  <p className="text-xs text-zinc-900 font-bold leading-snug">
+                    {passCode ? `Pass #${passCode} is active.` : "Your spot is locked in."} Access schedule &amp; venue details anytime.
+                  </p>
+                  <button
+                    onClick={() => setShowBriefingModal(true)}
+                    className="text-xs font-black uppercase tracking-wider text-black underline underline-offset-4 hover:text-primary transition-colors block pt-0.5 cursor-pointer"
+                  >
+                    Open Confirmed Pass →
+                  </button>
+
+                  <button
+                    onClick={handleGetTelegramPass}
+                    className="w-full mt-1.5 py-2 px-3 bg-[#229ED9] hover:bg-[#1d8dc3] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-[#229ED9]/20 active:scale-95"
                   >
                     <Send className="h-3.5 w-3.5 fill-white" />
-                    <span>Join Official Telegram Group</span>
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
+                    <span>Get Pass on Telegram</span>
+                  </button>
                 </div>
-              )}
+              )
+            )}
 
-              {(() => {
-                const timeInfo = formatEventTimeWithTimezone(event.date_time, event.end_time, event.timezone || 'Asia/Kolkata');
-                return (
-                  <div className="space-y-1.5 bg-white/80 p-3.5 rounded-2xl border border-black/5 shadow-2xs">
-                     <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Date &amp; Time</div>
-                     <div className="flex items-center gap-2 text-black font-black text-sm">
-                       <Calendar className="h-4 w-4 text-primary shrink-0" />
-                       <span>
-                         {new Date(event.date_time).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: event.timezone || 'Asia/Kolkata' })}
-                         {event.end_time && new Date(event.date_time).toDateString() !== new Date(event.end_time).toDateString() && (
-                           <span className="text-zinc-600 ml-1"> - {new Date(event.end_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: event.timezone || 'Asia/Kolkata' })}</span>
-                         )}
-                       </span>
-                     </div>
-                     <div className="text-sm font-bold text-zinc-900 flex items-center gap-1.5 flex-wrap">
-                        <span>{timeInfo.timeRangeDisplay}</span>
-                        <span className="text-[10px] font-black uppercase text-zinc-800 bg-zinc-200 px-1.5 py-0.5 rounded tracking-wider shadow-xs">
-                          {timeInfo.tzAbbr}
-                        </span>
-                     </div>
-                     {timeInfo.localTimeNote && (
-                       <div className="text-[11px] font-bold text-sky-950 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-xl w-fit flex items-center gap-1">
-                         <Globe className="h-3 w-3 text-sky-600 shrink-0" />
-                         <span>{timeInfo.localTimeNote}</span>
-                       </div>
-                     )}
-                     {event.timings && <span className="block mt-1 text-primary italic uppercase text-[9px] font-black tracking-widest">{event.timings}</span>}
+            {/* Official Attendee Telegram Group (RSVP'd Card) */}
+            {!isCancelled && !isEventEnded && rsvped && event.whatsapp_group_link && (
+              <div className="p-3.5 rounded-xl bg-sky-50 border border-sky-200 space-y-2 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#229ED9]">
+                    <Send className="h-3 w-3 fill-[#229ED9]" />
+                    <span>Attendee Telegram Group</span>
                   </div>
-                );
-              })()}
-
-              <div className="space-y-1.5 bg-white/80 p-3.5 rounded-2xl border border-black/5 shadow-2xs">
-                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                   {event.event_type === 'online' ? 'Event Mode & Platform' : 'Location'}
-                 </div>
-                 <div className="flex items-center gap-2 text-black font-black text-sm">
-                   {event.event_type === 'online' ? (
-                     <>
-                       <Globe className="h-4 w-4 text-sky-600 shrink-0" />
-                       <span>Online / Virtual Event</span>
-                     </>
-                   ) : (
-                     <>
-                       <MapPin className="h-4 w-4 text-primary shrink-0" />
-                       <span>{event.location}</span>
-                     </>
-                   )}
-                 </div>
-                 {event.event_type === 'online' ? (
-                   event.location && event.location !== 'Online Event' && event.location !== 'Online' ? (
-                     <span className="text-xs font-semibold text-zinc-700 block">
-                       Platform: {event.location}
-                     </span>
-                   ) : (
-                     <span className="text-xs font-semibold text-zinc-700 block">
-                       Virtual access details available in Attendee Pass.
-                     </span>
-                   )
-                 ) : (
-                   <a
-                     href={event.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.location}, ${event.city || ''}`)}`}
-                     target="_blank"
-                     rel="noopener noreferrer"
-                     className="text-xs font-bold text-zinc-600 underline hover:text-black block w-fit"
-                   >
-                     Open in Maps ↗
-                   </a>
-                 )}
+                  <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-200/70 text-sky-950">
+                    Active
+                  </span>
+                </div>
+                <p className="text-xs text-sky-950 font-bold leading-snug">
+                  Connect and chat with the organizer and fellow attendees!
+                </p>
+                <a
+                  href={formatTelegramLink(event.whatsapp_group_link)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2 px-3 bg-[#229ED9] hover:bg-[#1d8dc3] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-[#229ED9]/20 active:scale-95"
+                >
+                  <Send className="h-3.5 w-3.5 fill-white" />
+                  <span>Join Official Telegram Group</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
               </div>
+            )}
 
+            {(() => {
+              const timeInfo = formatEventTimeWithTimezone(event.date_time, event.end_time, event.timezone || 'Asia/Kolkata');
+              return (
+                <div className="space-y-1 bg-white/80 p-3 sm:p-3.5 rounded-xl border border-black/5 shadow-2xs">
+                   <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Date &amp; Time</div>
+                   <div className="flex items-center gap-2 text-black font-black text-xs sm:text-sm">
+                     <Calendar className="h-4 w-4 text-primary shrink-0" />
+                     <span>
+                       {new Date(event.date_time).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: event.timezone || 'Asia/Kolkata' })}
+                       {event.end_time && new Date(event.date_time).toDateString() !== new Date(event.end_time).toDateString() && (
+                         <span className="text-zinc-600 ml-1"> - {new Date(event.end_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: event.timezone || 'Asia/Kolkata' })}</span>
+                       )}
+                     </span>
+                   </div>
+                   <div className="text-xs sm:text-sm font-bold text-zinc-900 flex items-center gap-1.5 flex-wrap">
+                      <span>{timeInfo.timeRangeDisplay}</span>
+                      <span className="text-[10px] font-black uppercase text-zinc-800 bg-zinc-200 px-1.5 py-0.5 rounded tracking-wider shadow-xs">
+                        {timeInfo.tzAbbr}
+                      </span>
+                   </div>
+                   {timeInfo.localTimeNote && (
+                     <div className="text-[10px] sm:text-[11px] font-bold text-sky-950 bg-sky-50 border border-sky-200 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl w-fit flex items-center gap-1">
+                       <Globe className="h-3 w-3 text-sky-600 shrink-0" />
+                       <span>{timeInfo.localTimeNote}</span>
+                     </div>
+                   )}
+                   {event.timings && <span className="block mt-0.5 text-primary italic uppercase text-[9px] font-black tracking-widest">{event.timings}</span>}
+                </div>
+              );
+            })()}
+
+            <div className="space-y-1 bg-white/80 p-3 sm:p-3.5 rounded-xl border border-black/5 shadow-2xs">
+               <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                 {event.event_type === 'online' ? 'Event Mode & Platform' : 'Location'}
+               </div>
+               <div className="flex items-center gap-2 text-black font-black text-xs sm:text-sm">
+                 {event.event_type === 'online' ? (
+                   <>
+                     <Globe className="h-4 w-4 text-sky-600 shrink-0" />
+                     <span>Online / Virtual Event</span>
+                   </>
+                 ) : (
+                   <>
+                     <MapPin className="h-4 w-4 text-primary shrink-0" />
+                     <span className="leading-snug">{event.location}</span>
+                   </>
+                 )}
+               </div>
+               {event.event_type === 'online' ? (
+                 event.location && event.location !== 'Online Event' && event.location !== 'Online' ? (
+                   <span className="text-xs font-semibold text-zinc-700 block">
+                     Platform: {event.location}
+                   </span>
+                 ) : (
+                   <span className="text-xs font-semibold text-zinc-700 block">
+                     Virtual access details available in Attendee Pass.
+                   </span>
+                 )
+               ) : (
+                 <a
+                   href={event.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.location}, ${event.city || ''}`)}`}
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   className="text-xs font-bold text-zinc-600 underline hover:text-black block w-fit pt-0.5"
+                 >
+                   Open in Maps ↗
+                 </a>
+               )}
+            </div>
+
+            {/* Compact Responsive Meta Stats Grid */}
+            <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
               {/* Age Criteria & Suitability Block */}
-              <div className="space-y-1.5 bg-white/80 p-3.5 rounded-2xl border border-black/5 shadow-2xs">
-                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Age Guidelines</div>
-                 <div className="flex items-center gap-2 text-black font-black text-xs">
-                   <Users className="h-4 w-4 text-primary shrink-0" />
-                   <span>
+              <div className="space-y-1 bg-white/80 p-2.5 sm:p-3 rounded-xl border border-black/5 shadow-2xs flex flex-col justify-between">
+                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Age Policy</div>
+                 <div className="flex items-center gap-1.5 text-black font-black text-xs">
+                   <Users className="h-3.5 w-3.5 text-primary shrink-0" />
+                   <span className="leading-tight">
                      {event.min_age !== null && event.min_age !== undefined && Number(event.min_age) > 0
-                       ? `Strictly ${event.min_age}+ (Govt Photo ID Mandatory)`
-                       : (['Techno', 'Nightlife', 'Clubbing'].includes(event.category) ? "Strictly 21+ (Nightlife Policy)" : "All Ages Welcome")}
+                       ? `${event.min_age}+ Only`
+                       : (['Techno', 'Nightlife', 'Clubbing'].includes(event.category) ? "21+ Only" : "All Ages")}
                    </span>
                  </div>
                  {event.suitable_age && (
-                   <span className="text-xs font-semibold text-zinc-600 block">
-                     Demographic: {event.suitable_age}
+                   <span className="text-[10px] font-semibold text-zinc-500 block truncate">
+                     {event.suitable_age}
                    </span>
                  )}
               </div>
 
-              <div className="space-y-1.5 bg-white/80 p-3.5 rounded-2xl border border-black/5 shadow-2xs">
-                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">People Interested</div>
-                 <div className="flex items-center gap-2 text-black font-black">
-                   <Users className="h-4 w-4 text-primary" />
-                   <span>{event.rsvp_count || 0} {event.rsvp_count === 1 ? 'Vibe Seeker' : 'Vibe Seekers'}</span>
+              {/* People Interested */}
+              <div className="space-y-1 bg-white/80 p-2.5 sm:p-3 rounded-xl border border-black/5 shadow-2xs flex flex-col justify-between">
+                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Interested</div>
+                 <div className="flex items-center gap-1.5 text-black font-black text-xs">
+                   <Users className="h-3.5 w-3.5 text-primary shrink-0" />
+                   <span>{event.rsvp_count || 0} {event.rsvp_count === 1 ? 'Seeker' : 'Seekers'}</span>
                  </div>
               </div>
 
+              {/* Event Capacity (if configured) */}
               {event.participant_limit && (
-                <div className="space-y-1.5 bg-white/80 p-3.5 rounded-2xl border border-black/5 shadow-2xs">
-                   <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Event Capacity</div>
-                   <div className="flex items-center gap-2 text-black font-black">
-                     <Users className="h-4 w-4 text-primary" />
+                <div className="space-y-1 bg-white/80 p-2.5 sm:p-3 rounded-xl border border-black/5 shadow-2xs col-span-2 sm:col-span-1 flex flex-col justify-between">
+                   <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Capacity</div>
+                   <div className="flex items-center gap-1.5 text-black font-black text-xs">
+                     <Ticket className="h-3.5 w-3.5 text-primary shrink-0" />
                      <span>{event.participant_limit} spots</span>
                    </div>
                 </div>
               )}
-           </div>
+            </div>
+          </div>
 
-           {/* Evident 'Join Telegram Group' Action Button (Only visible if Telegram link is configured) */}
-           {event.whatsapp_group_link && (
-             <div className="pt-6 sm:pt-8 border-t border-black/10 flex flex-col gap-2">
-                <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Community Group</div>
-                <button
-                  onClick={() => {
-                    if (!rsvped) {
-                      toast.info("Please RSVP to this event first to join the official attendee Telegram group!");
-                      return;
-                    }
-                    window.open(formatTelegramLink(event.whatsapp_group_link!), '_blank');
-                  }}
-                  className="w-full py-3.5 px-4 bg-[#229ED9] hover:bg-[#1d8dc3] text-white rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-[#229ED9]/25 active:scale-95 cursor-pointer"
+          {/* Evident 'Join Telegram Group' Action Button (Only visible if Telegram link is configured) */}
+          {event.whatsapp_group_link && (
+            <div className="pt-3 sm:pt-4 border-t border-black/10 flex flex-col gap-1.5">
+               <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Community Group</div>
+               <button
+                 onClick={() => {
+                   if (!rsvped) {
+                     toast.info("Please RSVP to this event first to join the official attendee Telegram group!");
+                     return;
+                   }
+                   window.open(formatTelegramLink(event.whatsapp_group_link!), '_blank');
+                 }}
+                 className="w-full py-2.5 sm:py-3 px-3.5 bg-[#229ED9] hover:bg-[#1d8dc3] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-[#229ED9]/25 active:scale-95 cursor-pointer"
+               >
+                 <Send className="h-3.5 w-3.5 fill-white" />
+                 <span>Join Telegram Group</span>
+                 <ExternalLink className="h-3.5 w-3.5" />
+               </button>
+            </div>
+          )}
+
+          <div className="pt-3 sm:pt-4 border-t border-black/10 flex items-center justify-between">
+             <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Share This Vibe</div>
+             <div className="flex gap-2">
+                <button 
+                  onClick={handleCopyLink} 
+                  title="Copy Link"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-white shadow-xs cursor-pointer"
                 >
-                  <Send className="h-4 w-4 fill-white" />
-                  <span>Join Telegram Group</span>
-                  <ExternalLink className="h-3.5 w-3.5" />
+                  <Link2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-black" />
+                </button>
+                <button 
+                  onClick={handleShare} 
+                  title="System Share"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-white shadow-xs cursor-pointer"
+                >
+                  <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-black" />
                 </button>
              </div>
-           )}
-
-           <div className="pt-6 sm:pt-8 border-t border-black/10 flex flex-col gap-4">
-              <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Share This Vibe</div>
-              <div className="flex gap-2">
-                 <button 
-                   onClick={handleCopyLink} 
-                   title="Copy Link"
-                   className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-white shadow-xs cursor-pointer"
-                 >
-                   <Link2 className="h-4 w-4 text-black" />
-                 </button>
-                 <button 
-                   onClick={handleShare} 
-                   title="System Share"
-                   className="h-10 w-10 rounded-full border border-black/10 flex items-center justify-center hover:bg-white hover:border-black transition-all bg-white shadow-xs cursor-pointer"
-                 >
-                   <Share2 className="h-4 w-4 text-black" />
-                 </button>
-              </div>
-           </div>
+          </div>
         </div>
       </div>
 

@@ -1210,7 +1210,7 @@ function DashboardContent() {
 
       {/* Editorial Hero Section */}
       {!showCalendarView && featuredEvent && (
-        <section className="relative group overflow-hidden ringer-card h-auto flex flex-col md:flex-row shadow-2xl rounded-[24px] md:rounded-[40px] border border-black/10">
+        <section className={`relative group overflow-hidden ringer-card h-auto flex flex-col md:flex-row shadow-2xl rounded-[24px] md:rounded-[40px] ${isVibrant ? 'border-none' : 'border border-black/10'}`}>
            {/* Left Editorial Gradient Card */}
            <div className={`w-full md:w-1/2 p-6 sm:p-10 flex flex-col justify-between gap-6 md:gap-8 relative overflow-hidden ${
              isVibrant ? `${getCategoryCardClass(featuredEvent.category)} text-zinc-950` : 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white'

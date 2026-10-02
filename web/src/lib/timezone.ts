@@ -212,11 +212,13 @@ export function formatEventTimeWithTimezone(
             minute: "2-digit",
             hour12: true,
           }).format(endDate);
-          localTimeNote = `${localStart} → ${localEnd} ${localTzAbbr} (Your Local Time)`;
-        } else {
+          if (localStart !== startTimeFormatted || localEnd !== endTimeFormatted || localTzAbbr !== tzAbbr) {
+            localTimeNote = `${localStart} → ${localEnd} ${localTzAbbr} (Your Local Time)`;
+          }
+        } else if (localStart !== startTimeFormatted || localTzAbbr !== tzAbbr) {
           localTimeNote = `${localStart} ${localTzAbbr} (Your Local Time)`;
         }
-      } else {
+      } else if (localStart !== startTimeFormatted || localTzAbbr !== tzAbbr) {
         localTimeNote = `${localStart} ${localTzAbbr} (Your Local Time)`;
       }
     }
