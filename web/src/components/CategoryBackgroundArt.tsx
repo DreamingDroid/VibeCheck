@@ -57,7 +57,7 @@ export function CategoryBackgroundArt({ category, className = "" }: CategoryBack
   return (
     <div className={`absolute inset-0 w-full h-full pointer-events-none select-none overflow-hidden rounded-[inherit] z-0 ${className}`}>
       {/* Layer 1: Full-Bleed Dunes & Sky Gradient (100% width & height with no gaps at bottom) */}
-      <div className="absolute inset-0 w-full h-full opacity-60 transition-all duration-700 ease-out group-hover:opacity-75">
+      <div className="absolute inset-0 w-full h-full opacity-[0.33] transition-all duration-700 ease-out group-hover:opacity-[0.45]">
         {cat === "adventure" && <AdventureDunes />}
         {cat === "music" && <MusicDunes />}
         {cat === "arts" && <ArtsDunes />}
@@ -74,7 +74,7 @@ export function CategoryBackgroundArt({ category, className = "" }: CategoryBack
       </div>
 
       {/* Layer 2: True Aspect-Ratio Thematic Accent Art (Top-right positioned, true circles/shapes) */}
-      <div className="absolute top-0 right-0 w-3/4 max-w-[320px] h-[190px] sm:h-[220px] opacity-75 transition-all duration-700 ease-out group-hover:opacity-90 pointer-events-none">
+      <div className="absolute top-0 right-0 w-3/4 max-w-[320px] h-[190px] sm:h-[220px] opacity-[0.22] transition-all duration-700 ease-out group-hover:opacity-[0.30] pointer-events-none">
         {cat === "adventure" && <AdventureAccents />}
         {cat === "music" && <MusicAccents />}
         {cat === "arts" && <ArtsAccents />}
@@ -90,8 +90,8 @@ export function CategoryBackgroundArt({ category, className = "" }: CategoryBack
         {cat === "general" && <GeneralAccents />}
       </div>
 
-      {/* Layer 3: Strong legibility gradient overlay to guarantee 100% dark text contrast */}
-      <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/80 to-white/35 sm:from-white/92 sm:via-white/75 sm:to-white/25 pointer-events-none z-[1]" />
+      {/* Layer 3: Softening & legibility white overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-white/88 via-white/60 to-white/15 sm:from-white/85 sm:via-white/50 sm:to-white/10 pointer-events-none z-[1]" />
     </div>
   )
 }

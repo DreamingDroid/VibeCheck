@@ -1235,8 +1235,8 @@ function DashboardContent() {
                 }`}>
                   {featuredEvent.title}
                 </h2>
-                <p className={`font-medium line-clamp-3 text-sm sm:text-base leading-relaxed max-w-lg ${
-                  isVibrant ? 'text-zinc-700' : 'text-white/90 drop-shadow-sm'
+                <p className={`italic font-normal line-clamp-3 text-sm sm:text-base leading-relaxed max-w-lg tracking-[-0.01em] ${
+                  isVibrant ? 'text-zinc-600' : 'text-white/90 drop-shadow-sm'
                 }`}>
                   {featuredEvent.description}
                 </p>
@@ -1487,7 +1487,7 @@ function DashboardContent() {
                    <h3 className="text-2xl font-black tracking-tighter leading-tight uppercase group-hover:text-primary transition-colors italic">
                      {ev.title}
                    </h3>
-                   <p className="text-xs font-bold text-zinc-600 line-clamp-3 leading-relaxed">
+                   <p className="italic text-xs sm:text-[13px] font-normal text-zinc-600 line-clamp-3 leading-relaxed tracking-[-0.01em]">
                      {ev.description}
                    </p>
                  </div>
