@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useCity, isEventEnded, VibeEvent } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useTranslation } from "@/context/LanguageContext";
-import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor, getCategoryBadgeClass } from "@/components/CategoryDecorations";
+import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor, getCategoryBadgeClass, getCategoryDarkTitleColor } from "@/components/CategoryDecorations";
 import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock, Send, LayoutGrid, Globe, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { DayPicker } from "react-day-picker";
@@ -1230,9 +1230,12 @@ function DashboardContent() {
                 )}
               </div>
               <div className="space-y-4 relative z-10">
-                <h2 className={`text-3xl sm:text-4xl lg:text-5xl font-black tracking-tighter leading-tight uppercase italic break-words hyphens-auto ${
-                  isVibrant ? 'text-zinc-950' : 'text-white drop-shadow-md'
-                }`}>
+                <h2 
+                  className={`text-3xl sm:text-4xl lg:text-5xl font-black tracking-tighter leading-tight uppercase italic break-words hyphens-auto ${
+                    isVibrant ? '' : 'text-white drop-shadow-md'
+                  }`}
+                  style={isVibrant ? { color: getCategoryDarkTitleColor(featuredEvent.category) } : undefined}
+                >
                   {featuredEvent.title}
                 </h2>
                 <p className={`italic font-normal line-clamp-3 text-sm sm:text-base leading-relaxed max-w-lg tracking-[-0.01em] ${
@@ -1484,7 +1487,10 @@ function DashboardContent() {
                  </div>
 
                  <div className="space-y-3 flex-1">
-                   <h3 className="text-2xl font-black tracking-tighter leading-tight uppercase group-hover:text-primary transition-colors italic">
+                   <h3 
+                     className="text-2xl font-black tracking-tighter leading-tight uppercase transition-colors italic"
+                     style={isVibrant ? { color: getCategoryDarkTitleColor(ev.category) } : undefined}
+                   >
                      {ev.title}
                    </h3>
                    <p className="italic text-xs sm:text-[13px] font-normal text-zinc-600 line-clamp-3 leading-relaxed tracking-[-0.01em]">
@@ -1503,10 +1509,10 @@ function DashboardContent() {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="pointer-events-auto relative z-20 flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-wide hover:text-black hover:underline cursor-pointer"
+                        className="pointer-events-auto relative z-20 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-zinc-700 uppercase tracking-wide hover:text-black hover:underline cursor-pointer transition-colors"
                       >
-                        <MapPin className="h-2.5 w-2.5" />
-                        {ev.location}
+                        <MapPin className="h-3 w-3 text-zinc-500 shrink-0" />
+                        <span className="truncate max-w-[200px] sm:max-w-[240px]">{ev.location}</span>
                       </a>
                       <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide mt-1" style={{ color: isVibrant ? getCategoryAccentColor(ev.category) : '#19A74E' }}>
                         <Users className="h-2.5 w-2.5" />

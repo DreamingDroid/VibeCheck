@@ -30,6 +30,7 @@ type CategoryConfig = {
   floatingIcons: IconPlacement[]
   accentIcon: React.ReactNode
   accentColor: string
+  darkTitleColor: string
   badgeBg: string
   badgeText: string
 }
@@ -47,6 +48,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Sparkles className={ICON_SIZE_ACCENT} />,
     accentColor: "#6366F1",
+    darkTitleColor: "#1E1B4B",
     badgeBg: "bg-indigo-600",
     badgeText: "text-white",
   },
@@ -58,6 +60,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Mountain className={ICON_SIZE_ACCENT} />,
     accentColor: "#10B981",
+    darkTitleColor: "#064E3B",
     badgeBg: "bg-emerald-600",
     badgeText: "text-white",
   },
@@ -69,6 +72,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Music className={ICON_SIZE_ACCENT} />,
     accentColor: "#F59E0B",
+    darkTitleColor: "#451A03",
     badgeBg: "bg-amber-400",
     badgeText: "text-black",
   },
@@ -80,6 +84,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Wine className={ICON_SIZE_ACCENT} />,
     accentColor: "#6366F1",
+    darkTitleColor: "#1E1B4B",
     badgeBg: "bg-indigo-600",
     badgeText: "text-white",
   },
@@ -91,6 +96,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Palette className={ICON_SIZE_ACCENT} />,
     accentColor: "#A855F7",
+    darkTitleColor: "#3B0764",
     badgeBg: "bg-purple-600",
     badgeText: "text-white",
   },
@@ -102,6 +108,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Palette className={ICON_SIZE_ACCENT} />,
     accentColor: "#A855F7",
+    darkTitleColor: "#3B0764",
     badgeBg: "bg-purple-600",
     badgeText: "text-white",
   },
@@ -113,6 +120,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Trophy className={ICON_SIZE_ACCENT} />,
     accentColor: "#F97316",
+    darkTitleColor: "#431407",
     badgeBg: "bg-orange-500",
     badgeText: "text-white",
   },
@@ -124,6 +132,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <UtensilsCrossed className={ICON_SIZE_ACCENT} />,
     accentColor: "#F43F5E",
+    darkTitleColor: "#4C0519",
     badgeBg: "bg-rose-500",
     badgeText: "text-white",
   },
@@ -135,6 +144,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <UtensilsCrossed className={ICON_SIZE_ACCENT} />,
     accentColor: "#F43F5E",
+    darkTitleColor: "#4C0519",
     badgeBg: "bg-rose-500",
     badgeText: "text-white",
   },
@@ -146,6 +156,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Leaf className={ICON_SIZE_ACCENT} />,
     accentColor: "#14B8A6",
+    darkTitleColor: "#042F2E",
     badgeBg: "bg-teal-600",
     badgeText: "text-white",
   },
@@ -157,6 +168,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Lightbulb className={ICON_SIZE_ACCENT} />,
     accentColor: "#2563EB",
+    darkTitleColor: "#172554",
     badgeBg: "bg-blue-600",
     badgeText: "text-white",
   },
@@ -168,6 +180,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <BookOpen className={ICON_SIZE_ACCENT} />,
     accentColor: "#3B82F6",
+    darkTitleColor: "#172554",
     badgeBg: "bg-blue-600",
     badgeText: "text-white",
   },
@@ -179,6 +192,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Compass className={ICON_SIZE_ACCENT} />,
     accentColor: "#8B5CF6",
+    darkTitleColor: "#2E1065",
     badgeBg: "bg-violet-600",
     badgeText: "text-white",
   },
@@ -190,6 +204,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Smile className={ICON_SIZE_ACCENT} />,
     accentColor: "#EAB308",
+    darkTitleColor: "#422006",
     badgeBg: "bg-amber-400",
     badgeText: "text-black",
   },
@@ -201,6 +216,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Zap className={ICON_SIZE_ACCENT} />,
     accentColor: "#06B6D4",
+    darkTitleColor: "#083344",
     badgeBg: "bg-cyan-500",
     badgeText: "text-slate-950",
   },
@@ -212,6 +228,7 @@ const categoryConfigs: Record<string, CategoryConfig> = {
     ],
     accentIcon: <Heart className={ICON_SIZE_ACCENT} />,
     accentColor: "#EC4899",
+    darkTitleColor: "#500724",
     badgeBg: "bg-pink-500",
     badgeText: "text-white",
   },
@@ -225,6 +242,7 @@ const defaultConfig: CategoryConfig = {
   ],
   accentIcon: <Sparkles className={ICON_SIZE_ACCENT} />,
   accentColor: "#6366F1",
+  darkTitleColor: "#1E1B4B",
   badgeBg: "bg-indigo-600",
   badgeText: "text-white",
 }
@@ -313,6 +331,14 @@ export function getCategoryAccentColor(category: string): string {
 export function getCategoryBadgeClass(category: string): string {
   const config = findCategoryConfig(category)
   return `${config.badgeBg} ${config.badgeText} shadow-xs font-black`
+}
+
+/**
+ * Returns the deep dark thematic title color hex for a given category.
+ */
+export function getCategoryDarkTitleColor(category: string): string {
+  const config = findCategoryConfig(category)
+  return config.darkTitleColor || "#09090b"
 }
 
 export { CategoryBackgroundArt }
