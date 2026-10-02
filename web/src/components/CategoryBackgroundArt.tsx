@@ -84,7 +84,7 @@ export function CategoryBackgroundArt({ category, className = "" }: CategoryBack
    ───────────────────────────────────────────────────────────── */
 function AdventureCurves() {
   return (
-    <svg viewBox="0 0 600 360" preserveAspectRatio="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 600 360" preserveAspectRatio="xMaxYMid slice" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="advSky" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#E0F2E9" stopOpacity="0.8" />
@@ -140,7 +140,7 @@ function AdventureCurves() {
    ───────────────────────────────────────────────────────────── */
 function MusicCurves() {
   return (
-    <svg viewBox="0 0 600 360" preserveAspectRatio="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 600 360" preserveAspectRatio="xMaxYMid slice" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="musSky" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#FEF3C7" stopOpacity="0.85" />
@@ -192,7 +192,7 @@ function MusicCurves() {
    ───────────────────────────────────────────────────────────── */
 function ArtsCurves() {
   return (
-    <svg viewBox="0 0 600 360" preserveAspectRatio="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 600 360" preserveAspectRatio="xMaxYMid slice" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="artSky" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#F3E8FF" stopOpacity="0.85" />
@@ -231,7 +231,7 @@ function ArtsCurves() {
    ───────────────────────────────────────────────────────────── */
 function NightlifeCurves() {
   return (
-    <svg viewBox="0 0 600 360" preserveAspectRatio="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 600 360" preserveAspectRatio="xMaxYMid slice" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="niteSky" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#E0E7FF" stopOpacity="0.85" />
@@ -272,7 +272,7 @@ function NightlifeCurves() {
    ───────────────────────────────────────────────────────────── */
 function SportsCurves() {
   return (
-    <svg viewBox="0 0 600 360" preserveAspectRatio="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 600 360" preserveAspectRatio="xMaxYMid slice" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="sptSky" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#FFEDD5" stopOpacity="0.85" />
@@ -313,7 +313,7 @@ function SportsCurves() {
    ───────────────────────────────────────────────────────────── */
 function FoodCurves() {
   return (
-    <svg viewBox="0 0 600 360" preserveAspectRatio="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 600 360" preserveAspectRatio="xMaxYMid slice" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="fdSky" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#FFE4E6" stopOpacity="0.85" />
@@ -356,7 +356,7 @@ function FoodCurves() {
    ───────────────────────────────────────────────────────────── */
 function WellnessCurves() {
   return (
-    <svg viewBox="0 0 600 360" preserveAspectRatio="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 600 360" preserveAspectRatio="xMaxYMid slice" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="wllSky" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#CCFBF1" stopOpacity="0.85" />
@@ -400,7 +400,7 @@ function WellnessCurves() {
    ───────────────────────────────────────────────────────────── */
 function WorkshopsCurves() {
   return (
-    <svg viewBox="0 0 600 360" preserveAspectRatio="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 600 360" preserveAspectRatio="xMaxYMid slice" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="wrkSky" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#DBEAFE" stopOpacity="0.85" />
@@ -436,7 +436,7 @@ function WorkshopsCurves() {
    ───────────────────────────────────────────────────────────── */
 function SpiritualCurves() {
   return (
-    <svg viewBox="0 0 600 360" preserveAspectRatio="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 600 360" preserveAspectRatio="xMaxYMid slice" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="sprSky" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#EDE9FE" stopOpacity="0.85" />
@@ -482,7 +482,7 @@ function SpiritualCurves() {
    ───────────────────────────────────────────────────────────── */
 function ComedyCurves() {
   return (
-    <svg viewBox="0 0 600 360" preserveAspectRatio="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 600 360" preserveAspectRatio="xMaxYMid slice" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="cmdSky" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#FEF9C3" stopOpacity="0.85" />
@@ -522,7 +522,7 @@ function ComedyCurves() {
    ───────────────────────────────────────────────────────────── */
 function TechnoCurves() {
   return (
-    <svg viewBox="0 0 600 360" preserveAspectRatio="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 600 360" preserveAspectRatio="xMaxYMid slice" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="tckSky" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#CFFAFE" stopOpacity="0.85" />
@@ -567,7 +567,7 @@ function TechnoCurves() {
    ───────────────────────────────────────────────────────────── */
 function IndieCurves() {
   return (
-    <svg viewBox="0 0 600 360" preserveAspectRatio="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 600 360" preserveAspectRatio="xMaxYMid slice" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="indSky" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#FCE7F3" stopOpacity="0.85" />
@@ -613,7 +613,7 @@ function IndieCurves() {
    ───────────────────────────────────────────────────────────── */
 function GeneralCurves() {
   return (
-    <svg viewBox="0 0 600 360" preserveAspectRatio="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 600 360" preserveAspectRatio="xMaxYMid slice" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="gnSky" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor="#E0E7FF" stopOpacity="0.85" />
