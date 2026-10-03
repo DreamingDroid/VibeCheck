@@ -8,6 +8,11 @@
     "test:web": "npm --prefix web test",
     "test:watch:server": "npm --prefix server run test:watch",
     "test:watch:web": "npm --prefix web run test:watch",
+    "test:ui:server": "npm --prefix server run test:ui",
+    "test:ui:web": "npm --prefix web run test:ui",
     "lint": "npm --prefix web run lint"
+  },
+  "devDependencies": {
+    "@vitest/ui": "^4.1.11"
   }
 }

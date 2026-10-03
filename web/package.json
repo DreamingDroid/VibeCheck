@@ -17,7 +17,8 @@
     "start:prd": "APP_ENV=production next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
@@ -53,6 +54,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/ui": "^4.1.11",
     "autoprefixer": "^10.4.27",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",

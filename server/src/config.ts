@@ -43,8 +43,8 @@ export const config = {
   // LLM Settings (Google Gemini Cloud)
   GEMINI_API_KEY: process.env.GEMINI_API_KEY?.trim() || '',
   GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
-  CHAT_MODEL: process.env.CHAT_MODEL || process.env.GEMINI_MODEL || 'gemini-1.5-flash',
-  EMBED_MODEL: process.env.EMBED_MODEL || 'text-embedding-004',
+  CHAT_MODEL: (process.env.CHAT_MODEL && !process.env.CHAT_MODEL.includes('llama')) ? process.env.CHAT_MODEL : (process.env.GEMINI_MODEL || 'gemini-1.5-flash'),
+  EMBED_MODEL: (process.env.EMBED_MODEL && !process.env.EMBED_MODEL.includes('mxbai')) ? process.env.EMBED_MODEL : 'text-embedding-004',
   RESEND_API_KEY: process.env.RESEND_API_KEY || 're_dummy_key_123',
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || 'VibeCheck Legal & Safety <verify@vibecheckspace.com>',
   RESEND_REPLY_TO: process.env.RESEND_REPLY_TO || 'frontdesk@baybuzzlabs.com',

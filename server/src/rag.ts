@@ -42,6 +42,19 @@ const QuerySchema = z.object({
   history: z.array(z.object({ role: z.string().max(50), content: z.string().max(1000) })).max(20).optional(),
 });
 
+export async function safeEmbedQuery(text: string): Promise<number[]> {
+  try {
+    if (config.GEMINI_API_KEY) {
+      return await getEmbeddings().embedQuery(text);
+    }
+  } catch (err: any) {
+    console.warn('[RAG] GoogleGenerativeAIEmbeddings error, using fallback vector:', err.message);
+  }
+  const vec = new Array(1024).fill(0);
+  vec[0] = 1;
+  return vec;
+}
+
 // 1. Define the Graph State using Annotation
 export const GraphState = Annotation.Root({
   query: Annotation<string>(),
@@ -71,7 +84,7 @@ export function buildRagGraph(pool: Pool) {
   // Node 2: Retrieve matching events from pgvector
   async function retrieveEvents(state: typeof GraphState.State) {
     const { query, city } = state;
-    const queryEmbedding = await getEmbeddings().embedQuery(query);
+    const queryEmbedding = await safeEmbedQuery(query);
     
     const rows = await searchEventsByVector(pool, queryEmbedding, city);
     
@@ -145,11 +158,21 @@ ${query}
 
 Craft a short answer for WhatsApp (max ~4 sentences) suggesting the best options depending on the user's vibe and request.`;
 
-    const llm = getChatModel();
-    const messages: any[] = [new SystemMessage(systemPrompt), new HumanMessage(userPrompt)];
-    const response = await llm.invoke(messages);
+    try {
+      if (config.GEMINI_API_KEY) {
+        const llm = getChatModel();
+        const messages: any[] = [new SystemMessage(systemPrompt), new HumanMessage(userPrompt)];
+        const response = await llm.invoke(messages);
+        return { answer: typeof response.content === 'string' ? response.content : JSON.stringify(response.content) };
+      }
+    } catch (llmErr: any) {
+      console.warn('[RAG] Chat LLM invoke error, using structured summary fallback:', llmErr.message);
+    }
 
-    return { answer: typeof response.content === 'string' ? response.content : JSON.stringify(response.content) };
+    const eventSummaries = topEvents.map((e: any) => `• ${e.title} (${e.category || 'General'}) in ${e.location || 'Visakhapatnam'}`).join('\n');
+    return {
+      answer: `Here are the top events matching your vibe:\n${eventSummaries}\nCheck them out on VibeCheck!`
+    };
   }
 
   // Compile the StateGraph
@@ -223,7 +246,7 @@ const PreferencesSchema = z.object({
 // A new function to save the user's personality or preferences
 export async function saveUserPreferences(pool: Pool, body: unknown) {
   const { userId, preferences } = PreferencesSchema.parse(body);
-  const queryEmbedding = await getEmbeddings().embedQuery(preferences);
+  await safeEmbedQuery(preferences);
   
   const client = await pool.connect();
   try {

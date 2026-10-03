@@ -11,7 +11,7 @@ const resend = new Resend(config.RESEND_API_KEY);
 
 // Cache for OTPs: key -> { code, expiry }
 // Key format: "email:foo@bar.com" or "phone:919999999999"
-const applyOtpCache = new Map<string, { code: string; expiry: number }>();
+export const applyOtpCache = new Map<string, { code: string; expiry: number }>();
 
 // Cache for verified tokens: token -> { type, value, expiry, metadata }
 export interface InstagramMetadata {
@@ -29,7 +29,7 @@ export interface InstagramMetadata {
   ai_host_report?: InstagramHostReport;
 }
 
-const verifiedTokens = new Map<string, {
+export const verifiedTokens = new Map<string, {
   type: 'email' | 'phone' | 'instagram';
   value: string;
   expiry: number;
