@@ -245,10 +245,10 @@ export default function Home() {
   }
 
   return (
-    <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-24 space-y-16 animate-in fade-in duration-700">
+    <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 md:pt-10 pb-12 md:pb-20 space-y-16 animate-in fade-in duration-700">
       
       {/* Hero Section */}
-      <section className="flex flex-col items-center text-center space-y-8 max-w-4xl mx-auto relative">
+      <section className="flex flex-col items-center text-center space-y-6 sm:space-y-8 max-w-4xl mx-auto relative">
         {/* Vibrant theme floating decorations */}
         {isVibrant && (
           <div className="absolute inset-0 pointer-events-none hidden sm:block">
@@ -276,7 +276,7 @@ export default function Home() {
           {t("landing.hero_desc")}
         </p>
         
-        <div className="pt-4 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+        <div className="pt-2 flex justify-center items-center w-full">
           <button 
             onClick={handleSignIn} 
             disabled={isSigningIn}
@@ -288,9 +288,6 @@ export default function Home() {
               <>{t("landing.join_cta")} <Sparkles className="h-4 w-4" /></>
             )}
           </button>
-          <Link href="/local-currents" className="text-xs font-black uppercase tracking-widest text-zinc-600 hover:text-black transition-colors py-4 px-6 border border-black/10 rounded-full hover:border-black">
-            {t("landing.explore_news")}
-          </Link>
         </div>
       </section>
 
