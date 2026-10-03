@@ -1371,12 +1371,14 @@ export function GlobalHeader() {
                 </div>
               </>
             ) : (
-              <button
-                onClick={() => signIn("google")}
-                className="ringer-button bg-primary text-black hover:bg-black hover:text-white text-[10px] py-2 px-4 border-none transition-colors"
-              >
-                {t("nav.join_vibe")}
-              </button>
+              pathname !== "/" && (
+                <button
+                  onClick={() => signIn("google")}
+                  className="ringer-button bg-primary text-black hover:bg-black hover:text-white text-[10px] py-2 px-4 border-none transition-colors"
+                >
+                  {t("nav.join_vibe")}
+                </button>
+              )
             )}
           </div>
         </div>

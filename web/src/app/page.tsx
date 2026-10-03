@@ -225,7 +225,7 @@ export default function Home() {
   const [articles, setArticles] = useState<NewsArticle[]>([])
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true)
   const [headlineIndex, setHeadlineIndex] = useState(0)
-  const [isFading, setIsFading] = useState(false)
+  const [animState, setAnimState] = useState<"visible" | "exiting" | "entering">("visible")
   const { isVibrant } = useTheme()
 
   const { currentCity } = useCity()
@@ -233,11 +233,21 @@ export default function Home() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setIsFading(true)
+      // Step 1: Smoothly float up and blur dissolve outgoing text
+      setAnimState("exiting")
+
       setTimeout(() => {
+        // Step 2: Swap content and stage incoming text below
         setHeadlineIndex((prev) => (prev + 1) % HERO_HEADLINES.length)
-        setIsFading(false)
-      }, 400)
+        setAnimState("entering")
+
+        // Step 3: Trigger fluid de-blur and slide into place
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            setAnimState("visible")
+          }, 40)
+        })
+      }, 420)
     }, 5000)
 
     return () => clearInterval(timer)
@@ -317,25 +327,27 @@ export default function Home() {
           {isVibrant && (
             <span className="absolute inset-0 blur-3xl opacity-10 bg-gradient-to-r from-purple-400 via-pink-300 to-amber-300 rounded-full -z-10 pointer-events-none" />
           )}
-          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-[5rem] xl:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] text-black drop-shadow-sm px-2 text-center">
-            <span
-              className={`inline-block transition-all duration-400 ease-out transform ${
-                isFading
-                  ? "opacity-0 -translate-y-2 scale-[0.98]"
-                  : "opacity-100 translate-y-0 scale-100"
+          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-[5rem] xl:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] text-black drop-shadow-sm px-2 text-center flex flex-col items-center justify-center">
+            <div
+              className={`flex flex-col items-center justify-center will-change-transform ${
+                animState === "exiting"
+                  ? "opacity-0 -translate-y-5 blur-[6px] scale-[0.98] transition-all duration-400 ease-in"
+                  : animState === "entering"
+                  ? "opacity-0 translate-y-6 blur-[6px] scale-[0.98] transition-none"
+                  : "opacity-100 translate-y-0 blur-0 scale-100 transition-all duration-600 ease-[cubic-bezier(0.16,1,0.3,1)]"
               }`}
             >
-              {HERO_HEADLINES[headlineIndex].line1} <br className="hidden md:block" />{" "}
+              <span>{HERO_HEADLINES[headlineIndex].line1}</span>
               <span
                 className={
                   isVibrant
-                    ? "bg-gradient-to-r from-purple-600 via-pink-500 to-amber-500 bg-clip-text text-transparent"
-                    : "text-primary"
+                    ? "bg-gradient-to-r from-purple-600 via-pink-500 to-amber-500 bg-clip-text text-transparent inline-block pb-1"
+                    : "text-primary inline-block pb-1"
                 }
               >
                 {HERO_HEADLINES[headlineIndex].line2}
               </span>
-            </span>
+            </div>
           </h1>
         </div>
 
