@@ -18,6 +18,7 @@ import {
 import { getAdminByEmail } from './queries/admins';
 import { getEventById } from './queries/events';
 import { sendFcmTopicBroadcast, subscribeTokensToTopics, unsubscribeTokensFromTopics } from './firebaseAdmin';
+import { runFastFilter } from './moderation';
 
 const VALID_MESSAGE_TYPES = [
   'general_update',
@@ -186,7 +187,6 @@ export async function organizerSendEventBroadcastHandler(req: Request, res: Resp
     }
 
     // Fast content filter on broadcast message
-    const { runFastFilter } = require('./moderation');
     const filterCheck = runFastFilter(`${title} ${message}`);
     if (!filterCheck.passed) {
       return res.status(400).json({

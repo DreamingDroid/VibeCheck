@@ -243,6 +243,7 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS qr_token TEXT`);
   await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS checkin_status VARCHAR(20) DEFAULT 'issued'`);
   await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMP WITH TIME ZONE`);
+  await pool.query(`ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS checked_in_by VARCHAR(255)`).catch(() => {});
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS admin_comment TEXT`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS participant_limit INTEGER`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_paid BOOLEAN DEFAULT false`);
@@ -392,6 +393,23 @@ export async function initializeDatabaseSchema(pool: Pool) {
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(organizer_email, contact_email)
+    );
+  `).catch(() => {});
+
+  // Migration safeguard for moderation_logs table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS moderation_logs (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      entity_type VARCHAR(50) NOT NULL,
+      entity_id VARCHAR(255),
+      submitted_by VARCHAR(255),
+      content_payload JSONB,
+      fast_filter_passed BOOLEAN DEFAULT true,
+      ai_score INTEGER,
+      ai_decision VARCHAR(50),
+      flags JSONB DEFAULT '[]'::jsonb,
+      ai_reason TEXT,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
   `).catch(() => {});
 

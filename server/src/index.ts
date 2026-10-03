@@ -200,7 +200,7 @@ app.use('/api', (req, res, next) => {
 
 const connectionString = config.DATABASE_URL;
 
-const pool = new Pool({
+export const pool = new Pool({
   connectionString,
   max: 30,
   idleTimeoutMillis: 30000,
@@ -215,7 +215,7 @@ pool.on('connect', async (client) => {
   }
 });
 
-async function initializeDatabase() {
+export async function initializeDatabase() {
   const client = await pool.connect();
   try {
     console.log('[DB] Ensuring database schema...');
@@ -531,6 +531,6 @@ if (process.env.NODE_ENV !== 'test') {
   });
 }
 
-export { app, pool, initializeDatabase };
+export { app };
 export default app;
 

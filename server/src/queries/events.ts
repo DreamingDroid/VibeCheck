@@ -777,7 +777,7 @@ export async function getAllEvents(pool: Pool) {
 }
 
 export async function createEvent(pool: Pool, data: any) {
-    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, attendeeGuide, min_age, minAge, suitable_age, suitableAge } = data;
+    const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, attendeeGuide, min_age, minAge, suitable_age, suitableAge, organizer_email, organizerEmail } = data;
     const validVisibility = visibility === 'invite_only' ? 'invite_only' : 'public';
     const safeGuide = attendee_guide || attendeeGuide || {};
     const safeEventType = data.event_type === 'online' ? 'online' : 'in_person';
@@ -789,12 +789,13 @@ export async function createEvent(pool: Pool, data: any) {
     const rawMinAge = min_age !== undefined ? min_age : minAge;
     const safeMinAge = rawMinAge !== undefined && rawMinAge !== null && rawMinAge !== '' && !isNaN(parseInt(rawMinAge, 10)) ? parseInt(rawMinAge, 10) : null;
     const safeSuitableAge = (suitable_age || suitableAge || '').trim() || null;
+    const safeOrganizerEmail = (organizer_email || organizerEmail || '').trim() || null;
 
     const { rows } = await pool.query(
-      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, event_type, timezone, min_age, suitable_age)
-       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::event_visibility, $17, $18, $19, $20, $21, $22, $23)
-       RETURNING id, title, category, is_featured, visibility, image_url, image_public_id, whatsapp_group_link, attendee_guide, event_type, timezone, min_age, suitable_age`,
-      [title, description, category, location || null, safeCity, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, participant_limit || null, is_paid || false, is_featured || false, validVisibility, image_url || null, image_public_id || null, JSON.stringify(safeGuide), safeEventType, safeTimezone, safeMinAge, safeSuitableAge]
+      `INSERT INTO events (title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, whatsapp_group_link, contact_info, participant_limit, is_paid, is_featured, visibility, image_url, image_public_id, attendee_guide, event_type, timezone, min_age, suitable_age, organizer_email)
+       VALUES ($1, $2, $3::event_category, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::event_visibility, $17, $18, $19, $20, $21, $22, $23, $24)
+       RETURNING id, title, category, is_featured, visibility, image_url, image_public_id, whatsapp_group_link, attendee_guide, event_type, timezone, min_age, suitable_age, organizer_email`,
+      [title, description, category, location || null, safeCity, date_time, end_time || null, timings || null, external_link || null, google_maps_link || null, whatsapp_group_link || null, contact_info || null, participant_limit || null, is_paid || false, is_featured || false, validVisibility, image_url || null, image_public_id || null, JSON.stringify(safeGuide), safeEventType, safeTimezone, safeMinAge, safeSuitableAge, safeOrganizerEmail]
     );
     return rows[0];
 }
