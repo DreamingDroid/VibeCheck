@@ -114,15 +114,15 @@ interface NewsArticle {
   created_at?: string;
 }
 
-const ScrollingTitle = ({ 
-  title, 
-  enabled, 
-  titleColor, 
-  hoverTitleColor 
-}: { 
-  title: string; 
-  enabled: boolean; 
-  titleColor: string; 
+const ScrollingTitle = ({
+  title,
+  enabled,
+  titleColor,
+  hoverTitleColor
+}: {
+  title: string;
+  enabled: boolean;
+  titleColor: string;
   hoverTitleColor: string;
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -159,7 +159,7 @@ const ScrollingTitle = ({
   return (
     <div ref={containerRef} className="w-full overflow-hidden relative min-w-0">
       <span ref={textRef} className="invisible absolute whitespace-nowrap text-sm font-black italic uppercase tracking-tight mt-1">{title}</span>
-      <div 
+      <div
         className="whitespace-nowrap"
         style={{
           display: "inline-block",
@@ -183,16 +183,65 @@ const ScrollingTitle = ({
   );
 };
 
+const HERO_HEADLINES = [
+  {
+    line1: "The City of Destiny,",
+    line2: "Reimagined.",
+  },
+  {
+    line1: "Stop Scrolling,",
+    line2: "Start Rolling.",
+  },
+  {
+    line1: "Beat The Algorithm,",
+    line2: "Own Your Vibe.",
+  },
+  {
+    line1: "Ditch The Scroll,",
+    line2: "Discover The Vibe.",
+  },
+  {
+    line1: "Less Screen Time,",
+    line2: "More Scene Time.",
+  },
+  {
+    line1: "Break The Feed,",
+    line2: "Live The Moment.",
+  },
+  {
+    line1: "Real People,",
+    line2: "Real City Energy.",
+  },
+  {
+    line1: "Step Outside,",
+    line2: "Catch The Pulse.",
+  },
+];
+
 export default function Home() {
   const { status } = useSession()
   const router = useRouter()
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [articles, setArticles] = useState<NewsArticle[]>([])
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true)
+  const [headlineIndex, setHeadlineIndex] = useState(0)
+  const [isFading, setIsFading] = useState(false)
   const { isVibrant } = useTheme()
 
   const { currentCity } = useCity()
   const { t } = useTranslation()
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIsFading(true)
+      setTimeout(() => {
+        setHeadlineIndex((prev) => (prev + 1) % HERO_HEADLINES.length)
+        setIsFading(false)
+      }, 400)
+    }, 5000)
+
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -234,7 +283,7 @@ export default function Home() {
   if (status === "loading" || status === "authenticated") {
     return (
       <main className="flex flex-1 items-center justify-center bg-transparent">
-         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </main>
     )
   }
@@ -246,7 +295,7 @@ export default function Home() {
 
   return (
     <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 md:pt-10 pb-12 md:pb-20 space-y-16 animate-in fade-in duration-700">
-      
+
       {/* Hero Section */}
       <section className="flex flex-col items-center text-center space-y-6 sm:space-y-8 max-w-4xl mx-auto relative">
         {/* Vibrant theme floating decorations */}
@@ -259,31 +308,49 @@ export default function Home() {
             <div className="vibe-float-icon animate-float-slow" style={{ top: '50%', left: '0%', opacity: 0.05, color: '#10B981' }}><Sparkles className="h-4 w-4" /></div>
           </div>
         )}
-        <div className="flex items-center gap-2 sticker-badge bg-primary/10 text-primary border-none shadow-sm">
+        <div className="flex items-center gap-2 sticker-badge bg-primary/10 text-primary border-none shadow-sm mb-1">
           <Zap className="h-3.5 w-3.5" />
           <span>{currentCity.toLowerCase()}&apos;s {t("landing.badge")}</span>
         </div>
-        
-        <h1 className="text-5xl sm:text-7xl md:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] text-black drop-shadow-sm relative px-2">
+
+        <div className="h-[140px] sm:h-[200px] md:h-[265px] w-full flex items-center justify-center relative">
           {isVibrant && (
-            <span className="absolute inset-0 blur-3xl opacity-10 bg-gradient-to-r from-purple-400 via-pink-300 to-amber-300 rounded-full -z-10" />
+            <span className="absolute inset-0 blur-3xl opacity-10 bg-gradient-to-r from-purple-400 via-pink-300 to-amber-300 rounded-full -z-10 pointer-events-none" />
           )}
-          {t("landing.hero_title_1")} <br className="hidden md:block"/>
-          <span className={isVibrant ? 'bg-gradient-to-r from-purple-600 via-pink-500 to-amber-500 bg-clip-text text-transparent' : 'text-primary'}>{t("landing.hero_title_2")}</span>
-        </h1>
-        
-        <p className="text-sm sm:text-base md:text-lg font-helvetica text-zinc-600 max-w-xl leading-relaxed sm:leading-loose tracking-wide px-4 sm:px-0">
+          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-[5rem] xl:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] text-black drop-shadow-sm px-2 text-center">
+            <span
+              className={`inline-block transition-all duration-400 ease-out transform ${
+                isFading
+                  ? "opacity-0 -translate-y-2 scale-[0.98]"
+                  : "opacity-100 translate-y-0 scale-100"
+              }`}
+            >
+              {HERO_HEADLINES[headlineIndex].line1} <br className="hidden md:block" />{" "}
+              <span
+                className={
+                  isVibrant
+                    ? "bg-gradient-to-r from-purple-600 via-pink-500 to-amber-500 bg-clip-text text-transparent"
+                    : "text-primary"
+                }
+              >
+                {HERO_HEADLINES[headlineIndex].line2}
+              </span>
+            </span>
+          </h1>
+        </div>
+
+        <p className="text-base sm:text-lg md:text-xl font-roboto font-normal text-zinc-600 max-w-xl leading-relaxed tracking-wide px-4 sm:px-0 pt-4 sm:pt-6">
           {t("landing.hero_desc")}
         </p>
-        
-        <div className="pt-2 flex justify-center items-center w-full">
-          <button 
-            onClick={handleSignIn} 
+
+        <div className="pt-2 sm:pt-3 flex justify-center items-center w-full">
+          <button
+            onClick={handleSignIn}
             disabled={isSigningIn}
             className="ringer-button w-auto bg-gradient-to-br from-[#22C55E] to-[#16A34A] hover:from-[#16A34A] hover:to-[#15803D] text-white hover:scale-[1.02] h-12 sm:h-16 px-8 sm:px-10 text-xs sm:text-sm font-black flex items-center justify-center gap-3 shadow-lg shadow-green-500/20 transition-all cursor-pointer"
           >
             {isSigningIn ? (
-               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
               <>{t("landing.join_cta")} <Sparkles className="h-4 w-4" /></>
             )}
@@ -298,7 +365,7 @@ export default function Home() {
             <h2 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none">{t("landing.local_currents_title")}</h2>
             <div className="flex items-center justify-center gap-2 mt-2">
               <p className="text-[10px] font-black tracking-[0.2em] uppercase text-zinc-400 flex items-center justify-center gap-2">
-                 <MapPin className="h-3.5 w-3.5 text-primary" /> {t("landing.live_updates_from", { city: currentCity })}
+                <MapPin className="h-3.5 w-3.5 text-primary" /> {t("landing.live_updates_from", { city: currentCity })}
               </p>
             </div>
           </div>
@@ -328,11 +395,11 @@ export default function Home() {
                             {item.created_at && ` • ${new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()}`}
                           </span>
                         </div>
-                        <ScrollingTitle 
-                          title={item.title} 
-                          enabled={autoScrollEnabled} 
-                          titleColor={styles.titleColor} 
-                          hoverTitleColor={styles.hoverTitleColor} 
+                        <ScrollingTitle
+                          title={item.title}
+                          enabled={autoScrollEnabled}
+                          titleColor={styles.titleColor}
+                          hoverTitleColor={styles.hoverTitleColor}
                         />
                       </div>
                     </div>

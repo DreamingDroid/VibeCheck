@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Lora, Courier_Prime } from "next/font/google";
+import { Inter, Lora, Courier_Prime, Roboto } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -19,6 +19,13 @@ const courierPrime = Courier_Prime({
   subsets: ["latin"],
   variable: "--font-typewriter",
   weight: ["400", "700"],
+  style: ["normal", "italic"],
+});
+
+const roboto = Roboto({
+  subsets: ["latin"],
+  variable: "--font-roboto",
+  weight: ["300", "400", "500", "700"],
   style: ["normal", "italic"],
 });
 
@@ -119,7 +126,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme="vibrant"
-      className={`${inter.variable} ${lora.variable} ${courierPrime.variable} h-full antialiased font-sans`}
+      className={`${inter.variable} ${lora.variable} ${courierPrime.variable} ${roboto.variable} h-full antialiased font-sans`}
     >
       <head>
         <script

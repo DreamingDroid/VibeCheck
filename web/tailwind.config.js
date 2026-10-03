@@ -24,6 +24,7 @@ module.exports = {
         serif: ["var(--font-serif)", ...fontFamily.serif],
         typewriter: ["var(--font-typewriter)", "Courier New", "Courier", "monospace"],
         helvetica: ["'Helvetica Neue'", "Helvetica", "Arial", "sans-serif"],
+        roboto: ["var(--font-roboto)", ...fontFamily.sans],
       },
       colors: {
         border: "hsl(var(--border))",
