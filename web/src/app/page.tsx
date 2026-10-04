@@ -194,27 +194,27 @@ const HERO_HEADLINES = [
   },
   {
     line1: "Beat The Algorithm,",
-    line2: "Own Your Vibe.",
+    line2: "Own The Vibe.",
   },
   {
-    line1: "Ditch The Scroll,",
-    line2: "Discover The Vibe.",
+    line1: "Curated Events,",
+    line2: "Instant Passes.",
   },
   {
     line1: "Less Screen Time,",
     line2: "More Scene Time.",
   },
   {
-    line1: "Break The Feed,",
-    line2: "Live The Moment.",
+    line1: "Live Concerts,",
+    line2: "Creator Meetups.",
   },
   {
     line1: "Real People,",
     line2: "Real City Energy.",
   },
   {
-    line1: "Step Outside,",
-    line2: "Catch The Pulse.",
+    line1: "Live Channels,",
+    line2: "Instant Updates.",
   },
 ];
 
@@ -323,11 +323,11 @@ export default function Home() {
           <span>{currentCity.toLowerCase()}&apos;s {t("landing.badge")}</span>
         </div>
 
-        <div className="h-[140px] sm:h-[200px] md:h-[265px] w-full flex items-center justify-center relative">
+        <div className="h-[140px] sm:h-[200px] md:h-[270px] w-full flex items-center justify-center relative">
           {isVibrant && (
             <span className="absolute inset-0 blur-3xl opacity-10 bg-gradient-to-r from-purple-400 via-pink-300 to-amber-300 rounded-full -z-10 pointer-events-none" />
           )}
-          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-[5rem] xl:text-8xl font-black italic tracking-tighter uppercase leading-[0.9] text-black drop-shadow-sm px-2 text-center flex flex-col items-center justify-center">
+          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-[4.75rem] xl:text-[5.5rem] font-black italic tracking-tighter uppercase leading-[0.88] text-black drop-shadow-sm px-2 text-center flex flex-col items-center justify-center">
             <div
               className={`flex flex-col items-center justify-center will-change-transform ${
                 animState === "exiting"
@@ -359,7 +359,7 @@ export default function Home() {
           <button
             onClick={handleSignIn}
             disabled={isSigningIn}
-            className="ringer-button w-auto bg-gradient-to-br from-[#22C55E] to-[#16A34A] hover:from-[#16A34A] hover:to-[#15803D] text-white hover:scale-[1.02] h-12 sm:h-16 px-8 sm:px-10 text-xs sm:text-sm font-black flex items-center justify-center gap-3 shadow-lg shadow-green-500/20 transition-all cursor-pointer"
+            className="ringer-button w-auto bg-gradient-to-br from-[#22C55E] to-[#16A34A] hover:from-[#16A34A] hover:to-[#15803D] text-white hover:scale-[1.02] h-12 sm:h-16 px-8 sm:px-10 text-xs sm:text-sm font-black flex items-center justify-center gap-3 animate-firefly transition-all cursor-pointer"
           >
             {isSigningIn ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

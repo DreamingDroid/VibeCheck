@@ -673,8 +673,9 @@ export function GlobalHeader() {
             )}
           </div>
 
-          {/* Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-md mx-2 lg:mx-4 relative" ref={searchDropdownRef}>
+          {/* Search Bar (Only shown when user is signed in) */}
+          {session ? (
+            <div className="hidden md:flex flex-1 max-w-md mx-2 lg:mx-4 relative" ref={searchDropdownRef}>
             <div className="relative w-full group">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                 {isSearchingHeader ? (
@@ -902,6 +903,9 @@ export function GlobalHeader() {
               </div>
             )}
           </div>
+        ) : (
+          <div className="flex-1" />
+        )}
 
           {/* User Actions */}
           <div className="flex items-center gap-3">

@@ -101,7 +101,17 @@ module.exports = {
         "marquee": {
           "0%": { transform: "translateX(0%)" },
           "100%": { transform: "translateX(-100%)" },
-        }
+        },
+        "firefly-glow": {
+          "0%, 100%": {
+            filter: "brightness(1) saturate(1)",
+            boxShadow: "0 4px 14px 0 rgba(34, 197, 94, 0.2)",
+          },
+          "50%": {
+            filter: "brightness(1.28) saturate(1.25)",
+            boxShadow: "0 6px 20px 0 rgba(34, 197, 94, 0.35)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -112,6 +122,7 @@ module.exports = {
         "float-slow": "float-slow 7s ease-in-out infinite",
         "float-drift": "float-drift 9s ease-in-out infinite",
         "marquee": "marquee 8s linear infinite",
+        "firefly": "firefly-glow 3s ease-in-out infinite",
       },
     },
   },
