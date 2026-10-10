@@ -594,22 +594,30 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                   ) : event.is_paid ? (
                     <button 
                       onClick={() => handleRSVP()}
-                      className={`ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-xl sm:rounded-[20px] ${
+                      className={`ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-xl sm:rounded-[20px] text-white shadow-md hover:shadow-xl hover:scale-[1.02] cursor-pointer ${
                         isVibrant 
-                          ? 'bg-black text-white hover:bg-zinc-800 vibe-shimmer cursor-pointer'
-                          : 'bg-black text-white hover:bg-zinc-800 cursor-pointer'
+                          ? 'vibe-shimmer'
+                          : 'bg-black text-white hover:bg-zinc-800'
                       }`}
+                      style={isVibrant ? {
+                        backgroundColor: getCategoryDarkTitleColor(event.category),
+                        boxShadow: `0 8px 25px -4px ${getCategoryDarkTitleColor(event.category)}55`,
+                      } : undefined}
                     >
                       RSVP &amp; REQUEST PASS
                     </button>
                   ) : (
                     <button 
                       onClick={() => handleRSVP()}
-                      className={`ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-xl sm:rounded-[20px] ${
+                      className={`ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-xl sm:rounded-[20px] text-white shadow-md hover:shadow-xl hover:scale-[1.02] cursor-pointer ${
                         isVibrant 
-                          ? 'bg-black text-white hover:bg-zinc-800 vibe-shimmer cursor-pointer'
-                          : 'bg-black text-white hover:bg-zinc-800 cursor-pointer'
+                          ? 'vibe-shimmer'
+                          : 'bg-black text-white hover:bg-zinc-800'
                       }`}
+                      style={isVibrant ? {
+                        backgroundColor: getCategoryDarkTitleColor(event.category),
+                        boxShadow: `0 8px 25px -4px ${getCategoryDarkTitleColor(event.category)}55`,
+                      } : undefined}
                     >
                       RSVP FOR FREE ENTRY
                     </button>
@@ -618,7 +626,13 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                 
                 <button 
                   onClick={handleDownloadICS}
-                  className="ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 border-2 border-black/5 hover:bg-black/5 active:scale-95 transition-transform rounded-xl sm:rounded-[20px] cursor-pointer"
+                  className="ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 border-2 active:scale-95 transition-all rounded-xl sm:rounded-[20px] cursor-pointer bg-white/70 hover:bg-white/90 shadow-xs"
+                  style={isVibrant ? {
+                    color: getCategoryDarkTitleColor(event.category),
+                    borderColor: 'rgba(0, 0, 0, 0.08)'
+                  } : {
+                    borderColor: 'rgba(0, 0, 0, 0.1)'
+                  }}
                 >
                   <CalendarPlus className="h-4 w-4 sm:h-5 sm:w-5" />
                   ADD TO CALENDAR
@@ -957,7 +971,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                 className={cn(
                   "flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider text-white transition-all shadow-md",
                   ageDeclared
-                    ? "bg-black hover:bg-zinc-800 cursor-pointer"
+                    ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30 cursor-pointer"
                     : "bg-zinc-300 text-zinc-500 cursor-not-allowed shadow-none"
                 )}
               >

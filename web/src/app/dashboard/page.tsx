@@ -1250,18 +1250,30 @@ function DashboardContent() {
               <div className="pt-2 sm:pt-4 relative z-10 mt-auto">
                 {isFeaturedRsvped ? (
                   <Link href={`/event/${featuredEvent.id}`} className="inline-block">
-                    <button className={`ringer-button px-6 py-3 sm:px-7 sm:py-3.5 text-xs sm:text-sm shadow-md hover:shadow-xl flex items-center gap-2 font-black tracking-wider transition-all group-hover:scale-105 active:scale-95 ${
-                      isVibrant ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-zinc-100'
-                    }`}>
+                    <button 
+                      className={`ringer-button px-6 py-3 sm:px-7 sm:py-3.5 text-xs sm:text-sm shadow-md hover:shadow-xl flex items-center gap-2 font-black tracking-wider transition-all group-hover:scale-105 active:scale-95 text-white ${
+                        isVibrant ? '' : 'bg-white text-black hover:bg-zinc-100'
+                      }`}
+                      style={isVibrant ? {
+                        backgroundColor: getCategoryDarkTitleColor(featuredEvent.category),
+                        boxShadow: `0 8px 24px -4px ${getCategoryDarkTitleColor(featuredEvent.category)}55`,
+                      } : undefined}
+                    >
                       <span>VIEW YOUR PASS</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </Link>
                 ) : (
                   <Link href={`/event/${featuredEvent.id}`} className="inline-block">
-                    <button className={`ringer-button px-6 py-3 sm:px-7 sm:py-3.5 text-xs sm:text-sm shadow-md hover:shadow-xl flex items-center gap-2 font-black tracking-wider transition-all group-hover:scale-105 active:scale-95 ${
-                      isVibrant ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-zinc-100'
-                    }`}>
+                    <button 
+                      className={`ringer-button px-6 py-3 sm:px-7 sm:py-3.5 text-xs sm:text-sm shadow-md hover:shadow-xl flex items-center gap-2 font-black tracking-wider transition-all group-hover:scale-105 active:scale-95 text-white ${
+                        isVibrant ? '' : 'bg-white text-black hover:bg-zinc-100'
+                      }`}
+                      style={isVibrant ? {
+                        backgroundColor: getCategoryDarkTitleColor(featuredEvent.category),
+                        boxShadow: `0 8px 24px -4px ${getCategoryDarkTitleColor(featuredEvent.category)}55`,
+                      } : undefined}
+                    >
                       <span>SECURE YOUR SPOT</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
@@ -1394,7 +1406,12 @@ function DashboardContent() {
               <div className="pt-4 border-t border-black/5 flex items-center justify-between gap-3 flex-wrap">
                 {/* Host Info & Follow */}
                 <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-black text-white font-black text-xs flex items-center justify-center uppercase shadow-xs shrink-0">
+                  <div 
+                    className="h-8 w-8 sm:h-9 sm:w-9 rounded-full text-white font-black text-xs flex items-center justify-center uppercase shadow-xs shrink-0"
+                    style={isVibrant ? {
+                      backgroundColor: getCategoryDarkTitleColor(featuredEvent.category),
+                    } : { backgroundColor: '#000000' }}
+                  >
                     {featuredEvent.organizer_email ? featuredEvent.organizer_email.charAt(0) : "V"}
                   </div>
                   <div className="min-w-0">
@@ -1643,7 +1660,7 @@ function DashboardContent() {
             setForceCalendarOpen(true);
             router.push('/dashboard?view=calendar');
           }}
-          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-black text-white h-14 w-14 hover:w-48 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:bg-primary hover:text-black hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out border border-white/20 group overflow-hidden"
+          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-gradient-to-br from-emerald-500 to-teal-600 text-white h-14 w-14 hover:w-48 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(16,185,129,0.4)] hover:shadow-[0_14px_35px_rgba(16,185,129,0.55)] hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out border border-white/30 group overflow-hidden"
           title="Calendar View"
         >
           <div className="flex items-center justify-center whitespace-nowrap">
@@ -1665,7 +1682,7 @@ function DashboardContent() {
             setSelectedDate(undefined);
             router.push('/dashboard');
           }}
-          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-black text-white h-14 w-14 hover:w-44 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:bg-primary hover:text-black hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out border border-white/20 group overflow-hidden"
+          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-gradient-to-br from-indigo-500 to-violet-600 text-white h-14 w-14 hover:w-44 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(99,102,241,0.4)] hover:shadow-[0_14px_35px_rgba(99,102,241,0.55)] hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out border border-white/30 group overflow-hidden"
           title="Card View"
         >
           <div className="flex items-center justify-center whitespace-nowrap">

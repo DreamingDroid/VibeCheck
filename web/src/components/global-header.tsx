@@ -205,20 +205,23 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 
 // Category-specific active colors for vibrant theme
 const VIBRANT_PILL_COLORS: Record<string, string> = {
-  "Adventure": "bg-emerald-500 text-white",
-  "Sports": "bg-orange-400 text-black",
-  "Music": "bg-amber-400 text-black",
-  "Nightlife": "bg-indigo-500 text-white",
-  "Arts & Culture": "bg-purple-400 text-white",
-  "Arts": "bg-purple-400 text-white",
-  "Food & Drink": "bg-emerald-400 text-black",
-  "Food": "bg-emerald-400 text-black",
-  "Wellness": "bg-teal-400 text-black",
-  "Workshops": "bg-blue-400 text-white",
-  "Comedy": "bg-yellow-400 text-black",
-  "Spiritual": "bg-violet-400 text-white",
-  "General": "bg-zinc-400 text-white",
-  "Education": "bg-blue-400 text-white",
+  "The Latest": "bg-emerald-600 text-white shadow-sm",
+  "Adventure": "bg-emerald-600 text-white shadow-sm",
+  "Sports": "bg-orange-500 text-white shadow-sm",
+  "Music": "bg-amber-500 text-white shadow-sm",
+  "Nightlife": "bg-indigo-600 text-white shadow-sm",
+  "Arts & Culture": "bg-purple-600 text-white shadow-sm",
+  "Arts": "bg-purple-600 text-white shadow-sm",
+  "Food & Drink": "bg-rose-500 text-white shadow-sm",
+  "Food": "bg-rose-500 text-white shadow-sm",
+  "Wellness": "bg-teal-600 text-white shadow-sm",
+  "Workshops": "bg-blue-600 text-white shadow-sm",
+  "Comedy": "bg-amber-500 text-white shadow-sm",
+  "Spiritual": "bg-violet-600 text-white shadow-sm",
+  "Techno": "bg-cyan-600 text-white shadow-sm",
+  "Indie": "bg-pink-500 text-white shadow-sm",
+  "General": "bg-indigo-600 text-white shadow-sm",
+  "Education": "bg-blue-600 text-white shadow-sm",
 };
 
 export function GlobalHeader() {
