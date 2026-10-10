@@ -267,6 +267,49 @@
   background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 35%, #F8FAFC 75%, #FFFFFF 100%);
 }
 
+/* Subtle category ambient frosted tint for secondary ticket stubs */
+[data-theme="vibrant"] .vibe-stub-music {
+  background: radial-gradient(circle at 100% 0%, rgba(254, 243, 199, 0.75) 0%, rgba(255, 251, 235, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-arts {
+  background: radial-gradient(circle at 100% 0%, rgba(243, 232, 255, 0.75) 0%, rgba(250, 245, 255, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-sports {
+  background: radial-gradient(circle at 100% 0%, rgba(255, 237, 213, 0.75) 0%, rgba(255, 247, 237, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-adventure {
+  background: radial-gradient(circle at 100% 0%, rgba(209, 250, 229, 0.75) 0%, rgba(236, 253, 245, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-food {
+  background: radial-gradient(circle at 100% 0%, rgba(255, 228, 230, 0.8) 0%, rgba(255, 241, 242, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-techno {
+  background: radial-gradient(circle at 100% 0%, rgba(207, 250, 254, 0.75) 0%, rgba(236, 254, 255, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-indie {
+  background: radial-gradient(circle at 100% 0%, rgba(252, 231, 243, 0.75) 0%, rgba(253, 242, 248, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-education,
+[data-theme="vibrant"] .vibe-stub-workshops {
+  background: radial-gradient(circle at 100% 0%, rgba(219, 234, 254, 0.75) 0%, rgba(239, 246, 255, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-spiritual {
+  background: radial-gradient(circle at 100% 0%, rgba(237, 233, 254, 0.75) 0%, rgba(245, 243, 255, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-wellness {
+  background: radial-gradient(circle at 100% 0%, rgba(204, 251, 241, 0.75) 0%, rgba(240, 253, 250, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-comedy {
+  background: radial-gradient(circle at 100% 0%, rgba(254, 249, 195, 0.75) 0%, rgba(254, 252, 232, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-nightlife {
+  background: radial-gradient(circle at 100% 0%, rgba(224, 231, 255, 0.75) 0%, rgba(238, 242, 255, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-general {
+  background: radial-gradient(circle at 100% 0%, rgba(224, 231, 255, 0.75) 0%, rgba(238, 242, 255, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+
+
 /* Floating decorative icon base */
 .vibe-float-icon {
   position: absolute;

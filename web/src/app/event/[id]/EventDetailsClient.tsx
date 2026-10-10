@@ -12,10 +12,10 @@ import { OrganizerDetailsModal } from "@/components/OrganizerDetailsModal";
 import { EventRatingModal } from "@/components/EventRatingModal";
 import { JoinTelegramPromptModal } from "@/components/JoinTelegramPromptModal";
 import { formatTelegramLink } from "@/lib/telegramGroup";
-import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor, getCategoryBadgeClass, getCategoryDarkTitleColor } from "@/components/CategoryDecorations";
+import { CategoryDecorations, getCategoryCardClass, getCategoryStubClass, getCategoryAccentColor, getCategoryBadgeClass, getCategoryDarkTitleColor } from "@/components/CategoryDecorations";
 import { TicketPerforationDivider } from "@/components/TicketPerforationDivider";
 import { useTheme } from "@/context/ThemeContext";
-import { ArrowLeft, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink, Send, Globe, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronRight, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink, Send, Globe, ShieldCheck } from "lucide-react";
 import { formatEventTimeWithTimezone, getTimezoneAbbr } from "@/lib/timezone";
 import { toast } from "sonner";
 
@@ -205,27 +205,53 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
 
   const handleShare = async () => {
     if (!event) return;
+    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const shareText = `Check out ${event.title} on VibeCheck!`;
     const shareData = {
-      title: event.title,
-      text: event.description,
-      url: window.location.href,
+      title: `${event.title} | VibeCheck`,
+      text: shareText,
+      url: shareUrl,
     };
     
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       try {
-        await navigator.share(shareData);
-        toast.success("Vibe shared successfully!");
-      } catch (err) {
-        // user cancelled or error
+        if (navigator.canShare && !navigator.canShare(shareData)) {
+          await navigator.share({ title: `${event.title} | VibeCheck`, url: shareUrl });
+        } else {
+          await navigator.share(shareData);
+        }
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') {
+          return;
+        }
+        console.warn("Native share failed, falling back to clipboard copy", err);
       }
-    } else {
-      handleCopyLink();
     }
+    
+    handleCopyLink();
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    toast.success("Vibe link copied to clipboard!");
+  const handleCopyLink = async () => {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = url;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      toast.success("Vibe link copied to clipboard!");
+    } catch {
+      toast.success("Vibe link copied!");
+    }
   };
 
   const handleGetTelegramPass = async () => {
@@ -443,23 +469,48 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             >
               {event.title}
             </h1>
-            <div className="flex items-center gap-2 pt-0.5 flex-wrap text-xs sm:text-sm">
-              <span className="font-bold text-zinc-600">Organized by:</span>
-              <button 
-                onClick={() => setShowOrganizerModal(true)}
-                className="font-black text-black underline underline-offset-4 decoration-black/25 hover:text-primary hover:decoration-primary active:text-primary active:decoration-primary transition-colors cursor-pointer"
-              >
+            {/* Subtle Organizer Trigger with Trailing Chevron Affordance */}
+            <button
+              type="button"
+              onClick={() => setShowOrganizerModal(true)}
+              className="group inline-flex items-center gap-2 py-1 px-3 -ml-0.5 rounded-full bg-white/80 hover:bg-white active:bg-zinc-100 border border-black/10 shadow-2xs hover:shadow-xs active:scale-98 transition-all text-xs sm:text-sm text-left cursor-pointer w-fit"
+              title="Click to view host profile and bio"
+            >
+              {/* Mini Avatar */}
+              <div className="relative shrink-0">
+                {event.organizer_image ? (
+                  <img
+                    src={event.organizer_image}
+                    alt={event.organizer_name || "Organizer"}
+                    className="w-5 h-5 rounded-full object-cover border border-black/10"
+                  />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-zinc-900 text-white flex items-center justify-center font-black text-[10px]">
+                    {((event.organizer_name || "VibeCheck Organizer").charAt(0) || "O").toUpperCase()}
+                  </div>
+                )}
+                {event.organizer_instagram_verified && (
+                  <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 text-white rounded-full p-0.2" title="Verified Host">
+                    <ShieldCheck className="w-2 h-2" />
+                  </span>
+                )}
+              </div>
+
+              <span className="text-zinc-500 font-semibold">Organized by</span>
+              <span className="font-black text-zinc-950 group-hover:text-primary transition-colors">
                 {event.organizer_name || "VibeCheck Organizer"}
-              </button>
-              {event.organizer_email && (
-                <Link
-                  href={`/organizer/${encodeURIComponent(event.organizer_slug || event.organizer_email)}`}
-                  className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/90 hover:bg-black hover:text-white text-zinc-900 border border-black/15 shadow-xs ml-1 transition-all"
-                >
-                  View Host Page &rarr;
-                </Link>
+              </span>
+
+              {event.organizer_rating && Number(event.organizer_rating) > 0 && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 text-[10px] font-black">
+                  <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+                  <span>{Number(event.organizer_rating).toFixed(1)}</span>
+                </span>
               )}
-            </div>
+
+              {/* Trailing affordance chevron */}
+              <ChevronRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-900 group-hover:translate-x-0.5 transition-transform shrink-0" />
+            </button>
 
             <div className="italic text-zinc-700 text-xs sm:text-sm md:text-[15px] font-medium leading-relaxed whitespace-pre-line tracking-[-0.01em] pt-1">
               {event.description}
@@ -502,7 +553,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
           )}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-4 mt-6 sm:mt-8 pt-4 relative z-10">
+          <div className="flex flex-row gap-2.5 sm:gap-4 mt-6 sm:mt-8 pt-4 relative z-10">
             {isCancelled ? (
               <div className="w-full p-4 sm:p-6 rounded-2xl sm:rounded-[24px] bg-rose-50 border-2 border-rose-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="flex items-center gap-3">
@@ -558,9 +609,9 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                     }
                     setShowRatingModal(true);
                   }}
-                  className="ringer-button h-12 sm:h-14 md:h-16 w-full text-xs sm:text-base font-black flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-xl sm:rounded-[20px] bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-black shadow-lg shadow-amber-500/25 cursor-pointer uppercase tracking-wider"
+                  className="ringer-button h-14 sm:h-14 md:h-16 w-full text-sm sm:text-base font-black flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-2xl sm:rounded-[20px] bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-black shadow-lg shadow-amber-500/25 cursor-pointer uppercase tracking-wider"
                 >
-                  <Star className="h-4 w-4 sm:h-5 sm:w-5 fill-black text-black" />
+                  <Star className="h-5 w-5 fill-black text-black shrink-0" />
                   <span>⭐ RATE EVENT &amp; HOST</span>
                 </button>
               )
@@ -571,32 +622,33 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                   rsvpStatus === 'pending' ? (
                     <button 
                       onClick={() => setShowBriefingModal(true)}
-                      className="ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-xl sm:rounded-[20px] bg-amber-500 text-black hover:bg-amber-400 shadow-md cursor-pointer"
+                      className="ringer-button h-14 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black tracking-wide flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-2xl sm:rounded-[20px] bg-amber-500 text-black hover:bg-amber-400 shadow-md cursor-pointer"
                     >
-                      <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
-                      {event.is_paid ? 'PAYMENT PENDING • VIEW BRIEFING' : 'APPROVAL PENDING • VIEW BRIEFING'}
+                      <Clock className="h-4.5 w-4.5 sm:h-5 sm:w-5 shrink-0" />
+                      <span>{event.is_paid ? 'PAYMENT PENDING • VIEW BRIEFING' : 'APPROVAL PENDING • VIEW BRIEFING'}</span>
                     </button>
                   ) : (
                     <button 
                       onClick={() => setShowBriefingModal(true)}
-                      className="ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-xl sm:rounded-[20px] bg-primary text-black hover:bg-primary/90 shadow-md cursor-pointer"
+                      className="ringer-button h-14 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black tracking-wide flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-2xl sm:rounded-[20px] bg-primary text-black hover:bg-primary/90 shadow-md cursor-pointer"
                     >
-                      <Ticket className="h-4 w-4 sm:h-5 sm:w-5" />
-                      VIEW CONFIRMED PASS &amp; BRIEFING
+                      <Ticket className="h-4.5 w-4.5 sm:h-5 sm:w-5 shrink-0" />
+                      <span>VIEW CONFIRMED PASS &amp; BRIEFING</span>
                     </button>
                   )
                 ) : (
                   isHousefull ? (
                     <button 
                       disabled
-                      className="ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 rounded-xl sm:rounded-[20px] bg-red-500 text-white cursor-not-allowed shadow-none"
+                      className="ringer-button h-14 sm:h-14 md:h-16 flex-1 text-sm sm:text-sm font-black tracking-wide flex items-center justify-center gap-2.5 sm:gap-3 rounded-2xl sm:rounded-[20px] bg-red-500 text-white cursor-not-allowed shadow-none"
                     >
-                      HOUSEFULL / SOLD OUT
+                      <Ticket className="h-4.5 w-4.5 sm:h-5 sm:w-5 shrink-0" />
+                      <span>HOUSEFULL / SOLD OUT</span>
                     </button>
                   ) : event.is_paid ? (
                     <button 
                       onClick={() => handleRSVP()}
-                      className={`ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-xl sm:rounded-[20px] text-white shadow-md hover:shadow-xl hover:scale-[1.02] cursor-pointer ${
+                      className={`ringer-button h-14 sm:h-14 md:h-16 flex-1 text-sm sm:text-sm font-black tracking-wide flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-2xl sm:rounded-[20px] text-white shadow-md hover:shadow-xl hover:scale-[1.02] cursor-pointer ${
                         isVibrant 
                           ? 'vibe-shimmer'
                           : 'bg-black text-white hover:bg-zinc-800'
@@ -606,12 +658,13 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                         boxShadow: `0 8px 25px -4px ${getCategoryDarkTitleColor(event.category)}55`,
                       } : undefined}
                     >
-                      RSVP &amp; REQUEST PASS
+                      <Ticket className="h-4.5 w-4.5 sm:h-5 sm:w-5 shrink-0" />
+                      <span>RSVP &amp; REQUEST PASS</span>
                     </button>
                   ) : (
                     <button 
                       onClick={() => handleRSVP()}
-                      className={`ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-xl sm:rounded-[20px] text-white shadow-md hover:shadow-xl hover:scale-[1.02] cursor-pointer ${
+                      className={`ringer-button h-14 sm:h-14 md:h-16 flex-1 text-sm sm:text-sm font-black tracking-wide flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-2xl sm:rounded-[20px] text-white shadow-md hover:shadow-xl hover:scale-[1.02] cursor-pointer ${
                         isVibrant 
                           ? 'vibe-shimmer'
                           : 'bg-black text-white hover:bg-zinc-800'
@@ -621,17 +674,20 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                         boxShadow: `0 8px 25px -4px ${getCategoryDarkTitleColor(event.category)}55`,
                       } : undefined}
                     >
-                      RSVP FOR FREE ENTRY
+                      <Ticket className="h-4.5 w-4.5 sm:h-5 sm:w-5 shrink-0" />
+                      <span>RSVP FOR FREE ENTRY</span>
                     </button>
                   )
                 )}
                 
                 <button 
                   onClick={handleDownloadICS}
-                  className="ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 border-2 active:scale-95 transition-all rounded-xl sm:rounded-[20px] cursor-pointer bg-white hover:bg-zinc-50 text-zinc-900 shadow-xs border-black/10"
+                  title="Add to Calendar"
+                  aria-label="Add to Calendar"
+                  className="ringer-button h-14 sm:h-14 md:h-16 w-14 sm:w-auto sm:flex-1 text-sm sm:text-sm font-black tracking-wide flex items-center justify-center gap-2.5 sm:gap-3 border-2 active:scale-95 transition-all rounded-2xl sm:rounded-[20px] cursor-pointer bg-white hover:bg-zinc-50 text-zinc-900 shadow-sm border-black/15 shrink-0 px-0 sm:px-6"
                 >
-                  <CalendarPlus className="h-4 w-4 sm:h-5 sm:w-5" />
-                  ADD TO CALENDAR
+                  <CalendarPlus className="h-5 w-5 shrink-0 text-zinc-800" />
+                  <span className="hidden sm:inline">ADD TO CALENDAR</span>
                 </button>
               </>
             )}
@@ -641,10 +697,10 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         {/* Torn Ticket Zig-Zag Perforation Divider */}
         <TicketPerforationDivider />
 
-        {/* Right Side: Meta Info Box — Unified Frosted Ticket Stub */}
+        {/* Right Side: Meta Info Box — Category Tinted Frosted Ticket Stub */}
         <div className={`w-full md:w-80 lg:w-88 p-4 sm:p-6 lg:p-7 space-y-3.5 sm:space-y-4 relative z-10 rounded-b-2xl md:rounded-b-none md:rounded-r-[24px] ticket-stub-secondary ${
           isVibrant
-            ? 'bg-white/60 backdrop-blur-md'
+            ? `${getCategoryStubClass(event.category)} backdrop-blur-md`
             : 'bg-white/95 backdrop-blur-md border border-black/5'
         }`}>
           <div className="space-y-3 sm:space-y-3.5">
@@ -723,110 +779,140 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             {(() => {
               const timeInfo = formatEventTimeWithTimezone(event.date_time, event.end_time, event.timezone || 'Asia/Kolkata');
               return (
-                <div className="space-y-1 bg-white/75 backdrop-blur-xs p-3 sm:p-3.5 rounded-xl border-none shadow-xs hover:bg-white/90 transition-all">
-                   <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Date &amp; Time</div>
-                   <div className="flex items-center gap-2 text-black font-black text-xs sm:text-sm">
-                     <Calendar className="h-4 w-4 text-primary shrink-0" />
-                     <span>
-                       {new Date(event.date_time).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: event.timezone || 'Asia/Kolkata' })}
-                       {event.end_time && new Date(event.date_time).toDateString() !== new Date(event.end_time).toDateString() && (
-                         <span className="text-zinc-600 ml-1"> - {new Date(event.end_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: event.timezone || 'Asia/Kolkata' })}</span>
-                       )}
-                     </span>
+                <div className="bg-zinc-50/60 p-3.5 sm:p-4 rounded-xl border border-black/[0.08] hover:border-black/15 hover:bg-zinc-50/90 transition-all flex flex-col gap-2.5">
+                   <div className="flex items-center justify-between gap-2">
+                     <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Date &amp; Time</div>
+                     {event.timings && (
+                       <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">
+                         {event.timings}
+                       </span>
+                     )}
                    </div>
-                   <div className="text-xs sm:text-sm font-bold text-zinc-900 flex items-center gap-1.5 flex-wrap">
-                      <span>{timeInfo.timeRangeDisplay}</span>
-                      <span className="text-[10px] font-black uppercase text-zinc-800 bg-zinc-200/80 px-1.5 py-0.5 rounded tracking-wider shadow-xs">
-                        {timeInfo.tzAbbr}
-                      </span>
+                   <div className="flex items-center gap-3">
+                     <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
+                       <Calendar className="h-5 w-5 sm:h-6 sm:w-6" />
+                     </div>
+                     <div className="flex-1 min-w-0">
+                       <div className="text-sm sm:text-base font-black text-zinc-950 tracking-tight leading-snug">
+                         {new Date(event.date_time).toLocaleDateString(undefined, {
+                           weekday: 'short',
+                           month: 'short',
+                           day: 'numeric',
+                           year: new Date(event.date_time).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+                           timeZone: event.timezone || 'Asia/Kolkata'
+                         })}
+                         {event.end_time && new Date(event.date_time).toDateString() !== new Date(event.end_time).toDateString() && (
+                           <span className="text-zinc-600 font-bold ml-1">
+                             – {new Date(event.end_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: event.timezone || 'Asia/Kolkata' })}
+                           </span>
+                         )}
+                       </div>
+                       <div className="flex items-center gap-1.5 flex-wrap mt-1 text-xs sm:text-[13px] font-semibold text-zinc-700">
+                         <div className="flex items-center gap-1 text-zinc-900 font-bold">
+                           <Clock className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                           <span>{timeInfo.timeRangeDisplay}</span>
+                         </div>
+                         <span className="text-[9.5px] font-black uppercase text-zinc-700 bg-zinc-100 border border-zinc-200/80 px-1.5 py-0.5 rounded-md tracking-wider">
+                           {timeInfo.tzAbbr}
+                         </span>
+                       </div>
+                     </div>
                    </div>
                    {timeInfo.localTimeNote && (
-                     <div className="text-[10px] sm:text-[11px] font-bold text-sky-950 bg-sky-50/90 border border-sky-200 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl w-fit flex items-center gap-1">
-                       <Globe className="h-3 w-3 text-sky-600 shrink-0" />
+                     <div className="text-[10px] sm:text-[11px] font-bold text-sky-950 bg-sky-50/90 border border-sky-200 px-2.5 py-1 rounded-lg w-full flex items-center gap-1.5">
+                       <Globe className="h-3.5 w-3.5 text-sky-600 shrink-0" />
                        <span>{timeInfo.localTimeNote}</span>
                      </div>
                    )}
-                   {event.timings && <span className="block mt-0.5 text-primary italic uppercase text-[9px] font-black tracking-widest">{event.timings}</span>}
                 </div>
               );
             })()}
 
-            <div className="space-y-1 bg-white/75 backdrop-blur-xs p-3 sm:p-3.5 rounded-xl border-none shadow-xs hover:bg-white/90 transition-all">
-               <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                 {event.event_type === 'online' ? 'Event Mode & Platform' : 'Location'}
-               </div>
-               <div className="flex items-center gap-2 text-black font-black text-xs sm:text-sm">
-                 {event.event_type === 'online' ? (
-                   <>
-                     <Globe className="h-4 w-4 text-sky-600 shrink-0" />
-                     <span>Online / Virtual Event</span>
-                   </>
-                 ) : (
-                   <>
-                     <MapPin className="h-4 w-4 text-primary shrink-0" />
-                     <span className="leading-snug">{event.location}</span>
-                   </>
+            <div className="bg-zinc-50/60 p-3.5 sm:p-4 rounded-xl border border-black/[0.08] hover:border-black/15 hover:bg-zinc-50/90 transition-all flex flex-col gap-2.5">
+               <div className="flex items-center justify-between gap-2">
+                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                   {event.event_type === 'online' ? 'Event Mode & Platform' : 'Location'}
+                 </div>
+                 {event.event_type !== 'online' && (
+                   <a
+                     href={event.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.location}, ${event.city || ''}`)}`}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     className="text-[10px] sm:text-xs font-black text-primary hover:text-primary/80 bg-primary/10 hover:bg-primary/15 border border-primary/20 px-2 py-0.5 rounded-lg transition-all flex items-center gap-1 shrink-0"
+                   >
+                     <span>Open in Maps</span>
+                     <span className="text-[11px]">↗</span>
+                   </a>
                  )}
                </div>
-               {event.event_type === 'online' ? (
-                 event.location && event.location !== 'Online Event' && event.location !== 'Online' ? (
-                   <span className="text-xs font-semibold text-zinc-700 block">
-                     Platform: {event.location}
-                   </span>
-                 ) : (
-                   <span className="text-xs font-semibold text-zinc-700 block">
-                     Virtual access details available in Attendee Pass.
-                   </span>
-                 )
-               ) : (
-                 <a
-                   href={event.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.location}, ${event.city || ''}`)}`}
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   className="text-xs font-bold text-zinc-600 underline hover:text-black block w-fit pt-0.5"
-                 >
-                   Open in Maps ↗
-                 </a>
-               )}
+               <div className="flex items-center gap-3">
+                 <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
+                   {event.event_type === 'online' ? (
+                     <Globe className="h-5 w-5 sm:h-6 sm:w-6 text-sky-600" />
+                   ) : (
+                     <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                   )}
+                 </div>
+                 <div className="flex-1 min-w-0">
+                   {event.event_type === 'online' ? (
+                     <>
+                       <div className="text-sm sm:text-base font-black text-zinc-950 tracking-tight leading-snug">
+                         Online / Virtual Event
+                       </div>
+                       <span className="text-xs font-semibold text-zinc-600 mt-0.5 block">
+                         {event.location && event.location !== 'Online Event' && event.location !== 'Online'
+                           ? `Platform: ${event.location}`
+                           : 'Virtual access details available in Attendee Pass.'}
+                       </span>
+                     </>
+                   ) : (
+                     <>
+                       <div className="text-sm sm:text-base font-black text-zinc-950 tracking-tight leading-snug break-words">
+                         {event.location}
+                       </div>
+                       {event.city && !event.location?.toLowerCase().includes(event.city.toLowerCase()) && (
+                         <span className="text-xs font-bold text-zinc-500 mt-0.5 block">
+                           {event.city}
+                         </span>
+                       )}
+                     </>
+                   )}
+                 </div>
+               </div>
             </div>
 
             {/* Compact Responsive Meta Stats Grid */}
-            <div className={`grid ${event.participant_limit ? 'grid-cols-3' : 'grid-cols-2'} gap-2 sm:gap-2.5`}>
+            <div className={`grid ${event.participant_limit ? 'grid-cols-2' : 'grid-cols-1'} gap-2 sm:gap-2.5`}>
               {/* Age Criteria & Suitability Block */}
-              <div className="space-y-1 bg-white/75 backdrop-blur-xs p-2.5 sm:p-3 rounded-xl border-none shadow-xs hover:bg-white/90 transition-all flex flex-col justify-between">
-                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Age Policy</div>
-                 <div className="flex items-center gap-1.5 text-black font-black text-xs">
-                   <Users className="h-3.5 w-3.5 text-primary shrink-0" />
-                   <span className="leading-tight">
-                     {event.min_age !== null && event.min_age !== undefined && Number(event.min_age) > 0
-                       ? `${event.min_age}+ Only`
-                       : (['Techno', 'Nightlife', 'Clubbing'].includes(event.category) ? "21+ Only" : "All Ages")}
-                   </span>
-                 </div>
-                 {event.suitable_age && (
-                   <span className="text-[10px] font-semibold text-zinc-500 block truncate">
-                     {event.suitable_age}
-                   </span>
-                 )}
-              </div>
-
-              {/* People Interested */}
-              <div className="space-y-1 bg-white/75 backdrop-blur-xs p-2.5 sm:p-3 rounded-xl border-none shadow-xs hover:bg-white/90 transition-all flex flex-col justify-between">
-                 <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Interested</div>
-                 <div className="flex items-center gap-1.5 text-black font-black text-xs">
-                   <Users className="h-3.5 w-3.5 text-primary shrink-0" />
-                   <span>{event.rsvp_count || 0} {event.rsvp_count === 1 ? 'Seeker' : 'Seekers'}</span>
-                 </div>
+              <div className="bg-zinc-50/60 p-2.5 sm:p-3 rounded-xl border border-black/[0.08] hover:border-black/15 hover:bg-zinc-50/90 transition-all flex flex-col justify-between">
+                <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Age Policy</div>
+                <div className="flex items-center gap-2 text-zinc-950 font-black text-xs sm:text-sm mt-1.5">
+                  <div className="h-6 w-6 rounded-md bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="leading-tight truncate">
+                    {event.min_age !== null && event.min_age !== undefined && Number(event.min_age) > 0
+                      ? `${event.min_age}+ Only`
+                      : (['Techno', 'Nightlife', 'Clubbing'].includes(event.category) ? "21+ Only" : "All Ages")}
+                  </span>
+                </div>
+                {event.suitable_age && (
+                  <span className="text-[10px] font-semibold text-zinc-500 block truncate mt-1">
+                    {event.suitable_age}
+                  </span>
+                )}
               </div>
 
               {/* Event Capacity (if configured) */}
               {event.participant_limit && (
-                <div className="space-y-1 bg-white/75 backdrop-blur-xs p-2.5 sm:p-3 rounded-xl border-none shadow-xs hover:bg-white/90 transition-all flex flex-col justify-between">
-                   <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Capacity</div>
-                   <div className="flex items-center gap-1.5 text-black font-black text-xs">
-                     <Ticket className="h-3.5 w-3.5 text-primary shrink-0" />
-                     <span>{event.participant_limit} spots</span>
-                   </div>
+                <div className="bg-zinc-50/60 p-2.5 sm:p-3 rounded-xl border border-black/[0.08] hover:border-black/15 hover:bg-zinc-50/90 transition-all flex flex-col justify-between">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Capacity</div>
+                  <div className="flex items-center gap-2 text-zinc-950 font-black text-xs sm:text-sm mt-1.5">
+                    <div className="h-6 w-6 rounded-md bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
+                      <Ticket className="h-3.5 w-3.5" />
+                    </div>
+                    <span className="leading-tight truncate">{event.participant_limit} spots</span>
+                  </div>
                 </div>
               )}
             </div>

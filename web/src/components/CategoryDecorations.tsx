@@ -341,5 +341,27 @@ export function getCategoryDarkTitleColor(category: string): string {
   return config.darkTitleColor || "#09090b"
 }
 
+/**
+ * Returns the CSS class name for category-specific secondary ticket stub ambient tint.
+ */
+export function getCategoryStubClass(category: string): string {
+  const norm = (category || "").toLowerCase().replace(/[\s&_]+/g, "")
+  if (norm.includes("adventure") || norm.includes("trek") || norm.includes("nature")) return "vibe-stub-adventure"
+  if (norm.includes("music") || norm.includes("gig") || norm.includes("concert")) return "vibe-stub-music"
+  if (norm.includes("nightlife") || norm.includes("club") || norm.includes("party")) return "vibe-stub-nightlife"
+  if (norm.includes("art") || norm.includes("craft") || norm.includes("culture")) return "vibe-stub-arts"
+  if (norm.includes("sport") || norm.includes("fitness") || norm.includes("run")) return "vibe-stub-sports"
+  if (norm.includes("food") || norm.includes("drink") || norm.includes("dining")) return "vibe-stub-food"
+  if (norm.includes("techno") || norm.includes("tech") || norm.includes("cyber")) return "vibe-stub-techno"
+  if (norm.includes("indie") || norm.includes("acoustic")) return "vibe-stub-indie"
+  if (norm.includes("workshop") || norm.includes("learn") || norm.includes("bootcamp")) return "vibe-stub-workshops"
+  if (norm.includes("education")) return "vibe-stub-education"
+  if (norm.includes("spiritual") || norm.includes("mindful") || norm.includes("meditat")) return "vibe-stub-spiritual"
+  if (norm.includes("wellness") || norm.includes("health") || norm.includes("yoga")) return "vibe-stub-wellness"
+  if (norm.includes("comedy") || norm.includes("standup")) return "vibe-stub-comedy"
+  return "vibe-stub-general"
+}
+
 export { CategoryBackgroundArt }
+
 

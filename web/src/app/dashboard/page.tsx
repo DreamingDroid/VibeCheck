@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useCity, isEventEnded, VibeEvent } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useTranslation } from "@/context/LanguageContext";
-import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor, getCategoryBadgeClass, getCategoryDarkTitleColor } from "@/components/CategoryDecorations";
+import { CategoryDecorations, getCategoryCardClass, getCategoryStubClass, getCategoryAccentColor, getCategoryBadgeClass, getCategoryDarkTitleColor } from "@/components/CategoryDecorations";
 import { TicketPerforationDivider } from "@/components/TicketPerforationDivider";
 import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock, Send, LayoutGrid, Globe, Search, X } from "lucide-react";
 import { toast } from "sonner";
@@ -186,26 +186,33 @@ function DashboardContent() {
   };
 
   const handleSharePlatform = async () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const shareData = {
       title: "VibeCheck",
       text: "Join VibeCheck - the ultimate insider's guide to networking, discovery and culture in Visakhapatnam!",
-      url: window.location.origin,
+      url: origin,
     };
     
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       try {
-        await navigator.share(shareData);
-        toast.success("Platform shared successfully!");
-      } catch (err) {
-        // user cancelled or error
+        if (navigator.canShare && !navigator.canShare(shareData)) {
+          await navigator.share({ title: "VibeCheck", url: origin });
+        } else {
+          await navigator.share(shareData);
+        }
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
       }
-    } else {
-      try {
-        await navigator.clipboard.writeText(window.location.origin);
-        toast.success("VibeCheck link copied to clipboard!");
-      } catch (err) {
-        toast.error("Failed to copy link.");
+    }
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(origin);
       }
+      toast.success("VibeCheck link copied to clipboard!");
+    } catch {
+      toast.error("Failed to copy link.");
     }
   };
 
@@ -220,20 +227,26 @@ function DashboardContent() {
       url: shareUrl,
     };
     
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       try {
-        await navigator.share(shareData);
-        toast.success("Event shared!");
-      } catch (err) {
-        // user cancelled
+        if (navigator.canShare && !navigator.canShare(shareData)) {
+          await navigator.share({ title: `${event.title} | VibeCheck`, url: shareUrl });
+        } else {
+          await navigator.share(shareData);
+        }
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
       }
-    } else {
-      try {
+    }
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(shareUrl);
-        toast.success("Event link copied to clipboard!");
-      } catch (err) {
-        toast.error("Failed to copy link.");
       }
+      toast.success("Event link copied to clipboard!");
+    } catch {
+      toast.error("Failed to copy link.");
     }
   };
 
@@ -414,7 +427,8 @@ function DashboardContent() {
   const isCategoryEmpty = filteredEvents.length === 0;
   const showCalendarView = (isCategoryEmpty || forceCalendarOpen) && !selectedDate;
   
-  const featuredEvent = !selectedDate ? displayEvents.find(ev => Boolean(ev.is_featured)) : undefined;
+  const isAllCategories = !selectedCategory || selectedCategory === "The Latest";
+  const featuredEvent = (!selectedDate && isAllCategories) ? displayEvents.find(ev => Boolean(ev.is_featured)) : undefined;
   const isFeaturedRsvped = Boolean(
     featuredEvent?.user_rsvped ||
     (session?.user?.email && vipInvites.some(v => v.id === featuredEvent?.id && (v.rsvp_status === 'going' || v.rsvp_status === 'confirmed' || v.rsvp_status === 'pending')))
@@ -1287,9 +1301,9 @@ function DashboardContent() {
            {/* Torn Ticket Zig-Zag Perforation Divider */}
            <TicketPerforationDivider />
 
-           {/* Right Logistics & Experience Hub — Unified Frosted Ticket Stub */}
+           {/* Right Logistics & Experience Hub — Category Tinted Frosted Ticket Stub */}
            <div className={`w-full md:w-80 lg:w-96 p-5 sm:p-6 lg:p-7 flex flex-col justify-between gap-4 sm:gap-5 relative z-10 rounded-b-2xl md:rounded-b-none md:rounded-r-[24px] ticket-stub-secondary ${
-             isVibrant ? 'bg-white/60 backdrop-blur-md' : 'bg-white text-black'
+             isVibrant ? `${getCategoryStubClass(featuredEvent.category)} backdrop-blur-md` : 'bg-white text-black'
            }`}>
               {/* Top Tags & Quick Action Bar */}
               <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -1341,7 +1355,7 @@ function DashboardContent() {
                     onClick={(e) => handleShareEvent(e, featuredEvent)}
                     title="Share this vibe"
                     aria-label="Share this vibe"
-                    className="h-9 w-9 rounded-full border border-black/10 flex items-center justify-center text-zinc-600 hover:text-black hover:border-black hover:bg-zinc-50 transition-all active:scale-95 shadow-xs"
+                    className="h-9 w-9 rounded-full border border-black/10 bg-white/80 hover:bg-white flex items-center justify-center text-zinc-700 hover:text-black hover:border-black transition-all active:scale-95 shadow-xs"
                   >
                     <Share2 className="h-4 w-4" />
                   </button>
@@ -1351,7 +1365,7 @@ function DashboardContent() {
               {/* Structured Details Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-3">
                 {/* Location Card */}
-                <div className="bg-white/80 backdrop-blur-xs border border-black/5 rounded-xl p-3.5 sm:p-4 flex flex-col justify-between gap-2.5 hover:bg-white/95 transition-all shadow-xs group/loc">
+                <div className="bg-white/90 backdrop-blur-xs border border-black/5 rounded-xl p-3.5 sm:p-4 flex flex-col justify-between gap-2.5 hover:bg-white hover:shadow-md transition-all shadow-[0_2px_10px_rgba(0,0,0,0.03)] group/loc">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400 flex items-center gap-1.5">
                       <MapPin className="h-3.5 w-3.5 text-rose-500" /> Where
@@ -1383,7 +1397,7 @@ function DashboardContent() {
                 </div>
 
                 {/* Schedule Card */}
-                <div className="bg-white/80 backdrop-blur-xs border border-black/5 rounded-xl p-3.5 sm:p-4 flex flex-col justify-between gap-2.5 hover:bg-white/95 transition-all shadow-xs">
+                <div className="bg-white/90 backdrop-blur-xs border border-black/5 rounded-xl p-3.5 sm:p-4 flex flex-col justify-between gap-2.5 hover:bg-white hover:shadow-md transition-all shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400 flex items-center gap-1.5">
                       <CalendarIcon className="h-3.5 w-3.5 text-indigo-500" /> When
@@ -1430,15 +1444,7 @@ function DashboardContent() {
                   </button>
                 </div>
 
-                {/* RSVP / Live Vibe Counter */}
-                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200/60 text-emerald-800 px-3.5 py-1.5 rounded-full font-black text-xs shadow-xs shrink-0">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-                  </span>
-                  <Users className="h-3.5 w-3.5 text-emerald-600" />
-                  <span>{featuredEvent.rsvp_count || 0} Interested</span>
-                </div>
+
               </div>
            </div>
         </section>
@@ -1541,10 +1547,7 @@ function DashboardContent() {
                         <MapPin className="h-3 w-3 text-zinc-500 shrink-0" />
                         <span className="truncate max-w-[200px] sm:max-w-[240px]">{ev.location}</span>
                       </a>
-                      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide mt-1" style={{ color: isVibrant ? getCategoryAccentColor(ev.category) : '#19A74E' }}>
-                        <Users className="h-2.5 w-2.5" />
-                        <span>{ev.rsvp_count || 0} Interested</span>
-                      </div>
+
                     </div>
                     
                     <div 
