@@ -16,7 +16,8 @@ import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Us
 import { toast } from "sonner";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
-import { isSameDay, startOfDay, isBefore, isAfter, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, format, isToday } from "date-fns";
+import { isSameDay, startOfDay, isBefore, isAfter, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, format, isToday, startOfMonth, addMonths, subMonths } from "date-fns";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { siteConfig } from "@/config/site";
 
@@ -54,10 +55,41 @@ function DashboardContent() {
   const [isTickerHovered, setIsTickerHovered] = useState(false);
 
   const todayDate = new Date();
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => startOfMonth(new Date()));
+  const minMonth = startOfMonth(todayDate);
+  const maxMonth = startOfMonth(new Date(todayDate.getFullYear(), 11, 1));
+  const canGoPrevMonth = isAfter(startOfMonth(currentMonth), minMonth);
+  const canGoNextMonth = isBefore(startOfMonth(currentMonth), maxMonth);
+
   const minWeekStart = startOfWeek(todayDate, { weekStartsOn: 1 });
   const maxWeekStart = startOfWeek(new Date(todayDate.getFullYear(), 11, 31), { weekStartsOn: 1 });
   const canGoPrevWeek = isAfter(startOfDay(currentWeekStart), startOfDay(minWeekStart));
   const canGoNextWeek = isBefore(startOfDay(currentWeekStart), startOfDay(maxWeekStart));
+
+  const calendarSwipe = useSwipeGesture({
+    onSwipeLeft: () => {
+      if (calendarViewMode === 'month') {
+        if (canGoNextMonth) {
+          setCurrentMonth(prev => addMonths(prev, 1));
+        }
+      } else {
+        if (canGoNextWeek) {
+          setCurrentWeekStart(prev => addWeeks(prev, 1));
+        }
+      }
+    },
+    onSwipeRight: () => {
+      if (calendarViewMode === 'month') {
+        if (canGoPrevMonth) {
+          setCurrentMonth(prev => subMonths(prev, 1));
+        }
+      } else {
+        if (canGoPrevWeek) {
+          setCurrentWeekStart(prev => subWeeks(prev, 1));
+        }
+      }
+    },
+  });
 
   const fetchVipInvites = async (userEmail: string) => {
     try {
@@ -92,12 +124,18 @@ function DashboardContent() {
       try {
         const res = await fetch(`${baseUrl}/api/news?city=${encodeURIComponent(currentCity)}`);
         const json = await res.json();
-        if (json.success && json.data) {
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
           setDashboardNews(json.data.slice(0, 4));
           setCurrentNewsIndex(0);
           setFadeState("visible");
+        } else {
+          setDashboardNews([]);
         }
-      } catch (err) {}
+      } catch (err) {
+        setDashboardNews([]);
+      }
+    } else {
+      setDashboardNews([]);
     }
   });
 
@@ -134,17 +172,25 @@ function DashboardContent() {
 
   useEffect(() => {
     if (currentCity) {
+      setDashboardNews([]);
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
       fetch(`${baseUrl}/api/news?city=${encodeURIComponent(currentCity)}`)
         .then(r => r.json())
         .then(res => {
-          if (res.success && res.data) {
+          if (res.success && Array.isArray(res.data) && res.data.length > 0) {
             setDashboardNews(res.data.slice(0, 4));
             setCurrentNewsIndex(0);
             setFadeState("visible");
+          } else {
+            setDashboardNews([]);
           }
         })
-        .catch(err => console.error("Could not fetch news", err));
+        .catch(err => {
+          console.error("Could not fetch news", err);
+          setDashboardNews([]);
+        });
+    } else {
+      setDashboardNews([]);
     }
   }, [currentCity]);
 
@@ -574,7 +620,7 @@ function DashboardContent() {
       </div>
 
       {/* Local Currents RSS Feed Banner at the top */}
-      {dashboardNews.length > 0 && activeNews && (
+      {dashboardNews.length > 0 && activeNews && Boolean(activeNews.title) && (
         <div 
           className="w-full bg-white/70 backdrop-blur-md border-b border-primary/20 bg-gradient-to-r from-emerald-500/5 via-primary/10 to-teal-500/5 text-zinc-900 py-3 md:py-3.5 overflow-hidden relative shadow-[0_4px_20px_rgba(0,0,0,0.03)] select-none transition-colors"
           onMouseEnter={() => setIsTickerHovered(true)}
@@ -651,7 +697,10 @@ function DashboardContent() {
             </div>
           </div>
           
-          <div className={`w-full p-3 sm:p-5 md:p-6 rounded-2xl md:rounded-[24px] border-2 md:border-4 border-white shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] overflow-hidden relative bg-gradient-to-br from-white via-zinc-50 to-zinc-100/80 ${isVibrant ? 'vibe-hover-lift' : ''}`}>
+          <div 
+            {...calendarSwipe.handlers}
+            className={`w-full touch-pan-y select-none p-3 sm:p-5 md:p-6 rounded-2xl md:rounded-[24px] border-2 md:border-4 border-white shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] overflow-hidden relative bg-gradient-to-br from-white via-zinc-50 to-zinc-100/80 ${isVibrant ? 'vibe-hover-lift' : ''}`}
+          >
             {isVibrant && (
               <div 
                 className="absolute inset-0 pointer-events-none"
@@ -668,12 +717,16 @@ function DashboardContent() {
               <div className="relative z-10 w-full [&_table]:block [&_table]:mt-2 md:[&_table]:mt-4 [&_table]:w-full [&_thead]:block [&_tbody]:block [&_tr]:grid [&_tr]:grid-cols-7 [&_tr]:gap-1 sm:[&_tr]:gap-1.5 md:[&_tr]:gap-2.5 [&_tr]:mb-1 sm:[&_tr]:mb-1.5 md:[&_tr]:mb-2 [&_th]:block [&_td]:block [&_th]:text-center [&_th]:text-zinc-400 [&_th]:font-black [&_th]:uppercase [&_th]:tracking-[0.15em] [&_th]:text-[9px] md:[&_th]:text-[11px] [&_th]:pb-1 sm:[&_th]:pb-2">
                 <DayPicker
                   mode="single"
+                  month={currentMonth}
+                  onMonthChange={setCurrentMonth}
                   selected={selectedDate}
                   onSelect={setSelectedDate}
                   showOutsideDays
-                  fromMonth={new Date()}
-                  toMonth={new Date(new Date().getFullYear(), 11)}
-                  className="w-full bg-transparent p-0 m-0 font-helvetica"
+                  fromMonth={minMonth}
+                  toMonth={maxMonth}
+                  startMonth={minMonth}
+                  endMonth={maxMonth}
+                  className="w-full bg-transparent p-0 m-0 font-helvetica select-none"
                   classNames={{
                     months: "w-full flex flex-col",
                     month: "w-full",
@@ -881,6 +934,7 @@ function DashboardContent() {
                     onClick={() => {
                       const today = new Date();
                       setCurrentWeekStart(startOfWeek(today, { weekStartsOn: 1 }));
+                      setCurrentMonth(startOfMonth(today));
                       setSelectedDate(today);
                     }}
                     className="ringer-button bg-zinc-100 hover:bg-zinc-200 text-black text-[10px] py-1 px-3 border border-black/10"
