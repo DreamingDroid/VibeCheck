@@ -5,7 +5,7 @@ import QRCode from "qrcode";
 import { 
   X, CheckCircle2, Calendar, MapPin, Phone, 
   ExternalLink, Sparkles, Clock, Check, Copy,
-  AlertCircle, CalendarPlus, Backpack,
+  AlertCircle, Backpack,
   ShieldCheck, QrCode, Send, Globe
 } from "lucide-react";
 import { formatTelegramLink } from "@/lib/telegramGroup";
@@ -61,6 +61,71 @@ export function AttendeeBriefingModal({
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [copied, setCopied] = useState<boolean>(false);
 
+  const isEventEnded = event?.status === 'ended' || (
+    event?.end_time 
+      ? new Date(event.end_time).getTime() <= Date.now() 
+      : event?.date_time 
+        ? new Date(event.date_time).getTime() + (4 * 60 * 60 * 1000) <= Date.now()
+        : false
+  );
+
+  const eventEndTimeMs = event?.end_time 
+    ? new Date(event.end_time).getTime() 
+    : event?.date_time 
+      ? new Date(event.date_time).getTime() + (4 * 60 * 60 * 1000) 
+      : Date.now() + (24 * 60 * 60 * 1000);
+
+  const storageKey = event?.id ? `vibecheck_checklist_${event.id}` : null;
+
+  // Load from localStorage on mount / event change and cleanup expired
+  useEffect(() => {
+    if (typeof window === "undefined" || !storageKey) return;
+
+    // Sweeping garbage collection of other expired checklist items in localStorage
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("vibecheck_checklist_")) {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
+                localStorage.removeItem(key);
+              }
+            } catch {}
+          }
+        }
+      }
+    } catch {}
+
+    // Check if current event is already ended
+    if (isEventEnded) {
+      try {
+        localStorage.removeItem(storageKey);
+      } catch {}
+      setCheckedItems({});
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
+          localStorage.removeItem(storageKey);
+          setCheckedItems({});
+        } else if (parsed.items && typeof parsed.items === "object") {
+          setCheckedItems(parsed.items);
+        } else if (typeof parsed === "object") {
+          setCheckedItems(parsed);
+        }
+      }
+    } catch (err) {
+      console.error("Error reading checklist from localStorage:", err);
+    }
+  }, [storageKey, isEventEnded]);
+
   useEffect(() => {
     if (passCode) {
       QRCode.toDataURL(passCode, {
@@ -87,10 +152,28 @@ export function AttendeeBriefingModal({
   const isConfirmedPass = !isPreRsvp && !isPending && !!passCode;
 
   const toggleCheck = (index: number) => {
-    setCheckedItems((prev) => ({
-      ...prev,
-      [index]: !prev[index],
-    }));
+    setCheckedItems((prev) => {
+      const updated = {
+        ...prev,
+        [index]: !prev[index],
+      };
+
+      if (typeof window !== "undefined" && storageKey && !isEventEnded) {
+        try {
+          localStorage.setItem(
+            storageKey,
+            JSON.stringify({
+              items: updated,
+              expiresAt: eventEndTimeMs,
+            })
+          );
+        } catch (err) {
+          console.error("Error writing checklist to localStorage:", err);
+        }
+      }
+
+      return updated;
+    });
   };
 
   const handleCopyCode = () => {
@@ -216,6 +299,19 @@ export function AttendeeBriefingModal({
             <p className="text-[11px] font-medium text-zinc-400 leading-snug max-w-xs">
               Present this QR code or Pass Code <strong className="text-white font-mono">{passCode}</strong> at the venue gate for instant check-in.
             </p>
+
+            {event.whatsapp_group_link && (
+              <a
+                href={formatTelegramLink(event.whatsapp_group_link)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full max-w-xs py-2.5 px-4 bg-[#229ED9] hover:bg-[#1d8dc3] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-[#229ED9]/20 active:scale-95 cursor-pointer mt-1"
+              >
+                <Send className="h-3.5 w-3.5 fill-white" />
+                <span>Join Attendee Telegram Group</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
           </div>
 
           {/* Pass Footer */}
@@ -244,38 +340,29 @@ export function AttendeeBriefingModal({
       >
         
         {/* Pass / Briefing Header Banner */}
-        <div className={`p-6 sm:p-8 relative overflow-hidden shrink-0 text-white ${
+        <div className={`p-4 sm:p-5 relative overflow-hidden shrink-0 text-white ${
           isPending
             ? "bg-gradient-to-br from-amber-950 via-zinc-900 to-black" 
             : "bg-gradient-to-br from-zinc-900 via-black to-zinc-950"
         }`}>
           {/* Subtle glow effect */}
-          <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20 ${
+          <div className={`absolute top-0 right-0 w-48 h-48 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16 ${
             isPending ? "bg-amber-500/20" : "bg-primary/20"
           }`} />
           
-          <div className="flex items-start justify-between relative z-10">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                {isPreRsvp ? (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white text-[10px] font-black uppercase tracking-widest border border-white/10 shadow-sm">
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
-                    <span>EVENT GUIDE &amp; BRIEFING</span>
-                  </div>
-                ) : (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-black uppercase tracking-widest border border-amber-500/30 shadow-sm">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>{isPendingPayment ? "PAYMENT PENDING" : "APPROVAL PENDING"}</span>
-                  </div>
-                )}
-              </div>
-
-              <h2 className="text-2xl sm:text-3xl font-black italic tracking-tight uppercase leading-tight text-white">
-                {event.title}
-              </h2>
-              <p className="text-xs font-bold text-zinc-400">
-                Organized by <span className="text-white">{event.organizer_name || "VibeCheck Organizer"}</span> • {event.category}
-              </p>
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-2 flex-wrap">
+              {isPreRsvp ? (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white text-[10px] font-black uppercase tracking-widest border border-white/10 shadow-sm">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <span>EVENT BRIEFING &amp; DETAILS</span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-black uppercase tracking-widest border border-amber-500/30 shadow-sm">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>{isPendingPayment ? "PAYMENT PENDING" : "APPROVAL PENDING"}</span>
+                </div>
+              )}
             </div>
 
             <button
@@ -289,7 +376,7 @@ export function AttendeeBriefingModal({
         </div>
 
         {/* Scrollable Briefing Content */}
-        <div className="overflow-y-auto p-6 sm:p-8 space-y-8 flex-1 custom-scrollbar bg-zinc-50/50">
+        <div className="overflow-y-auto p-6 sm:p-8 space-y-6 flex-1 custom-scrollbar bg-zinc-50/50">
 
           {/* Payment Info Card for Paid Events */}
           {isPaid && !isConfirmedPass && (
@@ -333,6 +420,15 @@ export function AttendeeBriefingModal({
                       </div>
                     )}
                   </div>
+
+                  {guide.feeNote && (
+                    <div className="p-3 rounded-2xl bg-amber-100/60 border border-amber-300/60 text-xs font-semibold text-amber-900 leading-snug">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-950 block mb-0.5">
+                        Pass Inclusions
+                      </span>
+                      {guide.feeNote}
+                    </div>
+                  )}
 
                   {/* Actions: External Link or Direct Organizer Contact */}
                   <div className="space-y-3">
@@ -404,58 +500,6 @@ export function AttendeeBriefingModal({
               </div>
             </div>
           )}
-
-          {/* 1. Time, Location & Assembly Strip */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Date & Time Card */}
-            <div className="bg-white p-5 rounded-2xl border border-black/5 shadow-xs space-y-2">
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
-                <Calendar className="h-4 w-4" />
-                <span>DATE &amp; SCHEDULE</span>
-              </div>
-              <p className="text-base font-black text-black leading-snug">
-                {eventDateStr}
-              </p>
-              <p className="text-xs font-bold text-zinc-500">
-                {eventTimeStr}
-                {event.timings && <span className="block mt-0.5 text-primary text-[11px] font-bold">{event.timings}</span>}
-              </p>
-              {onDownloadICS && (
-                <button
-                  onClick={onDownloadICS}
-                  className="pt-2 text-[11px] font-black uppercase tracking-wider text-black hover:text-primary flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <CalendarPlus className="h-3.5 w-3.5 text-primary" />
-                  <span>Add to Calendar</span>
-                </button>
-              )}
-            </div>
-
-            {/* Location & Assembly Point Card */}
-            <div className="bg-white p-5 rounded-2xl border border-black/5 shadow-xs space-y-2">
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary">
-                <MapPin className="h-4 w-4" />
-                <span>LOCATION &amp; ASSEMBLY</span>
-              </div>
-              <p className="text-sm font-black text-black leading-snug">
-                {event.location || guide.assemblyPoint || "Location provided upon confirmation"}
-              </p>
-              {guide.assemblyPoint && guide.assemblyPoint !== event.location && (
-                <p className="text-xs text-zinc-500 font-medium line-clamp-2">
-                  {guide.assemblyPoint}
-                </p>
-              )}
-              <a
-                href={mapsLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="pt-2 text-[11px] font-black uppercase tracking-wider text-black hover:text-primary flex items-center gap-1.5 transition-colors"
-              >
-                <ExternalLink className="h-3.5 w-3.5 text-primary" />
-                <span>Open in Google Maps →</span>
-              </a>
-            </div>
-          </div>
 
           {/* 2. Full Day Itinerary / Schedule */}
           {guide.schedule && guide.schedule.length > 0 && (
@@ -556,59 +600,63 @@ export function AttendeeBriefingModal({
             </div>
           )}
 
-          {/* 5. Official Telegram Community Card */}
+          {/* 5. Official Telegram Community Card (Locked for Pre-RSVP / Pending) */}
           {event.whatsapp_group_link && (
-            <div className="bg-gradient-to-br from-[#229ED9]/10 via-[#229ED9]/5 to-transparent border border-[#229ED9]/20 p-5 sm:p-6 rounded-3xl space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-[#229ED9] text-white">
-                  <Send className="h-4 w-4" />
+            <div className="bg-sky-50/60 border border-sky-200/80 p-5 rounded-3xl space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-sky-100 text-[#229ED9]">
+                    <Send className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900">Official Attendee Community</h4>
+                    <span className="text-[10px] font-bold text-zinc-500">Live announcements &amp; attendee coordination</span>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-wider text-black">Official Attendee Community</h4>
-                  <span className="text-[10px] font-bold text-zinc-500">Live announcements &amp; attendee coordination</span>
-                </div>
+                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200 font-bold">
+                  Pass Required
+                </span>
               </div>
-              <p className="text-xs font-medium text-zinc-600">
-                Join the verified Telegram channel/group for this event to receive real-time updates from the organizer.
+              <p className="text-xs font-medium text-zinc-600 leading-relaxed">
+                The Telegram group link will be unlocked and accessible once your entry pass is confirmed.
               </p>
-              <a
-                href={formatTelegramLink(event.whatsapp_group_link)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2.5 px-4 bg-[#229ED9] hover:bg-[#1d8dc3] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-[#229ED9]/20 active:scale-95"
-              >
-                <Send className="h-3.5 w-3.5 fill-white" />
-                <span>Join Official Telegram Group</span>
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
             </div>
           )}
 
           {/* 6. Helpline & Queries Contact */}
           {guide.contacts && guide.contacts.length > 0 && (
-            <div className="bg-white p-5 rounded-2xl border border-black/5 shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 flex items-center gap-1.5">
-                  <Phone className="h-3.5 w-3.5 text-primary" />
-                  <span>Queries &amp; Emergency Helpline</span>
-                </h4>
-                {guide.feeNote && (
-                  <span className="text-[10px] font-black text-emerald-600 uppercase bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                    {guide.feeNote}
-                  </span>
-                )}
+            <div className="bg-white p-5 sm:p-6 rounded-3xl border border-black/5 shadow-xs space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                  <Phone className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900">Queries &amp; Emergency Helpline</h4>
+                  <span className="text-[10px] font-bold text-zinc-400">Direct organizer contacts for event day</span>
+                </div>
               </div>
 
-              <div className="flex flex-wrap gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                 {guide.contacts.map((contact, idx) => (
                   <a
                     key={idx}
                     href={`tel:${contact.phone.replace(/[^0-9+]/g, "")}`}
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-100 hover:bg-black hover:text-white transition-all text-xs font-bold group shrink-0"
+                    className="flex items-center justify-between p-3 rounded-2xl bg-zinc-50 hover:bg-zinc-100 border border-black/5 transition-all text-xs group"
                   >
-                    <Phone className="h-3.5 w-3.5 text-primary group-hover:text-primary" />
-                    <span>{contact.name}: <span className="font-mono text-zinc-600 group-hover:text-zinc-200">{contact.phone}</span></span>
-                    {contact.role && <span className="text-[9px] text-zinc-400 group-hover:text-zinc-400">({contact.role})</span>}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="h-8 w-8 rounded-xl bg-white border border-black/5 flex items-center justify-center text-primary shrink-0 group-hover:scale-105 transition-transform shadow-2xs">
+                        <Phone className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-black truncate text-xs">{contact.name}</div>
+                        {contact.role && (
+                          <div className="text-[10px] font-medium text-zinc-500 truncate">{contact.role}</div>
+                        )}
+                      </div>
+                    </div>
+                    <span className="font-mono font-bold text-zinc-800 text-xs shrink-0 ml-2 group-hover:text-primary transition-colors">
+                      {contact.phone}
+                    </span>
                   </a>
                 ))}
               </div>

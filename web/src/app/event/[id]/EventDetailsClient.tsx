@@ -188,8 +188,9 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
           setEvent(refreshedEvent.data);
         }
 
-        // If Telegram group link exists, prompt attendee to join, otherwise open briefing pass
-        if (latestEvent?.whatsapp_group_link) {
+        const isConfirmedNow = data.status === 'confirmed' && Boolean(data.passCode || data.pass_code);
+        // Only prompt attendee to join Telegram if they have paid & received the confirmed pass!
+        if (isConfirmedNow && latestEvent?.whatsapp_group_link) {
           setShowTelegramPromptModal(true);
         } else {
           setShowBriefingModal(true);
@@ -363,6 +364,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
   const isHousefull = event.status === 'housefull' || (event.participant_limit && (event.rsvp_count || 0) >= event.participant_limit);
   const isFillingFast = event.status === 'filling_fast';
   const isEventEnded = event.status === 'ended' || (event.end_time ? new Date(event.end_time).getTime() <= Date.now() : event.date_time ? new Date(event.date_time).getTime() <= Date.now() : false);
+  const hasConfirmedPass = !isCancelled && !isEventEnded && rsvped && rsvpStatus === 'confirmed' && Boolean(passCode);
 
   return (
     <>
@@ -512,8 +514,19 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               <ChevronRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-900 group-hover:translate-x-0.5 transition-transform shrink-0" />
             </button>
 
-            <div className="italic text-zinc-700 text-xs sm:text-sm md:text-[15px] font-medium leading-relaxed whitespace-pre-line tracking-[-0.01em] pt-1">
-              {event.description}
+            {/* Clamped Description (Max 8 Lines) */}
+            <div className="pt-1">
+              <div 
+                className="italic text-zinc-700 text-xs sm:text-sm md:text-[15px] font-medium leading-relaxed whitespace-pre-line tracking-[-0.01em]"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 8,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
+              >
+                {event.description}
+              </div>
             </div>
 
           {/* Attendee Guide Preview Strip (if organizer provided guide info) */}
@@ -748,8 +761,8 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               )
             )}
 
-            {/* Official Attendee Telegram Group (RSVP'd Card) */}
-            {!isCancelled && !isEventEnded && rsvped && event.whatsapp_group_link && (
+            {/* Official Attendee Telegram Group (Passholder Exclusive Card) */}
+            {hasConfirmedPass && event.whatsapp_group_link && (
               <div className="p-3.5 rounded-xl bg-sky-50/90 border border-sky-200 space-y-2 shadow-xs">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#229ED9]">
@@ -757,11 +770,11 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                     <span>Attendee Telegram Group</span>
                   </div>
                   <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-200/70 text-sky-950">
-                    Active
+                    Passholder Access
                   </span>
                 </div>
                 <p className="text-xs text-sky-950 font-bold leading-snug">
-                  Connect and chat with the organizer and fellow attendees!
+                  Connect and chat with the organizer and fellow confirmed attendees!
                 </p>
                 <a
                   href={formatTelegramLink(event.whatsapp_group_link)}
@@ -918,27 +931,6 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             </div>
           </div>
 
-          {/* Evident 'Join Telegram Group' Action Button (Only visible if Telegram link is configured) */}
-          {event.whatsapp_group_link && (
-            <div className="pt-3 sm:pt-4 border-t border-black/10 flex flex-col gap-1.5">
-               <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Community Group</div>
-               <button
-                 onClick={() => {
-                   if (!rsvped) {
-                     toast.info("Please RSVP to this event first to join the official attendee Telegram group!");
-                     return;
-                   }
-                   window.open(formatTelegramLink(event.whatsapp_group_link!), '_blank');
-                 }}
-                 className="w-full py-2.5 sm:py-3 px-3.5 bg-[#229ED9] hover:bg-[#1d8dc3] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-[#229ED9]/25 active:scale-95 cursor-pointer"
-               >
-                 <Send className="h-3.5 w-3.5 fill-white" />
-                 <span>Join Telegram Group</span>
-                 <ExternalLink className="h-3.5 w-3.5" />
-               </button>
-            </div>
-          )}
-
           <div className="pt-3 sm:pt-4 border-t border-black/10 flex items-center justify-between">
              <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Share This Vibe</div>
              <div className="flex gap-2">
@@ -981,8 +973,8 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         onShare={handleShare}
       />
 
-      {/* Post-RSVP Telegram Group Prompt Modal */}
-      {event?.whatsapp_group_link && (
+      {/* Post-RSVP Telegram Group Prompt Modal (Only for Confirmed Passholders) */}
+      {hasConfirmedPass && event?.whatsapp_group_link && (
         <JoinTelegramPromptModal
           isOpen={showTelegramPromptModal}
           onClose={() => {

@@ -817,8 +817,8 @@ export function OrganizerProfileClient({
   return (
     <div className="min-h-screen bg-transparent text-foreground pb-24">
       {/* ─── 1. Continuous Top Marquee Ticker ─── */}
-      <div className="bg-black text-white text-[11px] font-black uppercase tracking-widest py-2 px-4 overflow-hidden border-b border-white/10 select-none">
-        <div className="inline-flex gap-8 whitespace-nowrap animate-marquee">
+      <div className="bg-black text-white text-[11px] font-black uppercase tracking-widest py-2.5 overflow-hidden border-b border-white/10 select-none flex">
+        <div className="flex shrink-0 items-center gap-8 whitespace-nowrap animate-marquee pr-8">
           <span>
             {organizer.phone_number ? `📞 ${organizer.phone_number}` : `✨ OFFICIAL HOST PROFILE`}
           </span>
@@ -829,11 +829,18 @@ export function OrganizerProfileClient({
           <span>•</span>
           <span>CURATED EVENTS • LIVE EXPERIENCES • EXCLUSIVE PASSES</span>
           <span>•</span>
+        </div>
+        <div className="flex shrink-0 items-center gap-8 whitespace-nowrap animate-marquee pr-8" aria-hidden="true">
           <span>
             {organizer.phone_number ? `📞 ${organizer.phone_number}` : `✨ OFFICIAL HOST PROFILE`}
           </span>
           <span>•</span>
           <span>{organizer.brand_name}</span>
+          <span>•</span>
+          <span>{organizer.primary_city ? `${organizer.primary_city.toUpperCase()} SCENE` : "VIBECHECK CURATED"}</span>
+          <span>•</span>
+          <span>CURATED EVENTS • LIVE EXPERIENCES • EXCLUSIVE PASSES</span>
+          <span>•</span>
         </div>
       </div>
 
