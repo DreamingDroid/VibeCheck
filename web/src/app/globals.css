@@ -330,3 +330,67 @@
 .animate-progress-indeterminate {
   animation: progress-indeterminate 1.5s ease-in-out infinite;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   MULTICOLOR CHROMATIC STREAMING & SHINING BADGE
+   ═══════════════════════════════════════════════════════════════ */
+@keyframes rainbow-stream {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes glint-sweep {
+  0% {
+    transform: translateX(-160%) skewX(-25deg);
+  }
+  45%, 100% {
+    transform: translateX(260%) skewX(-25deg);
+  }
+}
+
+.featured-vibe-stream-badge {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    115deg,
+    #ff007a 0%,
+    #8b5cf6 20%,
+    #3b82f6 40%,
+    #06b6d4 55%,
+    #10b981 70%,
+    #f59e0b 85%,
+    #ff007a 100%
+  );
+  background-size: 300% 300%;
+  animation: rainbow-stream 4s ease infinite;
+  box-shadow: 
+    0 2px 12px rgba(139, 92, 246, 0.4),
+    0 0 20px rgba(255, 0, 122, 0.28),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.65),
+    inset 0 -1px 1.5px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+}
+
+.featured-vibe-stream-badge::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.75) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+  animation: glint-sweep 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}

@@ -1211,46 +1211,46 @@ function DashboardContent() {
 
       {/* Editorial Hero Section */}
       {!showCalendarView && featuredEvent && (
-        <section className={`relative group overflow-hidden ringer-card h-auto flex flex-col md:flex-row shadow-2xl rounded-2xl md:rounded-[24px] ${
+        <section className={`relative group overflow-hidden ringer-card h-auto flex flex-col md:flex-row shadow-xl sm:shadow-2xl rounded-2xl md:rounded-[24px] transition-all ${
           isVibrant ? `${getCategoryCardClass(featuredEvent.category)} border-none text-zinc-950` : 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 border border-black/10 text-white'
         }`}>
            {isVibrant && <CategoryDecorations category={featuredEvent.category} showAccent={false} />}
            {/* Left Editorial Gradient Card */}
-           <div className="w-full md:w-1/2 p-6 sm:p-8 md:p-10 flex flex-col justify-between gap-4 sm:gap-6 relative overflow-hidden z-10">
-              <div className="space-y-4 sm:space-y-5 relative z-10">
-                <div className="flex items-center justify-between">
-                  <div className="sticker-badge bg-black text-white w-fit px-4 border-none flex items-center gap-2 shadow-lg font-black">
-                    <TrendingUp className="h-3.5 w-3.5 text-pink-400" />
-                    Featured Vibe
+           <div className="w-full md:w-[52%] lg:w-[54%] p-6 sm:p-7 md:p-8 lg:p-9 flex flex-col justify-between gap-5 sm:gap-6 relative overflow-hidden z-10">
+              <div className="space-y-3 sm:space-y-4 relative z-10">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="featured-vibe-stream-badge text-white w-fit px-3.5 py-1 rounded-full text-xs flex items-center gap-1.5 font-black uppercase tracking-wider drop-shadow-sm select-none">
+                    <Sparkles className="h-3.5 w-3.5 text-white animate-pulse" />
+                    <span>Featured Vibe</span>
                   </div>
                   {featuredEvent.participant_limit && (
-                    <div className={`sticker-badge border text-[10px] font-bold ${
+                    <div className={`sticker-badge border text-[10px] sm:text-xs font-bold px-3 py-1 ${
                       isVibrant ? 'bg-black/5 text-zinc-800 border-black/10' : 'bg-white/20 backdrop-blur-md text-white border-white/30'
                     }`}>
                       {Math.max(0, featuredEvent.participant_limit - (featuredEvent.rsvp_count || 0))} spots left
                     </div>
                   )}
                 </div>
-                <div className="space-y-3 sm:space-y-3.5">
+                <div className="space-y-2 sm:space-y-2.5">
                   <h2 
-                    className={`text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-black tracking-tighter leading-tight sm:leading-[1.05] uppercase italic break-words hyphens-auto ${
+                    className={`text-2xl sm:text-3xl md:text-3xl lg:text-4xl font-black tracking-tighter leading-tight sm:leading-[1.1] uppercase italic break-words hyphens-auto ${
                       isVibrant ? '' : 'text-white drop-shadow-md'
                     }`}
                     style={isVibrant ? { color: getCategoryDarkTitleColor(featuredEvent.category) } : undefined}
                   >
                     {featuredEvent.title}
                   </h2>
-                  <p className={`italic font-normal line-clamp-3 text-xs sm:text-sm md:text-base leading-relaxed max-w-lg tracking-[-0.01em] ${
+                  <p className={`italic font-normal line-clamp-3 text-xs sm:text-sm md:text-[14px] leading-relaxed max-w-xl tracking-[-0.01em] ${
                     isVibrant ? 'text-zinc-600' : 'text-white/90 drop-shadow-sm'
                   }`}>
                     {featuredEvent.description}
                   </p>
                 </div>
               </div>
-              <div className="pt-3 sm:pt-4 relative z-10 mt-auto">
+              <div className="pt-2 sm:pt-4 relative z-10 mt-auto">
                 {isFeaturedRsvped ? (
                   <Link href={`/event/${featuredEvent.id}`} className="inline-block">
-                    <button className={`ringer-button px-7 py-3 text-xs sm:text-sm shadow-xl flex items-center gap-2 font-black tracking-wider transition-transform group-hover:scale-105 active:scale-95 ${
+                    <button className={`ringer-button px-6 py-3 sm:px-7 sm:py-3.5 text-xs sm:text-sm shadow-md hover:shadow-xl flex items-center gap-2 font-black tracking-wider transition-all group-hover:scale-105 active:scale-95 ${
                       isVibrant ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-zinc-100'
                     }`}>
                       <span>VIEW YOUR PASS</span>
@@ -1259,7 +1259,7 @@ function DashboardContent() {
                   </Link>
                 ) : (
                   <Link href={`/event/${featuredEvent.id}`} className="inline-block">
-                    <button className={`ringer-button px-7 py-3 text-xs sm:text-sm shadow-xl flex items-center gap-2 font-black tracking-wider transition-transform group-hover:scale-105 active:scale-95 ${
+                    <button className={`ringer-button px-6 py-3 sm:px-7 sm:py-3.5 text-xs sm:text-sm shadow-md hover:shadow-xl flex items-center gap-2 font-black tracking-wider transition-all group-hover:scale-105 active:scale-95 ${
                       isVibrant ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-zinc-100'
                     }`}>
                       <span>SECURE YOUR SPOT</span>
@@ -1274,55 +1274,55 @@ function DashboardContent() {
            <TicketPerforationDivider />
 
            {/* Right Logistics & Experience Hub — Unified Frosted Ticket Stub */}
-           <div className={`w-full md:w-1/2 p-6 sm:p-8 md:p-10 flex flex-col justify-between gap-6 relative z-10 ${
-             isVibrant ? 'bg-white/35 backdrop-blur-md' : 'bg-white'
+           <div className={`w-full md:w-[48%] lg:w-[46%] p-6 sm:p-7 md:p-8 lg:p-9 flex flex-col justify-between gap-5 sm:gap-6 relative z-10 ${
+             isVibrant ? 'bg-white/40 backdrop-blur-md' : 'bg-white'
            }`}>
               {/* Top Tags & Quick Action Bar */}
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div className={`sticker-badge ${getCategoryBadgeClass(featuredEvent.category)} border-none shadow-xs`}>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                  <div className={`sticker-badge ${getCategoryBadgeClass(featuredEvent.category)} border-none shadow-xs text-[10px] sm:text-xs font-black`}>
                     {featuredEvent.category}
                   </div>
                   {featuredEvent.event_type === 'online' ? (
-                    <div className="sticker-badge bg-sky-100 text-sky-900 border-none font-black text-[10px] flex items-center gap-1">
+                    <div className="sticker-badge bg-sky-100 text-sky-900 border-none font-black text-[10px] sm:text-xs flex items-center gap-1">
                       <Globe className="h-3 w-3 text-sky-600" /> Online
                     </div>
                   ) : (
-                    <div className="sticker-badge bg-zinc-100 border-none text-zinc-700 font-bold text-[10px]">
+                    <div className="sticker-badge bg-zinc-100 border-none text-zinc-700 font-bold text-[10px] sm:text-xs">
                       {featuredEvent.city || 'In-Person'}
                     </div>
                   )}
-                  <div className="sticker-badge bg-zinc-100 border-none text-zinc-600 font-bold text-[10px]">
+                  <div className="sticker-badge bg-zinc-100 border-none text-zinc-600 font-bold text-[10px] sm:text-xs">
                     {featuredEvent.is_paid ? "Paid Entry" : "Free Entry"}
                   </div>
                   {featuredEvent.min_age !== null && featuredEvent.min_age !== undefined && Number(featuredEvent.min_age) > 0 && (
-                    <div className="sticker-badge bg-red-100 text-red-700 border-none font-black text-[10px] flex items-center gap-0.5">
+                    <div className="sticker-badge bg-red-100 text-red-700 border-none font-black text-[10px] sm:text-xs flex items-center gap-0.5">
                       🔞 {featuredEvent.min_age}+
                     </div>
                   )}
                   {featuredEvent.suitable_age && (
-                    <div className="sticker-badge bg-purple-50 text-purple-700 border-none font-bold text-[10px] flex items-center gap-0.5">
+                    <div className="sticker-badge bg-purple-50 text-purple-700 border-none font-bold text-[10px] sm:text-xs flex items-center gap-0.5">
                       👥 {featuredEvent.suitable_age}
                     </div>
                   )}
                   {featuredEvent.status === 'cancelled' && (
-                    <div className="sticker-badge bg-rose-600 border-none text-white font-black text-[10px] uppercase tracking-wider animate-pulse flex items-center gap-1">
+                    <div className="sticker-badge bg-rose-600 border-none text-white font-black text-[10px] sm:text-xs uppercase tracking-wider animate-pulse flex items-center gap-1">
                       🚨 Cancelled
                     </div>
                   )}
                   {featuredEvent.status === 'housefull' && (
-                    <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] animate-pulse">
+                    <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] sm:text-xs animate-pulse">
                       Sold Out
                     </div>
                   )}
                   {featuredEvent.status === 'filling_fast' && (
-                    <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] animate-pulse flex items-center gap-1">
+                    <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] sm:text-xs animate-pulse flex items-center gap-1">
                       <Sparkles className="h-3 w-3" /> Filling Fast
                     </div>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={(e) => handleShareEvent(e, featuredEvent)}
                     title="Share this vibe"
@@ -1335,11 +1335,11 @@ function DashboardContent() {
               </div>
 
               {/* Structured Details Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 my-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
                 {/* Location Card */}
-                <div className="bg-white/75 backdrop-blur-xs border-none rounded-xl p-4 flex flex-col justify-between gap-3 hover:bg-white/90 transition-all shadow-xs group/loc">
+                <div className="bg-white/80 backdrop-blur-xs border border-black/5 rounded-xl p-3.5 sm:p-4 flex flex-col justify-between gap-2.5 hover:bg-white/95 transition-all shadow-xs group/loc">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 flex items-center gap-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400 flex items-center gap-1.5">
                       <MapPin className="h-3.5 w-3.5 text-rose-500" /> Where
                     </span>
                     <a
@@ -1358,7 +1358,7 @@ function DashboardContent() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="text-base font-black tracking-tight text-black line-clamp-2 hover:text-primary transition-colors block"
+                      className="text-sm sm:text-base font-black tracking-tight text-black line-clamp-1 hover:text-primary transition-colors block"
                     >
                       {featuredEvent.location}
                     </a>
@@ -1369,9 +1369,9 @@ function DashboardContent() {
                 </div>
 
                 {/* Schedule Card */}
-                <div className="bg-white/75 backdrop-blur-xs border-none rounded-xl p-4 flex flex-col justify-between gap-3 hover:bg-white/90 transition-all shadow-xs">
+                <div className="bg-white/80 backdrop-blur-xs border border-black/5 rounded-xl p-3.5 sm:p-4 flex flex-col justify-between gap-2.5 hover:bg-white/95 transition-all shadow-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 flex items-center gap-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400 flex items-center gap-1.5">
                       <CalendarIcon className="h-3.5 w-3.5 text-indigo-500" /> When
                     </span>
                     <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100/50">
@@ -1379,7 +1379,7 @@ function DashboardContent() {
                     </span>
                   </div>
                   <div>
-                    <div className="text-base font-black tracking-tight text-black line-clamp-1">
+                    <div className="text-sm sm:text-base font-black tracking-tight text-black line-clamp-1">
                       {new Date(featuredEvent.date_time).toLocaleDateString(undefined, { weekday: 'long' })}
                     </div>
                     <div className="text-xs font-semibold text-zinc-500 flex items-center gap-1 mt-0.5">
@@ -1394,12 +1394,12 @@ function DashboardContent() {
               <div className="pt-4 border-t border-black/5 flex items-center justify-between gap-3 flex-wrap">
                 {/* Host Info & Follow */}
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-full bg-black text-white font-black text-xs flex items-center justify-center uppercase shadow-sm shrink-0">
+                  <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-black text-white font-black text-xs flex items-center justify-center uppercase shadow-xs shrink-0">
                     {featuredEvent.organizer_email ? featuredEvent.organizer_email.charAt(0) : "V"}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Host</div>
-                    <div className="text-xs font-black text-black truncate max-w-[120px] sm:max-w-[160px]">
+                    <div className="text-[10px] font-black uppercase tracking-wider text-zinc-400 leading-none mb-0.5">Host</div>
+                    <div className="text-xs font-black text-black truncate max-w-[120px] sm:max-w-[160px] leading-tight">
                       {featuredEvent.organizer_email ? featuredEvent.organizer_email.split('@')[0] : 'Vibe Host'}
                     </div>
                   </div>
@@ -1412,7 +1412,7 @@ function DashboardContent() {
                 </div>
 
                 {/* RSVP / Live Vibe Counter */}
-                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200/60 text-emerald-800 px-3.5 py-1.5 rounded-full font-black text-xs shadow-xs">
+                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200/60 text-emerald-800 px-3.5 py-1.5 rounded-full font-black text-xs shadow-xs shrink-0">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>

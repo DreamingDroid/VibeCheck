@@ -20,16 +20,16 @@ export function TicketPerforationDivider({
     <>
       {/* ─── Desktop Vertical Perforation Divider (md and up) ─── */}
       <div
-        className={`hidden md:flex relative z-20 w-6 -mx-3 shrink-0 flex-col items-center justify-between pointer-events-none self-stretch ${className}`}
+        className={`hidden md:flex relative z-20 w-6 -mx-3 shrink-0 flex-col items-center justify-between pointer-events-none self-stretch min-h-0 ${className}`}
         aria-hidden="true"
       >
         {/* Top Tear Notch Cutout */}
         <div className="w-5 h-3 bg-background rounded-b-full shadow-inner -mt-[1px] shrink-0" />
 
         {/* Center Dashed Perforation Stitch Line */}
-        <div className="w-full flex-1 flex items-center justify-center my-1 relative overflow-hidden">
+        <div className="w-full flex-1 my-1 relative overflow-hidden min-h-0">
           <svg
-            className="w-full h-full"
+            className="absolute inset-0 w-full h-full"
             preserveAspectRatio="none"
             viewBox="0 0 24 600"
             fill="none"
@@ -54,16 +54,16 @@ export function TicketPerforationDivider({
 
       {/* ─── Mobile Horizontal Perforation Divider (below md) ─── */}
       <div
-        className={`flex md:hidden relative z-20 h-6 -my-3 w-full shrink-0 flex-row items-center justify-between pointer-events-none self-stretch ${className}`}
+        className={`flex md:hidden relative z-20 h-6 -my-3 w-full shrink-0 flex-row items-center justify-between pointer-events-none self-stretch min-w-0 ${className}`}
         aria-hidden="true"
       >
         {/* Left Tear Notch Cutout */}
         <div className="h-5 w-3 bg-background rounded-r-full shadow-inner -ml-[1px] shrink-0" />
 
         {/* Center Dashed Perforation Stitch Line */}
-        <div className="h-full flex-1 flex items-center justify-center mx-1 relative overflow-hidden">
+        <div className="h-full flex-1 mx-1 relative overflow-hidden min-w-0">
           <svg
-            className="w-full h-full"
+            className="absolute inset-0 w-full h-full"
             preserveAspectRatio="none"
             viewBox="0 0 600 24"
             fill="none"
