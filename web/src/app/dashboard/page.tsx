@@ -1211,12 +1211,14 @@ function DashboardContent() {
 
       {/* Editorial Hero Section */}
       {!showCalendarView && featuredEvent && (
-        <section className={`relative group overflow-hidden ringer-card h-auto flex flex-col md:flex-row shadow-xl sm:shadow-2xl rounded-2xl md:rounded-[24px] transition-all ${
-          isVibrant ? `${getCategoryCardClass(featuredEvent.category)} border-none text-zinc-950` : 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 border border-black/10 text-white'
+        <section className={`relative group h-auto flex flex-col md:flex-row rounded-2xl md:rounded-[24px] transition-all ticket-card-wrapper ${
+          isVibrant ? 'text-zinc-950' : 'text-white'
         }`}>
-           {isVibrant && <CategoryDecorations category={featuredEvent.category} showAccent={false} />}
-           {/* Left Editorial Gradient Card */}
-           <div className="w-full md:w-[52%] lg:w-[54%] p-6 sm:p-7 md:p-8 lg:p-9 flex flex-col justify-between gap-5 sm:gap-6 relative overflow-hidden z-10">
+           {/* Left Editorial Gradient Card Stub */}
+           <div className={`flex-1 p-6 sm:p-8 lg:p-9 flex flex-col justify-between gap-5 sm:gap-6 relative overflow-hidden z-10 rounded-t-2xl md:rounded-t-none md:rounded-l-[24px] ticket-stub-primary ${
+             isVibrant ? getCategoryCardClass(featuredEvent.category) : 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500'
+           }`}>
+              {isVibrant && <CategoryDecorations category={featuredEvent.category} showAccent={false} />}
               <div className="space-y-3 sm:space-y-4 relative z-10">
                 <div className="flex items-center justify-between gap-2">
                   <div className="featured-vibe-stream-badge text-white w-fit px-3.5 py-1 rounded-full text-xs flex items-center gap-1.5 font-black uppercase tracking-wider drop-shadow-sm select-none">
@@ -1286,8 +1288,8 @@ function DashboardContent() {
            <TicketPerforationDivider />
 
            {/* Right Logistics & Experience Hub — Unified Frosted Ticket Stub */}
-           <div className={`w-full md:w-[48%] lg:w-[46%] p-6 sm:p-7 md:p-8 lg:p-9 flex flex-col justify-between gap-5 sm:gap-6 relative z-10 ${
-             isVibrant ? 'bg-white/40 backdrop-blur-md' : 'bg-white'
+           <div className={`w-full md:w-80 lg:w-96 p-5 sm:p-6 lg:p-7 flex flex-col justify-between gap-4 sm:gap-5 relative z-10 rounded-b-2xl md:rounded-b-none md:rounded-r-[24px] ticket-stub-secondary ${
+             isVibrant ? 'bg-white/60 backdrop-blur-md' : 'bg-white text-black'
            }`}>
               {/* Top Tags & Quick Action Bar */}
               <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -1347,7 +1349,7 @@ function DashboardContent() {
               </div>
 
               {/* Structured Details Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-3">
                 {/* Location Card */}
                 <div className="bg-white/80 backdrop-blur-xs border border-black/5 rounded-xl p-3.5 sm:p-4 flex flex-col justify-between gap-2.5 hover:bg-white/95 transition-all shadow-xs group/loc">
                   <div className="flex items-center justify-between">

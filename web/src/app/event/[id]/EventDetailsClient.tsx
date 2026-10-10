@@ -359,79 +359,81 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         Back to Explore
       </Link>
       
-      <div className={`ringer-card p-0 overflow-hidden shadow-xl sm:shadow-2xl flex flex-col md:flex-row relative rounded-2xl md:rounded-[24px] ${isVibrant ? `${getCategoryCardClass(event.category)} border-none` : ''}`}>
-        {isVibrant && <CategoryDecorations category={event.category} />}
-        {/* Left Side: Editorial Content */}
-        <div className="flex-1 p-5 sm:p-8 lg:p-10 flex flex-col justify-between relative z-10">
-          <div className="space-y-3.5 sm:space-y-4">
+      <div className={`relative flex flex-col md:flex-row rounded-2xl md:rounded-[24px] ticket-card-wrapper transition-all ${isVibrant ? 'text-zinc-950' : ''}`}>
+        {/* Left Side: Editorial Content Stub */}
+        <div className={`flex-1 p-5 sm:p-8 lg:p-10 flex flex-col justify-between relative z-10 rounded-t-2xl md:rounded-t-none md:rounded-l-[24px] ticket-stub-primary ${
+          isVibrant ? getCategoryCardClass(event.category) : 'bg-white border border-black/5'
+        }`}>
+          {isVibrant && <CategoryDecorations category={event.category} />}
+          <div className="space-y-3.5 sm:space-y-4 relative z-10">
             <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap">
               <div 
-                className={`sticker-badge ${getCategoryBadgeClass(event.category)} border-none`}
+                className={`sticker-badge ${getCategoryBadgeClass(event.category)} border-none shadow-sm text-[10px] sm:text-xs font-black`}
               >
                 {event.category}
               </div>
               {event.event_type === 'online' ? (
-                <div className="sticker-badge bg-sky-100 border-sky-300 text-sky-900 font-bold flex items-center gap-1.5 shadow-xs">
+                <div className="sticker-badge bg-white/90 backdrop-blur-xs border border-sky-300 text-sky-900 font-bold text-[10px] sm:text-xs flex items-center gap-1.5 shadow-xs">
                   <Globe className="w-3.5 h-3.5 text-sky-600" />
                   <span>Online Event</span>
                 </div>
               ) : (
-                <div className="sticker-badge bg-emerald-50 border-emerald-200 text-emerald-900 font-bold flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>In-Person</span>
+                <div className="sticker-badge bg-white/90 backdrop-blur-xs border border-black/10 text-zinc-800 font-bold text-[10px] sm:text-xs flex items-center gap-1.5 shadow-xs">
+                  <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                  <span>{event.city || "In-Person"}</span>
                 </div>
               )}
               {event.visibility === 'invite_only' && (
-                <div className="sticker-badge bg-gradient-to-r from-amber-500 to-yellow-400 text-black border-none font-black shadow-md flex items-center gap-1.5">
+                <div className="sticker-badge bg-gradient-to-r from-amber-500 to-yellow-400 text-black border-none font-black text-[10px] sm:text-xs shadow-sm flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 fill-black text-black" /> VIP Invite-Only
                 </div>
               )}
               {event.min_age !== null && event.min_age !== undefined && Number(event.min_age) > 0 && (
-                <div className="sticker-badge bg-red-100 border-red-300 text-red-700 font-black flex items-center gap-1.5 shadow-xs">
+                <div className="sticker-badge bg-white/90 backdrop-blur-xs border border-red-200 text-red-700 font-black text-[10px] sm:text-xs flex items-center gap-1 shadow-xs">
                   <span>🔞 {event.min_age}+ Only</span>
                 </div>
               )}
               {event.suitable_age && (
-                <div className="sticker-badge bg-purple-100 border-purple-200 text-purple-800 font-bold flex items-center gap-1.5 shadow-xs">
+                <div className="sticker-badge bg-white/90 backdrop-blur-xs border border-purple-200 text-purple-800 font-bold text-[10px] sm:text-xs flex items-center gap-1 shadow-xs">
                   <Users className="w-3.5 h-3.5 text-purple-600" />
                   <span>Suitable: {event.suitable_age}</span>
                 </div>
               )}
-              <div className="sticker-badge bg-zinc-100 border-none text-zinc-500 font-bold">
+              <div className="sticker-badge bg-white/90 backdrop-blur-xs border border-black/10 text-zinc-800 font-bold text-[10px] sm:text-xs shadow-xs">
                 {event.is_paid ? "Paid Event" : "Free Entry"}
               </div>
               {event.venue_verification_status === 'verified' && (
-                <div className="sticker-badge bg-emerald-100 text-emerald-900 border border-emerald-300 font-black flex items-center gap-1.5 shadow-xs">
+                <div className="sticker-badge bg-white/90 backdrop-blur-xs border border-emerald-300 text-emerald-900 font-black text-[10px] sm:text-xs flex items-center gap-1.5 shadow-xs">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                   <span>🛡️ Venue Confirmed</span>
                 </div>
               )}
               {event.venue_verification_status === 'pending_venue_auth' && (
-                <div className="sticker-badge bg-amber-100 text-amber-900 border border-amber-300 font-bold flex items-center gap-1.5 shadow-xs">
+                <div className="sticker-badge bg-white/90 backdrop-blur-xs border border-amber-300 text-amber-900 font-bold text-[10px] sm:text-xs flex items-center gap-1.5 shadow-xs">
                   <Clock className="w-3.5 h-3.5 text-amber-600" />
                   <span>⏳ Venue Authorization Pending</span>
                 </div>
               )}
               {event.average_rating ? (
-                <div className="sticker-badge bg-amber-100/90 text-amber-900 border-amber-300 font-black flex items-center gap-1.5 shadow-xs">
+                <div className="sticker-badge bg-white/90 backdrop-blur-xs border border-amber-300 text-amber-950 font-black text-[10px] sm:text-xs flex items-center gap-1.5 shadow-xs">
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
                   <span>{Number(event.average_rating).toFixed(1)}</span>
-                  <span className="text-[10px] text-amber-800/80 font-bold">({event.ratings_count || 0})</span>
+                  <span className="text-[10px] text-amber-800 font-bold">({event.ratings_count || 0})</span>
                 </div>
               ) : null}
               {isCancelled && (
-                <div className="sticker-badge bg-rose-600 border-none text-white font-black animate-pulse flex items-center gap-1">
+                <div className="sticker-badge bg-rose-600 border-none text-white font-black text-[10px] sm:text-xs animate-pulse flex items-center gap-1">
                   🚨 Event Cancelled
                 </div>
               )}
               {event.status === 'housefull' && (
-                <div className="sticker-badge bg-red-500 border-none text-white font-black animate-pulse">Sold Out</div>
+                <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] sm:text-xs animate-pulse">Sold Out</div>
               )}
               {event.status === 'filling_fast' && (
-                <div className="sticker-badge bg-orange-500 border-none text-white font-black animate-pulse flex items-center gap-1"><Sparkles className="h-4 w-4" /> Filling Fast</div>
+                <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] sm:text-xs animate-pulse flex items-center gap-1"><Sparkles className="h-4 w-4" /> Filling Fast</div>
               )}
               {isEventEnded && (
-                <div className="sticker-badge bg-zinc-800 border-none text-white font-bold">Event Ended</div>
+                <div className="sticker-badge bg-zinc-800 border-none text-white font-bold text-[10px] sm:text-xs">Event Ended</div>
               )}
             </div>
             
@@ -441,25 +443,25 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             >
               {event.title}
             </h1>
-            <div className="flex items-center gap-1.5 pt-0.5 flex-wrap text-xs sm:text-sm">
-              <span className="font-bold text-zinc-500">Organized by:</span>
+            <div className="flex items-center gap-2 pt-0.5 flex-wrap text-xs sm:text-sm">
+              <span className="font-bold text-zinc-600">Organized by:</span>
               <button 
                 onClick={() => setShowOrganizerModal(true)}
-                className="font-black text-black underline underline-offset-4 decoration-black/20 hover:text-primary hover:decoration-primary active:text-primary active:decoration-primary transition-colors cursor-pointer"
+                className="font-black text-black underline underline-offset-4 decoration-black/25 hover:text-primary hover:decoration-primary active:text-primary active:decoration-primary transition-colors cursor-pointer"
               >
                 {event.organizer_name || "VibeCheck Organizer"}
               </button>
               {event.organizer_email && (
                 <Link
                   href={`/organizer/${encodeURIComponent(event.organizer_slug || event.organizer_email)}`}
-                  className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 ml-1 transition-all"
+                  className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/90 hover:bg-black hover:text-white text-zinc-900 border border-black/15 shadow-xs ml-1 transition-all"
                 >
                   View Host Page &rarr;
                 </Link>
               )}
             </div>
 
-            <div className="italic text-zinc-600 text-xs sm:text-sm md:text-[15px] font-normal leading-relaxed whitespace-pre-line tracking-[-0.01em] pt-1">
+            <div className="italic text-zinc-700 text-xs sm:text-sm md:text-[15px] font-medium leading-relaxed whitespace-pre-line tracking-[-0.01em] pt-1">
               {event.description}
             </div>
 
@@ -474,7 +476,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               event.attendee_guide.feeNote
             )
           ) && (
-            <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-zinc-50 border border-black/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mt-2">
+            <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-white/80 backdrop-blur-xs border border-black/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mt-2 shadow-xs">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -483,7 +485,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                   <h4 className="text-xs font-black uppercase tracking-wider text-black">
                     Event Guide &amp; Schedule
                   </h4>
-                  <p className="text-[11px] sm:text-xs font-medium text-zinc-500">
+                  <p className="text-[11px] sm:text-xs font-medium text-zinc-600">
                     Schedule, program highlights, what to carry &amp; assembly details.
                   </p>
                 </div>
@@ -500,7 +502,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
           )}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-4 mt-6 sm:mt-8 pt-4">
+          <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-4 mt-6 sm:mt-8 pt-4 relative z-10">
             {isCancelled ? (
               <div className="w-full p-4 sm:p-6 rounded-2xl sm:rounded-[24px] bg-rose-50 border-2 border-rose-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="flex items-center gap-3">
@@ -626,13 +628,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                 
                 <button 
                   onClick={handleDownloadICS}
-                  className="ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 border-2 active:scale-95 transition-all rounded-xl sm:rounded-[20px] cursor-pointer bg-white/70 hover:bg-white/90 shadow-xs"
-                  style={isVibrant ? {
-                    color: getCategoryDarkTitleColor(event.category),
-                    borderColor: 'rgba(0, 0, 0, 0.08)'
-                  } : {
-                    borderColor: 'rgba(0, 0, 0, 0.1)'
-                  }}
+                  className="ringer-button h-12 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black flex items-center justify-center gap-2.5 sm:gap-3 border-2 active:scale-95 transition-all rounded-xl sm:rounded-[20px] cursor-pointer bg-white hover:bg-zinc-50 text-zinc-900 shadow-xs border-black/10"
                 >
                   <CalendarPlus className="h-4 w-4 sm:h-5 sm:w-5" />
                   ADD TO CALENDAR
@@ -646,10 +642,10 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         <TicketPerforationDivider />
 
         {/* Right Side: Meta Info Box — Unified Frosted Ticket Stub */}
-        <div className={`w-full md:w-80 lg:w-88 p-4 sm:p-6 lg:p-7 space-y-3.5 sm:space-y-4 relative z-10 ${
+        <div className={`w-full md:w-80 lg:w-88 p-4 sm:p-6 lg:p-7 space-y-3.5 sm:space-y-4 relative z-10 rounded-b-2xl md:rounded-b-none md:rounded-r-[24px] ticket-stub-secondary ${
           isVibrant
-            ? 'bg-white/35 backdrop-blur-md'
-            : 'bg-white/90 md:bg-white/95 backdrop-blur-md shadow-sm'
+            ? 'bg-white/60 backdrop-blur-md'
+            : 'bg-white/95 backdrop-blur-md border border-black/5'
         }`}>
           <div className="space-y-3 sm:space-y-3.5">
             {!isCancelled && !isEventEnded && rsvped && (
