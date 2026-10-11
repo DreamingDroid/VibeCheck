@@ -382,7 +382,7 @@ export default function Home() {
           {t("landing.hero_desc")}
         </p>
 
-        <div className="pt-2 sm:pt-3 flex justify-center items-center w-full">
+        <div className="pt-10 sm:pt-3 flex justify-center items-center w-full">
           <button
             onClick={handleSignIn}
             disabled={isSigningIn}
