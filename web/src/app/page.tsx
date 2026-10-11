@@ -304,10 +304,35 @@ export default function Home() {
   }
 
   return (
-    <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 md:pt-10 pb-12 md:pb-20 space-y-16 animate-in fade-in duration-700">
+    <div className="relative flex-1 flex flex-col w-full bg-background overflow-x-hidden">
+      {/* Vizag Landmarks Wall Art Mural Background */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden select-none"
+      >
+        {/* Soft center focus gradient protecting typography while revealing perimeter landmarks */}
+        <div
+          className="absolute inset-0 pointer-events-none z-10"
+          style={{
+            background:
+              "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(242, 242, 242, 0.78) 0%, rgba(242, 242, 242, 0.35) 55%, rgba(242, 242, 242, 0) 100%)",
+          }}
+        />
+
+        {/* Full-screen Framing Wall Art of Vizag Landmarks */}
+        <div
+          className="w-full h-full bg-no-repeat bg-center bg-contain transition-opacity duration-1000"
+          style={{
+            backgroundImage: "url('/vizag-wallart.png?v=7')",
+            opacity: 0.28,
+          }}
+        />
+      </div>
+
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-16 w-full animate-in fade-in duration-700">
 
       {/* Hero Section */}
-      <section className="flex flex-col items-center text-center space-y-6 sm:space-y-8 max-w-4xl mx-auto relative">
+      <section className="flex flex-col items-center text-center space-y-6 sm:space-y-8 max-w-4xl mx-auto relative w-full my-auto">
         {/* Vibrant theme floating decorations */}
         {isVibrant && (
           <div className="absolute inset-0 pointer-events-none hidden sm:block">
@@ -370,64 +395,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Local Currents Section */}
-      <section id="happenings" aria-label="Local City News and Currents" className="max-w-4xl mx-auto pt-16 pb-12">
-        <div className="border-t border-black/5 pt-12 space-y-10">
-          <div className="text-center space-y-2">
-            <h2 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none">{t("landing.local_currents_title")}</h2>
-            <div className="flex items-center justify-center gap-2 mt-2">
-              <p className="text-[10px] font-black tracking-[0.2em] uppercase text-zinc-400 flex items-center justify-center gap-2">
-                <MapPin className="h-3.5 w-3.5 text-primary" /> {t("landing.live_updates_from", { city: currentCity })}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 justify-items-center px-4">
-            {articles.length > 0 ? (
-              articles.map((item) => {
-                const styles = getCategoryStyles(item.category);
-                return (
-                  <Link
-                    key={item.id}
-                    href={`/local-currents?id=${item.id}`}
-                    className={`group relative flex items-center justify-between gap-4 px-6 py-5 border rounded-[24px] transition-all duration-300 shadow-sm hover:scale-[1.02] cursor-pointer select-none w-full max-w-sm md:w-[380px] shrink-0 ${styles.bg}`}
-                  >
-                    <div className="flex items-center gap-4 overflow-hidden min-w-0">
-                      <div className={`p-3 rounded-2xl transition-colors flex items-center justify-center shrink-0 border ${styles.iconContainer}`}>
-                        {getCategoryIcon(item.category)}
-                      </div>
-                      <div className="flex flex-col text-left overflow-hidden min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[9px] font-black uppercase tracking-[0.15em] flex items-center gap-1.5 shrink-0 ${styles.textColor}`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${styles.dot}`} />
-                            {item.category}
-                          </span>
-                          <span className={`text-[9px] font-black uppercase tracking-[0.15em] truncate ${styles.mutedTextColor}`}>
-                            • {calculateReadTime(item.content, t)}
-                            {item.created_at && ` • ${new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()}`}
-                          </span>
-                        </div>
-                        <ScrollingTitle
-                          title={item.title}
-                          enabled={autoScrollEnabled}
-                          titleColor={styles.titleColor}
-                          hoverTitleColor={styles.hoverTitleColor}
-                        />
-                      </div>
-                    </div>
-                    <ArrowUpRight className={`h-5 w-5 group-hover:scale-110 shrink-0 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 ${styles.arrowColor}`} />
-                  </Link>
-                );
-              })
-            ) : (
-              <div className="col-span-full text-center py-12 text-zinc-400 text-sm font-bold italic bg-zinc-50/50 rounded-3xl border border-dashed border-black/5 w-full max-w-2xl">
-                {t("landing.no_currents", { city: currentCity })}
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
     </main>
+    </div>
   )
 }
