@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
 import { AttendeeBriefingModal } from "@/components/AttendeeBriefingModal";
-import { OrganizerDetailsModal } from "@/components/OrganizerDetailsModal";
 import { EventRatingModal } from "@/components/EventRatingModal";
 import { JoinTelegramPromptModal } from "@/components/JoinTelegramPromptModal";
 import { formatTelegramLink } from "@/lib/telegramGroup";
@@ -36,7 +35,6 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
   const [passCode, setPassCode] = useState<string | null>(null);
   const [device, setDevice] = useState<'desktop' | 'ios' | 'android'>('desktop');
   const [showPhoneModal, setShowPhoneModal] = useState(false);
-  const [showOrganizerModal, setShowOrganizerModal] = useState(false);
   const [showBriefingModal, setShowBriefingModal] = useState(false);
   const [showTelegramPromptModal, setShowTelegramPromptModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -366,6 +364,12 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
   const isEventEnded = event.status === 'ended' || (event.end_time ? new Date(event.end_time).getTime() <= Date.now() : event.date_time ? new Date(event.date_time).getTime() <= Date.now() : false);
   const hasConfirmedPass = !isCancelled && !isEventEnded && rsvped && rsvpStatus === 'confirmed' && Boolean(passCode);
 
+  const organizerHref = event.organizer_slug
+    ? `/organizer/${encodeURIComponent(event.organizer_slug)}`
+    : event.organizer_email
+      ? `/organizer/${encodeURIComponent(event.organizer_email)}`
+      : null;
+
   return (
     <>
       {session?.user?.email && (
@@ -471,48 +475,85 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             >
               {event.title}
             </h1>
-            {/* Subtle Organizer Trigger with Trailing Chevron Affordance */}
-            <button
-              type="button"
-              onClick={() => setShowOrganizerModal(true)}
-              className="group inline-flex items-center gap-2 py-1 px-3 -ml-0.5 rounded-full bg-white/80 hover:bg-white active:bg-zinc-100 border border-black/10 shadow-2xs hover:shadow-xs active:scale-98 transition-all text-xs sm:text-sm text-left cursor-pointer w-fit"
-              title="Click to view host profile and bio"
-            >
-              {/* Mini Avatar */}
-              <div className="relative shrink-0">
-                {event.organizer_image ? (
-                  <img
-                    src={event.organizer_image}
-                    alt={event.organizer_name || "Organizer"}
-                    className="w-5 h-5 rounded-full object-cover border border-black/10"
-                  />
-                ) : (
-                  <div className="w-5 h-5 rounded-full bg-zinc-900 text-white flex items-center justify-center font-black text-[10px]">
-                    {((event.organizer_name || "VibeCheck Organizer").charAt(0) || "O").toUpperCase()}
-                  </div>
+            {/* Organizer Badge - Links directly to organizer events showcase */}
+            {organizerHref ? (
+              <Link
+                href={organizerHref}
+                className="group inline-flex items-center gap-2 py-1 px-3 -ml-0.5 rounded-full bg-white/80 hover:bg-white active:bg-zinc-100 border border-black/10 shadow-2xs hover:shadow-xs active:scale-98 transition-all text-xs sm:text-sm text-left cursor-pointer w-fit"
+                title={`View all events hosted by ${event.organizer_name || "organizer"}`}
+              >
+                {/* Mini Avatar */}
+                <div className="relative shrink-0">
+                  {event.organizer_image ? (
+                    <img
+                      src={event.organizer_image}
+                      alt={event.organizer_name || "Organizer"}
+                      className="w-5 h-5 rounded-full object-cover border border-black/10"
+                    />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-zinc-900 text-white flex items-center justify-center font-black text-[10px]">
+                      {((event.organizer_name || "VibeCheck Organizer").charAt(0) || "O").toUpperCase()}
+                    </div>
+                  )}
+                  {event.organizer_instagram_verified && (
+                    <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 text-white rounded-full p-0.2" title="Verified Host">
+                      <ShieldCheck className="w-2 h-2" />
+                    </span>
+                  )}
+                </div>
+
+                <span className="text-zinc-500 font-semibold">Organized by</span>
+                <span className="font-black text-zinc-950 group-hover:text-primary transition-colors">
+                  {event.organizer_name || "VibeCheck Organizer"}
+                </span>
+
+                {event.organizer_rating && Number(event.organizer_rating) > 0 && (
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 text-[10px] font-black">
+                    <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+                    <span>{Number(event.organizer_rating).toFixed(1)}</span>
+                  </span>
                 )}
-                {event.organizer_instagram_verified && (
-                  <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 text-white rounded-full p-0.2" title="Verified Host">
-                    <ShieldCheck className="w-2 h-2" />
+
+                {/* Trailing affordance chevron */}
+                <ChevronRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-900 group-hover:translate-x-0.5 transition-transform shrink-0" />
+              </Link>
+            ) : (
+              <div
+                className="group inline-flex items-center gap-2 py-1 px-3 -ml-0.5 rounded-full bg-white/80 border border-black/10 shadow-2xs text-xs sm:text-sm text-left w-fit"
+              >
+                {/* Mini Avatar */}
+                <div className="relative shrink-0">
+                  {event.organizer_image ? (
+                    <img
+                      src={event.organizer_image}
+                      alt={event.organizer_name || "Organizer"}
+                      className="w-5 h-5 rounded-full object-cover border border-black/10"
+                    />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-zinc-900 text-white flex items-center justify-center font-black text-[10px]">
+                      {((event.organizer_name || "VibeCheck Organizer").charAt(0) || "O").toUpperCase()}
+                    </div>
+                  )}
+                  {event.organizer_instagram_verified && (
+                    <span className="absolute -bottom-0.5 -right-0.5 bg-emerald-500 text-white rounded-full p-0.2" title="Verified Host">
+                      <ShieldCheck className="w-2 h-2" />
+                    </span>
+                  )}
+                </div>
+
+                <span className="text-zinc-500 font-semibold">Organized by</span>
+                <span className="font-black text-zinc-950">
+                  {event.organizer_name || "VibeCheck Organizer"}
+                </span>
+
+                {event.organizer_rating && Number(event.organizer_rating) > 0 && (
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 text-[10px] font-black">
+                    <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+                    <span>{Number(event.organizer_rating).toFixed(1)}</span>
                   </span>
                 )}
               </div>
-
-              <span className="text-zinc-500 font-semibold">Organized by</span>
-              <span className="font-black text-zinc-950 group-hover:text-primary transition-colors">
-                {event.organizer_name || "VibeCheck Organizer"}
-              </span>
-
-              {event.organizer_rating && Number(event.organizer_rating) > 0 && (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 text-[10px] font-black">
-                  <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
-                  <span>{Number(event.organizer_rating).toFixed(1)}</span>
-                </span>
-              )}
-
-              {/* Trailing affordance chevron */}
-              <ChevronRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-900 group-hover:translate-x-0.5 transition-transform shrink-0" />
-            </button>
+            )}
 
             {/* Clamped Description (Max 8 Lines) */}
             <div className="pt-1">
@@ -953,13 +994,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         </div>
       </div>
 
-      <OrganizerDetailsModal
-        isOpen={showOrganizerModal}
-        onClose={() => setShowOrganizerModal(false)}
-        event={event}
-        userEmail={session?.user?.email || null}
-        userImage={session?.user?.image || null}
-      />
+
 
       <AttendeeBriefingModal
         isOpen={showBriefingModal}
