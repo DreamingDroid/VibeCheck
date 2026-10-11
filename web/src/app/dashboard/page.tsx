@@ -10,13 +10,14 @@ import { Button } from "@/components/ui/button";
 import { useCity, isEventEnded, VibeEvent } from "@/context/CityContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useTranslation } from "@/context/LanguageContext";
-import { CategoryDecorations, getCategoryCardClass, getCategoryAccentColor, getCategoryBadgeClass, getCategoryDarkTitleColor } from "@/components/CategoryDecorations";
+import { CategoryDecorations, getCategoryCardClass, getCategoryStubClass, getCategoryAccentColor, getCategoryBadgeClass, getCategoryDarkTitleColor } from "@/components/CategoryDecorations";
 import { TicketPerforationDivider } from "@/components/TicketPerforationDivider";
 import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Users, ChevronLeft, ChevronRight, ArrowRight, ArrowLeft, Clock, Send, LayoutGrid, Globe, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
-import { isSameDay, startOfDay, isBefore, isAfter, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, format, isToday } from "date-fns";
+import { isSameDay, startOfDay, isBefore, isAfter, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, format, isToday, startOfMonth, addMonths, subMonths } from "date-fns";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { siteConfig } from "@/config/site";
 
@@ -54,10 +55,41 @@ function DashboardContent() {
   const [isTickerHovered, setIsTickerHovered] = useState(false);
 
   const todayDate = new Date();
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => startOfMonth(new Date()));
+  const minMonth = startOfMonth(todayDate);
+  const maxMonth = startOfMonth(new Date(todayDate.getFullYear(), 11, 1));
+  const canGoPrevMonth = isAfter(startOfMonth(currentMonth), minMonth);
+  const canGoNextMonth = isBefore(startOfMonth(currentMonth), maxMonth);
+
   const minWeekStart = startOfWeek(todayDate, { weekStartsOn: 1 });
   const maxWeekStart = startOfWeek(new Date(todayDate.getFullYear(), 11, 31), { weekStartsOn: 1 });
   const canGoPrevWeek = isAfter(startOfDay(currentWeekStart), startOfDay(minWeekStart));
   const canGoNextWeek = isBefore(startOfDay(currentWeekStart), startOfDay(maxWeekStart));
+
+  const calendarSwipe = useSwipeGesture({
+    onSwipeLeft: () => {
+      if (calendarViewMode === 'month') {
+        if (canGoNextMonth) {
+          setCurrentMonth(prev => addMonths(prev, 1));
+        }
+      } else {
+        if (canGoNextWeek) {
+          setCurrentWeekStart(prev => addWeeks(prev, 1));
+        }
+      }
+    },
+    onSwipeRight: () => {
+      if (calendarViewMode === 'month') {
+        if (canGoPrevMonth) {
+          setCurrentMonth(prev => subMonths(prev, 1));
+        }
+      } else {
+        if (canGoPrevWeek) {
+          setCurrentWeekStart(prev => subWeeks(prev, 1));
+        }
+      }
+    },
+  });
 
   const fetchVipInvites = async (userEmail: string) => {
     try {
@@ -92,12 +124,18 @@ function DashboardContent() {
       try {
         const res = await fetch(`${baseUrl}/api/news?city=${encodeURIComponent(currentCity)}`);
         const json = await res.json();
-        if (json.success && json.data) {
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
           setDashboardNews(json.data.slice(0, 4));
           setCurrentNewsIndex(0);
           setFadeState("visible");
+        } else {
+          setDashboardNews([]);
         }
-      } catch (err) {}
+      } catch (err) {
+        setDashboardNews([]);
+      }
+    } else {
+      setDashboardNews([]);
     }
   });
 
@@ -134,17 +172,25 @@ function DashboardContent() {
 
   useEffect(() => {
     if (currentCity) {
+      setDashboardNews([]);
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
       fetch(`${baseUrl}/api/news?city=${encodeURIComponent(currentCity)}`)
         .then(r => r.json())
         .then(res => {
-          if (res.success && res.data) {
+          if (res.success && Array.isArray(res.data) && res.data.length > 0) {
             setDashboardNews(res.data.slice(0, 4));
             setCurrentNewsIndex(0);
             setFadeState("visible");
+          } else {
+            setDashboardNews([]);
           }
         })
-        .catch(err => console.error("Could not fetch news", err));
+        .catch(err => {
+          console.error("Could not fetch news", err);
+          setDashboardNews([]);
+        });
+    } else {
+      setDashboardNews([]);
     }
   }, [currentCity]);
 
@@ -186,26 +232,33 @@ function DashboardContent() {
   };
 
   const handleSharePlatform = async () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const shareData = {
       title: "VibeCheck",
       text: "Join VibeCheck - the ultimate insider's guide to networking, discovery and culture in Visakhapatnam!",
-      url: window.location.origin,
+      url: origin,
     };
     
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       try {
-        await navigator.share(shareData);
-        toast.success("Platform shared successfully!");
-      } catch (err) {
-        // user cancelled or error
+        if (navigator.canShare && !navigator.canShare(shareData)) {
+          await navigator.share({ title: "VibeCheck", url: origin });
+        } else {
+          await navigator.share(shareData);
+        }
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
       }
-    } else {
-      try {
-        await navigator.clipboard.writeText(window.location.origin);
-        toast.success("VibeCheck link copied to clipboard!");
-      } catch (err) {
-        toast.error("Failed to copy link.");
+    }
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(origin);
       }
+      toast.success("VibeCheck link copied to clipboard!");
+    } catch {
+      toast.error("Failed to copy link.");
     }
   };
 
@@ -220,20 +273,26 @@ function DashboardContent() {
       url: shareUrl,
     };
     
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       try {
-        await navigator.share(shareData);
-        toast.success("Event shared!");
-      } catch (err) {
-        // user cancelled
+        if (navigator.canShare && !navigator.canShare(shareData)) {
+          await navigator.share({ title: `${event.title} | VibeCheck`, url: shareUrl });
+        } else {
+          await navigator.share(shareData);
+        }
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
       }
-    } else {
-      try {
+    }
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(shareUrl);
-        toast.success("Event link copied to clipboard!");
-      } catch (err) {
-        toast.error("Failed to copy link.");
       }
+      toast.success("Event link copied to clipboard!");
+    } catch {
+      toast.error("Failed to copy link.");
     }
   };
 
@@ -414,7 +473,8 @@ function DashboardContent() {
   const isCategoryEmpty = filteredEvents.length === 0;
   const showCalendarView = (isCategoryEmpty || forceCalendarOpen) && !selectedDate;
   
-  const featuredEvent = !selectedDate ? displayEvents.find(ev => Boolean(ev.is_featured)) : undefined;
+  const isAllCategories = !selectedCategory || selectedCategory === "The Latest";
+  const featuredEvent = (!selectedDate && isAllCategories) ? displayEvents.find(ev => Boolean(ev.is_featured)) : undefined;
   const isFeaturedRsvped = Boolean(
     featuredEvent?.user_rsvped ||
     (session?.user?.email && vipInvites.some(v => v.id === featuredEvent?.id && (v.rsvp_status === 'going' || v.rsvp_status === 'confirmed' || v.rsvp_status === 'pending')))
@@ -560,7 +620,7 @@ function DashboardContent() {
       </div>
 
       {/* Local Currents RSS Feed Banner at the top */}
-      {dashboardNews.length > 0 && activeNews && (
+      {dashboardNews.length > 0 && activeNews && Boolean(activeNews.title) && (
         <div 
           className="w-full bg-white/70 backdrop-blur-md border-b border-primary/20 bg-gradient-to-r from-emerald-500/5 via-primary/10 to-teal-500/5 text-zinc-900 py-3 md:py-3.5 overflow-hidden relative shadow-[0_4px_20px_rgba(0,0,0,0.03)] select-none transition-colors"
           onMouseEnter={() => setIsTickerHovered(true)}
@@ -637,7 +697,10 @@ function DashboardContent() {
             </div>
           </div>
           
-          <div className={`w-full p-3 sm:p-5 md:p-6 rounded-2xl md:rounded-[24px] border-2 md:border-4 border-white shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] overflow-hidden relative bg-gradient-to-br from-white via-zinc-50 to-zinc-100/80 ${isVibrant ? 'vibe-hover-lift' : ''}`}>
+          <div 
+            {...calendarSwipe.handlers}
+            className={`w-full touch-pan-y select-none p-3 sm:p-5 md:p-6 rounded-2xl md:rounded-[24px] border-2 md:border-4 border-white shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] overflow-hidden relative bg-gradient-to-br from-white via-zinc-50 to-zinc-100/80 ${isVibrant ? 'vibe-hover-lift' : ''}`}
+          >
             {isVibrant && (
               <div 
                 className="absolute inset-0 pointer-events-none"
@@ -654,12 +717,16 @@ function DashboardContent() {
               <div className="relative z-10 w-full [&_table]:block [&_table]:mt-2 md:[&_table]:mt-4 [&_table]:w-full [&_thead]:block [&_tbody]:block [&_tr]:grid [&_tr]:grid-cols-7 [&_tr]:gap-1 sm:[&_tr]:gap-1.5 md:[&_tr]:gap-2.5 [&_tr]:mb-1 sm:[&_tr]:mb-1.5 md:[&_tr]:mb-2 [&_th]:block [&_td]:block [&_th]:text-center [&_th]:text-zinc-400 [&_th]:font-black [&_th]:uppercase [&_th]:tracking-[0.15em] [&_th]:text-[9px] md:[&_th]:text-[11px] [&_th]:pb-1 sm:[&_th]:pb-2">
                 <DayPicker
                   mode="single"
+                  month={currentMonth}
+                  onMonthChange={setCurrentMonth}
                   selected={selectedDate}
                   onSelect={setSelectedDate}
                   showOutsideDays
-                  fromMonth={new Date()}
-                  toMonth={new Date(new Date().getFullYear(), 11)}
-                  className="w-full bg-transparent p-0 m-0 font-helvetica"
+                  fromMonth={minMonth}
+                  toMonth={maxMonth}
+                  startMonth={minMonth}
+                  endMonth={maxMonth}
+                  className="w-full bg-transparent p-0 m-0 font-helvetica select-none"
                   classNames={{
                     months: "w-full flex flex-col",
                     month: "w-full",
@@ -867,6 +934,7 @@ function DashboardContent() {
                     onClick={() => {
                       const today = new Date();
                       setCurrentWeekStart(startOfWeek(today, { weekStartsOn: 1 }));
+                      setCurrentMonth(startOfMonth(today));
                       setSelectedDate(today);
                     }}
                     className="ringer-button bg-zinc-100 hover:bg-zinc-200 text-black text-[10px] py-1 px-3 border border-black/10"
@@ -1211,57 +1279,71 @@ function DashboardContent() {
 
       {/* Editorial Hero Section */}
       {!showCalendarView && featuredEvent && (
-        <section className={`relative group overflow-hidden ringer-card h-auto flex flex-col md:flex-row shadow-2xl rounded-2xl md:rounded-[24px] ${
-          isVibrant ? `${getCategoryCardClass(featuredEvent.category)} border-none text-zinc-950` : 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 border border-black/10 text-white'
+        <section className={`relative group h-auto flex flex-col md:flex-row rounded-2xl md:rounded-[24px] transition-all ticket-card-wrapper ${
+          isVibrant ? 'text-zinc-950' : 'text-white'
         }`}>
-           {isVibrant && <CategoryDecorations category={featuredEvent.category} showAccent={false} />}
-           {/* Left Editorial Gradient Card */}
-           <div className="w-full md:w-1/2 p-6 sm:p-8 md:p-10 flex flex-col justify-between gap-4 sm:gap-6 relative overflow-hidden z-10">
-              <div className="space-y-4 sm:space-y-5 relative z-10">
-                <div className="flex items-center justify-between">
-                  <div className="sticker-badge bg-black text-white w-fit px-4 border-none flex items-center gap-2 shadow-lg font-black">
-                    <TrendingUp className="h-3.5 w-3.5 text-pink-400" />
-                    Featured Vibe
+           {/* Left Editorial Gradient Card Stub */}
+           <div className={`flex-1 p-6 sm:p-8 lg:p-9 flex flex-col justify-between gap-5 sm:gap-6 relative overflow-hidden z-10 rounded-t-2xl md:rounded-t-none md:rounded-l-[24px] ticket-stub-primary ${
+             isVibrant ? getCategoryCardClass(featuredEvent.category) : 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500'
+           }`}>
+              {isVibrant && <CategoryDecorations category={featuredEvent.category} showAccent={false} />}
+              <div className="space-y-3 sm:space-y-4 relative z-10">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="featured-vibe-stream-badge text-white w-fit px-3.5 py-1 rounded-full text-xs flex items-center gap-1.5 font-black uppercase tracking-wider drop-shadow-sm select-none">
+                    <Sparkles className="h-3.5 w-3.5 text-white animate-pulse" />
+                    <span>Featured Vibe</span>
                   </div>
                   {featuredEvent.participant_limit && (
-                    <div className={`sticker-badge border text-[10px] font-bold ${
+                    <div className={`sticker-badge border text-[10px] sm:text-xs font-bold px-3 py-1 ${
                       isVibrant ? 'bg-black/5 text-zinc-800 border-black/10' : 'bg-white/20 backdrop-blur-md text-white border-white/30'
                     }`}>
                       {Math.max(0, featuredEvent.participant_limit - (featuredEvent.rsvp_count || 0))} spots left
                     </div>
                   )}
                 </div>
-                <div className="space-y-3 sm:space-y-3.5">
+                <div className="space-y-2 sm:space-y-2.5">
                   <h2 
-                    className={`text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-black tracking-tighter leading-tight sm:leading-[1.05] uppercase italic break-words hyphens-auto ${
+                    className={`text-2xl sm:text-3xl md:text-3xl lg:text-4xl font-black tracking-tighter leading-tight sm:leading-[1.1] uppercase italic break-words hyphens-auto ${
                       isVibrant ? '' : 'text-white drop-shadow-md'
                     }`}
                     style={isVibrant ? { color: getCategoryDarkTitleColor(featuredEvent.category) } : undefined}
                   >
                     {featuredEvent.title}
                   </h2>
-                  <p className={`italic font-normal line-clamp-3 text-xs sm:text-sm md:text-base leading-relaxed max-w-lg tracking-[-0.01em] ${
+                  <p className={`italic font-normal line-clamp-3 text-xs sm:text-sm md:text-[14px] leading-relaxed max-w-xl tracking-[-0.01em] ${
                     isVibrant ? 'text-zinc-600' : 'text-white/90 drop-shadow-sm'
                   }`}>
                     {featuredEvent.description}
                   </p>
                 </div>
               </div>
-              <div className="pt-3 sm:pt-4 relative z-10 mt-auto">
+              <div className="pt-2 sm:pt-4 relative z-10 mt-auto">
                 {isFeaturedRsvped ? (
                   <Link href={`/event/${featuredEvent.id}`} className="inline-block">
-                    <button className={`ringer-button px-7 py-3 text-xs sm:text-sm shadow-xl flex items-center gap-2 font-black tracking-wider transition-transform group-hover:scale-105 active:scale-95 ${
-                      isVibrant ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-zinc-100'
-                    }`}>
+                    <button 
+                      className={`ringer-button px-6 py-3 sm:px-7 sm:py-3.5 text-xs sm:text-sm shadow-md hover:shadow-xl flex items-center gap-2 font-black tracking-wider transition-all group-hover:scale-105 active:scale-95 text-white ${
+                        isVibrant ? '' : 'bg-white text-black hover:bg-zinc-100'
+                      }`}
+                      style={isVibrant ? {
+                        backgroundColor: getCategoryDarkTitleColor(featuredEvent.category),
+                        boxShadow: `0 8px 24px -4px ${getCategoryDarkTitleColor(featuredEvent.category)}55`,
+                      } : undefined}
+                    >
                       <span>VIEW YOUR PASS</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </Link>
                 ) : (
                   <Link href={`/event/${featuredEvent.id}`} className="inline-block">
-                    <button className={`ringer-button px-7 py-3 text-xs sm:text-sm shadow-xl flex items-center gap-2 font-black tracking-wider transition-transform group-hover:scale-105 active:scale-95 ${
-                      isVibrant ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-zinc-100'
-                    }`}>
+                    <button 
+                      className={`ringer-button px-6 py-3 sm:px-7 sm:py-3.5 text-xs sm:text-sm shadow-md hover:shadow-xl flex items-center gap-2 font-black tracking-wider transition-all group-hover:scale-105 active:scale-95 text-white ${
+                        isVibrant ? '' : 'bg-white text-black hover:bg-zinc-100'
+                      }`}
+                      style={isVibrant ? {
+                        backgroundColor: getCategoryDarkTitleColor(featuredEvent.category),
+                        boxShadow: `0 8px 24px -4px ${getCategoryDarkTitleColor(featuredEvent.category)}55`,
+                      } : undefined}
+                    >
                       <span>SECURE YOUR SPOT</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
@@ -1273,61 +1355,61 @@ function DashboardContent() {
            {/* Torn Ticket Zig-Zag Perforation Divider */}
            <TicketPerforationDivider />
 
-           {/* Right Logistics & Experience Hub — Unified Frosted Ticket Stub */}
-           <div className={`w-full md:w-1/2 p-6 sm:p-8 md:p-10 flex flex-col justify-between gap-6 relative z-10 ${
-             isVibrant ? 'bg-white/35 backdrop-blur-md' : 'bg-white'
+           {/* Right Logistics & Experience Hub — Category Tinted Frosted Ticket Stub */}
+           <div className={`w-full md:w-80 lg:w-96 p-5 sm:p-6 lg:p-7 flex flex-col justify-between gap-4 sm:gap-5 relative z-10 rounded-b-2xl md:rounded-b-none md:rounded-r-[24px] ticket-stub-secondary ${
+             isVibrant ? `${getCategoryStubClass(featuredEvent.category)} backdrop-blur-md` : 'bg-white text-black'
            }`}>
               {/* Top Tags & Quick Action Bar */}
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div className={`sticker-badge ${getCategoryBadgeClass(featuredEvent.category)} border-none shadow-xs`}>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                  <div className={`sticker-badge ${getCategoryBadgeClass(featuredEvent.category)} border-none shadow-xs text-[10px] sm:text-xs font-black`}>
                     {featuredEvent.category}
                   </div>
                   {featuredEvent.event_type === 'online' ? (
-                    <div className="sticker-badge bg-sky-100 text-sky-900 border-none font-black text-[10px] flex items-center gap-1">
+                    <div className="sticker-badge bg-sky-100 text-sky-900 border-none font-black text-[10px] sm:text-xs flex items-center gap-1">
                       <Globe className="h-3 w-3 text-sky-600" /> Online
                     </div>
                   ) : (
-                    <div className="sticker-badge bg-zinc-100 border-none text-zinc-700 font-bold text-[10px]">
+                    <div className="sticker-badge bg-zinc-100 border-none text-zinc-700 font-bold text-[10px] sm:text-xs">
                       {featuredEvent.city || 'In-Person'}
                     </div>
                   )}
-                  <div className="sticker-badge bg-zinc-100 border-none text-zinc-600 font-bold text-[10px]">
+                  <div className="sticker-badge bg-zinc-100 border-none text-zinc-600 font-bold text-[10px] sm:text-xs">
                     {featuredEvent.is_paid ? "Paid Entry" : "Free Entry"}
                   </div>
                   {featuredEvent.min_age !== null && featuredEvent.min_age !== undefined && Number(featuredEvent.min_age) > 0 && (
-                    <div className="sticker-badge bg-red-100 text-red-700 border-none font-black text-[10px] flex items-center gap-0.5">
+                    <div className="sticker-badge bg-red-100 text-red-700 border-none font-black text-[10px] sm:text-xs flex items-center gap-0.5">
                       🔞 {featuredEvent.min_age}+
                     </div>
                   )}
                   {featuredEvent.suitable_age && (
-                    <div className="sticker-badge bg-purple-50 text-purple-700 border-none font-bold text-[10px] flex items-center gap-0.5">
+                    <div className="sticker-badge bg-purple-50 text-purple-700 border-none font-bold text-[10px] sm:text-xs flex items-center gap-0.5">
                       👥 {featuredEvent.suitable_age}
                     </div>
                   )}
                   {featuredEvent.status === 'cancelled' && (
-                    <div className="sticker-badge bg-rose-600 border-none text-white font-black text-[10px] uppercase tracking-wider animate-pulse flex items-center gap-1">
+                    <div className="sticker-badge bg-rose-600 border-none text-white font-black text-[10px] sm:text-xs uppercase tracking-wider animate-pulse flex items-center gap-1">
                       🚨 Cancelled
                     </div>
                   )}
                   {featuredEvent.status === 'housefull' && (
-                    <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] animate-pulse">
+                    <div className="sticker-badge bg-red-500 border-none text-white font-black text-[10px] sm:text-xs animate-pulse">
                       Sold Out
                     </div>
                   )}
                   {featuredEvent.status === 'filling_fast' && (
-                    <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] animate-pulse flex items-center gap-1">
+                    <div className="sticker-badge bg-orange-500 border-none text-white font-black text-[10px] sm:text-xs animate-pulse flex items-center gap-1">
                       <Sparkles className="h-3 w-3" /> Filling Fast
                     </div>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={(e) => handleShareEvent(e, featuredEvent)}
                     title="Share this vibe"
                     aria-label="Share this vibe"
-                    className="h-9 w-9 rounded-full border border-black/10 flex items-center justify-center text-zinc-600 hover:text-black hover:border-black hover:bg-zinc-50 transition-all active:scale-95 shadow-xs"
+                    className="h-9 w-9 rounded-full border border-black/10 bg-white/80 hover:bg-white flex items-center justify-center text-zinc-700 hover:text-black hover:border-black transition-all active:scale-95 shadow-xs"
                   >
                     <Share2 className="h-4 w-4" />
                   </button>
@@ -1335,11 +1417,11 @@ function DashboardContent() {
               </div>
 
               {/* Structured Details Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 my-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-3">
                 {/* Location Card */}
-                <div className="bg-white/75 backdrop-blur-xs border-none rounded-xl p-4 flex flex-col justify-between gap-3 hover:bg-white/90 transition-all shadow-xs group/loc">
+                <div className="bg-white/90 backdrop-blur-xs border border-black/5 rounded-xl p-3.5 sm:p-4 flex flex-col justify-between gap-2.5 hover:bg-white hover:shadow-md transition-all shadow-[0_2px_10px_rgba(0,0,0,0.03)] group/loc">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 flex items-center gap-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400 flex items-center gap-1.5">
                       <MapPin className="h-3.5 w-3.5 text-rose-500" /> Where
                     </span>
                     <a
@@ -1358,7 +1440,7 @@ function DashboardContent() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="text-base font-black tracking-tight text-black line-clamp-2 hover:text-primary transition-colors block"
+                      className="text-sm sm:text-base font-black tracking-tight text-black line-clamp-1 hover:text-primary transition-colors block"
                     >
                       {featuredEvent.location}
                     </a>
@@ -1369,9 +1451,9 @@ function DashboardContent() {
                 </div>
 
                 {/* Schedule Card */}
-                <div className="bg-white/75 backdrop-blur-xs border-none rounded-xl p-4 flex flex-col justify-between gap-3 hover:bg-white/90 transition-all shadow-xs">
+                <div className="bg-white/90 backdrop-blur-xs border border-black/5 rounded-xl p-3.5 sm:p-4 flex flex-col justify-between gap-2.5 hover:bg-white hover:shadow-md transition-all shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 flex items-center gap-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400 flex items-center gap-1.5">
                       <CalendarIcon className="h-3.5 w-3.5 text-indigo-500" /> When
                     </span>
                     <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100/50">
@@ -1379,7 +1461,7 @@ function DashboardContent() {
                     </span>
                   </div>
                   <div>
-                    <div className="text-base font-black tracking-tight text-black line-clamp-1">
+                    <div className="text-sm sm:text-base font-black tracking-tight text-black line-clamp-1">
                       {new Date(featuredEvent.date_time).toLocaleDateString(undefined, { weekday: 'long' })}
                     </div>
                     <div className="text-xs font-semibold text-zinc-500 flex items-center gap-1 mt-0.5">
@@ -1394,12 +1476,17 @@ function DashboardContent() {
               <div className="pt-4 border-t border-black/5 flex items-center justify-between gap-3 flex-wrap">
                 {/* Host Info & Follow */}
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-full bg-black text-white font-black text-xs flex items-center justify-center uppercase shadow-sm shrink-0">
+                  <div 
+                    className="h-8 w-8 sm:h-9 sm:w-9 rounded-full text-white font-black text-xs flex items-center justify-center uppercase shadow-xs shrink-0"
+                    style={isVibrant ? {
+                      backgroundColor: getCategoryDarkTitleColor(featuredEvent.category),
+                    } : { backgroundColor: '#000000' }}
+                  >
                     {featuredEvent.organizer_email ? featuredEvent.organizer_email.charAt(0) : "V"}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Host</div>
-                    <div className="text-xs font-black text-black truncate max-w-[120px] sm:max-w-[160px]">
+                    <div className="text-[10px] font-black uppercase tracking-wider text-zinc-400 leading-none mb-0.5">Host</div>
+                    <div className="text-xs font-black text-black truncate max-w-[120px] sm:max-w-[160px] leading-tight">
                       {featuredEvent.organizer_email ? featuredEvent.organizer_email.split('@')[0] : 'Vibe Host'}
                     </div>
                   </div>
@@ -1411,15 +1498,7 @@ function DashboardContent() {
                   </button>
                 </div>
 
-                {/* RSVP / Live Vibe Counter */}
-                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200/60 text-emerald-800 px-3.5 py-1.5 rounded-full font-black text-xs shadow-xs">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-                  </span>
-                  <Users className="h-3.5 w-3.5 text-emerald-600" />
-                  <span>{featuredEvent.rsvp_count || 0} Interested</span>
-                </div>
+
               </div>
            </div>
         </section>
@@ -1506,41 +1585,21 @@ function DashboardContent() {
                    </p>
                  </div>
 
-                 <div className="pt-6 border-t border-black/5 flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1.5 text-xs font-black uppercase text-black">
-                        <CalendarIcon className="h-3.5 w-3.5" style={{ color: isVibrant ? getCategoryAccentColor(ev.category) : undefined }} />
-                        {new Date(ev.date_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      </div>
-                      <a
-                        href={ev.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ev.location}, ${ev.city || ''}`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="pointer-events-auto relative z-20 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-zinc-700 uppercase tracking-wide hover:text-black hover:underline cursor-pointer transition-colors"
-                      >
-                        <MapPin className="h-3 w-3 text-zinc-500 shrink-0" />
-                        <span className="truncate max-w-[200px] sm:max-w-[240px]">{ev.location}</span>
-                      </a>
-                      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide mt-1" style={{ color: isVibrant ? getCategoryAccentColor(ev.category) : '#19A74E' }}>
-                        <Users className="h-2.5 w-2.5" />
-                        <span>{ev.rsvp_count || 0} Interested</span>
-                      </div>
+                 <div className="pt-5 border-t border-black/5 flex flex-col gap-1 min-w-0">
+                    <div className="flex items-center gap-1.5 text-xs font-black uppercase text-black">
+                      <CalendarIcon className="h-3.5 w-3.5 shrink-0" style={{ color: isVibrant ? getCategoryAccentColor(ev.category) : undefined }} />
+                      <span>{new Date(ev.date_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                     </div>
-                    
-                    <div 
-                      className={`h-10 w-10 flex items-center justify-center rounded-full transition-all group-hover:scale-110 ${
-                        isVibrant 
-                          ? 'text-white shadow-md' 
-                          : 'bg-black text-white group-hover:bg-primary'
-                      }`}
-                      style={isVibrant ? { 
-                        backgroundColor: getCategoryAccentColor(ev.category),
-                        boxShadow: `0 4px 14px ${getCategoryAccentColor(ev.category)}60` 
-                      } : {}}
+                    <a
+                      href={ev.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ev.location}, ${ev.city || ''}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="pointer-events-auto relative z-20 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-zinc-700 uppercase tracking-wide hover:text-black hover:underline cursor-pointer transition-colors min-w-0"
                     >
-                      <Sparkles className="h-4 w-4" />
-                    </div>
+                      <MapPin className="h-3 w-3 text-zinc-500 shrink-0" />
+                      <span className="truncate" title={ev.location}>{ev.location}</span>
+                    </a>
                  </div>
               </div>
             </div>
@@ -1643,7 +1702,7 @@ function DashboardContent() {
             setForceCalendarOpen(true);
             router.push('/dashboard?view=calendar');
           }}
-          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-black text-white h-14 w-14 hover:w-48 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:bg-primary hover:text-black hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out border border-white/20 group overflow-hidden"
+          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-gradient-to-br from-emerald-500 to-teal-600 text-white h-14 w-14 hover:w-48 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(16,185,129,0.4)] hover:shadow-[0_14px_35px_rgba(16,185,129,0.55)] hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out border border-white/30 group overflow-hidden"
           title="Calendar View"
         >
           <div className="flex items-center justify-center whitespace-nowrap">
@@ -1665,7 +1724,7 @@ function DashboardContent() {
             setSelectedDate(undefined);
             router.push('/dashboard');
           }}
-          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-black text-white h-14 w-14 hover:w-44 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:bg-primary hover:text-black hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out border border-white/20 group overflow-hidden"
+          className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-gradient-to-br from-indigo-500 to-violet-600 text-white h-14 w-14 hover:w-44 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(99,102,241,0.4)] hover:shadow-[0_14px_35px_rgba(99,102,241,0.55)] hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out border border-white/30 group overflow-hidden"
           title="Card View"
         >
           <div className="flex items-center justify-center whitespace-nowrap">

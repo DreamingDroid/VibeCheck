@@ -5,7 +5,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DayPicker } from "react-day-picker";
-import { format, parseISO, isValid } from "date-fns";
+import { format, parseISO, isValid, addMonths, subMonths, startOfMonth } from "date-fns";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 interface VibeDatePickerProps {
   value: string; // YYYY-MM-DD string
@@ -26,6 +27,13 @@ export function VibeDatePicker({ value, onChange, label, className, error }: Vib
     }
   }
 
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => selectedDate || new Date());
+
+  const swipeHandlers = useSwipeGesture({
+    onSwipeLeft: () => setCurrentMonth(prev => addMonths(prev, 1)),
+    onSwipeRight: () => setCurrentMonth(prev => subMonths(prev, 1)),
+  });
+
   const handleSelect = (date: Date | undefined) => {
     if (date) {
       const yyyy = date.getFullYear();
@@ -45,7 +53,12 @@ export function VibeDatePicker({ value, onChange, label, className, error }: Vib
           {label}
         </label>
       )}
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (isOpen && selectedDate) {
+          setCurrentMonth(selectedDate);
+        }
+      }}>
         <PopoverTrigger
           className={cn(
             "flex h-12 w-full items-center justify-between rounded-xl border border-black/5 bg-zinc-50 px-4 py-2 text-xs font-black uppercase tracking-tight transition-all hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary/20",
@@ -58,12 +71,15 @@ export function VibeDatePicker({ value, onChange, label, className, error }: Vib
           <CalendarIcon className="h-4 w-4 text-zinc-400 shrink-0" />
         </PopoverTrigger>
         <PopoverContent
+          {...swipeHandlers.handlers}
           side="bottom"
           align="start"
-          className="w-auto p-5 rounded-[32px] shadow-2xl border border-black/5 outline-none bg-white z-50"
+          className="w-auto p-5 rounded-[32px] shadow-2xl border border-black/5 outline-none bg-white z-50 touch-pan-y select-none"
         >
           <DayPicker
             mode="single"
+            month={currentMonth}
+            onMonthChange={setCurrentMonth}
             selected={selectedDate}
             onSelect={handleSelect}
             autoFocus

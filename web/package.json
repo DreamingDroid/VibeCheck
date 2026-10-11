@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env APP_ENV=local next dev -p 3500",
-    "dev:dev": "cross-env APP_ENV=development next dev -p 3500",
-    "dev:uat": "cross-env APP_ENV=uat next dev -p 3500",
-    "dev:prd": "cross-env APP_ENV=production next dev -p 3500",
+    "dev": "cross-env APP_ENV=local next dev -H 0.0.0.0 -p 3500",
+    "dev:dev": "cross-env APP_ENV=development next dev -H 0.0.0.0 -p 3500",
+    "dev:uat": "cross-env APP_ENV=uat next dev -H 0.0.0.0 -p 3500",
+    "dev:prd": "cross-env APP_ENV=production next dev -H 0.0.0.0 -p 3500",
     "build": "cross-env APP_ENV=production next build",
     "build:dev": "cross-env APP_ENV=development next build",
     "build:uat": "cross-env APP_ENV=uat next build",
@@ -17,7 +17,8 @@
     "start:prd": "cross-env APP_ENV=production next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
@@ -53,6 +54,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/ui": "^4.1.11",
     "autoprefixer": "^10.4.27",
     "cross-env": "^10.1.0",
     "eslint": "^8",

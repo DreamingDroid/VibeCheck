@@ -295,18 +295,6 @@ export function OrganizerDetailsModal({
                   <Share2 className="h-4 w-4" />
                 )}
               </button>
-
-              {event?.whatsapp_group_link && (
-                <a
-                  href={formatTelegramLink(event.whatsapp_group_link)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Join Organizer Telegram Group"
-                  className="h-12 w-12 rounded-2xl bg-[#229ED9] hover:bg-[#1d8dc3] text-white flex items-center justify-center transition-all active:scale-95 shadow-md shadow-[#229ED9]/20 cursor-pointer shrink-0"
-                >
-                  <Send className="h-4 w-4 fill-white" />
-                </a>
-              )}
             </div>
 
             {/* About Organizer / Bio Section */}

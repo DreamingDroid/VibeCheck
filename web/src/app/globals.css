@@ -122,6 +122,84 @@
   position: relative;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   AUTHENTIC REAL-WORLD TICKET SHAPE & CONTOURED SHADOW SYSTEM
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Outer ticket wrapper: uses multi-layer realistic drop-shadow that follows the ticket alpha contour including cutout notches */
+.ticket-card-wrapper {
+  position: relative;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.06))
+          drop-shadow(0 8px 20px rgba(0, 0, 0, 0.10))
+          drop-shadow(0 16px 36px rgba(0, 0, 0, 0.06));
+  transition: filter 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: filter, transform;
+}
+
+[data-theme="vibrant"] .ticket-card-wrapper {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08))
+          drop-shadow(0 10px 24px rgba(0, 0, 0, 0.12))
+          drop-shadow(0 20px 44px rgba(0, 0, 0, 0.08));
+}
+
+.ticket-card-wrapper:hover {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.09))
+          drop-shadow(0 14px 28px rgba(0, 0, 0, 0.14))
+          drop-shadow(0 26px 52px rgba(0, 0, 0, 0.10));
+}
+
+.ticket-card-wrapper .ticket-stub-primary,
+.ticket-card-wrapper .ticket-stub-secondary {
+  box-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.85),
+              inset 0 -1px 1.5px 0 rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Primary Stub (Left side on Desktop, Top side on Mobile) */
+.ticket-stub-primary {
+  /* On Mobile (<md): cutouts at bottom-left and bottom-right corners */
+  -webkit-mask-image: radial-gradient(circle 12px at 0% 100%, transparent 11.5px, black 12px),
+                      radial-gradient(circle 12px at 100% 100%, transparent 11.5px, black 12px);
+  mask-image: radial-gradient(circle 12px at 0% 100%, transparent 11.5px, black 12px),
+              radial-gradient(circle 12px at 100% 100%, transparent 11.5px, black 12px);
+  -webkit-mask-composite: destination-in;
+  mask-composite: intersect;
+}
+
+@media (min-width: 768px) {
+  /* On Desktop (>=md): cutouts at top-right and bottom-right corners */
+  .ticket-stub-primary {
+    -webkit-mask-image: radial-gradient(circle 12px at 100% 0%, transparent 11.5px, black 12px),
+                        radial-gradient(circle 12px at 100% 100%, transparent 11.5px, black 12px);
+    mask-image: radial-gradient(circle 12px at 100% 0%, transparent 11.5px, black 12px),
+                radial-gradient(circle 12px at 100% 100%, transparent 11.5px, black 12px);
+    -webkit-mask-composite: destination-in;
+    mask-composite: intersect;
+  }
+}
+
+/* Secondary Stub (Right side on Desktop, Bottom side on Mobile) */
+.ticket-stub-secondary {
+  /* On Mobile (<md): cutouts at top-left and top-right corners */
+  -webkit-mask-image: radial-gradient(circle 12px at 0% 0%, transparent 11.5px, black 12px),
+                      radial-gradient(circle 12px at 100% 0%, transparent 11.5px, black 12px);
+  mask-image: radial-gradient(circle 12px at 0% 0%, transparent 11.5px, black 12px),
+              radial-gradient(circle 12px at 100% 0%, transparent 11.5px, black 12px);
+  -webkit-mask-composite: destination-in;
+  mask-composite: intersect;
+}
+
+@media (min-width: 768px) {
+  /* On Desktop (>=md): cutouts at top-left and bottom-left corners */
+  .ticket-stub-secondary {
+    -webkit-mask-image: radial-gradient(circle 12px at 0% 0%, transparent 11.5px, black 12px),
+                        radial-gradient(circle 12px at 0% 100%, transparent 11.5px, black 12px);
+    mask-image: radial-gradient(circle 12px at 0% 0%, transparent 11.5px, black 12px),
+                radial-gradient(circle 12px at 0% 100%, transparent 11.5px, black 12px);
+    -webkit-mask-composite: destination-in;
+    mask-composite: intersect;
+  }
+}
+
 @media (min-width: 768px) {
   [data-theme="vibrant"] .ringer-card,
   [data-theme="vibrant"] [class*="vibe-card-"] {
@@ -188,6 +266,49 @@
 [data-theme="vibrant"] .vibe-card-general {
   background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 35%, #F8FAFC 75%, #FFFFFF 100%);
 }
+
+/* Subtle category ambient frosted tint for secondary ticket stubs */
+[data-theme="vibrant"] .vibe-stub-music {
+  background: radial-gradient(circle at 100% 0%, rgba(254, 243, 199, 0.75) 0%, rgba(255, 251, 235, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-arts {
+  background: radial-gradient(circle at 100% 0%, rgba(243, 232, 255, 0.75) 0%, rgba(250, 245, 255, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-sports {
+  background: radial-gradient(circle at 100% 0%, rgba(255, 237, 213, 0.75) 0%, rgba(255, 247, 237, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-adventure {
+  background: radial-gradient(circle at 100% 0%, rgba(209, 250, 229, 0.75) 0%, rgba(236, 253, 245, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-food {
+  background: radial-gradient(circle at 100% 0%, rgba(255, 228, 230, 0.8) 0%, rgba(255, 241, 242, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-techno {
+  background: radial-gradient(circle at 100% 0%, rgba(207, 250, 254, 0.75) 0%, rgba(236, 254, 255, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-indie {
+  background: radial-gradient(circle at 100% 0%, rgba(252, 231, 243, 0.75) 0%, rgba(253, 242, 248, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-education,
+[data-theme="vibrant"] .vibe-stub-workshops {
+  background: radial-gradient(circle at 100% 0%, rgba(219, 234, 254, 0.75) 0%, rgba(239, 246, 255, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-spiritual {
+  background: radial-gradient(circle at 100% 0%, rgba(237, 233, 254, 0.75) 0%, rgba(245, 243, 255, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-wellness {
+  background: radial-gradient(circle at 100% 0%, rgba(204, 251, 241, 0.75) 0%, rgba(240, 253, 250, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-comedy {
+  background: radial-gradient(circle at 100% 0%, rgba(254, 249, 195, 0.75) 0%, rgba(254, 252, 232, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-nightlife {
+  background: radial-gradient(circle at 100% 0%, rgba(224, 231, 255, 0.75) 0%, rgba(238, 242, 255, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+[data-theme="vibrant"] .vibe-stub-general {
+  background: radial-gradient(circle at 100% 0%, rgba(224, 231, 255, 0.75) 0%, rgba(238, 242, 255, 0.5) 45%, rgba(255, 255, 255, 0.88) 100%), #FFFFFF;
+}
+
 
 /* Floating decorative icon base */
 .vibe-float-icon {
@@ -329,4 +450,68 @@
 
 .animate-progress-indeterminate {
   animation: progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MULTICOLOR CHROMATIC STREAMING & SHINING BADGE
+   ═══════════════════════════════════════════════════════════════ */
+@keyframes rainbow-stream {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes glint-sweep {
+  0% {
+    transform: translateX(-160%) skewX(-25deg);
+  }
+  45%, 100% {
+    transform: translateX(260%) skewX(-25deg);
+  }
+}
+
+.featured-vibe-stream-badge {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    115deg,
+    #ff007a 0%,
+    #8b5cf6 20%,
+    #3b82f6 40%,
+    #06b6d4 55%,
+    #10b981 70%,
+    #f59e0b 85%,
+    #ff007a 100%
+  );
+  background-size: 300% 300%;
+  animation: rainbow-stream 4s ease infinite;
+  box-shadow: 
+    0 2px 12px rgba(139, 92, 246, 0.4),
+    0 0 20px rgba(255, 0, 122, 0.28),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.65),
+    inset 0 -1px 1.5px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+}
+
+.featured-vibe-stream-badge::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.75) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+  animation: glint-sweep 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
