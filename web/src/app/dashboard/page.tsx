@@ -1585,38 +1585,21 @@ function DashboardContent() {
                    </p>
                  </div>
 
-                 <div className="pt-6 border-t border-black/5 flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1.5 text-xs font-black uppercase text-black">
-                        <CalendarIcon className="h-3.5 w-3.5" style={{ color: isVibrant ? getCategoryAccentColor(ev.category) : undefined }} />
-                        {new Date(ev.date_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      </div>
-                      <a
-                        href={ev.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ev.location}, ${ev.city || ''}`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="pointer-events-auto relative z-20 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-zinc-700 uppercase tracking-wide hover:text-black hover:underline cursor-pointer transition-colors"
-                      >
-                        <MapPin className="h-3 w-3 text-zinc-500 shrink-0" />
-                        <span className="truncate max-w-[200px] sm:max-w-[240px]">{ev.location}</span>
-                      </a>
-
+                 <div className="pt-5 border-t border-black/5 flex flex-col gap-1 min-w-0">
+                    <div className="flex items-center gap-1.5 text-xs font-black uppercase text-black">
+                      <CalendarIcon className="h-3.5 w-3.5 shrink-0" style={{ color: isVibrant ? getCategoryAccentColor(ev.category) : undefined }} />
+                      <span>{new Date(ev.date_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                     </div>
-                    
-                    <div 
-                      className={`h-10 w-10 flex items-center justify-center rounded-full transition-all group-hover:scale-110 ${
-                        isVibrant 
-                          ? 'text-white shadow-md' 
-                          : 'bg-black text-white group-hover:bg-primary'
-                      }`}
-                      style={isVibrant ? { 
-                        backgroundColor: getCategoryAccentColor(ev.category),
-                        boxShadow: `0 4px 14px ${getCategoryAccentColor(ev.category)}60` 
-                      } : {}}
+                    <a
+                      href={ev.google_maps_link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ev.location}, ${ev.city || ''}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="pointer-events-auto relative z-20 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-zinc-700 uppercase tracking-wide hover:text-black hover:underline cursor-pointer transition-colors min-w-0"
                     >
-                      <Sparkles className="h-4 w-4" />
-                    </div>
+                      <MapPin className="h-3 w-3 text-zinc-500 shrink-0" />
+                      <span className="truncate" title={ev.location}>{ev.location}</span>
+                    </a>
                  </div>
               </div>
             </div>

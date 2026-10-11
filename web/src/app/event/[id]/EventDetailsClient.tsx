@@ -7,14 +7,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PhoneVerificationModal } from "@/components/PhoneVerificationModal";
-import { AttendeeBriefingModal } from "@/components/AttendeeBriefingModal";
+import { AttendeeBriefingModal, BriefingTabId } from "@/components/AttendeeBriefingModal";
 import { EventRatingModal } from "@/components/EventRatingModal";
 import { JoinTelegramPromptModal } from "@/components/JoinTelegramPromptModal";
 import { formatTelegramLink } from "@/lib/telegramGroup";
 import { CategoryDecorations, getCategoryCardClass, getCategoryStubClass, getCategoryAccentColor, getCategoryBadgeClass, getCategoryDarkTitleColor } from "@/components/CategoryDecorations";
 import { TicketPerforationDivider } from "@/components/TicketPerforationDivider";
 import { useTheme } from "@/context/ThemeContext";
-import { ArrowLeft, ArrowRight, ChevronRight, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink, Send, Globe, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronRight, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink, Send, Globe, ShieldCheck, Backpack, Phone } from "lucide-react";
 import { formatEventTimeWithTimezone, getTimezoneAbbr } from "@/lib/timezone";
 import { toast } from "sonner";
 
@@ -36,6 +36,12 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
   const [device, setDevice] = useState<'desktop' | 'ios' | 'android'>('desktop');
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showBriefingModal, setShowBriefingModal] = useState(false);
+  const [briefingModalTab, setBriefingModalTab] = useState<BriefingTabId>('itinerary');
+
+  const openBriefingModal = (tab: BriefingTabId = 'itinerary') => {
+    setBriefingModalTab(tab);
+    setShowBriefingModal(true);
+  };
   const [showTelegramPromptModal, setShowTelegramPromptModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showAgeModal, setShowAgeModal] = useState(false);
@@ -370,6 +376,16 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
       ? `/organizer/${encodeURIComponent(event.organizer_email)}`
       : null;
 
+  const guide = event.attendee_guide || {};
+  const organizerPhone = event.organizer_phone || event.phone || (guide.contacts && guide.contacts[0]?.phone) || "";
+  const hasSchedule = Boolean(guide.schedule && guide.schedule.length > 0);
+  const hasChecklist = Boolean(guide.whatToCarry && guide.whatToCarry.length > 0);
+  const hasHighlights = Boolean(guide.highlights && guide.highlights.length > 0);
+  const hasPaymentInfo = Boolean(event.is_paid || (event.ticket_price && Number(event.ticket_price) > 0) || guide.feeNote);
+  const hasCommunity = Boolean(event.whatsapp_group_link);
+  const hasContacts = Boolean((guide.contacts && guide.contacts.length > 0) || organizerPhone);
+  const hasAnyBriefing = hasSchedule || hasChecklist || hasHighlights || hasPaymentInfo || hasCommunity || hasContacts;
+
   return (
     <>
       {session?.user?.email && (
@@ -385,19 +401,19 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         />
       )}
 
-      <div className="max-w-5xl mx-auto px-3.5 sm:px-6 py-4 sm:py-10 space-y-3.5 sm:space-y-6 animate-in fade-in duration-700">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-10 space-y-3.5 sm:space-y-6 animate-in fade-in duration-700 w-full min-w-0 max-w-full overflow-x-hidden sm:overflow-x-visible">
       <Link href="/dashboard" className="group flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">
         <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
         Back to Explore
       </Link>
       
-      <div className={`relative flex flex-col md:flex-row rounded-2xl md:rounded-[24px] ticket-card-wrapper transition-all ${isVibrant ? 'text-zinc-950' : ''}`}>
+      <div className={`relative flex flex-col md:flex-row rounded-2xl md:rounded-[24px] ticket-card-wrapper transition-all w-full min-w-0 max-w-full ${isVibrant ? 'text-zinc-950' : ''}`}>
         {/* Left Side: Editorial Content Stub */}
-        <div className={`flex-1 p-5 sm:p-8 lg:p-10 flex flex-col justify-between relative z-10 rounded-t-2xl md:rounded-t-none md:rounded-l-[24px] ticket-stub-primary ${
+        <div className={`flex-1 p-3.5 sm:p-8 lg:p-10 flex flex-col justify-between relative z-10 rounded-t-2xl md:rounded-t-none md:rounded-l-[24px] ticket-stub-primary w-full min-w-0 max-w-full overflow-hidden ${
           isVibrant ? getCategoryCardClass(event.category) : 'bg-white border border-black/5'
         }`}>
           {isVibrant && <CategoryDecorations category={event.category} />}
-          <div className="space-y-3.5 sm:space-y-4 relative z-10">
+          <div className="space-y-3 sm:space-y-4 relative z-10 w-full min-w-0">
             <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap">
               <div 
                 className={`sticker-badge ${getCategoryBadgeClass(event.category)} border-none shadow-sm text-[10px] sm:text-xs font-black`}
@@ -426,9 +442,9 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                 </div>
               )}
               {event.suitable_age && (
-                <div className="sticker-badge bg-white/90 backdrop-blur-xs border border-purple-200 text-purple-800 font-bold text-[10px] sm:text-xs flex items-center gap-1 shadow-xs">
-                  <Users className="w-3.5 h-3.5 text-purple-600" />
-                  <span>Suitable: {event.suitable_age}</span>
+                <div className="sticker-badge bg-white/90 backdrop-blur-xs border border-purple-200 text-purple-800 font-bold text-[10px] sm:text-xs flex items-center gap-1 shadow-xs max-w-full">
+                  <Users className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                  <span className="truncate">Suitable: {event.suitable_age}</span>
                 </div>
               )}
               <div className="sticker-badge bg-white/90 backdrop-blur-xs border border-black/10 text-zinc-800 font-bold text-[10px] sm:text-xs shadow-xs">
@@ -470,7 +486,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             </div>
             
             <h1 
-              className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-black tracking-tighter leading-tight sm:leading-[1.05] uppercase italic break-words"
+              className="text-xl sm:text-3xl md:text-4xl lg:text-[40px] font-black tracking-tighter leading-tight sm:leading-[1.05] uppercase italic break-words min-w-0"
               style={isVibrant ? { color: getCategoryDarkTitleColor(event.category) } : undefined}
             >
               {event.title}
@@ -479,7 +495,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             {organizerHref ? (
               <Link
                 href={organizerHref}
-                className="group inline-flex items-center gap-2 py-1 px-3 -ml-0.5 rounded-full bg-white/80 hover:bg-white active:bg-zinc-100 border border-black/10 shadow-2xs hover:shadow-xs active:scale-98 transition-all text-xs sm:text-sm text-left cursor-pointer w-fit"
+                className="group inline-flex items-center gap-2 py-1 px-3 -ml-0.5 rounded-full bg-white/80 hover:bg-white active:bg-zinc-100 border border-black/10 shadow-2xs hover:shadow-xs active:scale-98 transition-all text-xs sm:text-sm text-left cursor-pointer max-w-full min-w-0"
                 title={`View all events hosted by ${event.organizer_name || "organizer"}`}
               >
                 {/* Mini Avatar */}
@@ -502,13 +518,13 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                   )}
                 </div>
 
-                <span className="text-zinc-500 font-semibold">Organized by</span>
-                <span className="font-black text-zinc-950 group-hover:text-primary transition-colors">
+                <span className="text-zinc-500 font-semibold shrink-0">Organized by</span>
+                <span className="font-black text-zinc-950 group-hover:text-primary transition-colors truncate min-w-0">
                   {event.organizer_name || "VibeCheck Organizer"}
                 </span>
 
                 {event.organizer_rating && Number(event.organizer_rating) > 0 && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 text-[10px] font-black">
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 text-[10px] font-black shrink-0">
                     <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
                     <span>{Number(event.organizer_rating).toFixed(1)}</span>
                   </span>
@@ -519,7 +535,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               </Link>
             ) : (
               <div
-                className="group inline-flex items-center gap-2 py-1 px-3 -ml-0.5 rounded-full bg-white/80 border border-black/10 shadow-2xs text-xs sm:text-sm text-left w-fit"
+                className="group inline-flex items-center gap-2 py-1 px-3 -ml-0.5 rounded-full bg-white/80 border border-black/10 shadow-2xs text-xs sm:text-sm text-left max-w-full min-w-0"
               >
                 {/* Mini Avatar */}
                 <div className="relative shrink-0">
@@ -541,13 +557,13 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                   )}
                 </div>
 
-                <span className="text-zinc-500 font-semibold">Organized by</span>
-                <span className="font-black text-zinc-950">
+                <span className="text-zinc-500 font-semibold shrink-0">Organized by</span>
+                <span className="font-black text-zinc-950 truncate min-w-0">
                   {event.organizer_name || "VibeCheck Organizer"}
                 </span>
 
                 {event.organizer_rating && Number(event.organizer_rating) > 0 && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 text-[10px] font-black">
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 text-[10px] font-black shrink-0">
                     <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
                     <span>{Number(event.organizer_rating).toFixed(1)}</span>
                   </span>
@@ -556,9 +572,9 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             )}
 
             {/* Clamped Description (Max 8 Lines) */}
-            <div className="pt-1">
+            <div className="pt-1 w-full min-w-0">
               <div 
-                className="italic text-zinc-700 text-xs sm:text-sm md:text-[15px] font-medium leading-relaxed whitespace-pre-line tracking-[-0.01em]"
+                className="italic text-zinc-700 text-xs sm:text-sm md:text-[15px] font-medium leading-relaxed whitespace-pre-line tracking-[-0.01em] break-words"
                 style={{
                   display: '-webkit-box',
                   WebkitLineClamp: 8,
@@ -570,39 +586,220 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               </div>
             </div>
 
-          {/* Attendee Guide Preview Strip (if organizer provided guide info) */}
-          {Boolean(
-            event.attendee_guide && (
-              (event.attendee_guide.schedule && event.attendee_guide.schedule.length > 0) ||
-              (event.attendee_guide.highlights && event.attendee_guide.highlights.length > 0) ||
-              (event.attendee_guide.whatToCarry && event.attendee_guide.whatToCarry.length > 0) ||
-              event.attendee_guide.assemblyPoint ||
-              (event.attendee_guide.contacts && event.attendee_guide.contacts.length > 0) ||
-              event.attendee_guide.feeNote
-            )
-          ) && (
-            <div className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-white/80 backdrop-blur-xs border border-black/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mt-2 shadow-xs">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-wider text-black">
-                    Event Guide &amp; Schedule
-                  </h4>
-                  <p className="text-[11px] sm:text-xs font-medium text-zinc-600">
-                    Schedule, program highlights, what to carry &amp; assembly details.
-                  </p>
+          {/* Dedicated Event Briefing & Quick-Access Action Cards */}
+          {hasAnyBriefing && (
+            <div className="p-3 sm:p-5 rounded-2xl sm:rounded-3xl bg-white/80 backdrop-blur-md border border-black/10 mt-3 sm:mt-4 shadow-xs space-y-3 sm:space-y-3.5 w-full min-w-0 max-w-full">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-black truncate">
+                      Event Briefing &amp; Key Details
+                    </h4>
+                    <p className="text-[10px] sm:text-[11px] font-medium text-zinc-500 truncate">
+                      Tap any section below for instant details
+                    </p>
+                  </div>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowBriefingModal(true)}
-                className="ringer-button bg-white hover:bg-zinc-100 text-black border border-black/10 text-xs font-black uppercase px-4 py-2 sm:px-5 sm:py-2.5 flex items-center gap-1.5 transition-all active:scale-95 shadow-xs cursor-pointer shrink-0"
-              >
-                <span>View More Details</span>
-                <ExternalLink className="h-3.5 w-3.5 text-primary" />
-              </button>
+
+              {/* Individual, dedicated section buttons (1 per row on mobile, 2 per row on desktop) */}
+              {(hasPaymentInfo || hasSchedule || hasChecklist || hasHighlights) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 w-full min-w-0">
+                  {/* 1. Pass & Payment Information */}
+                  {hasPaymentInfo && (
+                    <button
+                      type="button"
+                      onClick={() => openBriefingModal('payment')}
+                      className="group flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-amber-500/5 hover:bg-amber-500/10 active:scale-98 border border-amber-500/20 hover:border-amber-500/40 text-left transition-all shadow-2xs cursor-pointer w-full min-w-0"
+                    >
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <Ticket className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-black uppercase tracking-wider text-amber-950 truncate">
+                            Pass &amp; Payment Info
+                          </span>
+                          <ChevronRight className="h-3.5 w-3.5 text-amber-600/70 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                        </div>
+                        <span className="text-[10px] sm:text-[11px] font-bold text-amber-800/80 block truncate">
+                          {event.ticket_price && Number(event.ticket_price) > 0 ? `₹${event.ticket_price} • Passes & Inclusions` : 'Pricing & Pass Details'}
+                        </span>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* 2. The Day's Itinerary */}
+                  {hasSchedule && (
+                    <button
+                      type="button"
+                      onClick={() => openBriefingModal('itinerary')}
+                      className="group flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-emerald-500/5 hover:bg-emerald-500/10 active:scale-98 border border-emerald-500/20 hover:border-emerald-500/40 text-left transition-all shadow-2xs cursor-pointer w-full min-w-0"
+                    >
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/15 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <Clock className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-black uppercase tracking-wider text-emerald-950 truncate">
+                            The Day&apos;s Itinerary
+                          </span>
+                          <ChevronRight className="h-3.5 w-3.5 text-emerald-600/70 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                        </div>
+                        <span className="text-[10px] sm:text-[11px] font-bold text-emerald-800/80 block truncate">
+                          {guide.schedule.length} Milestones &amp; Timeline
+                        </span>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* 3. What to Carry Checklist (ONLY IF AVAILABLE) */}
+                  {hasChecklist && (
+                    <button
+                      type="button"
+                      onClick={() => openBriefingModal('checklist')}
+                      className="group flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-teal-500/5 hover:bg-teal-500/10 active:scale-98 border border-teal-500/20 hover:border-teal-500/40 text-left transition-all shadow-2xs cursor-pointer w-full min-w-0"
+                    >
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-teal-500/15 text-teal-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <Backpack className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-black uppercase tracking-wider text-teal-950 truncate">
+                            What to Carry Checklist
+                          </span>
+                          <ChevronRight className="h-3.5 w-3.5 text-teal-600/70 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                        </div>
+                        <span className="text-[10px] sm:text-[11px] font-bold text-teal-800/80 block truncate">
+                          {guide.whatToCarry.length} Items to pack (Interactive)
+                        </span>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* 4. Program Highlights */}
+                  {hasHighlights && (
+                    <button
+                      type="button"
+                      onClick={() => openBriefingModal('highlights')}
+                      className="group flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-purple-500/5 hover:bg-purple-500/10 active:scale-98 border border-purple-500/20 hover:border-purple-500/40 text-left transition-all shadow-2xs cursor-pointer w-full min-w-0"
+                    >
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-500/15 text-purple-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <Sparkles className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-black uppercase tracking-wider text-purple-950 truncate">
+                            Program Highlights
+                          </span>
+                          <ChevronRight className="h-3.5 w-3.5 text-purple-600/70 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                        </div>
+                        <span className="text-[10px] sm:text-[11px] font-bold text-purple-800/80 block truncate">
+                          {guide.highlights.length} Experience perks
+                        </span>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* 5. Attendee Community / Telegram Link (Directly on the Card) */}
+              {hasCommunity && (
+                <div className="pt-0.5">
+                  {hasConfirmedPass ? (
+                    <a
+                      href={formatTelegramLink(event.whatsapp_group_link)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full p-2.5 sm:p-3 bg-[#229ED9]/10 hover:bg-[#229ED9]/15 border border-[#229ED9]/30 rounded-xl sm:rounded-2xl flex items-center justify-between text-left transition-all group active:scale-[0.99] cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-[#229ED9] text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Send className="h-4 w-4 fill-white" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-black uppercase tracking-wider text-zinc-900 group-hover:text-[#229ED9] transition-colors truncate">
+                            Official Attendee Telegram Group
+                          </div>
+                          <div className="text-[10px] sm:text-[11px] font-bold text-zinc-500 truncate">
+                            Connect with host &amp; attendees • Live coordination
+                          </div>
+                        </div>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-[#229ED9] shrink-0 ml-2" />
+                    </a>
+                  ) : (
+                    <div className="p-2.5 sm:p-3 bg-sky-50/70 border border-sky-200/80 rounded-xl sm:rounded-2xl flex items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-[#229ED9]/15 text-[#229ED9] flex items-center justify-center shrink-0">
+                          <Send className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-xs font-black uppercase tracking-wider text-sky-950 block truncate">
+                            Official Attendee Community
+                          </span>
+                          <span className="text-[10px] sm:text-[11px] font-bold text-sky-800/80 block truncate">
+                            Telegram link unlocks upon pass confirmation
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-200/70 text-sky-950 shrink-0">
+                        Pass Required
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 6. Event Helpline & Queries (Directly on the Card) */}
+              {hasContacts && (
+                <div className="p-2.5 sm:p-3 bg-zinc-50/80 border border-black/10 rounded-xl sm:rounded-2xl space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-zinc-900">
+                    <div className="w-6 h-6 rounded-md bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                      <Phone className="h-3.5 w-3.5" />
+                    </div>
+                    <span>Queries &amp; Emergency Helpline</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
+                    {guide.contacts && guide.contacts.length > 0 ? (
+                      guide.contacts.map((contact: any, idx: number) => (
+                        <a
+                          key={idx}
+                          href={`tel:${contact.phone.replace(/[^0-9+]/g, "")}`}
+                          className="flex items-center justify-between p-2 rounded-xl bg-white hover:bg-zinc-100 border border-black/5 transition-all text-xs group active:scale-98 shadow-2xs"
+                        >
+                          <div className="min-w-0">
+                            <div className="font-bold text-black text-xs truncate">{contact.name}</div>
+                            {contact.role && (
+                              <div className="text-[10px] font-medium text-zinc-500 truncate">{contact.role}</div>
+                            )}
+                          </div>
+                          <span className="font-mono font-bold text-blue-600 text-xs shrink-0 ml-2 group-hover:underline">
+                            {contact.phone}
+                          </span>
+                        </a>
+                      ))
+                    ) : organizerPhone ? (
+                      <a
+                        href={`tel:${organizerPhone}`}
+                        className="flex items-center justify-between p-2 rounded-xl bg-white hover:bg-zinc-100 border border-black/5 transition-all text-xs group active:scale-98 shadow-2xs col-span-full"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-bold text-black text-xs truncate">{event.organizer_name || "Organizer"}</div>
+                          <div className="text-[10px] font-medium text-zinc-500 truncate">Event Host</div>
+                        </div>
+                        <span className="font-mono font-bold text-blue-600 text-xs shrink-0 ml-2 group-hover:underline">
+                          {organizerPhone}
+                        </span>
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           </div>
@@ -675,7 +872,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                 {rsvped ? (
                   rsvpStatus === 'pending' ? (
                     <button 
-                      onClick={() => setShowBriefingModal(true)}
+                      onClick={() => openBriefingModal(event.is_paid ? 'payment' : 'itinerary')}
                       className="ringer-button h-14 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black tracking-wide flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-2xl sm:rounded-[20px] bg-amber-500 text-black hover:bg-amber-400 shadow-md cursor-pointer"
                     >
                       <Clock className="h-4.5 w-4.5 sm:h-5 sm:w-5 shrink-0" />
@@ -683,7 +880,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
                     </button>
                   ) : (
                     <button 
-                      onClick={() => setShowBriefingModal(true)}
+                      onClick={() => openBriefingModal('pass')}
                       className="ringer-button h-14 sm:h-14 md:h-16 flex-1 text-xs sm:text-sm font-black tracking-wide flex items-center justify-center gap-2.5 sm:gap-3 transition-all active:scale-95 rounded-2xl sm:rounded-[20px] bg-primary text-black hover:bg-primary/90 shadow-md cursor-pointer"
                     >
                       <Ticket className="h-4.5 w-4.5 sm:h-5 sm:w-5 shrink-0" />
@@ -758,48 +955,30 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
             : 'bg-white/95 backdrop-blur-md border border-black/5'
         }`}>
           <div className="space-y-3 sm:space-y-3.5">
-            {!isCancelled && !isEventEnded && rsvped && (
-              rsvpStatus === 'pending' ? (
-                <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-200 space-y-1.5 shadow-xs">
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-amber-800">
-                    <Clock className="h-3.5 w-3.5 text-amber-700" />
-                    <span>{event.is_paid ? 'Payment Pending' : 'Approval Pending'}</span>
-                  </div>
-                  <p className="text-xs text-amber-950 font-bold leading-snug">
-                    {event.is_paid ? 'Pass pending payment with organizer.' : 'RSVP recorded! Pass pending organizer approval.'}
-                  </p>
-                  <button
-                    onClick={() => setShowBriefingModal(true)}
-                    className="text-xs font-black uppercase tracking-wider text-black underline underline-offset-4 hover:text-amber-800 transition-colors block pt-0.5 cursor-pointer"
-                  >
-                    {event.is_paid ? 'Contact Organizer & View Guide →' : 'View Event Briefing & Guide →'}
-                  </button>
+            {hasConfirmedPass && (
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-2 shadow-xs">
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-800">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" />
+                  <span>Pass Confirmed!</span>
                 </div>
-              ) : (
-                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-2 shadow-xs">
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-800">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" />
-                    <span>Pass Confirmed!</span>
-                  </div>
-                  <p className="text-xs text-zinc-900 font-bold leading-snug">
-                    {passCode ? `Pass #${passCode} is active.` : "Your spot is locked in."} Access schedule &amp; venue details anytime.
-                  </p>
-                  <button
-                    onClick={() => setShowBriefingModal(true)}
-                    className="text-xs font-black uppercase tracking-wider text-black underline underline-offset-4 hover:text-primary transition-colors block pt-0.5 cursor-pointer"
-                  >
-                    Open Confirmed Pass →
-                  </button>
+                <p className="text-xs text-zinc-900 font-bold leading-snug">
+                  {passCode ? `Pass #${passCode} is active.` : "Your spot is locked in."} Access schedule &amp; venue details anytime.
+                </p>
+                <button
+                  onClick={() => openBriefingModal('pass')}
+                  className="text-xs font-black uppercase tracking-wider text-black underline underline-offset-4 hover:text-primary transition-colors block pt-0.5 cursor-pointer"
+                >
+                  Open Confirmed Pass →
+                </button>
 
-                  <button
-                    onClick={handleGetTelegramPass}
-                    className="w-full mt-1.5 py-2 px-3 bg-[#229ED9] hover:bg-[#1d8dc3] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-[#229ED9]/20 active:scale-95"
-                  >
-                    <Send className="h-3.5 w-3.5 fill-white" />
-                    <span>Get Pass on Telegram</span>
-                  </button>
-                </div>
-              )
+                <button
+                  onClick={handleGetTelegramPass}
+                  className="w-full mt-1.5 py-2 px-3 bg-[#229ED9] hover:bg-[#1d8dc3] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-[#229ED9]/20 active:scale-95"
+                >
+                  <Send className="h-3.5 w-3.5 fill-white" />
+                  <span>Get Pass on Telegram</span>
+                </button>
+              </div>
             )}
 
             {/* Official Attendee Telegram Group (Passholder Exclusive Card) */}
@@ -1003,6 +1182,7 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
         rsvpStatus={rsvpStatus || (event?.is_paid ? 'pending' : 'confirmed')}
         passCode={passCode || undefined}
         isPreRsvp={!rsvped}
+        initialTab={briefingModalTab}
         onRSVP={() => handleRSVP()}
         onDownloadICS={handleDownloadICS}
         onShare={handleShare}

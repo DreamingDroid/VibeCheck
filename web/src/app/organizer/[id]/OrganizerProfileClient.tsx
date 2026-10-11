@@ -855,32 +855,14 @@ export function OrganizerProfileClient({
         </Link>
 
         <div className="flex items-center gap-2">
-          {instagramHandle && (
-            <a
-              href={
-                instagramHandle.startsWith("http")
-                  ? instagramHandle
-                  : `https://instagram.com/${instagramHandle.replace("@", "")}`
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 text-xs font-black uppercase tracking-wider transition-all"
-            >
-              <InstagramIcon className="h-3.5 w-3.5" />
-              <span>@{instagramHandle.replace("@", "")}</span>
-              {organizer.instagram_verified && (
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 ml-0.5" />
-              )}
-            </a>
-          )}
-
           <button
             type="button"
             onClick={handleShare}
-            className="p-2 rounded-full bg-white hover:bg-zinc-100 text-black border border-black/10 transition-all shadow-xs cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-zinc-100 text-black border border-black/10 transition-all shadow-xs cursor-pointer active:scale-95 text-xs font-bold"
             title="Share Organizer Page"
           >
-            {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Share2 className="h-4 w-4" />}
+            {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Share2 className="h-3.5 w-3.5" />}
+            <span>{copied ? "Link Copied" : "Share"}</span>
           </button>
         </div>
       </div>
@@ -1029,7 +1011,7 @@ export function OrganizerProfileClient({
                 : "text-zinc-600 hover:text-black"
             }`}
           >
-            About & Venue
+            About
           </button>
 
           <button
@@ -1125,48 +1107,131 @@ export function OrganizerProfileClient({
           </div>
         )}
 
-        {/* ─── TAB: About & Venue Details ─── */}
+        {/* ─── TAB: About Details ─── */}
         {activeTab === "about" && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 ringer-card bg-white p-6 sm:p-8 rounded-[32px] border border-black/8 space-y-6">
-              <div className="space-y-2">
-                <h3 className="text-2xl font-black uppercase italic text-black">
-                  About {organizer.brand_name}
-                </h3>
-                <p className="text-sm font-normal text-zinc-600 leading-relaxed whitespace-pre-line">
-                  {organizer.description || "The organizer has not provided a detailed bio yet."}
-                </p>
+            <div className="md:col-span-2 space-y-6">
+              {/* Primary Card: About Bio */}
+              <div className="ringer-card bg-white p-6 sm:p-8 rounded-[32px] border border-black/8 space-y-6 shadow-[0_4px_20px_rgb(0,0,0,0.02)]">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="sticker-badge bg-emerald-50 text-emerald-800 border-emerald-200/80 text-[10px] sm:text-xs py-0.5 px-2.5 font-bold uppercase tracking-wider">
+                      ✨ Official Host Bio
+                    </span>
+                    {organizer.primary_city && (
+                      <span className="sticker-badge bg-zinc-100 text-zinc-600 border-none text-[10px] sm:text-xs py-0.5 px-2">
+                        📍 {organizer.primary_city}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-2xl sm:text-3xl font-black uppercase italic tracking-tight text-black">
+                    About {organizer.brand_name}
+                  </h3>
+                  <p className="text-sm sm:text-base font-normal text-zinc-700 leading-relaxed whitespace-pre-line">
+                    {organizer.description || "The organizer has not provided a detailed bio yet."}
+                  </p>
+                </div>
+
+                {/* Experience & Trust Badges Strip */}
+                <div className="pt-4 border-t border-black/5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-zinc-50 border border-black/5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <ShieldCheck className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-black uppercase tracking-wider text-black">Verified Creator</p>
+                      <p className="text-[10px] text-zinc-500 font-semibold truncate">Authentic Experiences</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-zinc-50 border border-black/5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                      <Star className="h-4 w-4 fill-amber-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-black uppercase tracking-wider text-black">
+                        {Number(organizer.rating || 4.9).toFixed(1)} / 5.0
+                      </p>
+                      <p className="text-[10px] text-zinc-500 font-semibold truncate">Community Rating</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-zinc-50 border border-black/5">
+                    <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+                      <Ticket className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-black uppercase tracking-wider text-black">Instant Passes</p>
+                      <p className="text-[10px] text-zinc-500 font-semibold truncate">Digital QR Entry</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Social Links & Web */}
-              <div className="space-y-3 pt-4 border-t border-black/5">
-                <h4 className="text-xs font-black uppercase tracking-wider text-black">
-                  Connect &amp; Social Links
-                </h4>
-                <div className="flex flex-wrap gap-2.5">
-                  {socialLinks.instagram && (
-                    <a
-                      href={
-                        socialLinks.instagram.startsWith("http")
-                          ? socialLinks.instagram
-                          : `https://instagram.com/${socialLinks.instagram.replace("@", "")}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 text-xs font-black uppercase tracking-wider"
-                    >
-                      <InstagramIcon className="h-4 w-4" />
-                      <span>Instagram</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
+              {/* Secondary Card: Connect & Social Hub (with Instagram prominently featured!) */}
+              <div className="ringer-card bg-white p-6 sm:p-8 rounded-[32px] border border-black/8 space-y-5 shadow-[0_4px_20px_rgb(0,0,0,0.02)]">
+                <div>
+                  <h4 className="text-sm font-black uppercase tracking-wider text-black">
+                    Connect &amp; Social Links
+                  </h4>
+                  <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                    Follow official channels for live updates, pass drops &amp; behind the scenes.
+                  </p>
+                </div>
 
+                {/* Prominent Instagram Showcase */}
+                {instagramHandle ? (
+                  <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-pink-500/10 via-rose-500/5 to-purple-500/10 border border-pink-200/80 shadow-xs relative overflow-hidden group">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-white flex items-center justify-center shrink-0 shadow-md shadow-pink-500/20 group-hover:scale-105 transition-transform">
+                          <InstagramIcon className="h-6 w-6 stroke-[2.2]" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-pink-700">Official Instagram</span>
+                            {organizer.instagram_verified && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-full">
+                                <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                                Verified
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-base sm:text-lg font-black text-black tracking-tight mt-0.5">
+                            @{instagramHandle.replace("@", "")}
+                          </div>
+                          <p className="text-[11px] text-zinc-500 font-medium">
+                            Follow for event teasers, photo drops &amp; announcements
+                          </p>
+                        </div>
+                      </div>
+
+                      <a
+                        href={
+                          instagramHandle.startsWith("http")
+                            ? instagramHandle
+                            : `https://instagram.com/${instagramHandle.replace("@", "")}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-black text-xs uppercase tracking-wider shadow-sm shadow-pink-500/25 active:scale-95 transition-all shrink-0 cursor-pointer"
+                      >
+                        <InstagramIcon className="h-3.5 w-3.5" />
+                        <span>Visit Instagram</span>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Additional Links (Website, Twitter/X, Email, etc.) */}
+                <div className="flex flex-wrap gap-2.5 pt-1">
                   {socialLinks.website && (
                     <a
                       href={socialLinks.website.startsWith("http") ? socialLinks.website : `https://${socialLinks.website}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-black uppercase tracking-wider"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-black uppercase tracking-wider transition-all"
                     >
                       <Globe className="h-4 w-4" />
                       <span>Official Website</span>
@@ -1179,9 +1244,19 @@ export function OrganizerProfileClient({
                       href={socialLinks.twitter.startsWith("http") ? socialLinks.twitter : `https://twitter.com/${socialLinks.twitter.replace("@", "")}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-black uppercase tracking-wider"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-black uppercase tracking-wider transition-all"
                     >
                       <span>Twitter / X</span>
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+
+                  {organizer.email && (
+                    <a
+                      href={`mailto:${organizer.email}`}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-black/5 text-xs font-black uppercase tracking-wider transition-all"
+                    >
+                      <span>Email Host</span>
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
@@ -1189,32 +1264,75 @@ export function OrganizerProfileClient({
               </div>
             </div>
 
-            {/* Quick Contact & Verified Host Info */}
+            {/* Quick Contact & Verified Host Info (Right Column) */}
             <div className="space-y-6">
-              <div className="ringer-card bg-white p-6 rounded-[32px] border border-black/8 space-y-4">
+              <div className="ringer-card bg-white p-6 rounded-[32px] border border-black/8 space-y-4 shadow-[0_4px_20px_rgb(0,0,0,0.02)]">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-emerald-600" />
-                  <h4 className="text-sm font-black uppercase tracking-wider text-black">
-                    Verified Host
-                  </h4>
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <ShieldCheck className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black uppercase tracking-wider text-black">
+                      Verified Host
+                    </h4>
+                    <p className="text-[10px] text-emerald-600 font-bold uppercase">Identity &amp; Safety Approved</p>
+                  </div>
                 </div>
                 <p className="text-xs font-semibold text-zinc-500 leading-relaxed">
-                  This organizer is an approved event creator on VibeCheck. All RSVPs and attendee passes are digitally verified.
+                  This organizer is an approved event creator on VibeCheck. All RSVPs and attendee passes are digitally verified and checked at the gate.
                 </p>
 
-                {organizer.phone_number && (
-                  <div className="pt-2">
+                <div className="pt-2 space-y-2.5">
+                  {organizer.phone_number && (
                     <a
                       href={`https://wa.me/${organizer.phone_number.replace(/[^0-9]/g, "")}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full ringer-button bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-xs uppercase py-3 flex items-center justify-center gap-2 shadow-md shadow-[#25D366]/20"
+                      className="w-full ringer-button bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-xs uppercase py-3 flex items-center justify-center gap-2 shadow-md shadow-[#25D366]/20 transition-all active:scale-95"
                     >
                       <MessageCircle className="h-4 w-4" />
                       <span>Chat on WhatsApp</span>
                     </a>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className="w-full ringer-button bg-zinc-100 hover:bg-zinc-200 text-black border border-black/10 font-black text-xs uppercase py-2.5 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Share2 className="h-3.5 w-3.5" />}
+                    <span>{copied ? "Link Copied!" : "Share Profile"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Host Stats Card */}
+              <div className="ringer-card bg-white p-6 rounded-[32px] border border-black/8 space-y-3.5 shadow-[0_4px_20px_rgb(0,0,0,0.02)]">
+                <h4 className="text-xs font-black uppercase tracking-wider text-black flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Host Fast Facts</span>
+                </h4>
+                <div className="divide-y divide-black/5 text-xs font-bold text-zinc-600">
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-zinc-500 font-medium">Home Scene</span>
+                    <span className="text-black font-black uppercase">{organizer.primary_city || "Pan India"}</span>
                   </div>
-                )}
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-zinc-500 font-medium">Events Hosted</span>
+                    <span className="text-black font-black">{events.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-zinc-500 font-medium">Follower Base</span>
+                    <span className="text-black font-black">{followersCount}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-zinc-500 font-medium">Overall Rating</span>
+                    <span className="text-amber-900 font-black flex items-center gap-1">
+                      <Star className="h-3 w-3 fill-amber-400 text-amber-500" />
+                      <span>{Number(organizer.rating || 4.8).toFixed(1)}</span>
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
