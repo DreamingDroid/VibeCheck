@@ -308,7 +308,7 @@ export default function Home() {
       {/* Vizag Landmarks Wall Art Mural Background */}
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-0 overflow-hidden select-none"
+        className="pointer-events-none fixed top-[72px] inset-x-0 bottom-0 z-0 overflow-hidden select-none"
       >
         {/* Soft center focus gradient protecting typography while revealing perimeter landmarks */}
         <div
@@ -319,14 +319,16 @@ export default function Home() {
           }}
         />
 
-        {/* Full-screen Framing Wall Art of Vizag Landmarks */}
-        <div
-          className="w-full h-full bg-no-repeat bg-center bg-contain transition-opacity duration-1000"
-          style={{
-            backgroundImage: "url('/vizag-wallart.png?v=7')",
-            opacity: 0.28,
-          }}
-        />
+        {/* Framing Wall Art of Vizag Landmarks with breathing room to prevent cropping */}
+        <div className="w-full h-full p-3 sm:p-6 md:p-8 flex items-center justify-center">
+          <div
+            className="w-full h-full bg-no-repeat bg-center bg-contain transition-opacity duration-1000"
+            style={{
+              backgroundImage: "url('/vizag-wallart.png?v=7')",
+              opacity: 0.28,
+            }}
+          />
+        </div>
       </div>
 
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-16 w-full animate-in fade-in duration-700">
