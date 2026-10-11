@@ -3,16 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "dev": "npm --prefix web run dev",
+    "dev:web": "npm --prefix web run dev",
+    "dev:server": "npm --prefix server run dev",
+    "build": "npm --prefix web run build",
+    "build:web": "npm --prefix web run build",
+    "build:server": "npm --prefix server run build",
     "test": "npm run test:server && npm run test:web",
     "test:server": "npm --prefix server test",
     "test:web": "npm --prefix web test",
     "test:watch:server": "npm --prefix server run test:watch",
     "test:watch:web": "npm --prefix web run test:watch",
-    "test:ui:server": "npm --prefix server run test:ui",
-    "test:ui:web": "npm --prefix web run test:ui",
     "lint": "npm --prefix web run lint"
-  },
-  "devDependencies": {
-    "@vitest/ui": "^4.1.11"
   }
 }
