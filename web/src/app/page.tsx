@@ -351,7 +351,7 @@ export default function Home() {
           </h1>
         </div>
 
-        <p className="text-base sm:text-lg md:text-xl font-roboto font-normal text-zinc-600 max-w-xl leading-relaxed tracking-wide px-4 sm:px-0 pt-4 sm:pt-6">
+        <p className="text-base sm:text-lg md:text-xl font-sans font-medium text-zinc-600 dark:text-zinc-300 max-w-2xl leading-relaxed tracking-tight text-balance px-4 sm:px-0 pt-4 sm:pt-6">
           {t("landing.hero_desc")}
         </p>
 
@@ -359,12 +359,12 @@ export default function Home() {
           <button
             onClick={handleSignIn}
             disabled={isSigningIn}
-            className="ringer-button w-auto bg-gradient-to-br from-[#22C55E] to-[#16A34A] hover:from-[#16A34A] hover:to-[#15803D] text-white hover:scale-[1.02] h-12 sm:h-16 px-8 sm:px-10 text-xs sm:text-sm font-black flex items-center justify-center gap-3 animate-firefly transition-all cursor-pointer"
+            className="ringer-button join-vibe-glaze-btn w-auto text-white hover:scale-[1.02] active:scale-[0.98] h-12 sm:h-16 px-8 sm:px-10 text-xs sm:text-sm font-black flex items-center justify-center gap-3 transition-all cursor-pointer select-none"
           >
             {isSigningIn ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <>{t("landing.join_cta")} <Sparkles className="h-4 w-4" /></>
+              <>{t("landing.join_cta")} <Sparkles className="h-4 w-4 drop-shadow-xs" /></>
             )}
           </button>
         </div>
