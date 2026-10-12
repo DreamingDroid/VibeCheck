@@ -10,7 +10,7 @@ import {
   Trophy, Palette, BookOpen, Compass, Heart,
   Activity, Wine, Smile, Briefcase, Sparkles, Bell,
   SunMoon, X, CheckCircle2, AlertCircle, Clock, ExternalLink, Calendar, User,
-  Sliders, LogOut, Shield, Newspaper, LifeBuoy, Star, Loader2, ArrowRight, Tag, Mountain, UtensilsCrossed
+  Sliders, LogOut, Shield, Newspaper, LifeBuoy, Star, Loader2, ArrowRight, Tag, Mountain, UtensilsCrossed, Waves
 } from "lucide-react"
 import { SupportTicketModal } from "@/components/SupportTicketModal"
 import { useTheme } from "@/context/ThemeContext"
@@ -912,8 +912,17 @@ export function GlobalHeader() {
 
           {/* User Actions */}
           <div className="flex items-center gap-3">
-            {/* Local Currents always visible on Desktop */}
+            {/* Waves & Local Currents visible on Desktop */}
             <div className="hidden lg:flex items-center gap-2 mr-1">
+              <Link href="/waves">
+                <button className="ringer-button border border-emerald-500/20 bg-emerald-50/80 hover:bg-emerald-600 hover:text-white text-emerald-950 text-[10px] py-2 px-3.5 flex items-center gap-1.5 transition-all">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span>Waves</span>
+                </button>
+              </Link>
               <Link href="/local-currents">
                 <button className="ringer-button border border-black/5 bg-zinc-50 hover:bg-black hover:text-white text-[10px] py-2 px-4">
                   {t("nav.local_currents")}
@@ -1229,6 +1238,25 @@ export function GlobalHeader() {
                                 </span>
                                 <span className="text-[10px] text-zinc-400 font-medium block">
                                   Home base, vibe tags & alerts
+                                </span>
+                              </div>
+                            </Link>
+
+                            <Link
+                              href="/waves"
+                              onClick={() => setShowProfileMenu(false)}
+                              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-zinc-100/80 transition-colors group"
+                            >
+                              <div className="h-8 w-8 rounded-lg bg-emerald-100 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center transition-colors text-emerald-800">
+                                <Waves className="h-4 w-4" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <span className="text-xs font-black uppercase tracking-wider block text-zinc-900 group-hover:text-black flex items-center gap-1.5">
+                                  <span>Waves (Beach Road)</span>
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                </span>
+                                <span className="text-[10px] text-zinc-400 font-medium block">
+                                  Live pop-ups &amp; micro-drops
                                 </span>
                               </div>
                             </Link>
