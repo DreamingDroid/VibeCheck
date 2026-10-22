@@ -16,7 +16,7 @@ import { Calendar as CalendarIcon, MapPin, Share2, Sparkles, TrendingUp, Zap, Us
 import { toast } from "sonner";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
-import { isSameDay, startOfDay, isBefore, isAfter, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, format, isToday, startOfMonth, addMonths, subMonths } from "date-fns";
+import { isSameDay, startOfDay, isBefore, isAfter, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, format, isToday, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from "date-fns";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { siteConfig } from "@/config/site";
@@ -57,12 +57,17 @@ function DashboardContent() {
   const todayDate = new Date();
   const [currentMonth, setCurrentMonth] = useState<Date>(() => startOfMonth(new Date()));
   const minMonth = startOfMonth(todayDate);
-  const maxMonth = startOfMonth(new Date(todayDate.getFullYear(), 11, 1));
+  const maxMonth = addMonths(minMonth, 2);
+  const availableMonths = [
+    minMonth,
+    addMonths(minMonth, 1),
+    maxMonth,
+  ];
   const canGoPrevMonth = isAfter(startOfMonth(currentMonth), minMonth);
   const canGoNextMonth = isBefore(startOfMonth(currentMonth), maxMonth);
 
   const minWeekStart = startOfWeek(todayDate, { weekStartsOn: 1 });
-  const maxWeekStart = startOfWeek(new Date(todayDate.getFullYear(), 11, 31), { weekStartsOn: 1 });
+  const maxWeekStart = startOfWeek(endOfMonth(maxMonth), { weekStartsOn: 1 });
   const canGoPrevWeek = isAfter(startOfDay(currentWeekStart), startOfDay(minWeekStart));
   const canGoNextWeek = isBefore(startOfDay(currentWeekStart), startOfDay(maxWeekStart));
 
@@ -715,6 +720,28 @@ function DashboardContent() {
             
             {calendarViewMode === 'month' ? (
               <div className="relative z-10 w-full [&_table]:block [&_table]:mt-2 md:[&_table]:mt-4 [&_table]:w-full [&_thead]:block [&_tbody]:block [&_tr]:grid [&_tr]:grid-cols-7 [&_tr]:gap-1 sm:[&_tr]:gap-1.5 md:[&_tr]:gap-2.5 [&_tr]:mb-1 sm:[&_tr]:mb-1.5 md:[&_tr]:mb-2 [&_th]:block [&_td]:block [&_th]:text-center [&_th]:text-zinc-400 [&_th]:font-black [&_th]:uppercase [&_th]:tracking-[0.15em] [&_th]:text-[9px] md:[&_th]:text-[11px] [&_th]:pb-1 sm:[&_th]:pb-2">
+                {/* 3-Month Navigation Pills */}
+                <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+                  {availableMonths.map((m) => {
+                    const isSelected = isSameMonth(currentMonth, m);
+                    return (
+                      <button
+                        key={m.toISOString()}
+                        type="button"
+                        onClick={() => setCurrentMonth(m)}
+                        className={`px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all border ${
+                          isSelected
+                            ? "bg-black text-white border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] scale-105"
+                            : "bg-white text-zinc-600 border-black/10 hover:border-black/30 hover:text-black"
+                        }`}
+                      >
+                        <span className="hidden sm:inline">{format(m, "MMMM yyyy")}</span>
+                        <span className="sm:hidden">{format(m, "MMM yyyy")}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
                 <DayPicker
                   mode="single"
                   month={currentMonth}
