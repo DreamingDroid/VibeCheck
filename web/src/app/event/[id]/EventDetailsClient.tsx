@@ -14,7 +14,7 @@ import { formatTelegramLink } from "@/lib/telegramGroup";
 import { CategoryDecorations, getCategoryCardClass, getCategoryStubClass, getCategoryAccentColor, getCategoryBadgeClass, getCategoryDarkTitleColor } from "@/components/CategoryDecorations";
 import { TicketPerforationDivider } from "@/components/TicketPerforationDivider";
 import { useTheme } from "@/context/ThemeContext";
-import { ArrowLeft, ArrowRight, ChevronRight, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink, Send, Globe, ShieldCheck, Backpack, Phone } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronRight, Calendar, MapPin, CheckCircle2, CalendarPlus, Share2, Link2, Users, Star, Sparkles, Ticket, Clock, AlertCircle, ExternalLink, Send, Globe, ShieldCheck, Backpack, Phone, Trees } from "lucide-react";
 import { formatEventTimeWithTimezone, getTimezoneAbbr } from "@/lib/timezone";
 import { toast } from "sonner";
 
@@ -450,13 +450,19 @@ export function EventDetailsClient({ initialEvent, eventId }: EventDetailsClient
               <div className="sticker-badge bg-white/90 backdrop-blur-xs border border-black/10 text-zinc-800 font-bold text-[10px] sm:text-xs shadow-xs">
                 {event.is_paid ? "Paid Event" : "Free Entry"}
               </div>
-              {event.venue_verification_status === 'verified' && (
+              {event.is_outdoor && (
+                <div className="sticker-badge bg-white/90 backdrop-blur-xs border border-emerald-300 text-emerald-900 font-black text-[10px] sm:text-xs flex items-center gap-1.5 shadow-xs">
+                  <Trees className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>🏞️ Outdoor Gathering</span>
+                </div>
+              )}
+              {!event.is_outdoor && event.event_type !== 'online' && event.venue_verification_status === 'verified' && (
                 <div className="sticker-badge bg-white/90 backdrop-blur-xs border border-emerald-300 text-emerald-900 font-black text-[10px] sm:text-xs flex items-center gap-1.5 shadow-xs">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                   <span>🛡️ Venue Confirmed</span>
                 </div>
               )}
-              {event.venue_verification_status === 'pending_venue_auth' && (
+              {!event.is_outdoor && event.event_type !== 'online' && event.venue_verification_status === 'pending_venue_auth' && (
                 <div className="sticker-badge bg-white/90 backdrop-blur-xs border border-amber-300 text-amber-900 font-bold text-[10px] sm:text-xs flex items-center gap-1.5 shadow-xs">
                   <Clock className="w-3.5 h-3.5 text-amber-600" />
                   <span>⏳ Venue Authorization Pending</span>

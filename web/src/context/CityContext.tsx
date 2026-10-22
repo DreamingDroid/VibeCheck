@@ -33,6 +33,7 @@ export interface VibeEvent {
   user_rsvp_status?: string | null;
   user_pass_code?: string | null;
   event_type?: 'in_person' | 'online';
+  is_outdoor?: boolean;
   timezone?: string;
   min_age?: number | null;
   suitable_age?: string | null;

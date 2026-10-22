@@ -902,6 +902,7 @@ export async function searchPublic(pool: Pool, params: PublicSearchParams) {
       e.google_maps_link,
       e.whatsapp_group_link,
       e.event_type,
+      e.is_outdoor,
       e.timezone,
       e.organizer_email,
       COALESCE(a.brand_name, split_part(e.organizer_email, '@', 1)) as organizer_name,

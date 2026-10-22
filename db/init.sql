@@ -165,6 +165,7 @@ CREATE TABLE IF NOT EXISTS events (
     image_public_id VARCHAR(255),
     whatsapp_group_link TEXT,                    -- WhatsApp group invite link for RSVP'd attendees
     event_type VARCHAR(20) DEFAULT 'in_person',  -- in_person | online
+    is_outdoor BOOLEAN DEFAULT false,            -- outdoor public gathering (exempt from venue verification)
     timezone VARCHAR(50) DEFAULT 'Asia/Kolkata', -- event timezone (e.g. Asia/Kolkata, UTC, etc.)
     average_rating NUMERIC(3,1),
     ratings_count INTEGER DEFAULT 0,

@@ -3,7 +3,7 @@ import {
   X, Calendar, MapPin, Phone, 
   ExternalLink, Sparkles, Clock, Check,
   AlertCircle, ShieldCheck, Globe, Users,
-  Backpack, Info, Ticket, ChevronRight, UserCheck, Flame
+  Backpack, Info, Ticket, ChevronRight, UserCheck, Flame, Trees
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { formatEventTimeWithTimezone } from "@/lib/timezone";
@@ -170,6 +170,13 @@ export function EventFullDetailsModal({
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/10 text-white text-[10px] font-bold uppercase tracking-wider border border-white/10">
                     <MapPin className="h-3 w-3 text-primary" />
                     <span>In-Person</span>
+                  </span>
+                )}
+
+                {event.is_outdoor && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/30">
+                    <Trees className="h-3 w-3 text-emerald-400" />
+                    <span>Outdoor Gathering</span>
                   </span>
                 )}
 

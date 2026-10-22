@@ -22,11 +22,12 @@ import { sendVenueAuthorizationEmail } from './services/venueAuthEmail';
 import { discoverVenueIntelligence } from './services/venueIntelligence';
 
 export async function organizerCreateEventHandler(req: Request, res: Response, pool: Pool) {
-  const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, googleMapsLink, contact_info, organizer_email, visibility, guest_list, guestList, is_paid, isPaid, ticket_price, ticketPrice, venue_section_hall, venueSectionHall, upi_id, upiId, external_ticket_link, externalTicketLink } = req.body;
+  const { title, description, category, location, city, date_time, end_time, timings, external_link, google_maps_link, googleMapsLink, contact_info, organizer_email, visibility, guest_list, guestList, is_paid, isPaid, ticket_price, ticketPrice, venue_section_hall, venueSectionHall, upi_id, upiId, external_ticket_link, externalTicketLink, is_outdoor, isOutdoor } = req.body;
 
   if (!organizer_email) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
   const safeEventType = (req.body.event_type || req.body.eventType) === 'online' ? 'online' : 'in_person';
+  const safeIsOutdoor = safeEventType === 'in_person' && Boolean(is_outdoor ?? isOutdoor ?? false);
   const safeCity = (city || (safeEventType === 'online' ? 'Global / Online' : '')).trim();
   if (!safeCity) {
     return res.status(400).json({ success: false, error: 'City / Region is mandatory for event creation.' });
@@ -53,10 +54,12 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
       });
     }
 
-    if (!location) {
+    if (!location && safeEventType !== 'online') {
       return res.status(400).json({
         success: false,
-        error: 'Venue Name or Physical Location is required for paid events.'
+        error: safeIsOutdoor
+          ? 'Gathering / Meetup location name is required for outdoor events.'
+          : 'Venue Name or Physical Location is required for paid events.'
       });
     }
   }
@@ -101,7 +104,11 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
   let safeVenueEmail: string | null = null;
   let safeVenuePhone: string | null = null;
 
-  if (safeIsPaid) {
+  // Venue verification is required ONLY for paid, in-person commercial venues.
+  // Outdoor gatherings and online events are exempt from venue verification.
+  const requiresVenueAuth = safeIsPaid && safeEventType === 'in_person' && !safeIsOutdoor;
+
+  if (requiresVenueAuth) {
     initialStatus = 'pending_venue_auth';
     venueStatus = 'pending_venue_auth';
     paymentDetailsLocked = true;
@@ -123,6 +130,9 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
       venueStatus = 'pending_admin_phone_auth';
     }
   } else {
+    // For outdoor gatherings or online events or free events, venue verification is not applicable
+    venueStatus = safeIsOutdoor ? 'not_applicable' : (safeEventType === 'online' ? 'not_applicable' : 'unverified');
+    paymentDetailsLocked = false;
     initialStatus = moderationResult.decision === 'auto_approve' ? 'approved' : 'pending';
   }
 
@@ -131,6 +141,7 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
       ...req.body,
       status: initialStatus,
       is_paid: safeIsPaid,
+      is_outdoor: safeIsOutdoor,
       ticket_price: safeTicketPrice,
       upi_id: safeUpiId,
       external_ticket_link: safeExternalTicketLink,
@@ -144,8 +155,8 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
       payment_details_locked: paymentDetailsLocked
     });
 
-    // Dispatch Legal Authorization Email if authentic domain email was discovered
-    if (safeIsPaid && venueAuthToken && safeVenueEmail) {
+    // Dispatch Legal Authorization Email if authentic domain email was discovered AND venue verification is required
+    if (requiresVenueAuth && venueAuthToken && safeVenueEmail) {
       const auditRef = `VC-AUTH-${new Date().getFullYear()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
       
       const adminRes = await pool.query('SELECT brand_name, phone_number FROM admins WHERE LOWER(email) = $1', [organizer_email.toLowerCase().trim()]);
@@ -220,16 +231,21 @@ export async function organizerCreateEventHandler(req: Request, res: Response, p
         success: true,
         data: event,
         status: 'pending_venue_auth',
-        message: `📧 Legal verification email sent to ${safeVenueEmail}. Your event will be published with the 'Venue Confirmed' badge once the venue manager approves!`,
+        message: safeVenueEmail
+          ? `📧 Legal verification email sent to ${safeVenueEmail}. Your event will be published with the 'Venue Confirmed' badge once the venue manager approves!`
+          : `⏳ Event submitted! Awaiting administrator verification with the venue.`,
       });
     }
 
     if (initialStatus === 'approved') {
+      const successMessage = safeIsOutdoor
+        ? '🌲 Outdoor event approved automatically! Your gathering is live with the Outdoor Gathering badge.'
+        : '🎉 Event approved automatically by Trust & Safety AI! Your event is live.';
       return res.json({
         success: true,
         data: event,
         status: 'approved',
-        message: '🎉 Event approved automatically by Trust & Safety AI! Your event is live.',
+        message: successMessage,
       });
     }
 

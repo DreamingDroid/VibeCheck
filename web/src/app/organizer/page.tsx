@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 import { VibeTimePicker } from "@/components/vibe-time-picker";
 import { VibeDatePicker } from "@/components/vibe-date-picker";
-import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode, Send, Calendar, Clock, MapPin, Users, ChevronDown, ChevronUp, Key, MessageSquare, Plus, Backpack, ListChecks, PhoneCall, Compass, CheckCircle2, Globe, ShieldCheck, X, ArrowLeft, ArrowRight, Check, AlertTriangle } from "lucide-react";
+import { Trash2, Image as ImageIcon, Radio, Sparkles, Lock, QrCode, Send, Calendar, Clock, MapPin, Users, ChevronDown, ChevronUp, Key, MessageSquare, Plus, Backpack, ListChecks, PhoneCall, Compass, CheckCircle2, Globe, ShieldCheck, X, ArrowLeft, ArrowRight, Check, AlertTriangle, Trees } from "lucide-react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import OrganizerInsightsDashboard from "@/components/OrganizerInsightsDashboard";
@@ -126,6 +126,7 @@ export default function OrganizerDashboard() {
     visibility: "public" as "public" | "invite_only",
     guestList: "",
     eventType: "in_person" as "in_person" | "online",
+    isOutdoor: false,
     timezone: typeof window !== "undefined" ? getUserTimezone() : "Asia/Kolkata",
     minAge: "none",
     customMinAge: "",
@@ -562,6 +563,7 @@ export default function OrganizerDashboard() {
       visibility: ev.visibility || "public",
       guestList: "",
       eventType: (ev.event_type || "in_person") as "in_person" | "online",
+      isOutdoor: Boolean(ev.is_outdoor),
       timezone: ev.timezone || getUserTimezone(),
       minAge: ev.min_age === 18 ? "18" : ev.min_age === 21 ? "21" : (ev.min_age && Number(ev.min_age) > 0 ? "custom" : "none"),
       customMinAge: (ev.min_age && ev.min_age !== 18 && ev.min_age !== 21 && Number(ev.min_age) > 0) ? String(ev.min_age) : "",
@@ -608,6 +610,7 @@ export default function OrganizerDashboard() {
       visibility: "public",
       guestList: "",
       eventType: "in_person",
+      isOutdoor: false,
       timezone: getUserTimezone(),
       minAge: "none",
       customMinAge: "",
@@ -750,6 +753,7 @@ export default function OrganizerDashboard() {
           organizer_email: session?.user?.email,
           attendee_guide: guideData,
           event_type: formData.eventType,
+          is_outdoor: formData.eventType === 'in_person' ? formData.isOutdoor : false,
           timezone: formData.timezone || 'Asia/Kolkata'
         })
       });
@@ -764,6 +768,7 @@ export default function OrganizerDashboard() {
           visibility: "public",
           guestList: "",
           eventType: "in_person",
+          isOutdoor: false,
           timezone: getUserTimezone(),
           minAge: "none",
           customMinAge: "",
@@ -1091,6 +1096,7 @@ export default function OrganizerDashboard() {
               visibility: "public",
               guestList: "",
               eventType: "in_person",
+              isOutdoor: false,
               timezone: getUserTimezone(),
               minAge: "none",
               customMinAge: "",
@@ -1496,13 +1502,66 @@ export default function OrganizerDashboard() {
                       <h3 className="text-xs font-black uppercase tracking-wider text-black">3. Venue, Capacity &amp; Access</h3>
                     </div>
 
+                    {/* Setting Type: Indoor Venue vs Outdoor Public Gathering */}
+                    {formData.eventType === 'in_person' && (
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">
+                          Location Environment
+                        </Label>
+                        <div className="grid grid-cols-2 gap-2 bg-zinc-50 p-1.5 rounded-2xl border border-black/10">
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, isOutdoor: false })}
+                            className={`py-2 px-3 text-left rounded-xl transition-all flex items-center gap-2.5 ${
+                              !formData.isOutdoor
+                                ? 'bg-white text-black shadow-xs border border-black/10 font-black'
+                                : 'text-zinc-500 hover:text-black font-semibold'
+                            }`}
+                          >
+                            <span className="text-base">🏢</span>
+                            <div>
+                              <div className="text-xs uppercase tracking-wider">Indoor / Commercial Venue</div>
+                              <div className="text-[9px] text-zinc-400 font-medium">Cafe, Hall, Pub, Studio</div>
+                            </div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, isOutdoor: true })}
+                            className={`py-2 px-3 text-left rounded-xl transition-all flex items-center gap-2.5 ${
+                              formData.isOutdoor
+                                ? 'bg-white text-emerald-900 shadow-xs border border-emerald-300 font-black'
+                                : 'text-zinc-500 hover:text-black font-semibold'
+                            }`}
+                          >
+                            <span className="text-base">🏞️</span>
+                            <div>
+                              <div className="text-xs uppercase tracking-wider">Outdoor / Public Space</div>
+                              <div className="text-[9px] text-emerald-700/80 font-medium">Beach, Park, Trail, Open Ground</div>
+                            </div>
+                          </button>
+                        </div>
+                        {formData.isOutdoor && (
+                          <p className="text-[10px] text-emerald-700 font-bold ml-1 flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                            <span>No venue verification required for outdoor events. Passes and ticketing unlock directly!</span>
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     <div className="space-y-1.5">
                       <Label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">
-                        {formData.eventType === 'online' ? "Platform / Meeting Link" : "Venue / Location Name"} <span className="text-red-500">*</span>
+                        {formData.eventType === 'online' ? "Platform / Meeting Link" : (formData.isOutdoor ? "Gathering / Meetup Location Name" : "Venue / Location Name")} <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         name="location"
-                        placeholder={formData.eventType === 'online' ? "e.g. Google Meet, Zoom, YouTube Live, or 'Link shared upon registration'" : "e.g. Vuda Childrens Arena, Siripuram, Visakhapatnam"}
+                        placeholder={
+                          formData.eventType === 'online' 
+                            ? "e.g. Google Meet, Zoom, YouTube Live, or 'Link shared upon registration'" 
+                            : (formData.isOutdoor 
+                                ? "e.g. RK Beach (Near Kali Temple), Tenneti Park, Kambalakonda Entrance" 
+                                : "e.g. Vuda Childrens Arena, Siripuram, Visakhapatnam")
+                        }
                         value={formData.location}
                         onChange={e => { setFormData({ ...formData, location: e.target.value }); if (errors.location) setErrors({ ...errors, location: false }) }}
                         className={cn("bg-zinc-50 border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11", errors.location && "border-red-500 ring-red-500/20")}
@@ -1697,28 +1756,61 @@ export default function OrganizerDashboard() {
 
                     {/* Paid Event: Autonomous Venue Authorization & External Ticketing */}
                     {formData.isPaid && (
-                      <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 sm:p-5 space-y-3 animate-in fade-in">
-                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-800">
-                          <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
-                          <span>Autonomous Venue Authorization &amp; Ticketing Information</span>
+                      <div className={cn(
+                        "rounded-2xl p-4 sm:p-5 space-y-3 animate-in fade-in border",
+                        formData.isOutdoor || formData.eventType === 'online'
+                          ? "bg-emerald-500/10 border-emerald-500/20"
+                          : "bg-amber-500/10 border-amber-500/20"
+                      )}>
+                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider">
+                          {formData.isOutdoor || formData.eventType === 'online' ? (
+                            <>
+                              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                              <span className="text-emerald-900">
+                                {formData.isOutdoor ? "🏞️ Outdoor Gathering Ticketing Setup" : "💻 Virtual Event Ticketing Setup"}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0" />
+                              <span className="text-amber-800">Autonomous Venue Authorization &amp; Ticketing Information</span>
+                            </>
+                          )}
                         </div>
-                        <p className="text-[11px] text-amber-900/80 font-medium leading-relaxed">
-                          🛡️ <strong>Autonomous Verification:</strong> To eliminate unauthorized events and protect community members, VibeCheck autonomously discovers and verifies the official venue management contacts. Pass ticketing links remain locked until verified.
+                        <p className={cn(
+                          "text-[11px] font-medium leading-relaxed",
+                          formData.isOutdoor || formData.eventType === 'online' ? "text-emerald-900/80" : "text-amber-900/80"
+                        )}>
+                          {formData.isOutdoor ? (
+                            <>
+                              🏞️ <strong>Exempt from Venue Verification:</strong> As an outdoor/public space gathering, no commercial venue sign-off is needed. Passes and ticket acquisition links will be immediately available to approved attendees.
+                            </>
+                          ) : formData.eventType === 'online' ? (
+                            <>
+                              💻 <strong>Virtual Event:</strong> No physical venue verification needed. Ticketing details will be accessible directly upon event approval.
+                            </>
+                          ) : (
+                            <>
+                              🛡️ <strong>Autonomous Verification:</strong> To eliminate unauthorized events and protect community members, VibeCheck autonomously discovers and verifies the official venue management contacts. Pass ticketing links remain locked until verified.
+                            </>
+                          )}
                         </p>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                          <div className="space-y-1">
-                            <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">Venue Hall / Area Name (Optional)</Label>
-                            <Input
-                              placeholder="e.g. Rooftop Lounge, Banquet Hall A"
-                              value={formData.venueSectionHall}
-                              onChange={e => setFormData({ ...formData, venueSectionHall: e.target.value })}
-                              className="bg-white border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11"
-                            />
-                            <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Specific reserved section or hall</p>
-                          </div>
+                          {!formData.isOutdoor && formData.eventType !== 'online' && (
+                            <div className="space-y-1">
+                              <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">Venue Hall / Area Name (Optional)</Label>
+                              <Input
+                                placeholder="e.g. Rooftop Lounge, Banquet Hall A"
+                                value={formData.venueSectionHall}
+                                onChange={e => setFormData({ ...formData, venueSectionHall: e.target.value })}
+                                className="bg-white border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11"
+                              />
+                              <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">Specific reserved section or hall</p>
+                            </div>
+                          )}
 
-                          <div className="space-y-1">
+                          <div className={cn("space-y-1", (formData.isOutdoor || formData.eventType === 'online') ? "sm:col-span-1" : "")}>
                             <Label className="text-[10px] font-bold text-zinc-600 uppercase ml-1">Ticket Price per Person (₹) <span className="text-red-500">*</span></Label>
                             <Input
                               name="ticketPrice"
@@ -1741,7 +1833,11 @@ export default function OrganizerDashboard() {
                               onChange={e => setFormData({ ...formData, externalTicketLink: e.target.value })}
                               className="bg-white border-black/10 focus:ring-primary rounded-xl text-xs font-bold h-11"
                             />
-                            <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">If provided, attendees will be redirected here to purchase official tickets once venue is verified.</p>
+                            <p className="text-[9px] text-zinc-400 font-bold uppercase ml-1">
+                              {formData.isOutdoor || formData.eventType === 'online'
+                                ? "If provided, attendees will be redirected here to purchase official tickets."
+                                : "If provided, attendees will be redirected here to purchase official tickets once venue is verified."}
+                            </p>
                           </div>
                         </div>
                       </div>

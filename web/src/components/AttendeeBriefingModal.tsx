@@ -6,7 +6,7 @@ import {
   X, CheckCircle2, Calendar, MapPin, Phone, 
   ExternalLink, Sparkles, Clock, Check, Copy,
   AlertCircle, Backpack, RotateCcw,
-  ShieldCheck, QrCode, Send, Globe, Ticket
+  ShieldCheck, QrCode, Send, Globe, Ticket, Trees
 } from "lucide-react";
 import { formatTelegramLink } from "@/lib/telegramGroup";
 import { formatEventTimeWithTimezone } from "@/lib/timezone";
@@ -515,8 +515,22 @@ export function AttendeeBriefingModal({
                     <div className="flex items-start justify-between gap-2 border-b border-amber-200/60 pb-3">
                       <div className="space-y-1">
                         <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
-                          <ShieldCheck className="h-3 w-3" />
-                          <span>🛡️ Venue Verified Event</span>
+                          {event.is_outdoor ? (
+                            <>
+                              <Trees className="h-3 w-3 text-emerald-700" />
+                              <span>🏞️ Outdoor Gathering</span>
+                            </>
+                          ) : event.event_type === 'online' ? (
+                            <>
+                              <Globe className="h-3 w-3 text-cyan-700" />
+                              <span>💻 Virtual Event</span>
+                            </>
+                          ) : (
+                            <>
+                              <ShieldCheck className="h-3 w-3 text-emerald-700" />
+                              <span>🛡️ Venue Verified Event</span>
+                            </>
+                          )}
                         </div>
                         <h3 className="text-sm font-black uppercase tracking-wider text-amber-950">
                           Pass &amp; Ticket Acquisition

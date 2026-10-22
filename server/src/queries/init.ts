@@ -262,6 +262,7 @@ export async function initializeDatabaseSchema(pool: Pool) {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_events_is_featured ON events (is_featured)`).catch(() => {});
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS attendee_guide JSONB DEFAULT '{}'::jsonb`).catch(() => {});
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS event_type VARCHAR(20) DEFAULT 'in_person'`).catch(() => {});
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_outdoor BOOLEAN DEFAULT false`).catch(() => {});
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Asia/Kolkata'`).catch(() => {});
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS min_age INTEGER`).catch(() => {});
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS suitable_age VARCHAR(100)`).catch(() => {});

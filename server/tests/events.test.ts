@@ -186,5 +186,30 @@ describe('Events API Endpoints', () => {
       const checkRes = await api.get(`/api/events/${createdEventId}`);
       expect(checkRes.status).toBe(404);
     });
+
+    it('POST /api/organizer/events should exempt outdoor paid events from venue verification', async () => {
+      const outdoorDate = new Date(Date.now() + 86400000 * 10).toISOString(); // 10 days in future
+      const res = await api.post('/api/organizer/events').send({
+        title: `Beach Sunrise Yoga & Trek ${Date.now()}`,
+        description: 'Morning coastal yoga and outdoor gathering.',
+        category: 'Wellness',
+        location: 'RK Beach Kali Temple Point',
+        city: 'Visakhapatnam',
+        date_time: outdoorDate,
+        organizer_email: testOrganizerEmail,
+        is_paid: true,
+        ticket_price: 150,
+        is_outdoor: true
+      });
+
+      expect(res.status).toBeOneOf([200, 201]);
+      expect(res.body).toHaveProperty('success', true);
+      expect(res.body.data.venue_verification_status).not.toBe('pending_venue_auth');
+      expect(res.body.data.is_outdoor).toBe(true);
+
+      if (res.body.data?.id) {
+        await api.delete(`/api/admin/events/${res.body.data.id}`);
+      }
+    });
   });
 });
